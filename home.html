@@ -1081,7 +1081,7 @@
                 </div>
             </div>
             <div class="search-field-wrapper">
-                <input type="text" placeholder="ابحث عن متجر أو منتج...">
+                <input type="text" id="header-search-input" placeholder="ابحث عن متجر أو منتج..." oninput="handleHeaderSearch()">
                 <i class="fa-solid fa-magnifying-glass magnifier-icon"></i>
             </div>
         </div>
@@ -2324,7 +2324,7 @@
                                 <div class="store-rating-followers" style="font-size:9px;">
                                     <i class="fa-solid fa-eye" style="color:#B59410;"></i> ${st.views} زيارة
                                 </div>
-                                <button class="view-store-btn" style="height:28px; font-size:10px;" onclick="openSingleStoreView('${st.id}', '${st.name}', '${st.cover}')">دخول للبيج</button>
+                                <button class="view-store-btn" style="height:28px; font-size:10px;" onclick="openSingleStoreView('${st.id}', '${String(st.name).replace(/'/g, "\\'")}', '${String(st.cover).replace(/'/g, "\\'")}')">دخول للبيج</button>
                             </div>
                         `;
                     });
@@ -2793,7 +2793,7 @@
                         <span class="pipe-divider">|</span>
                         <span><i class="fa-solid fa-eye" style="color:#B59410;"></i> ${store.views}</span>
                     </div>
-                    <button class="view-store-btn" onclick="openSingleStoreView('${store.id}', '${store.name}', '${store.cover}')">عرض المتجر</button>
+                    <button class="view-store-btn" onclick="openSingleStoreView('${store.id}', '${String(store.name).replace(/'/g, "\\'")}', '${String(store.cover).replace(/'/g, "\\'")}')">عرض المتجر</button>
                 `;
                 container.appendChild(card);
             });
@@ -3230,7 +3230,7 @@
                         <span class="pipe-divider">|</span>
                         <span><i class="fa-solid fa-eye" style="color:#B59410;"></i> ${metrics.views}</span>
                     </div>
-                    <button class="view-store-btn" onclick="openSingleStoreView('${cleanId}', '${store.name}', '${storeImg}')">عرض المتجر</button>
+                    <button class="view-store-btn" onclick="openSingleStoreView('${cleanId}', '${String(store.name || 'متجر').replace(/'/g, "\\'")}', '${String(storeImg).replace(/'/g, "\\'")}')">عرض المتجر</button>
                 `;
                 container.appendChild(card);
             });
@@ -3414,7 +3414,7 @@
         }
         window.closeTransferModal = closeTransferModal;
 
-        function processTransfer() {
+        async function processTransfer() {
             const recipientInput = document.getElementById('transfer-recipient-id');
             const amountInput = document.getElementById('transfer-amount');
 
@@ -3436,18 +3436,65 @@
                 return;
             }
 
-            userBalance -= transferAmount;
-            updateBalanceUI();
-            syncUserFirebaseField({ balance: userBalance });
+            // البحث عن المستلم الحقيقي في قاعدة البيانات بواسطة معرفه (ID) بأي صيغة وإضافة المبلغ لرصيده فعلياً
+            try {
+                const normalizeId = (val) => String(val || '').trim().toUpperCase().replace('#', '').replace('IQ-', '').trim();
+                const normalizedRecipient = normalizeId(recipientId);
 
-            addTransactionRecord(`تحويل رصيد إلى (${recipientId})`, transferAmount, 'minus');
-            addNotificationRecord('تحويل رصيد لمستخدم 📤', `تم تحويل ${transferAmount.toLocaleString()} د.ع إلى المستلم (${recipientId}).`);
+                const usersSnapshot = await get(child(ref(db), 'users'));
+                let recipientUid = null;
+                let recipientData = null;
 
-            closeTransferModal();
-            showCustomAlert(`✅ تمت عملية تحويل ${transferAmount.toLocaleString()} د.ع بنجاح إلى الحساب (${recipientId}).`, 'تمت العملية');
+                if (usersSnapshot.exists()) {
+                    const usersData = usersSnapshot.val();
+                    for (let uid in usersData) {
+                        const u = usersData[uid];
+                        if (u.userId && normalizedRecipient !== '' && normalizeId(u.userId) === normalizedRecipient) {
+                            recipientUid = uid;
+                            recipientData = u;
+                            break;
+                        }
+                    }
+                }
 
-            recipientInput.value = '';
-            amountInput.value = '';
+                if (!recipientUid) {
+                    showCustomAlert(`❌ لم يتم العثور على أي مستخدم بالمعرّف (${recipientId})!\nتأكد من صحة المعرف وحاول مجدداً.`, 'مستلم غير موجود');
+                    return;
+                }
+
+                if (currentUserUid && recipientUid === currentUserUid) {
+                    showCustomAlert('⚠️ لا يمكنك تحويل الرصيد إلى حسابك الشخصي!', 'عملية غير مسموحة');
+                    return;
+                }
+
+                const recipientBalance = (recipientData.balance !== undefined ? parseInt(recipientData.balance) : 0) + transferAmount;
+                await update(ref(db, 'users/' + recipientUid), { balance: recipientBalance });
+
+                userBalance -= transferAmount;
+                updateBalanceUI();
+                syncUserFirebaseField({ balance: userBalance });
+
+                addTransactionRecord(`تحويل رصيد إلى (${recipientId})`, transferAmount, 'minus');
+                addNotificationRecord('تحويل رصيد لمستخدم 📤', `تم تحويل ${transferAmount.toLocaleString()} د.ع إلى المستلم (${recipientId}).`);
+
+                // تسجيل معاملة استلام لدى المستلم ليظهر له المبلغ الوارد في سجل معاملاته
+                const nowT = new Date();
+                push(ref(db, 'users/' + recipientUid + '/transactions'), {
+                    title: `استلام تحويل رصيد من (${localStorage.getItem('app_user_id_num') || 'مستخدم'})`,
+                    amount: transferAmount,
+                    type: 'plus',
+                    timeFormatted: 'الآن، ' + nowT.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }),
+                    timestamp: Date.now()
+                });
+
+                closeTransferModal();
+                showCustomAlert(`✅ تمت عملية تحويل ${transferAmount.toLocaleString()} د.ع بنجاح إلى الحساب (${recipientData.userId || recipientId}) - ${recipientData.name || ''}.`, 'تمت العملية');
+
+                recipientInput.value = '';
+                amountInput.value = '';
+            } catch (err) {
+                showCustomAlert('خطأ أثناء تنفيذ التحويل: ' + err.message, 'خطأ');
+            }
         }
         window.processTransfer = processTransfer;
 
@@ -3460,7 +3507,7 @@
 
             container.innerHTML = '';
 
-            const daysNames = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الخميس', 'الجمعة'];
+            const daysNames = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
             const todayDate = new Date();
             const jsDay = todayDate.getDay(); 
             const todayIndex = (jsDay + 1) % 7;
@@ -3774,6 +3821,116 @@
             }
         }
         window.addTransactionRecord = addTransactionRecord;
+
+        // دالة البحث الفوري في الرأس العلوي عن المتاجر والمنتجات
+        function handleHeaderSearch() {
+            const searchInput = document.getElementById('header-search-input');
+            if (!searchInput) return;
+            const query = searchInput.value.trim().toLowerCase();
+
+            // العودة للعرض الطبيعي عند مسح حقل البحث
+            const container = document.getElementById('featured-horizontal-container');
+            if (!container) return;
+
+            if (query === '') {
+                renderFeaturedStores();
+                return;
+            }
+
+            // الانتقال للواجهة الرئيسية لإظهار نتائج البحث إذا لم تكن ظاهرة
+            if (!homeView.classList.contains('active')) {
+                homeView.classList.add('active');
+                balanceView.classList.remove('active');
+                profileView.classList.remove('active');
+                categoryDetailsView.classList.remove('active');
+                notificationsView.classList.remove('active');
+                singleStoreView.classList.remove('active');
+                if (earningsView) earningsView.classList.remove('active');
+                if (cashbackView) cashbackView.classList.remove('active');
+                if (trendView) trendView.classList.remove('active');
+            }
+
+            // البحث في المتاجر والبيجات من قاعدة البيانات
+            const matchingStores = firebaseStores.filter(s => {
+                const name = String(s.name || s.storeName || '').toLowerCase();
+                const cat = String(s.category || '').toLowerCase();
+                const idStr = String(s.id || '').toLowerCase();
+                return name.includes(query) || cat.includes(query) || idStr.includes(query);
+            });
+
+            // البحث في المنتجات المرفوعة
+            const allProducts = JSON.parse(localStorage.getItem('app_store_products') || '[]');
+            const matchingProducts = allProducts.filter(p => String(p.name || '').toLowerCase().includes(query));
+
+            container.innerHTML = '';
+
+            if (matchingStores.length === 0 && matchingProducts.length === 0) {
+                container.innerHTML = `<p style="font-size:12px; color:#8A8D91; text-align:center; width:100%; padding:20px 0;">لا توجد نتائج مطابقة لبحثك (${searchInput.value.trim()}) حالياً.</p>`;
+                return;
+            }
+
+            matchingStores.forEach(s => {
+                const cleanId = String(s.id).trim().replace('#', '');
+                const metrics = getStoreMetrics(cleanId);
+                const cover = s.cover || s.bg || "https://i.postimg.cc/R0Dj6Ybh/Screenshot-2026-07-19-00-21-11-659-com-miui-gallery-edit.jpg";
+                const storeName = s.name || s.storeName || 'متجر';
+                const safeStoreName = String(storeName).replace(/'/g, "\\'");
+                const safeCover = String(cover).replace(/'/g, "\\'");
+                const card = document.createElement('div');
+                card.className = 'store-premium-card';
+                card.innerHTML = `
+                    <div class="store-banner-wrapper" style="width: 100%;">
+                        <div class="store-banner-preview">
+                            <div class="banner-split-patch" style="${(cover.startsWith('http') || cover.startsWith('data:image')) ? `background-image: url('${cover}'); background-size: 100% 100%; background-position: center;` : `background-color: ${cover};`}"></div>
+                        </div>
+                    </div>
+                    <h3 class="store-name-text">${storeName}</h3>
+                    <div class="store-rating-followers">
+                        <i class="fa-solid fa-star"></i>
+                        <span>${metrics.avgRating}</span>
+                        <span class="pipe-divider">|</span>
+                        <span><i class="fa-solid fa-eye" style="color:#B59410;"></i> ${metrics.views}</span>
+                    </div>
+                    <button class="view-store-btn" onclick="openSingleStoreView('${cleanId}', '${safeStoreName}', '${safeCover}')">عرض المتجر</button>
+                `;
+                container.appendChild(card);
+            });
+
+            matchingProducts.forEach(p => {
+                const safeName = String(p.name || '').replace(/'/g, "\\'");
+                const safePrice = String(p.price || '').replace(/'/g, "\\'");
+                const card = document.createElement('div');
+                card.className = 'store-premium-card';
+                card.innerHTML = `
+                    <div style="width:100%; height:90px; border-radius:10px; overflow:hidden; background:#F8F9FA;">
+                        <img src="${p.img}" style="width:100%; height:100%; object-fit:cover;">
+                    </div>
+                    <h3 class="store-name-text" style="font-size:11px;">${p.name}</h3>
+                    <span style="font-size:11px; font-weight:700; color:#B59410;">${p.price}</span>
+                    <button class="view-store-btn" style="height:28px; font-size:10px;" onclick="openSingleStoreView('${String(p.storeId).trim().replace('#','')}', 'متجر المنتج', '#1A1D20')">عرض المتجر</button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        window.handleHeaderSearch = handleHeaderSearch;
+
+        // عرض الاسم والرمز المخزنين محلياً فوراً عند فتح الصفحة (قبل وصول رد قاعدة البيانات)
+        (function applyStoredUserInfo() {
+            const storedName = localStorage.getItem('app_user_name');
+            const storedId = localStorage.getItem('app_user_id_num');
+            if (storedName) {
+                const nameInputEl = document.getElementById('username-display-input');
+                const nameHeadingEl = document.getElementById('profile-name-heading');
+                const cardHolderEl = document.getElementById('card-holder-name');
+                if (nameInputEl) nameInputEl.value = storedName;
+                if (nameHeadingEl) nameHeadingEl.innerText = storedName;
+                if (cardHolderEl) cardHolderEl.innerText = storedName;
+            }
+            if (storedId) {
+                const idDisplayEl = document.getElementById('user-id-display');
+                if (idDisplayEl) idDisplayEl.value = storedId;
+            }
+        })();
 
         // تشغيل البداية التلقائية
         renderFeaturedStores();
