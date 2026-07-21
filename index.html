@@ -7,7 +7,8 @@
 
     <!-- التحقق الفوري المباشر قبل تحميل أي عنصر لتجنب إظهار الواجهة إطلاقاً في حال كان المستخدم مسجلاً -->
     <script>
-        if (localStorage.getItem('app_active_user_uid')) {
+        // التحويل الفوري يتم فقط إذا أكمل المستخدم تسجيل دخول حقيقي سابقاً (مفتاح الجلسة + علامة إتمام الدخول معاً)، أما المستخدم الجديد فتظهر له واجهة إنشاء الحساب وتسجيل الدخول أولاً
+        if (localStorage.getItem('app_active_user_uid') && localStorage.getItem('app_login_completed') === 'true') {
             document.documentElement.style.display = 'none';
             window.location.replace('home.html');
         }
@@ -485,6 +486,7 @@
                     await set(ref(db, 'users/' + user.uid), userData);
                 }
                 localStorage.setItem('app_active_user_uid', user.uid);
+                localStorage.setItem('app_login_completed', 'true');
                 window.location.href = 'home.html';
             }
         }).catch((err) => {
@@ -496,25 +498,29 @@
 
         // التحقق التلقائي اللحظي عند فتح التطبيق لإكمال الدخول مباشرة والانتقال إلى home.html بدون إظهار نموذج التسجيل
         onAuthStateChanged(auth, async (user) => {
-            if (user) {
+            if (user && localStorage.getItem('app_login_completed') === 'true') {
                 localStorage.setItem('app_active_user_uid', user.uid);
                 try {
                     const snapshot = await get(child(ref(db), 'users/' + user.uid));
                     if (snapshot.exists()) {
                         const data = snapshot.val();
+                        // توليد رمز عشوائي فريد للمستخدم إذا لم يكن لديه رمز مخزن مسبقاً وحفظه بقاعدة البيانات
+                        let sessionUserId = data.userId;
+                        if (!sessionUserId) {
+                            sessionUserId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
+                            await set(ref(db, 'users/' + user.uid + '/userId'), sessionUserId);
+                        }
                         localStorage.setItem('app_user_balance', data.balance !== undefined ? data.balance : 0);
                         localStorage.setItem('app_user_points', data.points !== undefined ? data.points : 0);
                         localStorage.setItem('app_user_banned', data.banned ? 'true' : 'false');
                         localStorage.setItem('app_ban_reason', data.banReason || '');
                         localStorage.setItem('app_user_managed_store', data.managedStore || '');
                         localStorage.setItem('app_user_name', data.name || 'مستخدم شوب العراق');
-                        localStorage.setItem('app_user_id_num', data.userId || '#IQ-8892401');
+                        localStorage.setItem('app_user_id_num', sessionUserId);
                     }
                 } catch (err) {
                     console.error("Error fetching user session: ", err);
                 }
-                window.location.href = 'home.html';
-            } else if (localStorage.getItem('app_active_user_uid')) {
                 window.location.href = 'home.html';
             }
         });
@@ -610,6 +616,7 @@
                     await set(ref(db, 'users/' + user.uid), userData);
 
                     localStorage.setItem('app_active_user_uid', user.uid);
+                    localStorage.setItem('app_login_completed', 'true');
                     localStorage.setItem('app_user_balance', userData.balance);
                     localStorage.setItem('app_user_points', userData.points);
                     localStorage.setItem('app_user_banned', 'false');
@@ -635,16 +642,42 @@
                     const snapshot = await get(child(ref(db), 'users/' + user.uid));
                     if (snapshot.exists()) {
                         const data = snapshot.val();
+                        // توليد رمز عشوائي فريد للمستخدم إذا لم يكن لديه رمز مخزن مسبقاً وحفظه بقاعدة البيانات
+                        let loginUserId = data.userId;
+                        if (!loginUserId) {
+                            loginUserId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
+                            await set(ref(db, 'users/' + user.uid + '/userId'), loginUserId);
+                        }
                         localStorage.setItem('app_active_user_uid', user.uid);
+                        localStorage.setItem('app_login_completed', 'true');
                         localStorage.setItem('app_user_balance', data.balance !== undefined ? data.balance : 0);
                         localStorage.setItem('app_user_points', data.points !== undefined ? data.points : 0);
                         localStorage.setItem('app_user_banned', data.banned ? 'true' : 'false');
                         localStorage.setItem('app_ban_reason', data.banReason || '');
                         localStorage.setItem('app_user_managed_store', data.managedStore || '');
                         localStorage.setItem('app_user_name', data.name || 'مستخدم شوب العراق');
-                        localStorage.setItem('app_user_id_num', data.userId || '#IQ-8892401');
+                        localStorage.setItem('app_user_id_num', loginUserId);
                     } else {
+                        // إنشاء سجل جديد مع رمز عشوائي فريد للمستخدم الذي لا يملك بيانات في قاعدة البيانات
+                        const generatedId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
+                        const newUserData = {
+                            uid: user.uid,
+                            name: fullName,
+                            email: email,
+                            userId: generatedId,
+                            balance: 0,
+                            points: 0,
+                            banned: false,
+                            banReason: 'مخالفة الشروط والأحكام العامة للتطبيق.',
+                            managedStore: '',
+                            avatar: 'https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg',
+                            createdAt: new Date().toISOString()
+                        };
+                        await set(ref(db, 'users/' + user.uid), newUserData);
                         localStorage.setItem('app_active_user_uid', user.uid);
+                        localStorage.setItem('app_login_completed', 'true');
+                        localStorage.setItem('app_user_name', newUserData.name);
+                        localStorage.setItem('app_user_id_num', generatedId);
                     }
 
                     mainActionBtn.classList.remove('loading');
