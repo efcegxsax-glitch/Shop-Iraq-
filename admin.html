@@ -376,11 +376,15 @@
                 const snapshot = await get(child(ref(db), 'users'));
                 let foundUser = null;
 
+                // توحيد صيغة المعرّف المدخل لينجح البحث بأي شكل: #IQ-8892401 أو IQ-8892401 أو 8892401
+                const normalizeId = (val) => String(val || '').trim().toUpperCase().replace('#', '').replace('IQ-', '').trim();
+                const normalizedQuery = normalizeId(query);
+
                 if (snapshot.exists()) {
                     const users = snapshot.val();
                     for (let uid in users) {
                         const u = users[uid];
-                        if (u.userId === query || uid === query || (query.includes("8892401") && u.userId && u.userId.includes("8892401"))) {
+                        if (u.userId === query || uid === query || (u.userId && normalizedQuery !== '' && normalizeId(u.userId) === normalizedQuery)) {
                             foundUser = u;
                             targetFoundUid = uid;
                             break;
