@@ -407,7 +407,7 @@
         </div>
 
         <div class="social-wrap">
-            <button class="btn-social" onclick="triggerSocial('Google')">
+            <button type="button" class="btn-social" onclick="triggerSocial('Google')">
                 <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -417,7 +417,7 @@
                 Google
             </button>
 
-            <button class="btn-social" onclick="triggerSocial('Facebook')">
+            <button type="button" class="btn-social" onclick="triggerSocial('Facebook')">
                 <i class="fa-brands fa-facebook"></i>
                 Facebook
             </button>
@@ -443,7 +443,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
         import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -462,7 +462,7 @@
         const auth = getAuth(app);
         const db = getDatabase(app);
 
-        // معالجة نتيجة الدخول عبر إعادة التوجيه لقوقل على الموبايل
+        // معالجة واستلام نتيجة تسجيل الدخول المباشر المضمون للهواتف الذكية عبر Google Redirect
         getRedirectResult(auth).then(async (result) => {
             if (result && result.user) {
                 const user = result.user;
@@ -488,7 +488,10 @@
                 window.location.href = 'home.html';
             }
         }).catch((err) => {
-            console.error("Redirect result error: ", err);
+            console.error("Redirect error: ", err);
+            if (err.code === 'auth/unauthorized-domain') {
+                alert('⚠️ تنبيه: النطاق غير مصرح به في الفايربيس!');
+            }
         });
 
         // التحقق التلقائي اللحظي عند فتح التطبيق لإكمال الدخول مباشرة والانتقال إلى home.html بدون إظهار نموذج التسجيل
@@ -661,39 +664,10 @@
                 const provider = new GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
                 try {
-                    const result = await signInWithPopup(auth, provider);
-                    const user = result.user;
-                    const snapshot = await get(child(ref(db), 'users/' + user.uid));
-                    if (!snapshot.exists()) {
-                        const generatedId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-                        const userData = {
-                            uid: user.uid,
-                            name: user.displayName || 'مستخدم شوب العراق',
-                            email: user.email || '',
-                            userId: generatedId,
-                            balance: 0,
-                            points: 0,
-                            banned: false,
-                            banReason: 'مخالفة الشروط والأحكام العامة للتطبيق.',
-                            managedStore: '',
-                            avatar: user.photoURL || 'https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg',
-                            createdAt: new Date().toISOString()
-                        };
-                        await set(ref(db, 'users/' + user.uid), userData);
-                    }
-                    localStorage.setItem('app_active_user_uid', user.uid);
-                    alert('تم تسجيل الدخول بحساب Google بنجاح! 🎉');
-                    window.location.href = 'home.html';
+                    // استخدام التحويل المباشر signInWithRedirect الضامن لمنع انسداد Popups الموبايل
+                    await signInWithRedirect(auth, provider);
                 } catch (error) {
-                    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
-                        try {
-                            await signInWithRedirect(auth, provider);
-                        } catch (redErr) {
-                            alert('خطأ أثناء الاتصال بحساب Google: ' + redErr.message);
-                        }
-                    } else {
-                        alert('خطأ أثناء الاتصال بحساب Google: ' + error.message);
-                    }
+                    alert('خطأ في تسجيل الدخول بواسطة Google: ' + error.message);
                 }
             } else {
                 alert('جاري الاتصال بحسابك في ' + name + '...');
@@ -703,4 +677,3 @@
 
 </body>
 </html>
-
