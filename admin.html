@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم الأم - ADMIN PANEL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
+        body { background-color: #111217; color: #FFFFFF; padding: 20px; display: flex; justify-content: center; }
+        
+        .admin-wrapper { width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .admin-header {
+            background: linear-gradient(135deg, #1A1D20 0%, #252830 100%);
+            padding: 20px; border-radius: 20px; border: 1px solid rgba(255,196,37,0.3);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .admin-title-zone h1 { font-size: 18px; color: #FFC425; font-weight: 700; }
+        .admin-title-zone p { font-size: 11px; color: #8A8D91; }
+
+        .status-badge {
+            padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
+        }
+        .status-badge.active { background-color: rgba(46,125,50,0.2); color: #4CAF50; border: 1px solid #4CAF50; }
+        .status-badge.banned { background-color: rgba(235,0,27,0.2); color: #EB001B; border: 1px solid #EB001B; }
+
+        .admin-card-section {
+            background-color: #1A1D20; border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
+        }
+
+        .section-title { font-size: 14px; font-weight: 700; color: #FFC425; display: flex; align-items: center; gap: 8px; }
+
+        .input-group { display: flex; flex-direction: column; gap: 6px; }
+        .input-group label { font-size: 11px; color: #A0A5B5; font-weight: 600; }
+        
+        .admin-input, .admin-select {
+            width: 100%; height: 42px; background-color: #22252F; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 0 12px; color: #FFFFFF; font-size: 12px; outline: none;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        .admin-btn {
+            height: 42px; border: none; border-radius: 12px; font-size: 12px; font-weight: 700;
+            cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;
+            transition: transform 0.1s ease;
+        }
+        .admin-btn:active { transform: scale(0.97); }
+
+        .btn-gold { background-color: #FFC425; color: #1A1D20; }
+        .btn-red { background-color: #EB001B; color: #FFFFFF; }
+        .btn-green { background-color: #2E7D32; color: #FFFFFF; }
+
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+
+        .user-result-box {
+            background-color: #22252F; border: 1px solid rgba(255,196,37,0.2);
+            border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
+            margin-top: 4px;
+        }
+
+        .store-list-item {
+            background-color: #22252F; border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .store-id-tag {
+            background-color: #FFC425; color: #1A1D20; padding: 2px 8px; border-radius: 8px;
+            font-size: 11px; font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="admin-wrapper">
+        
+        <!-- الهيدر والحالة -->
+        <div class="admin-header">
+            <div class="admin-title-zone">
+                <h1>لوحة التحكم الأم (Admin Panel)</h1>
+                <p>التحكم الكامل واللحظي بتطبيق Shop Iraq عبر الفايربيس</p>
+            </div>
+            <div id="user-status-indicator" class="status-badge active">الحساب نشط</div>
+        </div>
+
+        <!-- [1] قسم البحث عن المستخدم بواسطة الـ ID -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-magnifying-glass"></i> البحث عن مستخدم بواسطة المعرّف (ID)</div>
+            
+            <div class="input-group">
+                <label>أدخل معرّف المستخدم (ID):</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="search-user-id-input" class="admin-input" placeholder="مثال: IQ-8892401 أو 8892401" value="#IQ-8892401">
+                    <button class="admin-btn btn-gold" style="width: 110px;" onclick="searchUserById()"><i class="fa-solid fa-search"></i> بحث</button>
+                </div>
+            </div>
+
+            <div id="user-search-result" class="user-result-box" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 13px; font-weight: 700; color: #FFFFFF;" id="res-user-name">مستخدم شوب العراق</span>
+                    <span style="font-size: 11px; color: #FFC425; font-weight: 700;" id="res-user-id">#IQ-8892401</span>
+                </div>
+                <div style="font-size: 11px; color: #A0A5B5; display: flex; gap: 12px; margin-top: 2px;">
+                    <span>الرصيد: <strong style="color:#4CAF50;" id="res-user-balance">350,000 د.ع</strong></span>
+                    <span>الحالة: <strong id="res-user-status" style="color:#4CAF50;">نشط</strong></span>
+                </div>
+                <div style="font-size: 11px; color: #FFC425; margin-top: 4px;" id="res-user-admin-role">
+                    الصلاحية: مستخدم عادي
+                </div>
+            </div>
+        </div>
+
+        <!-- [2] قسم رفع أدمن وتعيينه كمالك لمتجر معين -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-user-shield"></i> رفع أدمن (منح صلاحية إدارة متجر لمستخدم)</div>
+            
+            <div class="input-group">
+                <label>معرّف المستخدم المستهدف (ID):</label>
+                <input type="text" id="promote-user-id" class="admin-input" value="#IQ-8892401" placeholder="مثال: #IQ-8892401">
+            </div>
+
+            <div class="input-group">
+                <label>معرّف المتجر المراد إسناد إدارته له (Store ID):</label>
+                <input type="text" id="promote-store-id" class="admin-input" placeholder="أدخل ID المتجر (مثال: 1024)">
+            </div>
+
+            <div class="grid-2">
+                <button class="admin-btn btn-green" onclick="promoteUserToStoreAdmin()"><i class="fa-solid fa-check-circle"></i> رفع كـ أدمن وتعيين كمدير متجر</button>
+                <button class="admin-btn btn-red" onclick="revokeUserStoreAdmin()"><i class="fa-solid fa-user-xmark"></i> سحب صلاحية الأدمن</button>
+            </div>
+        </div>
+
+        <!-- [3] قسم حظر وإلغاء حظر المستخدم -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-user-slash"></i> إدارة حظر المستخدم الحالي</div>
+            <div class="input-group">
+                <label>سبب الحظر الذي سيظهر للمستخدم عند فتح التطبيق:</label>
+                <input type="text" id="ban-reason-input" class="admin-input" placeholder="أدخل سبب الحظر هنا..." value="مخالفة الشروط والأحكام الخاصة بالتطبيق.">
+            </div>
+            <div class="grid-2">
+                <button class="admin-btn btn-red" onclick="banUser()"><i class="fa-solid fa-lock"></i> حظر المستخدم الآن</button>
+                <button class="admin-btn btn-green" onclick="unbanUser()"><i class="fa-solid fa-lock-open"></i> إلغاء الحظر</button>
+            </div>
+        </div>
+
+        <!-- [4] قسم التحكم بالرصيد -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-wallet"></i> التحكم بالرصيد والماستر كارد</div>
+            
+            <div class="input-group">
+                <label>تعديل/تعيين قيمة الرصيد مباشرة (د.ع):</label>
+                <input type="number" id="balance-amount-input" class="admin-input" placeholder="أدخل المبلغ مثلاً: 500000">
+            </div>
+            <button class="admin-btn btn-gold" onclick="setBalance()"><i class="fa-solid fa-check"></i> تعيين الرصيد المحدد</button>
+
+            <div class="grid-2" style="margin-top: 4px;">
+                <button class="admin-btn btn-green" onclick="addFunds(100000)"><i class="fa-solid fa-plus"></i> شحن +100,000 د.ع</button>
+                <button class="admin-btn btn-red" onclick="zeroBalance()"><i class="fa-solid fa-trash"></i> تصفير الرصيد (0)</button>
+            </div>
+        </div>
+
+        <!-- [5] قسم توليد أكواد الشحن والقسائم -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-ticket"></i> توليد أكواد شحن وقسائم</div>
+            
+            <div class="input-group">
+                <label>حدد قيمة كود الشحن (د.ع):</label>
+                <input type="number" id="recharge-code-value-input" class="admin-input" placeholder="أدخل القيمة مثلاً: 25000">
+            </div>
+            <button class="admin-btn btn-gold" onclick="generateRechargeCode()"><i class="fa-solid fa-plus-circle"></i> توليد كود شحن جديد</button>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                <label style="font-size: 11px; color: #A0A5B5; font-weight: 700;">الأكواد الموالدة المتاحة:</label>
+                <div id="admin-generated-codes-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+        </div>
+
+        <!-- [6] قسم إضافة متجر جديد -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-store"></i> إضافة متجر / بيج وتوليد ID تلقائي (4 أرقام)</div>
+            
+            <div class="input-group">
+                <label>اختر القسم الموجه له المتجر:</label>
+                <select id="store-category-select" class="admin-select">
+                    <option value="ساعات">قسم الساعات</option>
+                    <option value="أحذية">قسم الأحذية</option>
+                    <option value="ملابس">قسم الملابس</option>
+                    <option value="هدايا">قسم الهدايا</option>
+                    <option value="إلكترونيات">قسم الإلكترونيات</option>
+                    <option value="عطور">قسم العطور</option>
+                    <option value="مكياج">قسم المكياج</option>
+                    <option value="أثاث">قسم الأثاث</option>
+                    <option value="مطاعم">قسم المطاعم</option>
+                </select>
+            </div>
+
+            <div class="input-group">
+                <label>اسم المتجر / البيج:</label>
+                <input type="text" id="store-name-input" class="admin-input" placeholder="مثال: ساعات الملوك بغداد">
+            </div>
+
+            <div class="input-group">
+                <label>صورة المتجر / البيج (من الاستوديو):</label>
+                <input type="file" id="store-image-file-input" class="admin-input" accept="image/*" style="padding: 8px;">
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>التقييم (1 - 5):</label>
+                    <input type="text" id="store-rating-input" class="admin-input" value="4.9">
+                </div>
+                <div class="input-group">
+                    <label>عدد المتابعين:</label>
+                    <input type="text" id="store-followers-input" class="admin-input" value="65K متابع">
+                </div>
+            </div>
+
+            <button class="admin-btn btn-gold" onclick="addNewStore()"><i class="fa-solid fa-plus-circle"></i> نشر المتجر وتوليد ID تلقائي</button>
+
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                <label style="font-size: 11px; color: #A0A5B5; font-weight: 700;">المتاجر المضافة ومعرفاتها:</label>
+                <div id="admin-stores-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+        </div>
+
+        <!-- [7] قسم حذف متجر / بيج بواسطة الـ ID -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-trash"></i> حذف متجر / بيج نهائياً (بواسطة Store ID)</div>
+            
+            <div class="input-group">
+                <label>أدخل معرّف المتجر المراد حذفه (Store ID):</label>
+                <input type="text" id="delete-store-id-input" class="admin-input" placeholder="مثال: 1024 أو #1024">
+            </div>
+
+            <button class="admin-btn btn-red" onclick="deleteStoreById()"><i class="fa-solid fa-trash-can"></i> حذف المتجر من قاعدة البيانات نهائياً</button>
+        </div>
+
+        <!-- [8] قسم إرسال إشعارات عامة لكل المستخدمين -->
+        <div class="admin-card-section">
+            <div class="section-title"><i class="fa-solid fa-bullhorn"></i> إرسال إشعار عام لجميع المستخدمين</div>
+            
+            <div class="input-group">
+                <label>عنوان الإشعار:</label>
+                <input type="text" id="admin-notif-title-input" class="admin-input" placeholder="مثال: عرض خاص جديد! 🎉">
+            </div>
+
+            <div class="input-group">
+                <label>نص الإشعار:</label>
+                <input type="text" id="admin-notif-message-input" class="admin-input" placeholder="أدخل نص الإشعار هنا...">
+            </div>
+
+            <button class="admin-btn btn-gold" onclick="sendGlobalNotification()"><i class="fa-solid fa-paper-plane"></i> إرسال الإشعار لجميع المستخدمين</button>
+        </div>
+
+    </div>
+
+    <!-- كود لوحة الأدمن مع ربط المزامنة الفورية للفايربيس -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+        import { getDatabase, ref, get, child, update, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBo9t1b_Y4YZQLigluUMHekcKqDSV8Pn7s",
+            authDomain: "shop-iraq-86dd8.firebaseapp.com",
+            databaseURL: "https://shop-iraq-86dd8-default-rtdb.firebaseio.com",
+            projectId: "shop-iraq-86dd8",
+            storageBucket: "shop-iraq-86dd8.firebasestorage.app",
+            messagingSenderId: "763958830934",
+            appId: "1:763958830934:web:6622ef3125e26ce71018f7",
+            measurementId: "G-55F4YEXMV9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let targetFoundUid = null;
+
+        // المزامنة الحية المباشرة لأكواد الشحن والقسائم من قاعدة البيانات الموحدة
+        const rechargeCodesRef = ref(db, 'recharge_codes');
+        onValue(rechargeCodesRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const firebaseCodes = Object.keys(data).map(k => ({
+                    code: k,
+                    amount: data[k].amount,
+                    used: data[k].used
+                }));
+                localStorage.setItem('app_generated_recharge_codes', JSON.stringify(firebaseCodes));
+            } else {
+                localStorage.setItem('app_generated_recharge_codes', JSON.stringify([]));
+            }
+            renderGeneratedCodesList();
+        });
+
+        // المزامنة الحية المباشرة للمتاجر المضافة من قاعدة البيانات الموحدة
+        const storesRef = ref(db, 'stores');
+        onValue(storesRef, (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const firebaseStores = Object.keys(data).map(k => ({
+                    id: String(k),
+                    category: data[k].category || '',
+                    name: data[k].name || '',
+                    rating: data[k].rating || '5.0',
+                    followers: data[k].followers || '10K',
+                    bg: data[k].bg || '#1A1D20',
+                    cover: data[k].cover || '#1A1D20'
+                }));
+                localStorage.setItem('app_custom_stores', JSON.stringify(firebaseStores));
+            } else {
+                localStorage.setItem('app_custom_stores', JSON.stringify([]));
+            }
+            renderAdminStoresList();
+        });
+
+        window.updateAdminUI = function() {
+            const isBanned = localStorage.getItem('app_user_banned') === 'true';
+            const indicator = document.getElementById('user-status-indicator');
+            if (isBanned) {
+                indicator.className = "status-badge banned";
+                indicator.innerText = "الحساب محظور 🔴";
+            } else {
+                indicator.className = "status-badge active";
+                indicator.innerText = "الحساب نشط 🟢";
+            }
+            renderAdminStoresList();
+            renderGeneratedCodesList();
+        };
+
+        window.sendGlobalNotification = async function() {
+            const titleInput = document.getElementById('admin-notif-title-input');
+            const msgInput = document.getElementById('admin-notif-message-input');
+
+            const title = titleInput.value.trim();
+            const message = msgInput.value.trim();
+
+            if (!title || !message) {
+                alert('يرجى إدخال عنوان الإشعار ونصه.');
+                return;
+            }
+
+            const now = new Date();
+            const timeFormatted = 'الآن، ' + now.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+
+            const notifData = {
+                title: title,
+                message: message,
+                time: timeFormatted,
+                timestamp: Date.now()
+            };
+
+            try {
+                const newNotifRef = push(ref(db, 'global_notifications'));
+                await set(newNotifRef, notifData);
+                alert('🚀 تم إرسال الإشعار لجميع المستخدمين بنجاح!');
+                titleInput.value = '';
+                msgInput.value = '';
+            } catch (err) {
+                alert('خطأ أثناء إرسال الإشعار: ' + err.message);
+            }
+        };
+
+        window.searchUserById = async function() {
+            const query = document.getElementById('search-user-id-input').value.trim();
+            const resultBox = document.getElementById('user-search-result');
+
+            if (!query) {
+                alert('يرجى إدخال معرّف المستخدم (ID) للبحث.');
+                return;
+            }
+
+            try {
+                const snapshot = await get(child(ref(db), 'users'));
+                let foundUser = null;
+
+                if (snapshot.exists()) {
+                    const users = snapshot.val();
+                    for (let uid in users) {
+                        const u = users[uid];
+                        if (u.userId === query || uid === query || (query.includes("8892401") && u.userId && u.userId.includes("8892401"))) {
+                            foundUser = u;
+                            targetFoundUid = uid;
+                            break;
+                        }
+                    }
+                }
+
+                if (foundUser) {
+                    document.getElementById('res-user-name').innerText = foundUser.name || "مستخدم شوب العراق";
+                    document.getElementById('res-user-id').innerText = foundUser.userId || "#IQ-8892401";
+                    document.getElementById('res-user-balance').innerText = (foundUser.balance !== undefined ? foundUser.balance : 0).toLocaleString() + " د.ع";
+                    
+                    const statusElem = document.getElementById('res-user-status');
+                    if (foundUser.banned) {
+                        statusElem.innerText = "محظور 🔴";
+                        statusElem.style.color = "#EB001B";
+                    } else {
+                        statusElem.innerText = "نشط 🟢";
+                        statusElem.style.color = "#4CAF50";
+                    }
+
+                    const roleElem = document.getElementById('res-user-admin-role');
+                    if (foundUser.managedStore) {
+                        const cleanStoreId = foundUser.managedStore.trim().replace('#', '');
+                        roleElem.innerText = `الصلاحية: أدمن كمالك ومدير للمتجر (Store ID: #${cleanStoreId}) 👑`;
+                        roleElem.style.color = "#FFC425";
+                    } else {
+                        roleElem.innerText = "الصلاحية: مستخدم عادي (بدون متجر)";
+                        roleElem.style.color = "#A0A5B5";
+                    }
+
+                    resultBox.style.display = "flex";
+                } else {
+                    const defaultUserId = "#IQ-8892401";
+                    const currentBalance = localStorage.getItem('app_user_balance') !== null ? parseInt(localStorage.getItem('app_user_balance')) : 0;
+                    const isBanned = localStorage.getItem('app_user_banned') === 'true';
+                    const rawManagedStore = localStorage.getItem('app_user_managed_store');
+
+                    if (query === defaultUserId || query.includes("8892401")) {
+                        document.getElementById('res-user-name').innerText = "مستخدم شوب العراق";
+                        document.getElementById('res-user-id').innerText = defaultUserId;
+                        document.getElementById('res-user-balance').innerText = currentBalance.toLocaleString() + " د.ع";
+                        
+                        const statusElem = document.getElementById('res-user-status');
+                        if (isBanned) {
+                            statusElem.innerText = "محظور 🔴";
+                            statusElem.style.color = "#EB001B";
+                        } else {
+                            statusElem.innerText = "نشط 🟢";
+                            statusElem.style.color = "#4CAF50";
+                        }
+
+                        const roleElem = document.getElementById('res-user-admin-role');
+                        if(rawManagedStore) {
+                            const cleanStoreId = rawManagedStore.trim().replace('#', '');
+                            roleElem.innerText = `الصلاحية: أدمن كمالك ومدير للمتجر (Store ID: #${cleanStoreId}) 👑`;
+                            roleElem.style.color = "#FFC425";
+                        } else {
+                            roleElem.innerText = "الصلاحية: مستخدم عادي (بدون متجر)";
+                            roleElem.style.color = "#A0A5B5";
+                        }
+
+                        resultBox.style.display = "flex";
+                    } else {
+                        alert(`❌ لم يتم العثور على أي مستخدم بالمعرّف (${query}).`);
+                        resultBox.style.display = "none";
+                    }
+                }
+            } catch (err) {
+                alert('خطأ أثناء البحث في الفايربيس: ' + err.message);
+            }
+        };
+
+        window.promoteUserToStoreAdmin = function() {
+            const userId = document.getElementById('promote-user-id').value.trim();
+            let rawStoreId = document.getElementById('promote-store-id').value.trim();
+            const cleanStoreId = rawStoreId.replace('#', '');
+
+            if (!userId || !cleanStoreId) {
+                alert('يرجى كتابة معرّف المستخدم ومعرّف المتجر (Store ID).');
+                return;
+            }
+
+            localStorage.setItem('app_user_managed_store', cleanStoreId);
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { managedStore: cleanStoreId });
+            }
+
+            alert(`🎉 تم رفع المستخدم (${userId}) بنجاح كـ أدمن وتكليفه بإدارة المتجر (#${cleanStoreId})!\nافتح الآن صفحة هذا المتجر في التطبيق وتفقد لوحة التحكم المخصصة لرفع المنتجات من الاستوديو.`);
+            searchUserById();
+        };
+
+        window.revokeUserStoreAdmin = function() {
+            localStorage.removeItem('app_user_managed_store');
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { managedStore: '' });
+            }
+            alert('⚠️ تم سحب صلاحيات الأدمن وإدارة المتجر من المستخدم بنجاح.');
+            searchUserById();
+        };
+
+        window.banUser = function() {
+            const reason = document.getElementById('ban-reason-input').value.trim();
+            if(!reason) {
+                alert('يرجى كتابة سبب الحظر أولاً.');
+                return;
+            }
+            localStorage.setItem('app_user_banned', 'true');
+            localStorage.setItem('app_ban_reason', reason);
+
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { banned: true, banReason: reason });
+            }
+
+            updateAdminUI();
+            alert('🛑 تم حظر المستخدم بنجاح وسيظهر له سبب الحظر فوراً!');
+        };
+
+        window.unbanUser = function() {
+            localStorage.setItem('app_user_banned', 'false');
+
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { banned: false });
+            }
+
+            updateAdminUI();
+            alert('🟢 تم إلغاء حظر المستخدم بنجاح واستعادة دخوله بالتطبيق!');
+        };
+
+        window.setBalance = function() {
+            const val = parseInt(document.getElementById('balance-amount-input').value);
+            if(isNaN(val) || val < 0) {
+                alert('يرجى إدخال مبلغ صحيح.');
+                return;
+            }
+            localStorage.setItem('app_user_balance', val);
+
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { balance: val });
+            }
+
+            alert('✅ تم تعديل رصيد المستخدم إلى: ' + val.toLocaleString() + ' د.ع');
+            searchUserById();
+        };
+
+        window.addFunds = function(amount) {
+            let current = parseInt(localStorage.getItem('app_user_balance') || 0);
+            current += amount;
+            localStorage.setItem('app_user_balance', current);
+
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { balance: current });
+            }
+
+            alert('✅ تم شحن حساب المستخدم بمبلغ ' + amount.toLocaleString() + ' د.ع');
+            searchUserById();
+        };
+
+        window.zeroBalance = function() {
+            localStorage.setItem('app_user_balance', 0);
+
+            if (targetFoundUid) {
+                update(ref(db, 'users/' + targetFoundUid), { balance: 0 });
+            }
+
+            alert('⚠️ تم تصفير رصيد المستخدم بالكامل إلى 0 د.ع');
+            searchUserById();
+        };
+
+        // توليد أفقية وإرسال كود الشحن لحفظه فورياً في قاعدة البيانات الموحدة
+        window.generateRechargeCode = async function() {
+            const val = parseInt(document.getElementById('recharge-code-value-input').value);
+            if (isNaN(val) || val <= 0) {
+                alert('يرجى إدخال قيمة شحن صحيحة.');
+                return;
+            }
+
+            const randomNum = Math.floor(10000 + Math.random() * 90000);
+            const generatedCode = `IQ-${val}-${randomNum}`;
+
+            const codeData = {
+                code: generatedCode,
+                amount: val,
+                used: false,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                // الحفظ الفوري في الفايربيس الموحد
+                await set(ref(db, 'recharge_codes/' + generatedCode), codeData);
+
+                const codes = JSON.parse(localStorage.getItem('app_generated_recharge_codes') || '[]');
+                codes.push(codeData);
+                localStorage.setItem('app_generated_recharge_codes', JSON.stringify(codes));
+
+                alert(`🎉 تم توليد كود الشحن وحفظه بفرع القاعدة الموحدة بنجاح!\n🔑 الكود: ${generatedCode}\n💰 القيمة: ${val.toLocaleString()} د.ع`);
+
+                document.getElementById('recharge-code-value-input').value = '';
+                renderGeneratedCodesList();
+            } catch (err) {
+                alert('خطأ أثناء حفظ كود الشحن بالفايربيس: ' + err.message);
+            }
+        };
+
+        window.copyCodeToClipboard = function(codeText) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(codeText).then(() => {
+                    alert(`📋 تم نسخ كود الشحن (${codeText}) بنجاح!`);
+                }).catch(() => {
+                    fallbackCopyText(codeText);
+                });
+            } else {
+                fallbackCopyText(codeText);
+            }
+        };
+
+        function fallbackCopyText(text) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            alert(`📋 تم نسخ كود الشحن (${text}) بنجاح!`);
+        }
+
+        window.renderGeneratedCodesList = function() {
+            const container = document.getElementById('admin-generated-codes-list');
+            if (!container) return;
+            const codes = JSON.parse(localStorage.getItem('app_generated_recharge_codes') || '[]');
+
+            if (codes.length === 0) {
+                container.innerHTML = '<span style="font-size:11px; color:#8A8D91;">لا توجد أكواد شحن موالدة حالياً.</span>';
+                return;
+            }
+
+            container.innerHTML = '';
+            codes.forEach(c => {
+                const item = document.createElement('div');
+                item.className = 'store-list-item';
+                item.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px; font-weight:700; color:#FFFFFF;">الكود: ${c.code}</span>
+                            <button class="admin-btn btn-gold" style="height:24px; padding:0 8px; font-size:10px; width:auto;" onclick="copyCodeToClipboard('${c.code}')">
+                                <i class="fa-regular fa-copy"></i> نسخ الكود
+                            </button>
+                        </div>
+                        <span style="font-size:10px; color:#8A8D91;">القيمة: ${c.amount.toLocaleString()} د.ع | الحالة: ${c.used ? 'مستعمل 🔴' : 'متاح 🟢'}</span>
+                    </div>
+                    <span class="store-id-tag">${c.amount.toLocaleString()} د.ع</span>
+                `;
+                container.appendChild(item);
+            });
+        };
+
+        window.addNewStore = function() {
+            const cat = document.getElementById('store-category-select').value;
+            const name = document.getElementById('store-name-input').value.trim();
+            const rating = document.getElementById('store-rating-input').value.trim();
+            const followers = document.getElementById('store-followers-input').value.trim();
+            const fileInput = document.getElementById('store-image-file-input');
+
+            if(!name) {
+                alert('يرجى إدخال اسم المتجر.');
+                return;
+            }
+
+            const randomStoreId = Math.floor(1000 + Math.random() * 9000);
+
+            const processSaveStore = async (coverUrl) => {
+                const storeData = {
+                    id: String(randomStoreId),
+                    category: cat,
+                    name: name,
+                    rating: rating || "5.0",
+                    followers: followers || "10K",
+                    bg: "#1A1D20",
+                    cover: coverUrl || "#1A1D20"
+                };
+
+                try {
+                    await set(ref(db, 'stores/' + randomStoreId), storeData);
+
+                    const currentStores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
+                    currentStores.push(storeData);
+
+                    localStorage.setItem('app_custom_stores', JSON.stringify(currentStores));
+                    alert(`🎉 تم إضافة المتجر (${name}) بنجاح مع الصور إلى قسم (${cat}) وحفظه بالقاعدة!\n🔑 معرّف المتجر المولد (ID): #${randomStoreId}`);
+                    
+                    document.getElementById('store-name-input').value = '';
+                    if (fileInput) fileInput.value = '';
+                    renderAdminStoresList();
+                } catch (err) {
+                    alert('خطأ أثناء إضافة المتجر بالفايربيس: ' + err.message);
+                }
+            };
+
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    processSaveStore(e.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else {
+                processSaveStore('#1A1D20');
+            }
+        };
+
+        // دالة حذف أي متجر عبر الـ ID مباشرة من فايربيس وقائمة اللوحة الأم
+        window.deleteStoreById = async function(targetId) {
+            let storeId = targetId;
+            if (!storeId) {
+                const input = document.getElementById('delete-store-id-input');
+                if (input) storeId = input.value.trim();
+            }
+
+            if (!storeId) {
+                alert('يرجى إدخال معرّف المتجر (Store ID) المراد حذفه.');
+                return;
+            }
+
+            const cleanId = String(storeId).replace('#', '').trim();
+
+            if (!confirm(`هل أنت تأكد من رغبتك في حذف المتجر (#${cleanId}) نهائياً من قاعدة البيانات؟`)) {
+                return;
+            }
+
+            try {
+                await remove(ref(db, 'stores/' + cleanId));
+                await remove(ref(db, 'store_metrics/' + cleanId));
+
+                let currentStores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
+                currentStores = currentStores.filter(s => String(s.id).replace('#', '').trim() !== cleanId);
+                localStorage.setItem('app_custom_stores', JSON.stringify(currentStores));
+
+                alert(`🗑️ تم حذف المتجر (#${cleanId}) بنجاح من قاعدة البيانات واللوحة الأم!`);
+
+                const input = document.getElementById('delete-store-id-input');
+                if (input) input.value = '';
+
+                renderAdminStoresList();
+            } catch (err) {
+                alert('خطأ أثناء حذف المتجر من الفايربيس: ' + err.message);
+            }
+        };
+
+        window.renderAdminStoresList = function() {
+            const container = document.getElementById('admin-stores-list');
+            const stores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
+            
+            if(stores.length === 0) {
+                container.innerHTML = '<span style="font-size:11px; color:#8A8D91;">لا توجد متاجر مضافة حالياً.</span>';
+                return;
+            }
+
+            container.innerHTML = '';
+            stores.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'store-list-item';
+                item.innerHTML = `
+                    <div style="display:flex; flex-direction:column; gap:2px;">
+                        <span style="font-size:12px; font-weight:700; color:#FFFFFF;">${s.name} (${s.category})</span>
+                        <span style="font-size:10px; color:#8A8D91;">المتابعين: ${s.followers} | التقييم: ${s.rating}</span>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span class="store-id-tag">ID: #${s.id}</span>
+                        <button class="admin-btn btn-red" style="height:26px; padding:0 8px; font-size:10px; width:auto;" onclick="deleteStoreById('${s.id}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        };
+
+        updateAdminUI();
+    </script>
+</body>
+</html>
