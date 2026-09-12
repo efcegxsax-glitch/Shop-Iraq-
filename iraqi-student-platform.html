@@ -1767,14 +1767,16 @@
                         this.showToast('صيغة البريد الإلكتروني غير صحيحة');
                     } else if (code === 'auth/weak-password') {
                         this.showToast('كلمة المرور ضعيفة، يجب ألا تقل عن 6 أحرف');
-                    } else if (code === 'auth/operation-not-allowed' || code === 'auth/configuration-not-found') {
-                        this.showToast('خدمة إنشاء الحسابات غير مُفعّلة على الخادم حالياً، تواصل مع الدعم');
+                    } else if (code === 'auth/operation-not-allowed') {
+                        this.showToast('تسجيل الدخول بالبريد وكلمة المرور غير مُفعّل في إعدادات Firebase (Authentication → Sign-in method)');
+                    } else if (code === 'auth/configuration-not-found') {
+                        this.showToast('خطأ auth/configuration-not-found: تأكد أنك فعّلت Email/Password وضغطت Save في نفس مشروع Firebase المستخدم بالكود');
                     } else if (code === 'auth/network-request-failed') {
                         this.showToast('تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت');
                     } else if (code === 'auth/too-many-requests') {
                         this.showToast('محاولات كثيرة جداً، يرجى المحاولة لاحقاً');
                     } else {
-                        this.showToast('تعذر إنشاء الحساب، يرجى المحاولة مرة أخرى');
+                        this.showToast('تعذر إنشاء الحساب (' + (code || 'خطأ غير معروف') + ')، يرجى المحاولة مرة أخرى');
                     }
                 }
             },
