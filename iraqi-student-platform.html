@@ -358,6 +358,9 @@
                 <i data-lucide="bell" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-xs font-bold rounded-full flex items-center justify-center">0</span>
             </button>
+            <button onclick="app.goToMore()" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="المزيد">
+                <i data-lucide="menu" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
+            </button>
         </div>
     </header>
 
@@ -415,6 +418,13 @@
                         <div class="news-ticker-track px-4" id="newsTickerTrack"></div>
                     </div>
                 </div>
+            </section>
+
+            <section class="px-4 py-2 hidden" id="examCountdownSection">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-sm font-bold theme-transition" style="color: var(--text);">عدّاد الامتحانات</h2>
+                </div>
+                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="examCountdownList"></div>
             </section>
 
             <div id="contentArea" class="px-4 py-2">
@@ -1054,6 +1064,17 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
+                <button onclick="app.goToForum()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                        <i data-lucide="message-circle" class="w-5 h-5 text-accent"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">المنتدى</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">اسأل وأجب زملاءك الطلاب حسب كل مادة</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.toggleNetworkSimulation()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
                         <i data-lucide="wifi" class="w-5 h-5 text-warning"></i>
@@ -1075,6 +1096,51 @@
                         <div class="mt-1 text-[10px] opacity-60">2024 © وزارة التربية العراقية</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ===== FORUM VIEW ===== -->
+        <div id="forumView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">المنتدى</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">أسئلة وأجوبة بين الطلاب</div>
+                </div>
+                <button onclick="app.openAskQuestionModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="اسأل سؤالاً">
+                    <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+            <section class="px-4 py-3 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <div class="flex gap-2 overflow-x-auto no-scrollbar" id="forumSubjectTabs"></div>
+            </section>
+            <div id="forumThreadsList" class="px-4 py-3 flex flex-col gap-3"></div>
+            <div id="forumEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center px-4">
+                <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="message-circle" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد أسئلة بعد</h3>
+                <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">كن أول من يسأل سؤالاً في هذا المنتدى</p>
+                <button onclick="app.openAskQuestionModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">اسأل سؤالاً</button>
+            </div>
+        </div>
+
+        <!-- ===== FORUM THREAD DETAIL VIEW ===== -->
+        <div id="forumThreadView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">تفاصيل السؤال</span>
+            </div>
+            <div id="forumThreadContent" class="pb-4"></div>
+            <div class="sticky bottom-0 border-t px-4 py-3 flex items-center gap-2 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <input type="text" id="forumAnswerInput" placeholder="اكتب إجابتك هنا..." class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.submitForumAnswer();}">
+                <button onclick="app.submitForumAnswer()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال الإجابة">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
             </div>
         </div>
 
@@ -1424,6 +1490,22 @@
             { id: 'asia', title: 'سحب إلى أسيا حوالة', subtitle: 'يصل خلال دقائق', icon: 'send', iconBg: 'bg-success/10', iconColor: 'text-success' }
         ];
 
+        const examSchedule = [];
+
+        const forumSubjects = [
+            { id: 'all', label: 'الكل' },
+            { id: 'arabic', label: 'اللغة العربية' },
+            { id: 'english', label: 'اللغة الإنجليزية' },
+            { id: 'math', label: 'الرياضيات' },
+            { id: 'chemistry', label: 'الكيمياء' },
+            { id: 'physics', label: 'الفيزياء' },
+            { id: 'biology', label: 'الأحياء' },
+            { id: 'other', label: 'أخرى' }
+        ];
+
+        const forumThreads = [];
+        const forumAnswers = {};
+
         // ==================== APP STATE ====================
         const app = {
             currentView: 'homeView',
@@ -1434,6 +1516,8 @@
             activeSubject: null,
             currentResourceId: null,
             currentNewsId: null,
+            activeForumSubject: 'all',
+            currentForumThreadId: null,
             viewHistory: [],
             _skipHistory: false,
             isOnline: true,
@@ -1462,9 +1546,12 @@
                 this.listenForTicker();
                 this.listenForAdminNotifications();
                 this.listenForSiteImages();
+                this.listenForExamSchedule();
+                this.listenForForumThreads();
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
+                setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 60000);
             },
 
             // ==================== THEME / DARK MODE ====================
@@ -2774,6 +2861,68 @@
                 });
             },
 
+            // ==================== EXAM COUNTDOWN ====================
+            listenForExamSchedule() {
+                if (!window.firebaseDb || this._examListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._examListener = onValue(ref(window.firebaseDb, 'examSchedule'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                    }
+                    examSchedule.length = 0;
+                    examSchedule.push(...list);
+                    if (this.currentView === 'homeView') this.renderExamCountdown();
+                });
+            },
+
+            renderExamCountdown() {
+                const section = document.getElementById('examCountdownSection');
+                const list = document.getElementById('examCountdownList');
+                if (!section || !list) return;
+                const now = Date.now();
+                const upcoming = examSchedule
+                    .filter((ex) => {
+                        const t = new Date(ex.date).getTime();
+                        return !isNaN(t) && t > now;
+                    })
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                if (upcoming.length === 0) {
+                    section.classList.add('hidden');
+                    list.innerHTML = '';
+                    return;
+                }
+                section.classList.remove('hidden');
+                list.innerHTML = upcoming.map((ex) => {
+                    const diff = new Date(ex.date).getTime() - now;
+                    const days = Math.floor(diff / 86400000);
+                    const hours = Math.floor((diff % 86400000) / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    return `
+                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 150px; background-color: var(--surface); border-color: var(--border);">
+                            <div class="text-xs font-bold mb-2 line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(ex.subject)}</div>
+                            <div class="flex items-center gap-1.5">
+                                <div class="text-center">
+                                    <div class="font-bold text-primary" style="font-size: 20px;">${days}</div>
+                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">يوم</div>
+                                </div>
+                                <span class="theme-transition" style="color: var(--text2);">:</span>
+                                <div class="text-center">
+                                    <div class="font-bold text-primary" style="font-size: 20px;">${hours}</div>
+                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">ساعة</div>
+                                </div>
+                                <span class="theme-transition" style="color: var(--text2);">:</span>
+                                <div class="text-center">
+                                    <div class="font-bold text-primary" style="font-size: 20px;">${minutes}</div>
+                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">دقيقة</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
             loadResourcesFromDatabase() {
                 if (!window.firebaseDb) return;
                 const { ref, get } = window.firebaseDbHelpers;
@@ -2924,6 +3073,10 @@
             },
             goToSettings() { this.showToast('الإعدادات'); },
             goToHome() { this.setTab('home'); },
+            goToMore() {
+                this.switchView('moreView');
+                lucide.createIcons();
+            },
 
             // ==================== RESOURCES ====================
             goToResources() {
@@ -3911,6 +4064,245 @@
                 });
             },
 
+            // ==================== FORUM ====================
+            goToForum() {
+                this.renderForumSubjectTabs();
+                this.renderForumThreads();
+                this.switchView('forumView');
+                lucide.createIcons();
+            },
+
+            listenForForumThreads() {
+                if (!window.firebaseDb || this._forumListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._forumListener = onValue(ref(window.firebaseDb, 'forumThreads'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
+                    }
+                    forumThreads.length = 0;
+                    forumThreads.push(...list);
+                    if (this.currentView === 'forumView') { this.renderForumThreads(); lucide.createIcons(); }
+                });
+            },
+
+            renderForumSubjectTabs() {
+                const container = document.getElementById('forumSubjectTabs');
+                if (!container) return;
+                container.innerHTML = forumSubjects.map(subj => `
+                    <button onclick="app.setForumSubjectFilter('${subj.id}')"
+                        class="flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap ${this.activeForumSubject === subj.id ? 'bg-primary text-white' : 'theme-transition'}"
+                        style="${this.activeForumSubject !== subj.id ? 'background-color: var(--input-bg); color: var(--text2);' : ''}">
+                        ${subj.label}
+                    </button>
+                `).join('');
+            },
+
+            setForumSubjectFilter(id) {
+                this.activeForumSubject = id;
+                this.renderForumSubjectTabs();
+                this.renderForumThreads();
+                lucide.createIcons();
+            },
+
+            renderForumThreads() {
+                const filtered = this.activeForumSubject === 'all' ? forumThreads : forumThreads.filter(t => t.subject === this.activeForumSubject);
+                const container = document.getElementById('forumThreadsList');
+                const empty = document.getElementById('forumEmptyState');
+                if (!container || !empty) return;
+                if (filtered.length === 0) {
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                container.classList.remove('hidden');
+                empty.classList.add('hidden');
+                container.innerHTML = filtered.map(t => this.createForumThreadCard(t)).join('');
+            },
+
+            createForumThreadCard(thread) {
+                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || 'أخرى';
+                return `
+                    <div class="file-card rounded-2xl border p-4 cursor-pointer theme-transition" style="background-color: var(--surface); border-color: var(--border);" onclick="app.openForumThread(${thread.id})">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">${escapeHtml(subjLabel)}</span>
+                        </div>
+                        <h3 class="text-sm font-bold leading-relaxed mb-1 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h3>
+                        <p class="text-xs line-clamp-2 theme-transition" style="color: var(--text2);">${escapeHtml(thread.body || '')}</p>
+                        <div class="flex items-center gap-3 mt-2 text-xs theme-transition" style="color: var(--text2);">
+                            <span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(thread.authorName || 'طالب')}</span>
+                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>${Number(thread.answersCount) || 0} إجابة</span>
+                        </div>
+                    </div>
+                `;
+            },
+
+            async openForumThread(id) {
+                const thread = forumThreads.find(t => t.id === id);
+                if (!thread) return;
+                this.currentForumThreadId = id;
+                if (!forumAnswers[id]) forumAnswers[id] = [];
+                this.renderForumThreadDetail();
+                this.switchView('forumThreadView');
+                lucide.createIcons();
+                if (!window.firebaseDb) return;
+                const { ref, get } = window.firebaseDbHelpers;
+                try {
+                    const snap = await get(ref(window.firebaseDb, 'forumAnswers/' + id));
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (a.id || 0) - (b.id || 0));
+                    }
+                    forumAnswers[id] = list;
+                    if (this.currentForumThreadId === id) { this.renderForumThreadDetail(); lucide.createIcons(); }
+                } catch (err) {
+                    console.warn('Forum answers load failed:', err);
+                }
+            },
+
+            renderForumThreadDetail() {
+                const thread = forumThreads.find(t => t.id === this.currentForumThreadId);
+                const content = document.getElementById('forumThreadContent');
+                if (!content || !thread) return;
+                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || 'أخرى';
+                const answers = forumAnswers[thread.id] || [];
+                content.innerHTML = `
+                    <div class="px-4 pt-4 pb-3 border-b theme-transition" style="border-color: var(--border);">
+                        <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">${escapeHtml(subjLabel)}</span>
+                        <h1 class="text-lg font-bold leading-relaxed mt-2 mb-2 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h1>
+                        <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
+                        <div class="flex items-center gap-1 mt-3 text-xs theme-transition" style="color: var(--text2);">
+                            <i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(thread.authorName || 'طالب')}
+                        </div>
+                    </div>
+                    <div class="px-4 pt-4">
+                        <h3 class="text-sm font-bold mb-3 theme-transition" style="color: var(--text);">${answers.length} إجابة</h3>
+                        <div class="flex flex-col gap-3">
+                            ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد إجابات بعد، كن أول من يجيب</p>` : answers.map(a => `
+                                <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                                    <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
+                                    <div class="flex items-center gap-1 mt-2 text-xs theme-transition" style="color: var(--text2);">
+                                        <i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(a.authorName || 'طالب')}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            },
+
+            openAskQuestionModal() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لطرح سؤال');
+                    this.goToAuth('login');
+                    return;
+                }
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'اسأل سؤالاً';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">المادة</label>
+                            <select id="askQuestionSubject" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
+                                ${forumSubjects.filter(s => s.id !== 'all').map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">عنوان السؤال</label>
+                            <input type="text" id="askQuestionTitle" placeholder="اكتب عنوان سؤالك" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">تفاصيل السؤال</label>
+                            <textarea id="askQuestionBody" rows="4" placeholder="اشرح سؤالك بالتفصيل..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
+                        </div>
+                        <button onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر السؤال</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            submitForumQuestion() {
+                const subjectEl = document.getElementById('askQuestionSubject');
+                const titleEl = document.getElementById('askQuestionTitle');
+                const bodyEl = document.getElementById('askQuestionBody');
+                if (!subjectEl || !titleEl || !bodyEl) return;
+                const title = titleEl.value.trim();
+                const body = bodyEl.value.trim();
+                if (!title) {
+                    this.showToast('أدخل عنوان السؤال');
+                    return;
+                }
+                if (!window.firebaseDb) {
+                    this.showToast('لا يوجد اتصال بقاعدة البيانات');
+                    return;
+                }
+                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
+                const id = Date.now();
+                const payload = {
+                    id: id,
+                    subject: subjectEl.value,
+                    title: title,
+                    body: body,
+                    authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
+                    authorUid: this.currentUid(),
+                    answersCount: 0,
+                    createdAt: serverTimestamp()
+                };
+                set(ref(window.firebaseDb, 'forumThreads/' + id), payload).then(() => {
+                    this.closeWalletModal();
+                    this.showToast('تم نشر سؤالك');
+                }).catch((err) => {
+                    console.warn('Forum question publish failed:', err);
+                    this.showToast('تعذر نشر السؤال، حاول مجدداً');
+                });
+            },
+
+            submitForumAnswer() {
+                const input = document.getElementById('forumAnswerInput');
+                if (!input) return;
+                const body = input.value.trim();
+                if (!body) return;
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول للإجابة');
+                    this.goToAuth('login');
+                    return;
+                }
+                if (!window.firebaseDb || !this.currentForumThreadId) return;
+                const threadId = this.currentForumThreadId;
+                const { ref, set, serverTimestamp, runTransaction } = window.firebaseDbHelpers;
+                const answerId = Date.now();
+                const payload = {
+                    id: answerId,
+                    body: body,
+                    authorName: this.currentUser.fullName || 'طالب',
+                    authorUid: this.currentUid(),
+                    createdAt: serverTimestamp()
+                };
+                set(ref(window.firebaseDb, 'forumAnswers/' + threadId + '/' + answerId), payload).then(() => {
+                    input.value = '';
+                    if (!forumAnswers[threadId]) forumAnswers[threadId] = [];
+                    forumAnswers[threadId].push(payload);
+                    const thread = forumThreads.find(t => t.id === threadId);
+                    if (thread) thread.answersCount = (Number(thread.answersCount) || 0) + 1;
+                    this.renderForumThreadDetail();
+                    lucide.createIcons();
+                    runTransaction(ref(window.firebaseDb, 'forumThreads/' + threadId + '/answersCount'), (cur) => (cur || 0) + 1).catch((err) => {
+                        console.warn('Forum answersCount update failed:', err);
+                    });
+                }).catch((err) => {
+                    console.warn('Forum answer publish failed:', err);
+                    this.showToast('تعذر نشر الإجابة، حاول مجدداً');
+                });
+            },
+
             // ==================== NAVIGATION ====================
             setTab(tab) {
                 document.querySelectorAll('.nav-item').forEach(el => {
@@ -3987,7 +4379,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
@@ -3997,7 +4389,7 @@
                 this.currentView = viewId;
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') this.updateNavActive('home');
+                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
