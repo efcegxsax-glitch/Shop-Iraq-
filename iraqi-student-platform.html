@@ -18,7 +18,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
-        import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
+        import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
@@ -46,25 +46,35 @@
             window.firebaseDb = getDatabase(app);
             window.firebaseAuth = getAuth(app);
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
-            window.firebaseMessaging = getMessaging(app);
             window.firebaseDbHelpers = { ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction };
             window.firebaseStorage = getStorage(app);
             window.firebaseStorageHelpers = { ref: storageRef, uploadBytes, getDownloadURL };
             window.firebaseMessagingHelpers = { getToken };
 
-            try {
-                onMessage(window.firebaseMessaging, (payload) => {
-                    if (window.app && window.app.playNotifySound) window.app.playNotifySound();
-                    const title = (payload.notification && payload.notification.title) || 'منصة الطالب العراقي';
-                    const body = (payload.notification && payload.notification.body) || '';
-                    if ('Notification' in window && Notification.permission === 'granted') {
-                        try { new Notification(title, { body: body, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
-                    }
-                    if (window.app && window.app.showToast) window.app.showToast('خبر جديد: ' + body);
-                });
-            } catch (e) {
-                console.warn('onMessage setup failed:', e);
-            }
+            // الإشعارات عبر FCM تتطلب متصفحاً وسياقاً آمناً (https + Service Worker) — يجب التحقق قبل getMessaging()
+            // لتفادي رفض Promise غير مُعالَج (messaging/unsupported-browser) عند فتح الملف مباشرة (file://) أو في متصفح لا يدعمها
+            isMessagingSupported().then((supported) => {
+                if (!supported) {
+                    console.warn('Firebase Messaging غير مدعوم في هذا المتصفح/السياق');
+                    return;
+                }
+                try {
+                    window.firebaseMessaging = getMessaging(app);
+                    onMessage(window.firebaseMessaging, (payload) => {
+                        if (window.app && window.app.playNotifySound) window.app.playNotifySound();
+                        const title = (payload.notification && payload.notification.title) || 'منصة الطالب العراقي';
+                        const body = (payload.notification && payload.notification.body) || '';
+                        if ('Notification' in window && Notification.permission === 'granted') {
+                            try { new Notification(title, { body: body, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
+                        }
+                        if (window.app && window.app.showToast) window.app.showToast('خبر جديد: ' + body);
+                    });
+                } catch (e) {
+                    console.warn('onMessage setup failed:', e);
+                }
+            }).catch((e) => {
+                console.warn('تعذر التحقق من دعم Firebase Messaging:', e);
+            });
         } catch (e) {
             console.warn('Firebase init failed:', e);
         }
@@ -1441,7 +1451,6 @@
                 this.loadTheme();
                 this.loadUserData();
                 this.watchAuthState();
-                if (!this.isLoggedIn) { this.goToAuth('register'); }
                 this.loadData();
                 this.renderCategories();
                 this.renderNotificationsList();
@@ -1677,7 +1686,20 @@
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Login failed:', error);
-                    this.showToast('البريد أو كلمة المرور غير صحيحة');
+                    const code = error && error.code;
+                    if (code === 'auth/invalid-email') {
+                        this.showToast('صيغة البريد الإلكتروني غير صحيحة');
+                    } else if (code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/wrong-password') {
+                        this.showToast('البريد أو كلمة المرور غير صحيحة');
+                    } else if (code === 'auth/configuration-not-found') {
+                        this.showToast('خدمة تسجيل الدخول غير مُفعّلة على الخادم حالياً، تواصل مع الدعم');
+                    } else if (code === 'auth/network-request-failed') {
+                        this.showToast('تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت');
+                    } else if (code === 'auth/too-many-requests') {
+                        this.showToast('محاولات كثيرة جداً، يرجى المحاولة لاحقاً');
+                    } else {
+                        this.showToast('تعذر تسجيل الدخول، يرجى المحاولة مرة أخرى');
+                    }
                 }
             },
 
@@ -1741,8 +1763,8 @@
                         this.showToast('صيغة البريد الإلكتروني غير صحيحة');
                     } else if (code === 'auth/weak-password') {
                         this.showToast('كلمة المرور ضعيفة، يجب ألا تقل عن 6 أحرف');
-                    } else if (code === 'auth/operation-not-allowed') {
-                        this.showToast('التسجيل بالبريد وكلمة المرور غير مفعّل حالياً، تواصل مع الدعم');
+                    } else if (code === 'auth/operation-not-allowed' || code === 'auth/configuration-not-found') {
+                        this.showToast('خدمة إنشاء الحسابات غير مُفعّلة على الخادم حالياً، تواصل مع الدعم');
                     } else if (code === 'auth/network-request-failed') {
                         this.showToast('تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت');
                     } else if (code === 'auth/too-many-requests') {
@@ -3882,7 +3904,6 @@
 
             // ==================== NAVIGATION ====================
             setTab(tab) {
-                if (!this.isLoggedIn) { this.goToAuth('register'); return; }
                 document.querySelectorAll('.nav-item').forEach(el => {
                     el.classList.remove('active', 'text-primary');
                     el.classList.add('theme-transition');
@@ -3994,7 +4015,6 @@
                 let target = this.viewHistory.pop() || 'homeView';
                 if (!document.getElementById(target)) target = 'homeView';
                 if (target === 'authView' && this.isLoggedIn) target = 'homeView';
-                if (!this.isLoggedIn && target === 'homeView') return;
                 this._skipHistory = true;
                 this.switchView(target);
                 this._skipHistory = false;
