@@ -1750,9 +1750,13 @@
                     };
                     this.isLoggedIn = true;
                     this.saveUserData();
-                    this.syncUserToDatabase();
+                    const savedToDb = await this.syncUserToDatabase();
                     this.initPushNotifications();
-                    this.showToast('تم إنشاء الحساب بنجاح');
+                    if (savedToDb) {
+                        this.showToast('تم إنشاء الحساب بنجاح');
+                    } else {
+                        this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
+                    }
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -2436,7 +2440,7 @@
 
             // ==================== FIREBASE SYNC ====================
             syncUserToDatabase() {
-                if (!window.firebaseDb || !this.currentUser) return;
+                if (!window.firebaseDb || !this.currentUser) return Promise.resolve(false);
                 const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const payload = {
@@ -2452,10 +2456,12 @@
                     studentNumber: this.currentUser.studentNumber || '',
                     updatedAt: serverTimestamp()
                 };
-                set(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
+                const userWrite = set(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
                     console.log('User synced to Realtime Database');
+                    return true;
                 }).catch((err) => {
                     console.warn('Realtime Database sync failed:', err);
+                    return false;
                 });
                 set(ref(window.firebaseDb, 'leaderboard/' + uid), {
                     name: payload.fullName,
@@ -2466,6 +2472,7 @@
                 }).catch((err) => {
                     console.warn('Leaderboard sync failed:', err);
                 });
+                return userWrite;
             },
 
             async loadUserFromDatabase(uid) {
