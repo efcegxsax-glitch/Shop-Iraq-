@@ -325,6 +325,51 @@
         body.header-hidden #mainContent { padding-top: 0; }
         body.header-hidden .sticky.top-16 { top: 0; }
         body.header-hidden .sticky.top-\[116px\] { top: 52px; }
+
+        /* Animated streak flame (replaces the static emoji) */
+        .flame {
+            display: inline-block;
+            width: 13px;
+            height: 17px;
+            position: relative;
+            vertical-align: middle;
+            flex-shrink: 0;
+        }
+        .flame::before, .flame::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            transform-origin: bottom center;
+        }
+        .flame::before {
+            width: 13px;
+            height: 17px;
+            margin-left: -6.5px;
+            background: linear-gradient(to top, #E8460C 0%, #FF8A00 45%, #FFC400 80%, #FFEB99 100%);
+            animation: flameFlickerOuter 0.55s ease-in-out infinite alternate;
+            box-shadow: 0 0 6px rgba(255, 138, 0, 0.55);
+        }
+        .flame::after {
+            width: 6px;
+            height: 9px;
+            margin-left: -3px;
+            bottom: 1px;
+            background: linear-gradient(to top, #FFC400 0%, #FFF3C4 100%);
+            animation: flameFlickerInner 0.35s ease-in-out infinite alternate;
+        }
+        @keyframes flameFlickerOuter {
+            0%   { transform: translateX(-50%) scale(1, 1) rotate(-3deg); }
+            35%  { transform: translateX(-46%) scale(0.92, 1.08) rotate(2deg); }
+            70%  { transform: translateX(-53%) scale(1.06, 0.94) rotate(-1deg); }
+            100% { transform: translateX(-49%) scale(0.97, 1.04) rotate(3deg); }
+        }
+        @keyframes flameFlickerInner {
+            0%   { transform: translateX(-50%) scale(1, 1); opacity: 0.95; }
+            50%  { transform: translateX(-42%) scale(0.85, 1.12); opacity: 1; }
+            100% { transform: translateX(-56%) scale(1.05, 0.9); opacity: 0.9; }
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -1328,7 +1373,7 @@
                             <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">رصيد النقاط</div>
                             <div id="walletPointsValue" class="font-bold theme-transition" style="color: var(--text); font-size: 22px;">0 نقطة</div>
                             <div id="walletPointsIqd" class="text-xs mt-1 theme-transition" style="color: var(--text2);">≈ 0 د.ع (كل 10,000 نقطة = 1,000 د.ع)</div>
-                            <div id="walletStreakInfo" class="hidden text-xs mt-1 font-bold" style="color: var(--warning);"></div>
+                            <div id="walletStreakInfo" class="hidden text-xs mt-1 font-bold flex items-center gap-1" style="color: var(--warning);"></div>
                         </div>
                         <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background-color: var(--input-bg);">
                             <i data-lucide="star" class="w-5 h-5 text-warning"></i>
@@ -3645,7 +3690,7 @@
                 if (streakEl) {
                     const streak = (this.isLoggedIn && this.currentUser && this.currentUser.loginStreak) || 0;
                     if (streak > 0) {
-                        streakEl.textContent = '🔥 ' + streak + ' يوم متتالي';
+                        streakEl.innerHTML = '<span class="flame"></span><span>' + streak + ' يوم متتالي</span>';
                         streakEl.classList.remove('hidden');
                     } else {
                         streakEl.classList.add('hidden');
