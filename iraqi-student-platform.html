@@ -1146,6 +1146,17 @@
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
+
+                <button onclick="app.goToPointsStore()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                        <i data-lucide="gift" class="w-5 h-5 text-warning"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">متجر النقاط</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">استبدل نقاطك برصيد بمحفظتك</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
             </div>
         </div>
 
@@ -1179,6 +1190,23 @@
                         <button onclick="app.stopYoutubeStudySession()" class="text-xs font-bold px-3 py-1.5 rounded-lg" style="background-color: var(--input-bg); color: var(--error);">إنهاء الجلسة</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ===== POINTS STORE VIEW ===== -->
+        <div id="pointsStoreView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">متجر النقاط</span>
+            </div>
+            <div class="px-4 py-4">
+                <div class="rounded-2xl p-4 mb-4 text-center theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);">
+                    <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">رصيدك الحالي من النقاط</div>
+                    <div id="pointsStoreBalance" class="font-bold" style="color: var(--warning); font-size: 26px;">0 نقطة</div>
+                </div>
+                <div id="pointsStoreOffers" class="flex flex-col gap-3"></div>
             </div>
         </div>
 
@@ -1300,6 +1328,7 @@
                             <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">رصيد النقاط</div>
                             <div id="walletPointsValue" class="font-bold theme-transition" style="color: var(--text); font-size: 22px;">0 نقطة</div>
                             <div id="walletPointsIqd" class="text-xs mt-1 theme-transition" style="color: var(--text2);">≈ 0 د.ع (كل 10,000 نقطة = 1,000 د.ع)</div>
+                            <div id="walletStreakInfo" class="hidden text-xs mt-1 font-bold" style="color: var(--warning);"></div>
                         </div>
                         <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background-color: var(--input-bg);">
                             <i data-lucide="star" class="w-5 h-5 text-warning"></i>
@@ -1610,6 +1639,13 @@
         ];
 
         const examSchedule = [];
+
+        const pointsStoreOffers = [
+            { points: 5000, iqd: 500 },
+            { points: 10000, iqd: 1000 },
+            { points: 20000, iqd: 2000 },
+            { points: 50000, iqd: 5000 }
+        ];
 
         const forumSubjects = [
             { id: 'all', label: 'الكل' },
@@ -1978,6 +2014,7 @@
                     } else {
                         this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
                     }
+                    this.checkDailyStreak();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -2679,6 +2716,8 @@
                     studentNumber: this.currentUser.studentNumber || '',
                     studySessions: this.currentUser.studySessions || 0,
                     youtubeStudyCooldownUntil: this.currentUser.youtubeStudyCooldownUntil || 0,
+                    loginStreak: this.currentUser.loginStreak || 0,
+                    lastLoginDate: this.currentUser.lastLoginDate || '',
                     updatedAt: serverTimestamp()
                 };
                 const userWrite = set(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
@@ -2735,13 +2774,36 @@
                     }
                     this.updateProfileView();
                     this.initPushNotifications();
+                    this.checkDailyStreak();
                     this.renderNews();
-                    if (this.currentView === 'walletView') this.renderWalletBalance();
+                    if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
                 } catch (err) {
                     console.warn('Realtime Database read failed:', err);
                     this.saveUserData();
                 }
+            },
+
+            checkDailyStreak() {
+                if (!this.currentUser) return;
+                const todayStr = new Date().toISOString().slice(0, 10);
+                const last = this.currentUser.lastLoginDate;
+                if (last === todayStr) return;
+                let newStreak = 1;
+                if (last) {
+                    const lastDate = new Date(last + 'T00:00:00');
+                    const todayDate = new Date(todayStr + 'T00:00:00');
+                    const diffDays = Math.round((todayDate - lastDate) / 86400000);
+                    newStreak = diffDays === 1 ? (this.currentUser.loginStreak || 0) + 1 : 1;
+                }
+                const bonus = 20 + Math.min(newStreak - 1, 10) * 5;
+                this.currentUser.loginStreak = newStreak;
+                this.currentUser.lastLoginDate = todayStr;
+                this.currentUser.points = (this.currentUser.points || 0) + bonus;
+                this.saveUserData();
+                this.syncUserToDatabase();
+                this.showToast('🔥 تحدي يومي: يوم ' + newStreak + ' متتالي! +' + bonus + ' نقطة');
+                if (this.currentView === 'walletView') this.renderWalletPoints();
             },
 
             applyUserNewsState() {
@@ -3575,10 +3637,20 @@
             renderWalletPoints() {
                 const pointsEl = document.getElementById('walletPointsValue');
                 const iqdEl = document.getElementById('walletPointsIqd');
+                const streakEl = document.getElementById('walletStreakInfo');
                 if (!pointsEl || !iqdEl) return;
                 const points = (this.isLoggedIn && this.currentUser && typeof this.currentUser.points === 'number') ? this.currentUser.points : 0;
                 pointsEl.textContent = points.toLocaleString('en-US') + ' نقطة';
                 iqdEl.textContent = '≈ ' + Math.round(points / 10).toLocaleString('en-US') + ' د.ع (كل 10,000 نقطة = 1,000 د.ع)';
+                if (streakEl) {
+                    const streak = (this.isLoggedIn && this.currentUser && this.currentUser.loginStreak) || 0;
+                    if (streak > 0) {
+                        streakEl.textContent = '🔥 ' + streak + ' يوم متتالي';
+                        streakEl.classList.remove('hidden');
+                    } else {
+                        streakEl.classList.add('hidden');
+                    }
+                }
             },
 
             showWalletNormal() {
@@ -4738,6 +4810,66 @@
                 lucide.createIcons();
             },
 
+            // ==================== POINTS STORE ====================
+            goToPointsStore() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لاستخدام هذه الميزة');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.renderPointsStore();
+                this.switchView('pointsStoreView');
+                lucide.createIcons();
+            },
+
+            renderPointsStore() {
+                const balanceEl = document.getElementById('pointsStoreBalance');
+                const container = document.getElementById('pointsStoreOffers');
+                if (!balanceEl || !container) return;
+                const points = (this.currentUser && this.currentUser.points) || 0;
+                balanceEl.textContent = points.toLocaleString('en-US') + ' نقطة';
+                container.innerHTML = pointsStoreOffers.map(offer => {
+                    const canRedeem = points >= offer.points;
+                    return `
+                        <div class="rounded-2xl border p-4 flex items-center justify-between theme-transition" style="background-color: var(--surface); border-color: var(--border); ${canRedeem ? '' : 'opacity: 0.5;'}">
+                            <div>
+                                <div class="font-bold theme-transition" style="color: var(--text);">${offer.points.toLocaleString('en-US')} نقطة</div>
+                                <div class="text-xs theme-transition" style="color: var(--text2);">= ${offer.iqd.toLocaleString('en-US')} د.ع رصيد محفظة</div>
+                            </div>
+                            <button onclick="app.redeemPointsOffer(${offer.points}, ${offer.iqd})" ${canRedeem ? '' : 'disabled'} class="btn-press px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm ${canRedeem ? '' : 'pointer-events-none'}">استبدال</button>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            redeemPointsOffer(points, iqd) {
+                if (!this.isLoggedIn || !this.currentUser) return;
+                const currentPoints = this.currentUser.points || 0;
+                if (currentPoints < points) {
+                    this.showToast('نقاطك غير كافية لهذا العرض');
+                    return;
+                }
+                const usdAmount = iqd / 1325;
+                this.currentUser.points = currentPoints - points;
+                this.currentUser.balance = (this.currentUser.balance || 0) + usdAmount;
+                this.saveUserData();
+                this.syncUserToDatabase();
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                walletTransactions.unshift({
+                    id: Date.now(),
+                    title: 'استبدال ' + points.toLocaleString('en-US') + ' نقطة',
+                    date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
+                    amount: '+$' + usdAmount.toFixed(2),
+                    isNegative: false,
+                    icon: 'gift',
+                    iconColor: 'text-warning',
+                    iconBg: 'bg-warning/10'
+                });
+                this.renderPointsStore();
+                this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
+            },
+
             // ==================== NAVIGATION ====================
             setTab(tab) {
                 document.querySelectorAll('.nav-item').forEach(el => {
@@ -4814,7 +4946,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
