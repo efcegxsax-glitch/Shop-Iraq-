@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة التحكم - منصة الطالب العراقي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #0F172A; color: #F1F5F9; }
+        input, select, textarea { background: #1E293B; border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; width: 100%; color: #F1F5F9; font-size: 14px; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #2563EB; }
+        label { font-size: 13px; font-weight: 700; display: block; margin-bottom: 6px; }
+        .card { background: #1E293B; border: 1px solid #334155; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+        .tab { padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; background: #334155; border: none; color: #CBD5E1; white-space: nowrap; }
+        .tab.active { background: #2563EB; color: #fff; }
+        .btn { background: #2563EB; color: #fff; font-weight: 700; border-radius: 12px; padding: 12px 24px; cursor: pointer; border: none; font-size: 14px; }
+        .btn:disabled { opacity: .6; }
+        .btn-danger { background: #DC2626; }
+        .chk { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+        .chk input { width: 18px; height: 18px; }
+        #toast { position: fixed; bottom: 20px; right: 20px; left: 20px; background: #16A34A; color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 700; text-align: center; display: none; z-index: 99; }
+        .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #0F172A; border: 1px solid #334155; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+        .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+        .row-item .del { margin-inline-start: auto; background: #DC2626; color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    </style>
+</head>
+<body class="p-4 max-w-2xl mx-auto">
+
+    <h1 class="text-xl font-bold mb-1">🛠️ لوحة تحكم المنصة</h1>
+    <p class="text-sm text-slate-400 mb-2">نشر الأخبار والملازم والإشعارات وإدارة صور الموقع — متصلة بقاعدة بيانات التطبيق الرئيسي</p>
+    <div class="mb-4 flex flex-wrap gap-2">
+        <span id="versionBadge" style="background:#2563EB;color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">الإصدار 2.2</span>
+        <span id="modeBadge" style="background:#334155;color:#CBD5E1;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">جاري التحقق...</span>
+    </div>
+
+    <!-- Login -->
+    <div id="loginBox" class="card">
+        <label>كلمة مرور المسؤول</label>
+        <input type="password" id="adminPass" placeholder="••••••••">
+        <button class="btn w-full mt-3" id="loginBtn">دخول</button>
+        <p id="loginMsg" class="text-red-400 text-xs mt-2 hidden">كلمة المرور خاطئة</p>
+        <p class="text-xs text-slate-500 mt-3">كلمة المرور الافتراضية: admin123 — غيّرها من الكود (ADMIN_PASSWORD) قبل النشر</p>
+    </div>
+
+    <!-- Panel -->
+    <div id="panel" class="hidden">
+        <div class="flex gap-2 overflow-x-auto mb-4 pb-1" style="scrollbar-width:none;">
+            <button class="tab active" data-tab="news">📰 نشر خبر</button>
+            <button class="tab" data-tab="res">📚 ملازم PDF</button>
+            <button class="tab" data-tab="notif">🔔 إشعارات</button>
+            <button class="tab" data-tab="imgs">🖼️ صور الموقع</button>
+            <button class="tab" data-tab="ticker">📢 الشريط الإخباري</button>
+            <button class="tab" data-tab="exams">🗓️ جدول الامتحانات</button>
+        </div>
+
+        <!-- News -->
+        <div id="sec-news">
+            <div class="card">
+                <label>عنوان الخبر *</label>
+                <input type="text" id="n_title" placeholder="مثال: إعلان نتائج الامتحانات النهائية">
+                <label class="mt-3">نص مختصر</label>
+                <textarea id="n_excerpt" rows="2" placeholder="وصف قصير للخبر..."></textarea>
+                <label class="mt-3">القسم *</label>
+                <select id="n_category">
+                    <option value="exams">الامتحانات</option>
+                    <option value="results">النتائج</option>
+                    <option value="admission">القبول</option>
+                    <option value="grants">المنح</option>
+                    <option value="schools">المدارس</option>
+                    <option value="decisions">القرارات</option>
+                    <option value="other">أخرى</option>
+                </select>
+                <label class="mt-3">صورة الخبر (اختياري — إذا تركته تُستخدم صورة افتراضية)</label>
+                <input type="file" id="n_image" accept="image/*">
+                <img id="n_preview" class="hidden mt-2 w-24 h-16 rounded-lg object-cover border border-slate-600" alt="معاينة">
+                <div class="flex flex-wrap gap-4 mt-4">
+                    <label class="chk"><input type="checkbox" id="n_urgent"> عاجل 🔴</label>
+                    <label class="chk"><input type="checkbox" id="n_pinned"> مثبت 📌</label>
+                                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب 🔔</label>
+                </div>
+                <button class="btn w-full mt-4" id="n_publish">نشر الخبر</button>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 الأخبار المنشورة</h3>
+                <div id="newsList"></div>
+            </div>
+        </div>
+
+        <!-- Resources -->
+        <div id="sec-res" class="hidden">
+            <div class="card">
+                <label>عنوان الملزمة *</label>
+                <input type="text" id="r_title" placeholder="مثال: ملزمة الكيمياء الشاملة">
+                <label class="mt-3">الوصف</label>
+                <input type="text" id="r_desc" placeholder="مثال: الصف السادس العلمي - الطبعة 2025">
+                <label class="mt-3">المرحلة (القسم) *</label>
+                <select id="r_stage">
+                    <option value="sixth-science">سادس علمي</option>
+                    <option value="sixth-literary">سادس أدبي</option>
+                    <option value="fifth-science">خامس علمي</option>
+                    <option value="fifth-literary">خامس أدبي</option>
+                </select>
+                <label class="mt-3">المادة *</label>
+                <select id="r_subject"></select>
+                <label class="mt-3">السنة</label>
+                <input type="text" id="r_year" value="2025">
+                <label class="mt-3">صورة الغلاف الملوّنة *</label>
+                <input type="file" id="r_cover" accept="image/*">
+                <img id="r_preview" class="hidden mt-2 w-16 h-24 rounded-lg object-cover border border-slate-600" alt="معاينة">
+                <label class="mt-3">ملف PDF *</label>
+                <input type="file" id="r_pdf" accept="application/pdf">
+                <button class="btn w-full mt-4" id="r_publish">نشر الملزمة</button>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 الملازم المنشورة</h3>
+                <div id="resList"></div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div id="sec-notif" class="hidden">
+            <div class="card">
+                <label>عنوان الإشعار *</label>
+                <input type="text" id="no_title" placeholder="مثال: تذكير بموعد الامتحان">
+                <label class="mt-3">نص الإشعار</label>
+                <textarea id="no_desc" rows="2" placeholder="تفاصيل الإشعار..."></textarea>
+                <label class="mt-3">النوع</label>
+                <select id="no_type">
+                    <option value="urgent">عاجل 🔴</option>
+                    <option value="announcement" selected>إعلان رسمي 🔵</option>
+                    <option value="circular">تعميم 🟢</option>
+                    <option value="update">تحديث 🟡</option>
+                    <option value="reminder">تذكير 🟣</option>
+                    <option value="general">أخبار عامة ⚪</option>
+                </select>
+                <button class="btn w-full mt-4" id="no_send">إرسال الإشعار للجميع</button>
+            </div>
+        </div>
+
+        <!-- Images -->
+        <div id="sec-imgs" class="hidden">
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">🏷️ شعار الموقع (اللوكو)</h3>
+                <input type="file" id="logoFile" accept="image/*">
+                <img id="logo_preview" class="hidden mt-2 w-16 h-16 rounded-full object-cover border border-slate-600" alt="معاينة">
+                <button class="btn w-full mt-3" id="logoBtn">تغيير الشعار</button>
+                <p class="text-xs text-slate-500 mt-2">يظهر فورًا بجانب "منصة الطالب العراقي" عند كل المستخدمين</p>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">🎠 صور السلايدر (فوق الشريط الإخباري)</h3>
+                <input type="text" id="c_title" placeholder="عنوان الصورة (اختياري)" class="mb-3">
+                <input type="file" id="c_file" accept="image/*">
+                <img id="c_preview" class="hidden mt-2 w-32 h-16 rounded-lg object-cover border border-slate-600" alt="معاينة">
+                <button class="btn w-full mt-3" id="c_add">إضافة للسلايدر</button>
+                <div id="carouselList" class="mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Ticker -->
+        <div id="sec-ticker" class="hidden">
+            <div class="card">
+                <label>نص الشريط الإخباري المتحرك *</label>
+                <input type="text" id="ti_text" placeholder="مثال: الامتحانات النهائية تبدأ يوم الأحد القادم">
+                <p class="text-xs text-slate-500 mt-2">يظهر النص متحركًا في الشريط أعلى الواجهة الرئيسية فقط — لا يدخل في الأخبار ولا الإشعارات.</p>
+                <button class="btn w-full mt-3" id="ti_publish">نشر في الشريط المتحرك</button>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 عناصر الشريط الحالية</h3>
+                <div id="tickerList"></div>
+            </div>
+        </div>
+
+        <!-- Exam Schedule -->
+        <div id="sec-exams" class="hidden">
+            <div class="card">
+                <label>اسم المادة *</label>
+                <input type="text" id="ex_subject" placeholder="مثال: الرياضيات">
+                <label class="mt-3">تاريخ ووقت الامتحان *</label>
+                <input type="datetime-local" id="ex_date">
+                <button class="btn w-full mt-4" id="ex_publish">إضافة للجدول</button>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 مواعيد الامتحانات الحالية</h3>
+                <div id="examsList"></div>
+            </div>
+        </div>
+
+        <button class="btn btn-danger w-full mt-2" id="logoutBtn">تسجيل الخروج</button>
+    </div>
+
+    <div id="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
+
+        // ⚠️ غيّر كلمة المرور قبل النشر
+        const ADMIN_PASSWORD = 'admin123';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
+            authDomain: "iraqi-student-platform-9918d.firebaseapp.com",
+            databaseURL: "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com/",
+            projectId: "iraqi-student-platform-9918d",
+            storageBucket: "iraqi-student-platform-9918d.firebasestorage.app",
+            messagingSenderId: "16734952715",
+            appId: "1:16734952715:web:6c11e771fb86f9d185960e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const storage = getStorage(app);
+
+        const SUBJECTS = {
+            'sixth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
+            'sixth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية','الفلسفة','علم الاجتماع'],
+            'fifth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
+            'fifth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية']
+        };
+
+        const el = (id) => document.getElementById(id);
+        const val = (id) => (el(id)?.value || '').trim();
+
+        function toast(msg, ok = true) {
+            const t = el('toast');
+            t.textContent = msg;
+            t.style.background = ok ? '#16A34A' : '#DC2626';
+            t.style.display = 'block';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
+        }
+
+        const sanitize = (str) => String(str).replace(/[.#$\[\]]/g, '_');
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function fileToDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function compressImage(file) {
+            try {
+                const bitmap = await createImageBitmap(file);
+                const maxW = 1000;
+                const isSmall = file.size < 400 * 1024 && bitmap.width <= maxW;
+                if (isSmall) return file;
+                const scale = Math.min(1, maxW / bitmap.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(bitmap.width * scale);
+                canvas.height = Math.round(bitmap.height * scale);
+                canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                if (!blob) return file;
+                return new File([blob], 'compressed.jpg', { type: 'image/jpeg' });
+            } catch (e) {
+                return file;
+            }
+        }
+
+        async function uploadFile(file, folder) {
+            // Always store as Base64 in Realtime Database — works on phone, localhost and any hosting without CORS setup
+            let fileToUpload = file;
+            if (file.type.startsWith('image/')) {
+                fileToUpload = await compressImage(file);
+            }
+            const dataUrl = await fileToDataURL(fileToUpload);
+            if (dataUrl.length > 9000000) {
+                throw new Error('الملف كبير جداً — الحد الأقصى حوالي 7MB (الصور تُضغط تلقائياً، جرّب PDF أصغر)');
+            }
+            return dataUrl;
+        }
+
+        // ---------- Login ----------
+        window.doLogin = () => {
+            if (val('adminPass') === ADMIN_PASSWORD) {
+                sessionStorage.setItem('isp_admin', '1');
+                showPanel();
+            } else {
+                el('loginMsg').classList.remove('hidden');
+            }
+        };
+        window.doLogout = () => {
+            sessionStorage.removeItem('isp_admin');
+            location.reload();
+        };
+        function showPanel() {
+            el('loginBox').classList.add('hidden');
+            el('panel').classList.remove('hidden');
+            loadLists();
+        }
+        if (sessionStorage.getItem('isp_admin') === '1') showPanel();
+        (function setModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (!badge) return;
+            badge.textContent = 'الرفع: Base64 — Realtime Database ✅ (بدون Storage)';
+            badge.style.background = '#16A34A';
+            badge.style.color = '#fff';
+        })();
+        el('loginBtn').addEventListener('click', doLogin);
+        el('adminPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+        el('logoutBtn').addEventListener('click', doLogout);
+
+        // ---------- Tabs ----------
+        document.querySelectorAll('.tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+            });
+        });
+
+        // ---------- Subjects per stage ----------
+        function fillSubjects() {
+            const stage = val('r_stage');
+            el('r_subject').innerHTML = (SUBJECTS[stage] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+        fillSubjects();
+        el('r_stage').addEventListener('change', fillSubjects);
+
+        // ---------- Publish News ----------
+        window.publishNews = async () => {
+            const title = val('n_title');
+            if (!title) { toast('أدخل عنوان الخبر', false); return; }
+            const btn = el('n_publish');
+            btn.disabled = true;
+            try {
+                let imageUrl = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
+                const imgFile = el('n_image').files[0];
+                if (imgFile) imageUrl = await uploadFile(imgFile, 'news_images/');
+                const id = Date.now();
+                const urgent = el('n_urgent').checked;
+                const sendNotif = el('n_notify').checked;
+                await set(ref(db, 'news/' + id), {
+                    id, title,
+                    excerpt: val('n_excerpt'),
+                    image: imageUrl,
+                    category: val('n_category'),
+                    date: new Date().toISOString().slice(0, 10),
+                    time: 'الآن',
+                    source: 'وزارة التربية العراقية',
+                    isUrgent: urgent,
+                    isPinned: el('n_pinned').checked,
+                    notifHandled: sendNotif,
+                    isRead: false, isBookmarked: false, views: 0,
+                    publishedAt: serverTimestamp()
+                });
+                if (sendNotif) {
+                    await set(ref(db, 'notifications/' + id), {
+                        id, title, description: val('n_excerpt'), time: 'الآن', read: false,
+                        type: urgent ? 'urgent' : 'announcement', createdAt: serverTimestamp()
+                    });
+                }
+                toast('✅ تم نشر الخبر بنجاح');
+                el('n_title').value = ''; el('n_excerpt').value = ''; el('n_image').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل النشر: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('n_publish').addEventListener('click', publishNews);
+
+        // ---------- Publish Resource ----------
+        window.publishResource = async () => {
+            const title = val('r_title');
+            const pdfFile = el('r_pdf').files[0];
+            const coverFile = el('r_cover').files[0];
+            if (!title) { toast('أدخل عنوان الملزمة', false); return; }
+            if (!pdfFile) { toast('اختر ملف PDF', false); return; }
+            if (!coverFile) { toast('اختر صورة الغلاف', false); return; }
+            const btn = el('r_publish');
+            btn.disabled = true;
+            try {
+                const coverUrl = await uploadFile(coverFile, 'covers/');
+                const pdfUrl = await uploadFile(pdfFile, 'pdfs/');
+                const id = Date.now();
+                await set(ref(db, 'resources/' + id), {
+                    id, title,
+                    description: val('r_desc') || 'ملزمة منشورة من لوحة التحكم',
+                    stage: val('r_stage'),
+                    subject: val('r_subject'),
+                    fileType: 'PDF',
+                    fileSize: (pdfFile.size / (1024 * 1024)).toFixed(1) + ' MB',
+                    thumbnail: coverUrl,
+                    downloads: 0,
+                    isOfficial: true,
+                    year: val('r_year') || '2025',
+                    isBookmarked: false,
+                    isDownloaded: false,
+                    fileUrl: pdfUrl,
+                    createdAt: serverTimestamp()
+                });
+                toast('✅ تم نشر الملزمة بنجاح');
+                el('r_title').value = ''; el('r_desc').value = '';
+                el('r_cover').value = ''; el('r_pdf').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل النشر: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('r_publish').addEventListener('click', publishResource);
+
+        // ---------- Send Notification ----------
+        window.sendNotification = async () => {
+            const title = val('no_title');
+            if (!title) { toast('أدخل عنوان الإشعار', false); return; }
+            try {
+                const id = Date.now();
+                await set(ref(db, 'notifications/' + id), {
+                    id, title, description: val('no_desc'), time: 'الآن', read: false,
+                    type: val('no_type') || 'announcement', createdAt: serverTimestamp()
+                });
+                toast('🔔 تم إرسال الإشعار لجميع الطلاب');
+                el('no_title').value = ''; el('no_desc').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل الإرسال', false);
+            }
+        };
+        el('no_send').addEventListener('click', sendNotification);
+
+        // ---------- Ticker-only publishing (independent from news) ----------
+        window.publishTicker = async () => {
+            const text = val('ti_text');
+            if (!text) { toast('أدخل نص الشريط', false); return; }
+            try {
+                const id = Date.now();
+                await set(ref(db, 'ticker/' + id), { id: id, text: text, createdAt: serverTimestamp() });
+                toast('📢 تم النشر في الشريط المتحرك');
+                el('ti_text').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل النشر', false);
+            }
+        };
+        el('ti_publish').addEventListener('click', publishTicker);
+
+        // ---------- Exam Schedule ----------
+        window.publishExam = async () => {
+            const subject = val('ex_subject');
+            const dateVal = val('ex_date');
+            if (!subject) { toast('أدخل اسم المادة', false); return; }
+            if (!dateVal) { toast('اختر تاريخ ووقت الامتحان', false); return; }
+            try {
+                const id = Date.now();
+                await set(ref(db, 'examSchedule/' + id), { id, subject, date: dateVal, createdAt: serverTimestamp() });
+                toast('🗓️ تمت إضافة الامتحان للجدول');
+                el('ex_subject').value = ''; el('ex_date').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشلت الإضافة', false);
+            }
+        };
+        el('ex_publish').addEventListener('click', publishExam);
+
+        // ---------- Site Images ----------
+        window.changeLogo = async () => {
+            const file = el('logoFile').files[0];
+            if (!file) { toast('اختر صورة الشعار', false); return; }
+            try {
+                const url = await uploadFile(file, 'site/');
+                await set(ref(db, 'settings/logo'), { url, updatedAt: serverTimestamp() });
+                toast('🏷️ تم تغيير الشعار — ظهر عند الجميع');
+                el('logoFile').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل تغيير الشعار', false);
+            }
+        };
+        el('logoBtn').addEventListener('click', changeLogo);
+
+        window.addCarousel = async () => {
+            const file = el('c_file').files[0];
+            if (!file) { toast('اختر صورة السلايدر', false); return; }
+            try {
+                const url = await uploadFile(file, 'site/');
+                const id = Date.now();
+                await set(ref(db, 'carousel/' + id), { id, image: url, title: val('c_title'), createdAt: serverTimestamp() });
+                toast('🎠 تمت إضافة الصورة للسلايدر');
+                el('c_title').value = ''; el('c_file').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشلت الإضافة', false);
+            }
+        };
+        el('c_add').addEventListener('click', addCarousel);
+
+        // ---------- Image Previews (from gallery picker) ----------
+        function setupPreview(inputId, imgId) {
+            el(inputId).addEventListener('change', () => {
+                const file = el(inputId).files[0];
+                const img = el(imgId);
+                if (!img) return;
+                if (file && file.type.startsWith('image/')) {
+                    img.src = URL.createObjectURL(file);
+                    img.classList.remove('hidden');
+                } else {
+                    img.classList.add('hidden');
+                }
+            });
+        }
+        setupPreview('n_image', 'n_preview');
+        setupPreview('r_cover', 'r_preview');
+        setupPreview('logoFile', 'logo_preview');
+        setupPreview('c_file', 'c_preview');
+
+        // ---------- Lists & Delete ----------
+        window.deleteItem = (node, id) => {
+            remove(ref(db, node + '/' + id)).then(() => toast('🗑️ تم الحذف')).catch((e) => toast('❌ فشل الحذف', false));
+        };
+
+        function loadLists() {
+            onValue(ref(db, 'news'), (snap) => {
+                const box = el('newsList');
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد أخبار منشورة</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(n => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(n.image || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? '🔴 عاجل' : ''}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('news', ${n.id})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'resources'), (snap) => {
+                const box = el('resList');
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد ملازم منشورة</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(r => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(r.thumbnail || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(r.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(r.stage || '')} • ${escapeHtml(r.subject || '')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('resources', ${r.id})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'ticker'), (snap) => {
+                const box = el('tickerList');
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">الشريط فارغ</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(t => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0"><div class="font-bold truncate">${escapeHtml(t.text || '')}</div></div>
+                        <button class="del" onclick="deleteItem('ticker', ${t.id})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'carousel'), (snap) => {
+                const box = el('carouselList');
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد صور في السلايدر</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(c => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(c.image || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(c.title || 'صورة سلايدر')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('carousel', ${c.id})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'examSchedule'), (snap) => {
+                const box = el('examsList');
+                if (!box) return;
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد مواعيد امتحانات</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                box.innerHTML = vals.map(x => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(x.subject || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(x.date || '')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('examSchedule', ${x.id})">حذف</button>
+                    </div>`).join('');
+            });
+        }
+    </script>
+</body>
+</html>
