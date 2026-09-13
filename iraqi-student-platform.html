@@ -1075,13 +1075,13 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
-                <button onclick="app.goToStudyTimer()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goToMoreExtra()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
-                        <i data-lucide="timer" class="w-5 h-5 text-purple"></i>
+                        <i data-lucide="layers" class="w-5 h-5 text-purple"></i>
                     </div>
                     <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">مؤقت المذاكرة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بجلسات مذاكرة واكسب نقاط عند إكمالها</div>
+                        <div class="font-bold theme-transition" style="color: var(--text);">المزيد</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">أدوات وإضافات إضافية</div>
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
@@ -1107,6 +1107,28 @@
                         <div class="mt-1 text-[10px] opacity-60">2024 © وزارة التربية العراقية</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ===== MORE EXTRA VIEW (nested "المزيد" for extra tools/additions) ===== -->
+        <div id="moreExtraView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">المزيد</span>
+            </div>
+            <div class="p-4 space-y-2">
+                <button onclick="app.goToStudyTimer()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
+                        <i data-lucide="timer" class="w-5 h-5 text-purple"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">مؤقت المذاكرة</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بجلسات مذاكرة واكسب نقاط عند إكمالها</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
             </div>
         </div>
 
@@ -3117,6 +3139,10 @@
                 this.switchView('moreView');
                 lucide.createIcons();
             },
+            goToMoreExtra() {
+                this.switchView('moreExtraView');
+                lucide.createIcons();
+            },
 
             // ==================== RESOURCES ====================
             goToResources() {
@@ -4529,7 +4555,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
