@@ -1615,6 +1615,7 @@
                 this.listenForSiteImages();
                 this.listenForExamSchedule();
                 this.listenForForumThreads();
+                this.listenForLeaderboard();
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
@@ -1667,7 +1668,11 @@
 
             saveUserData() {
                 if (this.currentUser) {
-                    localStorage.setItem('iraqiStudentUser', JSON.stringify(this.currentUser));
+                    try {
+                        localStorage.setItem('iraqiStudentUser', JSON.stringify(this.currentUser));
+                    } catch (e) {
+                        console.warn('Save user data failed (localStorage quota?):', e);
+                    }
                 }
             },
 
@@ -3637,6 +3642,34 @@
             goToLeaderboard() {
                 this.loadLeaderboard();
                 this.switchView('leaderboardView');
+            },
+
+            listenForLeaderboard() {
+                if (!window.firebaseDb || this._leaderboardListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._leaderboardListener = onValue(ref(window.firebaseDb, 'leaderboard'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        const myUid = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser.uid : null;
+                        Object.keys(vals).forEach((uid) => {
+                            const entry = vals[uid];
+                            if (!entry) return;
+                            list.push({
+                                id: uid,
+                                name: entry.name || 'طالب',
+                                grade: entry.grade || 'scientific',
+                                points: Number(entry.points) || 0,
+                                weeklyChange: Number(entry.weeklyChange) || 0,
+                                avatar: entry.avatar || '',
+                                isCurrentUser: !!(myUid && myUid === uid)
+                            });
+                        });
+                    }
+                    leaderboardStudents.length = 0;
+                    leaderboardStudents.push(...list);
+                    if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
+                });
             },
 
             loadLeaderboard() {
