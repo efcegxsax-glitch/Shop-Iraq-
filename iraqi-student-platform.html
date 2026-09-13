@@ -319,6 +319,12 @@
         #walletTransactionsList > div:not(:last-child) {
             border-bottom: 1px solid var(--border);
         }
+
+        /* App header visible only on Home; every other view has its own header */
+        body.header-hidden #appHeaderBar { display: none; }
+        body.header-hidden #mainContent { padding-top: 0; }
+        body.header-hidden .sticky.top-16 { top: 0; }
+        body.header-hidden .sticky.top-\[116px\] { top: 52px; }
     </style>
 </head>
 <body class="antialiased">
@@ -342,7 +348,7 @@
     <div id="toastContainer" class="fixed bottom-24 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
     <!-- ==================== APP HEADER ==================== -->
-    <header class="app-header fixed top-0 left-0 right-0 z-50 border-b h-16 flex items-center justify-between px-4 theme-transition" style="background-color: var(--surface); border-bottom: 1px solid var(--border);">
+    <header id="appHeaderBar" class="app-header fixed top-0 left-0 right-0 z-50 border-b h-16 flex items-center justify-between px-4 theme-transition" style="background-color: var(--surface); border-bottom: 1px solid var(--border);">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
                 <img id="appLogoImg" src="https://i.postimg.cc/kGn7bhGL/images-(14).jpg" alt="شعار منصة الطالب العراقي" class="w-full h-full object-cover">
@@ -4563,6 +4569,7 @@
                 }
                 this.previousView = this.currentView;
                 this.currentView = viewId;
+                document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 window.scrollTo(0, 0);
 
                 if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); }
