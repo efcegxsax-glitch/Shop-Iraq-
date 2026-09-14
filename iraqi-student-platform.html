@@ -1757,7 +1757,7 @@
         const bannedWordsList = [
             'كلب', 'حمار', 'غبي', 'احمق', 'أحمق', 'خرا', 'خره', 'قحبة', 'قحبه', 'عاهرة', 'عاهره',
             'كس', 'كسم', 'طيز', 'زبي', 'زبك', 'نيك', 'ناك', 'منيك', 'شرموط', 'شرموطة', 'شرموطه',
-            'لوطي', 'خول', 'متناك', 'ابن كلب', 'ابن الكلب', 'يلعن', 'لعنة', 'حيوان', 'وسخ', 'زفت',
+            'لوطي', 'خول', 'متناك', 'ابن كلب', 'ابن الكلب', 'يلعن', 'لعنة', 'وسخ', 'زفت',
             'حقير', 'تافه', 'خنيث', 'عرص', 'منيوك',
             'fuck', 'shit', 'bitch', 'asshole', 'dick', 'pussy', 'porn', 'whore', 'slut', 'cunt'
         ];
@@ -1766,10 +1766,15 @@
             if (!text) return { clean: text || '', filtered: false };
             let result = String(text);
             let filtered = false;
+            // Word-boundary matching (not plain substring) so a banned word only matches when
+            // standalone — e.g. "كس" must not match inside "كسر" (broke) or "كسلان" (lazy).
+            // \b doesn't work for Arabic script in JS regex, so boundaries are checked manually
+            // via lookaround against Arabic/Latin/digit character classes.
+            const boundary = '[\\u0600-\\u06FF\\u0750-\\u077Fa-zA-Z0-9]';
             bannedWordsList.forEach((word) => {
                 if (!word) return;
                 const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const re = new RegExp(escaped, 'gi');
+                const re = new RegExp('(?<!' + boundary + ')(?:' + escaped + ')(?!' + boundary + ')', 'gi');
                 if (re.test(result)) {
                     filtered = true;
                     result = result.replace(re, (m) => '*'.repeat(m.length));
@@ -2289,6 +2294,8 @@
                     this.currentUser = null;
                     this.tempAvatar = null;
                     this.authUid = null;
+                    this._tasksListener = null;
+                    userTasks.length = 0;
                     this.userRead = {};
                     this.userBookmarks = {};
                     localStorage.removeItem('iraqiStudentUser');
