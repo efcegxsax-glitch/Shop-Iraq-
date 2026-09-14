@@ -1751,6 +1751,33 @@
             return isSafeImageUrl(value) ? value : FALLBACK_IMAGE;
         }
 
+        // ==================== FORUM CONTENT FILTER ====================
+        // Blocks common Arabic/Iraqi and English profanity, insults, and sexual terms
+        // before a question/answer is ever saved to the shared database.
+        const bannedWordsList = [
+            'كلب', 'حمار', 'غبي', 'احمق', 'أحمق', 'خرا', 'خره', 'قحبة', 'قحبه', 'عاهرة', 'عاهره',
+            'كس', 'كسم', 'طيز', 'زبي', 'زبك', 'نيك', 'ناك', 'منيك', 'شرموط', 'شرموطة', 'شرموطه',
+            'لوطي', 'خول', 'متناك', 'ابن كلب', 'ابن الكلب', 'يلعن', 'لعنة', 'حيوان', 'وسخ', 'زفت',
+            'حقير', 'تافه', 'خنيث', 'عرص', 'منيوك',
+            'fuck', 'shit', 'bitch', 'asshole', 'dick', 'pussy', 'porn', 'whore', 'slut', 'cunt'
+        ];
+
+        function filterBadWords(text) {
+            if (!text) return { clean: text || '', filtered: false };
+            let result = String(text);
+            let filtered = false;
+            bannedWordsList.forEach((word) => {
+                if (!word) return;
+                const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                const re = new RegExp(escaped, 'gi');
+                if (re.test(result)) {
+                    filtered = true;
+                    result = result.replace(re, (m) => '*'.repeat(m.length));
+                }
+            });
+            return { clean: result, filtered };
+        }
+
         // ==================== DATA MODEL ====================
         const categories = [
             { id: 'all', label: 'الكل', icon: 'layout-grid' },
@@ -4720,13 +4747,18 @@
                     this.showToast('لا يوجد اتصال بقاعدة البيانات');
                     return;
                 }
+                const titleFilter = filterBadWords(title);
+                const bodyFilter = filterBadWords(body);
+                if (titleFilter.filtered || bodyFilter.filtered) {
+                    this.showToast('تم حذف كلمات غير لائقة من رسالتك');
+                }
                 const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
                 const id = Date.now();
                 const payload = {
                     id: id,
                     subject: subjectEl.value,
-                    title: title,
-                    body: body,
+                    title: titleFilter.clean,
+                    body: bodyFilter.clean,
                     authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
                     authorUid: this.currentUid(),
                     answersCount: 0,
@@ -4752,12 +4784,16 @@
                     return;
                 }
                 if (!window.firebaseDb || !this.currentForumThreadId) return;
+                const bodyFilter = filterBadWords(body);
+                if (bodyFilter.filtered) {
+                    this.showToast('تم حذف كلمات غير لائقة من إجابتك');
+                }
                 const threadId = this.currentForumThreadId;
                 const { ref, set, serverTimestamp, runTransaction } = window.firebaseDbHelpers;
                 const answerId = Date.now();
                 const payload = {
                     id: answerId,
-                    body: body,
+                    body: bodyFilter.clean,
                     authorName: this.currentUser.fullName || 'طالب',
                     authorUid: this.currentUid(),
                     createdAt: serverTimestamp()
