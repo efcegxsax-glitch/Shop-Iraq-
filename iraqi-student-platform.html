@@ -16,7 +16,7 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getDatabase, ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getDatabase, ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -46,7 +46,7 @@
             window.firebaseDb = getDatabase(app);
             window.firebaseAuth = getAuth(app);
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
-            window.firebaseDbHelpers = { ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction };
+            window.firebaseDbHelpers = { ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
             window.firebaseStorage = getStorage(app);
             window.firebaseStorageHelpers = { ref: storageRef, uploadBytes, getDownloadURL };
             window.firebaseMessagingHelpers = { getToken };
@@ -1202,6 +1202,17 @@
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
+
+                <button onclick="app.goToStudyRoom()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                        <i data-lucide="users" class="w-5 h-5 text-success"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">غرفة المذاكرة الجماعية</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">شوف مين من زملاءك يذاكر الآن</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
             </div>
         </div>
 
@@ -1252,6 +1263,30 @@
                     <div id="pointsStoreBalance" class="font-bold" style="color: var(--warning); font-size: 26px;">0 نقطة</div>
                 </div>
                 <div id="pointsStoreOffers" class="flex flex-col gap-3"></div>
+            </div>
+        </div>
+
+        <!-- ===== STUDY ROOM VIEW ===== -->
+        <div id="studyRoomView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">غرفة المذاكرة الجماعية</span>
+            </div>
+            <div class="px-4 py-4">
+                <div class="rounded-2xl p-4 mb-4 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);">
+                    <div class="w-3 h-3 rounded-full bg-success unread-dot flex-shrink-0"></div>
+                    <div id="studyRoomCount" class="text-sm font-bold theme-transition" style="color: var(--text);">0 طالب يذاكرون الآن</div>
+                </div>
+                <div id="studyRoomList" class="flex flex-col gap-3"></div>
+                <div id="studyRoomEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="users" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا أحد يذاكر الآن</h3>
+                    <p class="text-sm max-w-[250px] theme-transition" style="color: var(--text2);">شغّل مؤقت المذاكرة أو يوتيوب دراسة حتى يشوفك زملاءك هنا</p>
+                </div>
             </div>
         </div>
 
@@ -1692,6 +1727,8 @@
             { points: 50000, iqd: 5000 }
         ];
 
+        const studyRoomStudents = [];
+
         const forumSubjects = [
             { id: 'all', label: 'الكل' },
             { id: 'arabic', label: 'اللغة العربية' },
@@ -1759,6 +1796,7 @@
                 this.listenForExamSchedule();
                 this.listenForForumThreads();
                 this.listenForLeaderboard();
+                this.listenForStudyRoom();
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
@@ -2086,6 +2124,7 @@
 
             logout() {
                 if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+                    this.leaveStudyRoom();
                     this.isLoggedIn = false;
                     this.currentUser = null;
                     this.tempAvatar = null;
@@ -4653,6 +4692,7 @@
                 if (this.studyTimerRunning) return;
                 if (this.studyTimerRemaining <= 0) this.studyTimerRemaining = this.studyTimerDuration;
                 this.studyTimerRunning = true;
+                this.joinStudyRoom('timer');
                 const btn = document.getElementById('studyTimerToggleBtn');
                 if (btn) btn.textContent = 'إيقاف';
                 this.studyTimerInterval = setInterval(() => {
@@ -4668,6 +4708,7 @@
                     this.studyTimerInterval = null;
                 }
                 this.studyTimerRunning = false;
+                this.leaveStudyRoom();
                 const btn = document.getElementById('studyTimerToggleBtn');
                 if (btn) btn.textContent = 'ابدأ';
             },
@@ -4678,6 +4719,7 @@
                     this.studyTimerInterval = null;
                 }
                 this.studyTimerRunning = false;
+                this.leaveStudyRoom();
                 this.studyTimerRemaining = this.studyTimerDuration;
                 this.updateStudyTimerDisplay();
                 const btn = document.getElementById('studyTimerToggleBtn');
@@ -4690,6 +4732,7 @@
                     this.studyTimerInterval = null;
                 }
                 this.studyTimerRunning = false;
+                this.leaveStudyRoom();
                 this.studyTimerRemaining = this.studyTimerDuration;
                 this.updateStudyTimerDisplay();
                 const btn = document.getElementById('studyTimerToggleBtn');
@@ -4767,6 +4810,7 @@
                 const pointsEl = document.getElementById('youtubeStudySessionPoints');
                 if (pointsEl) pointsEl.textContent = '0';
                 this.youtubeStudySessionActive = true;
+                this.joinStudyRoom('youtube');
                 const inCooldown = (this.currentUser.youtubeStudyCooldownUntil || 0) > Date.now();
                 if (!inCooldown) {
                     this.scheduleNextYoutubePresenceCheck();
@@ -4844,6 +4888,7 @@
 
             stopYoutubeStudySession() {
                 this.youtubeStudySessionActive = false;
+                this.leaveStudyRoom();
                 if (this.youtubeStudyCheckTimer) { clearTimeout(this.youtubeStudyCheckTimer); this.youtubeStudyCheckTimer = null; }
                 if (this.youtubeStudyResponseTimer) { clearTimeout(this.youtubeStudyResponseTimer); this.youtubeStudyResponseTimer = null; }
                 if (this.youtubeStudyCountdownInterval) { clearInterval(this.youtubeStudyCountdownInterval); this.youtubeStudyCountdownInterval = null; }
@@ -4913,6 +4958,97 @@
                 });
                 this.renderPointsStore();
                 this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
+            },
+
+            // ==================== STUDY ROOM ====================
+            goToStudyRoom() {
+                this.renderStudyRoom();
+                this.switchView('studyRoomView');
+                lucide.createIcons();
+            },
+
+            listenForStudyRoom() {
+                if (!window.firebaseDb || this._studyRoomListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._studyRoomListener = onValue(ref(window.firebaseDb, 'studyRoom'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => {
+                            const entry = vals[uid];
+                            if (!entry) return;
+                            list.push({
+                                uid: uid,
+                                name: entry.name || 'طالب',
+                                avatar: entry.avatar || '',
+                                activity: entry.activity || 'timer',
+                                startedAt: entry.startedAt || 0
+                            });
+                        });
+                        list.sort((a, b) => b.startedAt - a.startedAt);
+                    }
+                    studyRoomStudents.length = 0;
+                    studyRoomStudents.push(...list);
+                    if (this.currentView === 'studyRoomView') { this.renderStudyRoom(); lucide.createIcons(); }
+                });
+            },
+
+            renderStudyRoom() {
+                const countEl = document.getElementById('studyRoomCount');
+                const listEl = document.getElementById('studyRoomList');
+                const emptyEl = document.getElementById('studyRoomEmptyState');
+                if (!countEl || !listEl || !emptyEl) return;
+                countEl.textContent = studyRoomStudents.length + ' طالب يذاكرون الآن';
+                if (studyRoomStudents.length === 0) {
+                    listEl.innerHTML = '';
+                    listEl.classList.add('hidden');
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+                listEl.classList.remove('hidden');
+                emptyEl.classList.add('hidden');
+                listEl.innerHTML = studyRoomStudents.map((s) => {
+                    const activityLabel = s.activity === 'youtube' ? 'يوتيوب دراسة' : 'مؤقت المذاكرة';
+                    const activityIcon = s.activity === 'youtube' ? 'youtube' : 'timer';
+                    const minutes = s.startedAt ? Math.max(0, Math.round((Date.now() - s.startedAt) / 60000)) : 0;
+                    return `
+                        <div class="rounded-2xl border p-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                            <img src="${safeImage(s.avatar)}" alt="${escapeHtml(s.name)}" class="w-11 h-11 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(s.name)}</div>
+                                <div class="flex items-center gap-1 text-xs theme-transition" style="color: var(--text2);">
+                                    <i data-lucide="${activityIcon}" class="w-3 h-3"></i>${activityLabel} • منذ ${minutes} دقيقة
+                                </div>
+                            </div>
+                            <div class="w-2.5 h-2.5 rounded-full bg-success unread-dot flex-shrink-0"></div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            joinStudyRoom(activity) {
+                if (!window.firebaseDb || !this.isLoggedIn || !this.currentUser) return;
+                const uid = this.currentUid();
+                const { ref, set, serverTimestamp, onDisconnect } = window.firebaseDbHelpers;
+                const roomRef = ref(window.firebaseDb, 'studyRoom/' + uid);
+                set(roomRef, {
+                    name: this.currentUser.fullName || 'طالب',
+                    avatar: this.currentUser.avatar || '',
+                    activity: activity,
+                    startedAt: Date.now()
+                }).catch((err) => console.warn('Join study room failed:', err));
+                try {
+                    onDisconnect(roomRef).remove();
+                } catch (e) {
+                    console.warn('onDisconnect setup failed:', e);
+                }
+            },
+
+            leaveStudyRoom() {
+                if (!window.firebaseDb || !this.isLoggedIn || !this.currentUser) return;
+                const uid = this.currentUid();
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'studyRoom/' + uid), null).catch((err) => console.warn('Leave study room failed:', err));
             },
 
             // ==================== NAVIGATION ====================
@@ -4991,7 +5127,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
