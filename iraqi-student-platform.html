@@ -148,16 +148,16 @@
         }
 
         /* ===== Liquid Glass surfaces (iOS 26 / iPhone 17 style) ===== */
-        /* Broad reach without editing every element: catches every inline style that
-           paints a surface/input background, and layers blur + a soft top highlight. */
-        [style*="var(--surface)"], [style*="var(--input-bg)"], .auth-input, nav.fixed {
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        /* Translucent tint everywhere var(--surface)/var(--input-bg) is used (cheap: just
+           color, no blur) — real blur is reserved for the few fixed "chrome" elements
+           (header, bottom nav, sticky sub-headers, modal sheet), never for repeated
+           scrolling list cards, which is what made the whole app feel heavy/laggy. */
+        [style*="var(--surface)"], [style*="var(--input-bg)"], .auth-input {
             box-shadow: inset 0 1px 0 var(--glass-highlight), 0 1px 2px rgba(0, 0, 0, 0.04);
         }
-        header.app-header, nav.fixed {
-            backdrop-filter: blur(24px) saturate(180%);
-            -webkit-backdrop-filter: blur(24px) saturate(180%);
+        header.app-header, nav.fixed, .sticky.top-16, #walletModal > div {
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
         }
 
         * { -webkit-tap-highlight-color: transparent; }
