@@ -1271,6 +1271,17 @@
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
+
+                <button onclick="app.goToTasks()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
+                        <i data-lucide="list-checks" class="w-5 h-5 text-info"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">قائمة مهامي اليومية</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">حدد مهامك ووقت إنجازها، وتوصلك تذكيرات لو تأخرت</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
             </div>
         </div>
 
@@ -1354,6 +1365,35 @@
                     </div>
                     <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا أحد يذاكر الآن</h3>
                     <p class="text-sm max-w-[250px] theme-transition" style="color: var(--text2);">شغّل مؤقت المذاكرة أو يوتيوب دراسة حتى يشوفك زملاءك هنا</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== DAILY TASKS VIEW ===== -->
+        <div id="tasksView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">مهامي اليوم</span>
+            </div>
+            <div class="px-4 py-4">
+                <div class="rounded-2xl p-4 mb-4 theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);">
+                    <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">مهمة جديدة</label>
+                    <input type="text" id="taskTextInput" placeholder="مثال: حل أسئلة الفصل الثالث" class="w-full h-12 px-4 rounded-xl auth-input text-sm mb-3">
+                    <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">أنجزها قبل الساعة</label>
+                    <div class="flex gap-2">
+                        <input type="time" id="taskTimeInput" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                        <button onclick="app.addTask()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex-shrink-0">إضافة</button>
+                    </div>
+                </div>
+                <div id="tasksList" class="flex flex-col gap-3"></div>
+                <div id="tasksEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="list-checks" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد مهام اليوم</h3>
+                    <p class="text-sm max-w-[250px] theme-transition" style="color: var(--text2);">أضف مهمة وحدد وقتها من الأعلى</p>
                 </div>
             </div>
         </div>
@@ -1815,6 +1855,8 @@
             'كافئ نفسك بعد إنهاء هدف مذاكرة — التحفيز الذاتي يزيد الاستمرارية.'
         ];
 
+        const userTasks = [];
+
         const forumSubjects = [
             { id: 'all', label: 'الكل' },
             { id: 'arabic', label: 'اللغة العربية' },
@@ -1888,6 +1930,7 @@
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 60000);
+                setInterval(() => this.checkTaskReminders(), 120000);
             },
 
             // ==================== THEME / DARK MODE ====================
@@ -1957,6 +2000,8 @@
                     } else {
                         this.authUid = null;
                         this._stateLoadedFor = null;
+                        this._tasksListener = null;
+                        userTasks.length = 0;
                         if (this.isLoggedIn) {
                             this.isLoggedIn = false;
                             this.currentUser = null;
@@ -2185,6 +2230,7 @@
                         this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
                     }
                     this.checkDailyStreak();
+                    this.listenForUserTasks();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -2954,6 +3000,7 @@
                     this.updateProfileView();
                     this.initPushNotifications();
                     this.checkDailyStreak();
+                    this.listenForUserTasks();
                     this.renderNews();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
@@ -5145,6 +5192,151 @@
                 set(ref(window.firebaseDb, 'studyRoom/' + uid), null).catch((err) => console.warn('Leave study room failed:', err));
             },
 
+            // ==================== DAILY TASKS ====================
+            goToTasks() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لاستخدام هذه الميزة');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.renderTasksList();
+                this.switchView('tasksView');
+                lucide.createIcons();
+            },
+
+            listenForUserTasks() {
+                if (!window.firebaseDb || !this.authUid || this._tasksListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._tasksListener = onValue(ref(window.firebaseDb, 'userTasks/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                    }
+                    userTasks.length = 0;
+                    userTasks.push(...list);
+                    if (this.currentView === 'tasksView') { this.renderTasksList(); lucide.createIcons(); }
+                });
+            },
+
+            renderTasksList() {
+                const listEl = document.getElementById('tasksList');
+                const emptyEl = document.getElementById('tasksEmptyState');
+                if (!listEl || !emptyEl) return;
+                const sorted = [...userTasks].sort((a, b) => (a.dueAt || 0) - (b.dueAt || 0));
+                if (sorted.length === 0) {
+                    listEl.innerHTML = '';
+                    listEl.classList.add('hidden');
+                    emptyEl.classList.remove('hidden');
+                    return;
+                }
+                listEl.classList.remove('hidden');
+                emptyEl.classList.add('hidden');
+                const now = Date.now();
+                listEl.innerHTML = sorted.map((t) => {
+                    const overdue = !t.done && t.dueAt && t.dueAt <= now;
+                    const timeLabel = t.dueAt ? new Date(t.dueAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }) : '';
+                    return `
+                        <div class="rounded-xl border p-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: ${overdue ? '#DC2626' : 'var(--border)'};">
+                            <button onclick="app.toggleTaskDone(${t.id})" class="btn-press w-7 h-7 rounded-lg border-2 flex items-center justify-center flex-shrink-0" style="border-color: ${t.done ? '#16A34A' : 'var(--border)'}; background-color: ${t.done ? '#16A34A' : 'transparent'};">
+                                ${t.done ? '<i data-lucide="check" class="w-4 h-4 text-white"></i>' : ''}
+                            </button>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold ${t.done ? 'line-through' : ''} theme-transition" style="color: ${t.done ? 'var(--text2)' : 'var(--text)'};">${escapeHtml(t.text)}</div>
+                                <div class="text-xs mt-0.5" style="color: ${overdue ? '#DC2626' : 'var(--text2)'};">${overdue ? 'متأخرة • ' : ''}الساعة ${escapeHtml(timeLabel)}</div>
+                            </div>
+                            <button onclick="app.deleteTask(${t.id})" class="btn-press w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);">
+                                <i data-lucide="trash-2" class="w-4 h-4" style="color: #DC2626;"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            addTask() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لإضافة مهام');
+                    this.goToAuth('login');
+                    return;
+                }
+                const textInput = document.getElementById('taskTextInput');
+                const timeInput = document.getElementById('taskTimeInput');
+                if (!textInput || !timeInput) return;
+                const text = textInput.value.trim();
+                const time = timeInput.value;
+                if (!text) {
+                    this.showToast('اكتب نص المهمة');
+                    return;
+                }
+                if (!time) {
+                    this.showToast('حدد وقت إنجاز المهمة');
+                    return;
+                }
+                const [hours, minutes] = time.split(':').map(Number);
+                const due = new Date();
+                due.setHours(hours, minutes, 0, 0);
+                const id = Date.now();
+                const task = { id, text, dueAt: due.getTime(), done: false };
+                userTasks.push(task);
+                this.renderTasksList();
+                lucide.createIcons();
+                textInput.value = '';
+                timeInput.value = '';
+                if ('Notification' in window && Notification.permission === 'default') {
+                    Notification.requestPermission().catch((err) => console.warn('Notification permission request failed:', err));
+                }
+                if (window.firebaseDb) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'userTasks/' + this.currentUid() + '/' + id), task).catch((err) => {
+                        console.warn('Save task failed:', err);
+                    });
+                }
+            },
+
+            toggleTaskDone(id) {
+                const task = userTasks.find(t => t.id === id);
+                if (!task) return;
+                task.done = !task.done;
+                this.renderTasksList();
+                lucide.createIcons();
+                if (window.firebaseDb && this.currentUser) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'userTasks/' + this.currentUid() + '/' + id + '/done'), task.done).catch((err) => {
+                        console.warn('Update task failed:', err);
+                    });
+                }
+            },
+
+            deleteTask(id) {
+                const i = userTasks.findIndex(t => t.id === id);
+                if (i > -1) userTasks.splice(i, 1);
+                this.renderTasksList();
+                lucide.createIcons();
+                if (window.firebaseDb && this.currentUser) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'userTasks/' + this.currentUid() + '/' + id), null).catch((err) => {
+                        console.warn('Delete task failed:', err);
+                    });
+                }
+            },
+
+            checkTaskReminders() {
+                if (!this.isLoggedIn || userTasks.length === 0) return;
+                const now = Date.now();
+                const overdue = userTasks.filter(t => !t.done && t.dueAt && t.dueAt <= now);
+                if (overdue.length === 0) return;
+                this.playNotifySound();
+                const summary = overdue.length === 1 ? overdue[0].text : (overdue.length + ' مهام متأخرة');
+                this.showToast('⏰ تذكير: ' + summary + ' — لسه ما خلّصتها');
+                if ('Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification('تذكير بمهامك', { body: summary, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' });
+                    } catch (e) {
+                        console.warn('Task notification failed:', e);
+                    }
+                }
+            },
+
             // ==================== NAVIGATION ====================
             setTab(tab) {
                 document.querySelectorAll('.nav-item').forEach(el => {
@@ -5221,7 +5413,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
