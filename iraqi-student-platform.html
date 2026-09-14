@@ -509,6 +509,18 @@
                 <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="examCountdownList"></div>
             </section>
 
+            <section class="px-4 py-2">
+                <div class="rounded-2xl p-3.5 flex items-start gap-2.5 theme-transition" style="background-color: var(--reminder-bg); border: 1px solid var(--reminder-border);">
+                    <div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="lightbulb" class="w-4 h-4 text-purple"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-xs font-bold mb-0.5" style="color: #8B5CF6;">نصيحة اليوم</div>
+                        <div id="dailyTipText" class="text-sm leading-relaxed theme-transition" style="color: var(--text);"></div>
+                    </div>
+                </div>
+            </section>
+
             <div id="contentArea" class="px-4 py-2">
                 <div id="newsListState">
                     <div class="flex items-center justify-between mb-3">
@@ -1770,6 +1782,24 @@
 
         const studyRoomStudents = [];
 
+        const dailyTips = [
+            'ابدأ بالمادة الأصعب عليك وأنت بأعلى تركيز، وأجّل السهلة لوقت التعب.',
+            'قسّم وقت المذاكرة إلى جلسات قصيرة مع فواصل راحة بدل جلسة طويلة متواصلة.',
+            'راجع ما درسته بالأمس لمدة 5 دقائق قبل البدء بمادة اليوم — يثبّت المعلومة أكثر.',
+            'اكتب ملخصًا بخط يدك بعد كل درس، الكتابة تساعد الدماغ يتذكر أفضل من القراءة فقط.',
+            'حل أسئلة سنوات سابقة أهم من إعادة قراءة الكتاب عدة مرات.',
+            'نام عدد ساعات كافي قبل الامتحان، السهر يقلل التركيز أكثر مما يزيد المذاكرة.',
+            'اشرح الدرس لشخص ثاني بصوت عالي — لو قدرت تشرحه فهذا دليل إنك فهمته فعلاً.',
+            'رتّب مكان مذاكرتك وابعد هاتفك عنك وقت التركيز.',
+            'اشرب ماء كافي أثناء المذاكرة، الجفاف يقلل التركيز والانتباه.',
+            'حدد هدف واضح لكل جلسة مذاكرة قبل ما تبدأ (مثلاً: إنهاء فصل معين) بدل المذاكرة بدون خطة.',
+            'لا تقارن سرعتك بزملائك، كل شخص له وتيرة مختلفة بالفهم والحفظ.',
+            'راجع أخطاءك بالأسئلة السابقة بدل تجاهلها، أغلب الأسئلة تتكرر بصيغة مشابهة.',
+            'خذ نفس عميق قبل الامتحان، القلق الزائد يشتت التركيز أكثر مما يساعد.',
+            'ذاكر بترتيب منطقي: افهم القاعدة أولاً، وبعدين حل الأمثلة عليها.',
+            'كافئ نفسك بعد إنهاء هدف مذاكرة — التحفيز الذاتي يزيد الاستمرارية.'
+        ];
+
         const forumSubjects = [
             { id: 'all', label: 'الكل' },
             { id: 'arabic', label: 'اللغة العربية' },
@@ -1827,6 +1857,7 @@
                 this.renderCategories();
                 this.renderNotificationsList();
                 this.renderNewsTicker();
+                this.renderDailyTip();
                 this.loadNewsFromDatabase();
                 this.listenForNews();
                 this.loadResourcesFromDatabase();
@@ -2300,6 +2331,14 @@
                 this.renderCategories();
                 this.renderNews();
                 lucide.createIcons();
+            },
+
+            renderDailyTip() {
+                const el = document.getElementById('dailyTipText');
+                if (!el) return;
+                const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
+                const tip = dailyTips[dayOfYear % dailyTips.length];
+                el.textContent = tip;
             },
 
             renderNewsTicker() {
