@@ -2546,8 +2546,8 @@
                 ];
                 if (section) section.classList.remove('hidden');
                 wrapper.innerHTML = slides.map(sl => `
-                    <div class="swiper-slide relative">
-                        <img src="${safeImage(sl.image)}" class="w-full h-full object-cover" alt="${escapeHtml(sl.title || '')}">
+                    <div class="swiper-slide relative bg-black">
+                        <img src="${safeImage(sl.image)}" class="w-full h-full object-contain" alt="${escapeHtml(sl.title || '')}">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
                         <div class="absolute bottom-0 right-0 left-0 p-4 text-white">
                             ${sl.title ? `<h3 class="text-base font-bold leading-snug">${escapeHtml(sl.title)}</h3>` : ''}
