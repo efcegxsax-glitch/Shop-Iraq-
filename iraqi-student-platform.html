@@ -1202,19 +1202,6 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
-                <button onclick="app.toggleNetworkSimulation()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                        <i data-lucide="wifi" class="w-5 h-5 text-warning"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">محاكاة عدم الاتصال</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">اختبار حالة عدم الاتصال بالشبكة</div>
-                    </div>
-                    <div id="networkToggle" class="w-12 h-6 rounded-full relative transition-colors" style="background-color: var(--border);">
-                        <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-transform"></div>
-                    </div>
-                </button>
-
                 <div class="p-4 rounded-2xl border mt-4 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="text-xs text-center leading-relaxed theme-transition" style="color: var(--text2);">
                         <div class="font-bold mb-1 theme-transition" style="color: var(--text);">منصة الطالب العراقي</div>
@@ -1762,6 +1749,19 @@
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
 
+        function cacheNewsData(data) {
+            try { localStorage.setItem('isp_news_cache', JSON.stringify(data)); } catch (e) {}
+        }
+
+        function loadNewsCache() {
+            try {
+                const raw = localStorage.getItem('isp_news_cache');
+                return raw ? JSON.parse(raw) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
         // ==================== FORUM CONTENT FILTER ====================
         // Blocks common Arabic/Iraqi and English profanity, insults, and sexual terms
         // before a question/answer is ever saved to the shared database.
@@ -1940,7 +1940,7 @@
             youtubeStudySessionPoints: 0,
             viewHistory: [],
             _skipHistory: false,
-            isOnline: true,
+            isOnline: navigator.onLine,
             isDarkMode: false,
             isLoggedIn: false,
             currentUser: null,
@@ -1955,7 +1955,19 @@
                 this.loadTheme();
                 this.loadUserData();
                 this.watchAuthState();
+                this.hydrateNewsCache();
                 this.loadData();
+                window.addEventListener('online', () => {
+                    this.isOnline = true;
+                    this.checkNetwork();
+                    this.showToast('تم استعادة الاتصال بالإنترنت');
+                    this.loadData();
+                });
+                window.addEventListener('offline', () => {
+                    this.isOnline = false;
+                    this.checkNetwork();
+                    this.showToast('انقطع الاتصال بالإنترنت');
+                });
                 this.renderCategories();
                 this.renderNotificationsList();
                 this.renderNewsTicker();
@@ -2381,7 +2393,7 @@
                 this.showLoading();
                 this.loadNewsFromDatabase();
                 setTimeout(() => {
-                    if (this.isOnline) {
+                    if (this.isOnline || newsData.length > 0) {
                         this.showNewsList();
                         this.renderNews();
                         this.renderCarousel();
@@ -3026,6 +3038,7 @@
                         this.currentUser = { ...this.currentUser, ...snap.val() };
                         this.isLoggedIn = true;
                         this.saveUserData();
+                        if (await this.checkIfBanned(this.currentUser.studentNumber)) return;
                     } else {
                         if (!this.currentUser) this.currentUser = {};
                         if (!this.currentUser.studentNumber) {
@@ -3055,6 +3068,30 @@
                 } catch (err) {
                     console.warn('Realtime Database read failed:', err);
                     this.saveUserData();
+                }
+            },
+
+            async checkIfBanned(studentNumber) {
+                if (!studentNumber || !window.firebaseDb) return false;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const snap = await get(ref(window.firebaseDb, 'bannedStudents/' + studentNumber));
+                    if (!snap.exists()) return false;
+                    const info = snap.val() || {};
+                    this.isLoggedIn = false;
+                    this.currentUser = null;
+                    this.authUid = null;
+                    localStorage.removeItem('iraqiStudentUser');
+                    if (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuthHelpers) {
+                        const { signOut } = window.firebaseAuthHelpers;
+                        signOut(window.firebaseAuth).catch((e) => console.warn('Sign out after ban failed:', e));
+                    }
+                    this.showToast('تم حظرك من المنصة' + (info.reason ? ': ' + info.reason : ''));
+                    this.goToAuth('login');
+                    return true;
+                } catch (err) {
+                    console.warn('Ban check failed:', err);
+                    return false;
                 }
             },
 
@@ -3171,6 +3208,7 @@
                     Object.keys(vals).forEach((k) => {
                         if (!newsData.some(n => n.id === vals[k].id) && !this.getDeletedNewsIds().has(vals[k].id)) newsData.unshift(vals[k]);
                     });
+                    cacheNewsData(newsData);
                     this.renderNews();
                     this.renderNewsTicker();
                     this.renderCarousel();
@@ -3204,6 +3242,7 @@
                     const visibleList = list.filter((item) => !deletedIds.has(item.id));
                     newsData.length = 0;
                     newsData.push(...visibleList);
+                    cacheNewsData(newsData);
                     this.applyUserNewsState();
                     this.renderNews();
                     this.renderNewsTicker();
@@ -5638,30 +5677,17 @@
             },
 
             checkNetwork() {
+                this.isOnline = navigator.onLine;
                 const bar = document.getElementById('networkBar');
                 if (!bar) return;
                 if (!this.isOnline) bar.classList.remove('hidden-bar');
                 else bar.classList.add('hidden-bar');
             },
 
-            toggleNetworkSimulation() {
-                this.isOnline = !this.isOnline;
-                const toggle = document.getElementById('networkToggle');
-                const bar = document.getElementById('networkBar');
-                if (toggle) {
-                    const knob = toggle.querySelector('div');
-                    if (!this.isOnline) {
-                        toggle.style.backgroundColor = '#2563EB';
-                        if (knob) knob.style.transform = 'translateX(24px)';
-                        if (bar) bar.classList.remove('hidden-bar');
-                        this.showToast('وضع عدم الاتصال مفعل');
-                    } else {
-                        toggle.style.backgroundColor = 'var(--border)';
-                        if (knob) knob.style.transform = 'translateX(0)';
-                        if (bar) bar.classList.add('hidden-bar');
-                        this.showToast('تم استعادة الاتصال');
-                        this.loadData();
-                    }
+            hydrateNewsCache() {
+                const cached = loadNewsCache();
+                if (cached.length && newsData.length === 0) {
+                    newsData.push(...cached);
                 }
             }
         };
