@@ -1758,6 +1758,10 @@
             return isSafeImageUrl(value) ? value : FALLBACK_IMAGE;
         }
 
+        function personAvatarSrc(avatar, name) {
+            return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
+        }
+
         // ==================== FORUM CONTENT FILTER ====================
         // Blocks common Arabic/Iraqi and English profanity, insults, and sexual terms
         // before a question/answer is ever saved to the shared database.
@@ -4708,9 +4712,13 @@
                         </div>
                         <h3 class="text-sm font-bold leading-relaxed mb-1 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h3>
                         <p class="text-xs line-clamp-2 theme-transition" style="color: var(--text2);">${escapeHtml(thread.body || '')}</p>
-                        <div class="flex items-center gap-3 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                            <span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(thread.authorName || 'طالب')}</span>
-                            <span class="flex items-center gap-1"><i data-lucide="message-circle" class="w-3 h-3"></i>${Number(thread.answersCount) || 0} إجابة</span>
+                        <div class="flex items-center gap-2 mt-2">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0 text-xs theme-transition" style="color: var(--text2);">
+                                <span class="font-bold">${escapeHtml(thread.authorName || 'طالب')}</span>
+                                ${thread.authorStudentNumber ? `<span> • ID: ${escapeHtml(thread.authorStudentNumber)}</span>` : ''}
+                            </div>
+                            <span class="flex items-center gap-1 flex-shrink-0 text-xs theme-transition" style="color: var(--text2);"><i data-lucide="message-circle" class="w-3 h-3"></i>${Number(thread.answersCount) || 0} إجابة</span>
                         </div>
                     </div>
                 `;
@@ -4752,8 +4760,12 @@
                         <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">${escapeHtml(subjLabel)}</span>
                         <h1 class="text-lg font-bold leading-relaxed mt-2 mb-2 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h1>
                         <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
-                        <div class="flex items-center gap-1 mt-3 text-xs theme-transition" style="color: var(--text2);">
-                            <i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(thread.authorName || 'طالب')}
+                        <div class="flex items-center gap-2 mt-3">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
+                            <div class="text-xs theme-transition" style="color: var(--text2);">
+                                <span class="font-bold">${escapeHtml(thread.authorName || 'طالب')}</span>
+                                ${thread.authorStudentNumber ? `<span> • ID: ${escapeHtml(thread.authorStudentNumber)}</span>` : ''}
+                            </div>
                         </div>
                     </div>
                     <div class="px-4 pt-4">
@@ -4762,8 +4774,12 @@
                             ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد إجابات بعد، كن أول من يجيب</p>` : answers.map(a => `
                                 <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                                     <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
-                                    <div class="flex items-center gap-1 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                                        <i data-lucide="user" class="w-3 h-3"></i>${escapeHtml(a.authorName || 'طالب')}
+                                    <div class="flex items-center gap-2 mt-2">
+                                        <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
+                                        <div class="text-xs theme-transition" style="color: var(--text2);">
+                                            <span class="font-bold">${escapeHtml(a.authorName || 'طالب')}</span>
+                                            ${a.authorStudentNumber ? `<span> • ID: ${escapeHtml(a.authorStudentNumber)}</span>` : ''}
+                                        </div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -4833,6 +4849,8 @@
                     title: titleFilter.clean,
                     body: bodyFilter.clean,
                     authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
+                    authorAvatar: (this.currentUser && this.currentUser.avatar) || '',
+                    authorStudentNumber: (this.currentUser && this.currentUser.studentNumber) || '',
                     authorUid: this.currentUid(),
                     answersCount: 0,
                     createdAt: serverTimestamp()
@@ -4868,6 +4886,8 @@
                     id: answerId,
                     body: bodyFilter.clean,
                     authorName: this.currentUser.fullName || 'طالب',
+                    authorAvatar: this.currentUser.avatar || '',
+                    authorStudentNumber: this.currentUser.studentNumber || '',
                     authorUid: this.currentUid(),
                     createdAt: serverTimestamp()
                 };
