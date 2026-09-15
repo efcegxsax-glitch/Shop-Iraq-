@@ -159,6 +159,11 @@
             backdrop-filter: blur(20px) saturate(180%);
             -webkit-backdrop-filter: blur(20px) saturate(180%);
         }
+        .nav-item { position: relative; }
+        .nav-item.active {
+            background-color: var(--input-bg);
+            box-shadow: inset 0 1px 0 var(--glass-highlight);
+        }
 
         * { -webkit-tap-highlight-color: transparent; }
         body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: var(--bg) !important; color: var(--text) !important; overscroll-behavior-y: none; transition: background-color 0.3s ease, color 0.3s ease; }
@@ -462,7 +467,7 @@
     </header>
 
     <!-- ==================== MAIN CONTENT AREA ==================== -->
-    <main id="mainContent" class="pt-16 pb-24 min-h-screen">
+    <main id="mainContent" class="pt-16 pb-28 min-h-screen">
 
         <!-- ===== HOME VIEW ===== -->
         <div id="homeView" class="page-enter">
@@ -1682,7 +1687,7 @@
     </div>
 
     <!-- ==================== BOTTOM NAVIGATION ==================== -->
-    <nav class="fixed bottom-0 left-0 right-0 border-t z-50 theme-transition" style="background-color: var(--surface); border-color: var(--border); height: 72px; padding-bottom: env(safe-area-inset-bottom);">
+    <nav class="fixed left-3 right-3 border z-50 theme-transition" style="background-color: var(--surface); border-color: var(--border); height: 64px; border-radius: 32px; bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: inset 0 1px 0 var(--glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.04);">
         <div class="flex items-center justify-around h-full px-2 max-w-lg mx-auto">
             <button onclick="app.setTab('home')" class="nav-item active flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all" data-tab="home">
                 <i data-lucide="home" class="w-6 h-6"></i>
