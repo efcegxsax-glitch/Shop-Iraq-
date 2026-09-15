@@ -51,6 +51,7 @@
             <button class="tab" data-tab="imgs">🖼️ صور الموقع</button>
             <button class="tab" data-tab="ticker">📢 الشريط الإخباري</button>
             <button class="tab" data-tab="exams">🗓️ جدول الامتحانات</button>
+            <button class="tab" data-tab="holidays">🎉 العطل الرسمية</button>
         </div>
 
         <!-- News -->
@@ -182,6 +183,28 @@
             <div class="card">
                 <h3 class="font-bold mb-3 text-sm">📋 مواعيد الامتحانات الحالية</h3>
                 <div id="examsList"></div>
+            </div>
+        </div>
+
+        <!-- Holidays -->
+        <div id="sec-holidays" class="hidden">
+            <div class="card">
+                <label>اسم العطلة *</label>
+                <input type="text" id="h_title" placeholder="مثال: عطلة الربيع">
+                <label class="mt-3">نوع العطلة *</label>
+                <select id="h_type">
+                    <option value="government">عطلة رسمية</option>
+                    <option value="school">عطلة مدرسية</option>
+                </select>
+                <label class="mt-3">تاريخ البداية *</label>
+                <input type="date" id="h_start">
+                <label class="mt-3">تاريخ النهاية *</label>
+                <input type="date" id="h_end">
+                <button class="btn w-full mt-4" id="h_publish">إضافة للتقويم</button>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 العطل الحالية</h3>
+                <div id="holidaysList"></div>
             </div>
         </div>
 
@@ -317,7 +340,7 @@
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
             });
         });
 
@@ -466,6 +489,27 @@
         };
         el('ex_publish').addEventListener('click', publishExam);
 
+        // ---------- Holidays Calendar ----------
+        window.publishHoliday = async () => {
+            const title = val('h_title');
+            const startDate = val('h_start');
+            const endDate = val('h_end');
+            if (!title) { toast('أدخل اسم العطلة', false); return; }
+            if (!startDate) { toast('اختر تاريخ البداية', false); return; }
+            if (!endDate) { toast('اختر تاريخ النهاية', false); return; }
+            if (new Date(endDate) < new Date(startDate)) { toast('تاريخ النهاية يجب أن يكون بعد تاريخ البداية', false); return; }
+            try {
+                const id = Date.now();
+                await set(ref(db, 'holidays/' + id), { id, title, type: val('h_type'), startDate, endDate, createdAt: serverTimestamp() });
+                toast('🎉 تمت إضافة العطلة للتقويم');
+                el('h_title').value = ''; el('h_start').value = ''; el('h_end').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشلت الإضافة', false);
+            }
+        };
+        el('h_publish').addEventListener('click', publishHoliday);
+
         // ---------- Site Images ----------
         window.changeLogo = async () => {
             const file = el('logoFile').files[0];
@@ -586,6 +630,20 @@
                             <div class="text-slate-400 text-xs">${escapeHtml(x.date || '')}</div>
                         </div>
                         <button class="del" onclick="deleteItem('examSchedule', ${x.id})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'holidays'), (snap) => {
+                const box = el('holidaysList');
+                if (!box) return;
+                if (!snap.exists()) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد عطل مضافة</p>'; return; }
+                const vals = Object.values(snap.val()).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                box.innerHTML = vals.map(h => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '🏛️' : '🏫'}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('holidays', ${h.id})">حذف</button>
                     </div>`).join('');
             });
         }

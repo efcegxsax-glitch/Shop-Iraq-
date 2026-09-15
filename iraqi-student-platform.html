@@ -524,6 +524,13 @@
                 <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="examCountdownList"></div>
             </section>
 
+            <section class="px-4 py-2 hidden" id="holidaysSection">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-sm font-bold theme-transition" style="color: var(--text);">العطل الرسمية والمدرسية</h2>
+                </div>
+                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="holidaysList"></div>
+            </section>
+
             <section class="px-4 py-2">
                 <div class="rounded-2xl p-3.5 flex items-start gap-2.5 theme-transition" style="background-color: var(--reminder-bg); border: 1px solid var(--reminder-border);">
                     <div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center flex-shrink-0">
@@ -1860,6 +1867,8 @@
 
         const examSchedule = [];
 
+        const holidays = [];
+
         const pointsStoreOffers = [
             { points: 5000, iqd: 500 },
             { points: 10000, iqd: 1000 },
@@ -1955,13 +1964,14 @@
                 this.listenForAdminNotifications();
                 this.listenForSiteImages();
                 this.listenForExamSchedule();
+                this.listenForHolidays();
                 this.listenForForumThreads();
                 this.listenForLeaderboard();
                 this.listenForStudyRoom();
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
-                setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 60000);
+                setInterval(() => { if (this.currentView === 'homeView') { this.renderExamCountdown(); this.renderHolidays(); } }, 60000);
                 setInterval(() => this.checkTaskReminders(), 120000);
             },
 
@@ -3376,6 +3386,62 @@
                                     <div class="text-[10px] theme-transition" style="color: var(--text2);">دقيقة</div>
                                 </div>
                             </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            // ==================== HOLIDAYS CALENDAR ====================
+            listenForHolidays() {
+                if (!window.firebaseDb || this._holidaysListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._holidaysListener = onValue(ref(window.firebaseDb, 'holidays'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                    }
+                    holidays.length = 0;
+                    holidays.push(...list);
+                    if (this.currentView === 'homeView') this.renderHolidays();
+                });
+            },
+
+            renderHolidays() {
+                const section = document.getElementById('holidaysSection');
+                const list = document.getElementById('holidaysList');
+                if (!section || !list) return;
+                const now = Date.now();
+                const upcoming = holidays
+                    .filter((h) => {
+                        const end = new Date(h.endDate || h.startDate).getTime();
+                        return !isNaN(end) && end >= now;
+                    })
+                    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+                if (upcoming.length === 0) {
+                    section.classList.add('hidden');
+                    list.innerHTML = '';
+                    return;
+                }
+                section.classList.remove('hidden');
+                list.innerHTML = upcoming.map((h) => {
+                    const start = new Date(h.startDate).getTime();
+                    const end = new Date(h.endDate || h.startDate).getTime();
+                    const isOngoing = now >= start && now <= end;
+                    const daysLeft = isOngoing
+                        ? Math.max(0, Math.ceil((end - now) / 86400000))
+                        : Math.max(0, Math.ceil((start - now) / 86400000));
+                    const isGov = h.type === 'government';
+                    const badgeLabel = isGov ? 'رسمية' : 'مدرسية';
+                    const badgeClass = isGov ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success';
+                    const statusText = isOngoing ? 'جارية الآن' : ('بعد ' + daysLeft + ' يوم');
+                    return `
+                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 150px; background-color: var(--surface); border-color: var(--border);">
+                            <div class="flex items-center justify-between gap-2 mb-2">
+                                <div class="text-xs font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(h.title)}</div>
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
+                            </div>
+                            <div class="text-[11px] font-bold theme-transition" style="color: var(--text2);">${isOngoing ? '🟢' : '⏳'} ${statusText}</div>
                         </div>
                     `;
                 }).join('');
@@ -5467,7 +5533,7 @@
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); }
+                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
