@@ -33,17 +33,8 @@
         <span id="modeBadge" style="background:#334155;color:#CBD5E1;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;">جاري التحقق...</span>
     </div>
 
-    <!-- Login -->
-    <div id="loginBox" class="card">
-        <label>كلمة مرور المسؤول</label>
-        <input type="password" id="adminPass" placeholder="••••••••">
-        <button class="btn w-full mt-3" id="loginBtn">دخول</button>
-        <p id="loginMsg" class="text-red-400 text-xs mt-2 hidden">كلمة المرور خاطئة</p>
-        <p class="text-xs text-slate-500 mt-3">كلمة المرور الافتراضية: admin123 — غيّرها من الكود (ADMIN_PASSWORD) قبل النشر</p>
-    </div>
-
     <!-- Panel -->
-    <div id="panel" class="hidden">
+    <div id="panel">
         <div class="flex gap-2 overflow-x-auto mb-4 pb-1" style="scrollbar-width:none;">
             <button class="tab active" data-tab="news">📰 نشر خبر</button>
             <button class="tab" data-tab="res">📚 ملازم PDF</button>
@@ -232,7 +223,6 @@
             </div>
         </div>
 
-        <button class="btn btn-danger w-full mt-2" id="logoutBtn">تسجيل الخروج</button>
     </div>
 
     <div id="toast"></div>
@@ -241,9 +231,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, remove, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
-
-        // ⚠️ غيّر كلمة المرور قبل النشر
-        const ADMIN_PASSWORD = 'admin123';
 
         const firebaseConfig = {
             apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
@@ -329,25 +316,7 @@
             return dataUrl;
         }
 
-        // ---------- Login ----------
-        window.doLogin = () => {
-            if (val('adminPass') === ADMIN_PASSWORD) {
-                sessionStorage.setItem('isp_admin', '1');
-                showPanel();
-            } else {
-                el('loginMsg').classList.remove('hidden');
-            }
-        };
-        window.doLogout = () => {
-            sessionStorage.removeItem('isp_admin');
-            location.reload();
-        };
-        function showPanel() {
-            el('loginBox').classList.add('hidden');
-            el('panel').classList.remove('hidden');
-            loadLists();
-        }
-        if (sessionStorage.getItem('isp_admin') === '1') showPanel();
+        loadLists();
         (function setModeBadge() {
             const badge = document.getElementById('modeBadge');
             if (!badge) return;
@@ -355,10 +324,6 @@
             badge.style.background = '#16A34A';
             badge.style.color = '#fff';
         })();
-        el('loginBtn').addEventListener('click', doLogin);
-        el('adminPass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
-        el('logoutBtn').addEventListener('click', doLogout);
-
         // ---------- Tabs ----------
         document.querySelectorAll('.tab').forEach((tab) => {
             tab.addEventListener('click', () => {
