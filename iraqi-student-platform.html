@@ -3416,13 +3416,10 @@
                 const list = document.getElementById('holidaysList');
                 if (!section || !list) return;
                 const now = Date.now();
-                const myGovernorate = this.currentUser && this.currentUser.governorate;
                 const upcoming = holidays
                     .filter((h) => {
                         const end = new Date(h.endDate || h.startDate).getTime();
-                        if (isNaN(end) || end < now) return false;
-                        if (h.governorate) return h.governorate === myGovernorate;
-                        return true;
+                        return !isNaN(end) && end >= now;
                     })
                     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
                 if (upcoming.length === 0) {
