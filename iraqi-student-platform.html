@@ -3416,10 +3416,13 @@
                 const list = document.getElementById('holidaysList');
                 if (!section || !list) return;
                 const now = Date.now();
+                const myGovernorate = this.currentUser && this.currentUser.governorate;
                 const upcoming = holidays
                     .filter((h) => {
                         const end = new Date(h.endDate || h.startDate).getTime();
-                        return !isNaN(end) && end >= now;
+                        if (isNaN(end) || end < now) return false;
+                        if (h.governorate) return h.governorate === myGovernorate;
+                        return true;
                     })
                     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
                 if (upcoming.length === 0) {
@@ -3445,6 +3448,7 @@
                                 <div class="text-xs font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(h.title)}</div>
                                 <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
                             </div>
+                            ${h.governorate ? `<div class="text-[10px] mb-1 theme-transition" style="color: var(--text2);">📍 ${escapeHtml(h.governorate)}</div>` : ''}
                             <div class="text-[11px] font-bold theme-transition" style="color: var(--text2);">${isOngoing ? '🟢' : '⏳'} ${statusText}</div>
                         </div>
                     `;

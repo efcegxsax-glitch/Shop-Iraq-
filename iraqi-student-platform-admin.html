@@ -196,10 +196,34 @@
                     <option value="government">عطلة رسمية</option>
                     <option value="school">عطلة مدرسية</option>
                 </select>
+                <label class="mt-3">المحافظة</label>
+                <select id="h_governorate">
+                    <option value="">كل المحافظات (عطلة عامة)</option>
+                    <option value="بغداد">بغداد</option>
+                    <option value="البصرة">البصرة</option>
+                    <option value="نينوى">نينوى</option>
+                    <option value="أربيل">أربيل</option>
+                    <option value="السليمانية">السليمانية</option>
+                    <option value="الأنبار">الأنبار</option>
+                    <option value="بابل">بابل</option>
+                    <option value="كربلاء">كربلاء</option>
+                    <option value="النجف">النجف</option>
+                    <option value="واسط">واسط</option>
+                    <option value="صلاح الدين">صلاح الدين</option>
+                    <option value="كركوك">كركوك</option>
+                    <option value="ديالى">ديالى</option>
+                    <option value="دهوك">دهوك</option>
+                    <option value="الموصل">الموصل</option>
+                    <option value="ذي قار">ذي قار</option>
+                    <option value="ميسان">ميسان</option>
+                    <option value="المثنى">المثنى</option>
+                    <option value="القادسية">القادسية</option>
+                </select>
                 <label class="mt-3">تاريخ البداية *</label>
                 <input type="date" id="h_start">
                 <label class="mt-3">تاريخ النهاية *</label>
                 <input type="date" id="h_end">
+                <label class="chk mt-4"><input type="checkbox" id="h_notify" checked> إشعار للطلاب 🔔</label>
                 <button class="btn w-full mt-4" id="h_publish">إضافة للتقويم</button>
             </div>
             <div class="card">
@@ -500,9 +524,18 @@
             if (new Date(endDate) < new Date(startDate)) { toast('تاريخ النهاية يجب أن يكون بعد تاريخ البداية', false); return; }
             try {
                 const id = Date.now();
-                await set(ref(db, 'holidays/' + id), { id, title, type: val('h_type'), startDate, endDate, createdAt: serverTimestamp() });
-                toast('🎉 تمت إضافة العطلة للتقويم');
-                el('h_title').value = ''; el('h_start').value = ''; el('h_end').value = '';
+                const governorate = val('h_governorate');
+                const notify = el('h_notify').checked;
+                await set(ref(db, 'holidays/' + id), { id, title, type: val('h_type'), governorate, startDate, endDate, createdAt: serverTimestamp() });
+                if (notify) {
+                    const notifDesc = 'من ' + startDate + ' إلى ' + endDate + (governorate ? ' — محافظة ' + governorate : '');
+                    await set(ref(db, 'notifications/' + id), {
+                        id, title: '🎉 ' + title, description: notifDesc, time: 'الآن', read: false,
+                        type: 'circular', createdAt: serverTimestamp()
+                    });
+                }
+                toast('🎉 تمت إضافة العطلة للتقويم' + (notify ? ' وإرسال إشعار للطلاب' : ''));
+                el('h_title').value = ''; el('h_start').value = ''; el('h_end').value = ''; el('h_governorate').value = '';
             } catch (e) {
                 console.warn(e);
                 toast('❌ فشلت الإضافة', false);
@@ -641,7 +674,7 @@
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '🏛️' : '🏫'}</div>
-                            <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}${h.governorate ? ' • ' + escapeHtml(h.governorate) : ' • كل المحافظات'}</div>
                         </div>
                         <button class="del" onclick="deleteItem('holidays', ${h.id})">حذف</button>
                     </div>`).join('');
