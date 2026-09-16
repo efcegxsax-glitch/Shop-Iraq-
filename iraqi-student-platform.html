@@ -1545,6 +1545,9 @@
                 <div class="flex-1 min-w-0">
                     <div id="chatThreadName" class="font-bold text-sm truncate theme-transition" style="color: var(--text);"></div>
                 </div>
+                <button onclick="app.deleteEntireChat()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="حذف المحادثة">
+                    <i data-lucide="trash-2" class="w-5 h-5 text-error"></i>
+                </button>
             </div>
             <div id="chatMessagesList" class="px-4 py-4 flex flex-col gap-2"></div>
             <div class="sticky bottom-0 border-t px-4 py-3 flex items-center gap-2 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
@@ -1694,6 +1697,10 @@
                     <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">ما عندك أصدقاء بعد</h3>
                     <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">ابحث عن زملائك برقمهم التعريفي وأضفهم</p>
                     <button onclick="app.openAddFriendModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إضافة صديق</button>
+                </div>
+                <div id="blockedUsersSection" class="hidden mt-5">
+                    <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">المستخدمون المحظورون</h3>
+                    <div id="blockedUsersList" class="flex flex-col gap-2"></div>
                 </div>
             </div>
         </div>
@@ -2010,6 +2017,29 @@
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
 
+        function compressForumImage(file) {
+            return new Promise((resolve) => {
+                createImageBitmap(file).then((bitmap) => {
+                    const maxW = 1280;
+                    const scale = Math.min(1, maxW / bitmap.width);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = Math.round(bitmap.width * scale);
+                    canvas.height = Math.round(bitmap.height * scale);
+                    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                    canvas.toBlob((blob) => {
+                        if (!blob) { resolve(null); return; }
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result);
+                        reader.onerror = () => resolve(null);
+                        reader.readAsDataURL(blob);
+                    }, 'image/jpeg', 0.88);
+                }).catch((e) => {
+                    console.warn('Image compression failed:', e);
+                    resolve(null);
+                });
+            });
+        }
+
         function timeAgo(ts) {
             if (!ts) return '';
             const diff = Date.now() - ts;
@@ -2152,6 +2182,7 @@
 
         const friendsList = [];
         const incomingFriendRequests = [];
+        const blockedUsersList = [];
 
         const duelInvitesList = [];
         const duelsListData = [];
@@ -2608,6 +2639,7 @@
                     this.listenForFriends();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
+                    this.listenForBlockedUsers();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -3391,6 +3423,7 @@
                     this.listenForFriends();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
+                    this.listenForBlockedUsers();
                     this.renderNews();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
@@ -5092,8 +5125,9 @@
                                 <div class="text-[11px] theme-transition" style="color: var(--text2);">${timeAgo(thread.id)}${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
                         </div>
-                        <div class="px-3.5 pb-3 cursor-pointer" onclick="app.openForumThread(${thread.id})">
-                            <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
+                        <div class="cursor-pointer" onclick="app.openForumThread(${thread.id})">
+                            ${thread.body ? `<div class="px-3.5 pb-3"><p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p></div>` : ''}
+                            ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full max-h-80 object-cover" alt="">` : ''}
                         </div>
                         ${(likesCount > 0 || commentsCount > 0) ? `
                         <div class="flex items-center justify-between px-3.5 pb-2 text-xs theme-transition" style="color: var(--text2);">
@@ -5154,7 +5188,8 @@
                                 <div class="text-[11px] theme-transition" style="color: var(--text2);">${timeAgo(thread.id)}${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
                         </div>
-                        <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
+                        ${thread.body ? `<p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p>` : ''}
+                        ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full rounded-xl mb-3 max-h-96 object-cover" alt="">` : ''}
                         <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
                             <button onclick="app.toggleForumLike(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
                                 <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب${likesCount > 0 ? ' (' + likesCount + ')' : ''}
@@ -5201,25 +5236,42 @@
                     <div class="flex flex-col gap-3">
                         <textarea id="askQuestionBody" rows="5" placeholder="شنو بخاطرك؟ شارك سؤال أو خبر أو أي شي يفيد زملائك..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
                         <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">صورة (اختياري)</label>
+                            <input type="file" id="askQuestionImage" accept="image/*" onchange="app.previewForumImage(event)" class="w-full text-sm">
+                            <img id="askQuestionImagePreview" class="hidden mt-2 rounded-xl w-full max-h-48 object-cover" alt="معاينة">
+                        </div>
+                        <div>
                             <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">القسم (اختياري)</label>
                             <select id="askQuestionSubject" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
                                 ${forumSubjects.filter(s => s.id !== 'all').map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
                             </select>
                         </div>
-                        <button onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر</button>
+                        <button id="forumPostSubmitBtn" onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر</button>
                     </div>
                 `;
                 document.getElementById('walletModal')?.classList.remove('hidden');
                 lucide.createIcons();
             },
 
-            submitForumQuestion() {
+            previewForumImage(event) {
+                const file = event.target.files && event.target.files[0];
+                const preview = document.getElementById('askQuestionImagePreview');
+                if (!file || !preview) return;
+                const reader = new FileReader();
+                reader.onload = (e) => { preview.src = e.target.result; preview.classList.remove('hidden'); };
+                reader.readAsDataURL(file);
+            },
+
+            async submitForumQuestion() {
                 const subjectEl = document.getElementById('askQuestionSubject');
                 const bodyEl = document.getElementById('askQuestionBody');
+                const imageEl = document.getElementById('askQuestionImage');
+                const btn = document.getElementById('forumPostSubmitBtn');
                 if (!subjectEl || !bodyEl) return;
                 const body = bodyEl.value.trim();
-                if (!body) {
-                    this.showToast('اكتب شي أول ما تنشر');
+                const imageFile = imageEl && imageEl.files && imageEl.files[0];
+                if (!body && !imageFile) {
+                    this.showToast('اكتب شي أو أضف صورة أول ما تنشر');
                     return;
                 }
                 if (!window.firebaseDb) {
@@ -5230,6 +5282,12 @@
                 if (bodyFilter.filtered) {
                     this.showToast('تم حذف كلمات غير لائقة من منشورك');
                 }
+                if (btn) { btn.disabled = true; btn.textContent = 'جاري النشر...'; }
+                let imageUrl = '';
+                if (imageFile) {
+                    imageUrl = (await compressForumImage(imageFile)) || '';
+                    if (!imageUrl) this.showToast('تعذرت معالجة الصورة، تم النشر بدونها');
+                }
                 const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
                 const id = Date.now();
                 const payload = {
@@ -5237,6 +5295,7 @@
                     subject: subjectEl.value,
                     title: '',
                     body: bodyFilter.clean,
+                    imageUrl: imageUrl,
                     authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
                     authorAvatar: (this.currentUser && this.currentUser.avatar) || '',
                     authorStudentNumber: (this.currentUser && this.currentUser.studentNumber) || '',
@@ -5251,6 +5310,7 @@
                 }).catch((err) => {
                     console.warn('Forum post publish failed:', err);
                     this.showToast('تعذر النشر، حاول مجدداً');
+                    if (btn) { btn.disabled = false; btn.textContent = 'نشر'; }
                 });
             },
 
@@ -5340,12 +5400,21 @@
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 const isMe = uid === this.authUid;
-                const status = isMe ? 'me' : this.getFriendStatus(uid);
+                const status = isMe ? 'me' : (this.isBlocked(uid) ? 'blocked' : this.getFriendStatus(uid));
                 let actionHtml = '';
                 if (isMe) {
                     actionHtml = '';
+                } else if (status === 'blocked') {
+                    actionHtml = `<button onclick="app.unblockUser('${uid}')" class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-error theme-transition btn-press" style="background-color: var(--input-bg);"><i data-lucide="ban" class="w-4 h-4"></i>محظور — رفع الحظر</button>`;
                 } else if (status === 'friends') {
-                    actionHtml = `<div class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-success theme-transition" style="background-color: var(--input-bg);"><i data-lucide="user-check" class="w-4 h-4"></i>أصدقاء</div>`;
+                    actionHtml = `
+                        <div class="flex flex-col gap-2">
+                            <button onclick="app.closeWalletModal(); app.openChat('${uid}', ${JSON.stringify(name || 'طالب')}, ${JSON.stringify(avatar || '')}, ${JSON.stringify(studentNumber || '')})" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i>دردشة</button>
+                            <div class="flex gap-2">
+                                <button onclick="app.removeFriend('${uid}')" class="flex-1 h-10 rounded-xl font-bold text-xs theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الصداقة</button>
+                                <button onclick="app.blockUser('${uid}', ${JSON.stringify(name || 'طالب')})" class="flex-1 h-10 rounded-xl font-bold text-xs text-error btn-press" style="background-color: var(--input-bg);">حظر</button>
+                            </div>
+                        </div>`;
                 } else if (status === 'sent') {
                     actionHtml = `<div class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text2);"><i data-lucide="clock" class="w-4 h-4"></i>بانتظار الرد</div>`;
                 } else if (status === 'incoming') {
@@ -5468,7 +5537,7 @@
                     const list = [];
                     if (snap.exists()) {
                         const vals = snap.val();
-                        Object.keys(vals).forEach((fromUid) => list.push({ fromUid, ...vals[fromUid] }));
+                        Object.keys(vals).forEach((fromUid) => { if (!this.isBlocked(fromUid)) list.push({ fromUid, ...vals[fromUid] }); });
                         list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     }
                     incomingFriendRequests.length = 0;
@@ -5500,6 +5569,7 @@
                 this.listenForFriends();
                 this.listenForFriendRequests();
                 this.listenForSentFriendRequests();
+                this.listenForBlockedUsers();
                 this.renderFriendsView();
                 lucide.createIcons();
             },
@@ -5533,9 +5603,92 @@
                                 <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(f.name || 'طالب')}</div>
                                 ${f.studentNumber ? `<div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(f.studentNumber)}</div>` : ''}
                             </div>
+                            <button onclick="app.openChat('${f.uid}', ${JSON.stringify(f.name || 'طالب')}, ${JSON.stringify(f.avatar || '')}, ${JSON.stringify(f.studentNumber || '')})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="دردشة"><i data-lucide="message-circle" class="w-4 h-4 text-primary"></i></button>
+                            <button onclick="app.removeFriend('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="إلغاء الصداقة"><i data-lucide="user-minus" class="w-4 h-4" style="color: var(--text2);"></i></button>
+                            <button onclick="app.blockUser('${f.uid}', ${JSON.stringify(f.name || 'طالب')})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حظر"><i data-lucide="ban" class="w-4 h-4 text-error"></i></button>
                         </div>
                     `).join('');
                 }
+                const blockedSection = document.getElementById('blockedUsersSection');
+                const blockedList = document.getElementById('blockedUsersList');
+                if (blockedSection && blockedList) {
+                    blockedSection.classList.toggle('hidden', blockedUsersList.length === 0);
+                    blockedList.innerHTML = blockedUsersList.map(b => `
+                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                            <img src="${personAvatarSrc(b.avatar, b.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(b.name || 'طالب')}</div>
+                            <button onclick="app.unblockUser('${b.uid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفع الحظر</button>
+                        </div>
+                    `).join('');
+                }
+            },
+
+            removeFriend(uid) {
+                if (!window.firebaseDb || !this.authUid) return;
+                if (!confirm('إلغاء الصداقة مع هذا الطالب؟')) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                Promise.all([
+                    set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + uid), null),
+                    set(ref(window.firebaseDb, 'friends/' + uid + '/' + this.authUid), null)
+                ]).then(() => {
+                    this.showToast('تم إلغاء الصداقة');
+                    this.closeWalletModal();
+                }).catch((err) => {
+                    console.warn('Remove friend failed:', err);
+                    this.showToast('تعذر إلغاء الصداقة');
+                });
+            },
+
+            blockUser(uid, name) {
+                if (!window.firebaseDb || !this.authUid) return;
+                if (!confirm((name || 'هذا الطالب') + ' — حظره يلغي الصداقة ويمنعه من مراسلتك؟')) return;
+                const { ref, set, remove } = window.firebaseDbHelpers;
+                const payload = { uid, name: name || 'طالب', avatar: '', blockedAt: Date.now() };
+                Promise.all([
+                    set(ref(window.firebaseDb, 'blockedUsers/' + this.authUid + '/' + uid), payload),
+                    set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + uid), null),
+                    set(ref(window.firebaseDb, 'friends/' + uid + '/' + this.authUid), null),
+                    remove(ref(window.firebaseDb, 'friendRequests/' + this.authUid + '/' + uid)),
+                    remove(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid)),
+                    remove(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid)),
+                    remove(ref(window.firebaseDb, 'sentFriendRequests/' + uid + '/' + this.authUid))
+                ]).then(() => {
+                    this.showToast('🚫 تم حظر المستخدم');
+                    this.closeWalletModal();
+                }).catch((err) => {
+                    console.warn('Block user failed:', err);
+                    this.showToast('تعذر تنفيذ الحظر');
+                });
+            },
+
+            unblockUser(uid) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'blockedUsers/' + this.authUid + '/' + uid), null).then(() => {
+                    this.showToast('تم رفع الحظر');
+                }).catch((err) => {
+                    console.warn('Unblock user failed:', err);
+                    this.showToast('تعذر رفع الحظر');
+                });
+            },
+
+            listenForBlockedUsers() {
+                if (!window.firebaseDb || !this.authUid || this._blockedUsersListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._blockedUsersListener = onValue(ref(window.firebaseDb, 'blockedUsers/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => list.push(vals[uid]));
+                    }
+                    blockedUsersList.length = 0;
+                    blockedUsersList.push(...list);
+                    if (this.currentView === 'friendsView') { this.renderFriendsView(); lucide.createIcons(); }
+                });
+            },
+
+            isBlocked(uid) {
+                return blockedUsersList.some(b => b.uid === uid);
             },
 
             openAddFriendModal() {
@@ -6695,7 +6848,8 @@
                 const container = document.getElementById('chatsList');
                 const empty = document.getElementById('chatsEmptyState');
                 if (!container || !empty) return;
-                if (userChatsList.length === 0) {
+                const visible = userChatsList.filter(c => !this.isBlocked(c.otherUid));
+                if (visible.length === 0) {
                     container.innerHTML = '';
                     container.classList.add('hidden');
                     empty.classList.remove('hidden');
@@ -6703,7 +6857,7 @@
                 }
                 container.classList.remove('hidden');
                 empty.classList.add('hidden');
-                container.innerHTML = userChatsList.map(c => `
+                container.innerHTML = visible.map(c => `
                     <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border);">
                         <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}">
                         <div class="flex-1 min-w-0">
@@ -6806,9 +6960,17 @@
                 if (nameEl) nameEl.textContent = this.currentChatOther.name;
                 if (avatarEl) avatarEl.src = personAvatarSrc(this.currentChatOther.avatar, this.currentChatOther.name);
                 chatMessages.length = 0;
+                this._openMessageActionsId = null;
+                this.currentChatClearedAt = 0;
                 this.renderChatMessages();
                 this.switchView('chatThreadView');
-                this.listenForChatMessages();
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    get(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid)).then((snap) => {
+                        this.currentChatClearedAt = snap.exists() ? snap.val() : 0;
+                        this.listenForChatMessages();
+                    }).catch(() => { this.listenForChatMessages(); });
+                }
                 this.markChatRead();
                 lucide.createIcons();
             },
@@ -6817,12 +6979,16 @@
                 if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
                 if (this._chatMsgUnsub) { this._chatMsgUnsub(); this._chatMsgUnsub = null; }
                 const chatId = this.getChatId(this.currentChatUid);
+                const clearedAt = this.currentChatClearedAt || 0;
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._chatMsgUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), (snap) => {
                     const list = [];
                     if (snap.exists()) {
                         const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        Object.keys(vals).forEach((k) => {
+                            const m = vals[k];
+                            if (m && (!clearedAt || (m.createdAt || 0) > clearedAt)) list.push(m);
+                        });
                         list.sort((a, b) => (a.id || 0) - (b.id || 0));
                     }
                     chatMessages.length = 0;
@@ -6840,13 +7006,101 @@
                 }
                 container.innerHTML = chatMessages.map(m => {
                     const isMine = m.from === this.authUid;
+                    const showActions = isMine && this._openMessageActionsId === m.id;
                     return `
-                        <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-primary text-white' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}">
-                            ${escapeHtml(m.text)}
+                        <div>
+                            <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-primary text-white cursor-pointer' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}" ${isMine ? `onclick="app.toggleMessageActions(${m.id})"` : ''}>
+                                ${escapeHtml(m.text)}${m.edited ? '<span class="text-[10px] opacity-70"> (معدّلة)</span>' : ''}
+                            </div>
+                            ${showActions ? `
+                            <div class="flex items-center gap-2 mt-1" style="margin-inline-start: auto; width: fit-content;">
+                                <button onclick="app.openEditMessageModal(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>
+                                <button onclick="app.deleteChatMessage(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
+                            </div>` : ''}
                         </div>
                     `;
                 }).join('');
                 container.scrollTop = container.scrollHeight;
+            },
+
+            toggleMessageActions(msgId) {
+                this._openMessageActionsId = this._openMessageActionsId === msgId ? null : msgId;
+                this.renderChatMessages();
+            },
+
+            deleteChatMessage(msgId) {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                if (!confirm('حذف هذه الرسالة؟')) return;
+                const chatId = this.getChatId(this.currentChatUid);
+                const { ref, remove } = window.firebaseDbHelpers;
+                remove(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId)).then(() => {
+                    const i = chatMessages.findIndex(m => m.id === msgId);
+                    if (i > -1) chatMessages.splice(i, 1);
+                    this._openMessageActionsId = null;
+                    this.renderChatMessages();
+                }).catch((err) => {
+                    console.warn('Delete message failed:', err);
+                    this.showToast('تعذر حذف الرسالة');
+                });
+            },
+
+            openEditMessageModal(msgId) {
+                const m = chatMessages.find(x => x.id === msgId);
+                if (!m) return;
+                this._pendingEditMsgId = msgId;
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'تعديل الرسالة';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <textarea id="editMessageInput" rows="3" class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;">${escapeHtml(m.text)}</textarea>
+                        <button onclick="app.saveEditedMessage()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">حفظ</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            saveEditedMessage() {
+                const input = document.getElementById('editMessageInput');
+                if (!input || !this._pendingEditMsgId || !window.firebaseDb || !this.currentChatUid) return;
+                const text = input.value.trim();
+                if (!text) { this.showToast('اكتب نص الرسالة'); return; }
+                const filtered = filterBadWords(text);
+                const chatId = this.getChatId(this.currentChatUid);
+                const msgId = this._pendingEditMsgId;
+                const { ref, set } = window.firebaseDbHelpers;
+                Promise.all([
+                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId + '/text'), filtered.clean),
+                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId + '/edited'), true)
+                ]).then(() => {
+                    const m = chatMessages.find(x => x.id === msgId);
+                    if (m) { m.text = filtered.clean; m.edited = true; }
+                    this._openMessageActionsId = null;
+                    this.closeWalletModal();
+                    this.renderChatMessages();
+                }).catch((err) => {
+                    console.warn('Edit message failed:', err);
+                    this.showToast('تعذر تعديل الرسالة');
+                });
+            },
+
+            deleteEntireChat() {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                if (!confirm('حذف هذه المحادثة من عندك؟ (تبقى عند الطرف الثاني)')) return;
+                const otherUid = this.currentChatUid;
+                const { ref, set } = window.firebaseDbHelpers;
+                Promise.all([
+                    set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + otherUid), null),
+                    set(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid), Date.now())
+                ]).then(() => {
+                    this.showToast('تم حذف المحادثة');
+                    this.goBack();
+                }).catch((err) => {
+                    console.warn('Delete chat failed:', err);
+                    this.showToast('تعذر حذف المحادثة');
+                });
             },
 
             sendChatMessage() {
