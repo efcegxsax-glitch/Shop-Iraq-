@@ -2620,8 +2620,6 @@
                         <h1 class="text-xl font-bold leading-relaxed mb-4 theme-transition" style="color: var(--text);">${escapeHtml(news.title)}</h1>
                         <div class="prose prose-sm max-w-none leading-relaxed mb-6 theme-transition" style="color: var(--text);">
                             <p class="text-base">${escapeHtml(news.excerpt)}</p>
-                            <p class="mt-4 theme-transition" style="color: var(--text2);">أكدت ${escapeHtml(news.source)} أن هذا القرار يأتي في إطار سعي الوزارة المستمر لتطوير العملية التعليمية وتسهيل الإجراءات على الطلبة وأولياء الأمور.</p>
-                            <p class="mt-4 theme-transition" style="color: var(--text2);">ودعت الوزارة جميع الطلبة إلى متابعة المنصات الرسمية للحصول على آخر التحديثات والتعليمات الخاصة بالامتحانات والقبول.</p>
                         </div>
                         <div class="flex gap-3 mb-8">
                             <button onclick="app.shareCurrentNews()" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium btn-press text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text);">
@@ -2669,13 +2667,16 @@
                 }
             },
             async shareCurrentNews() {
+                const news = newsData.find(n => n.id === this.currentNewsId);
                 const url = window.location.href;
+                const title = (news && news.title) || 'منصة الطالب العراقي';
+                const text = (news && news.excerpt) ? (news.title + '\n' + news.excerpt) : title;
                 try {
                     if (navigator.share) {
-                        await navigator.share({ title: 'منصة الطالب العراقي', url });
+                        await navigator.share({ title, text, url });
                     } else if (navigator.clipboard) {
                         await navigator.clipboard.writeText(url);
-                        this.showToast('تم نسخ رابط الخبر');
+                        this.showToast('تم نسخ رابط الخبر — المشاركة المباشرة غير مدعومة بهذا المتصفح');
                     } else {
                         this.showToast('المشاركة غير مدعومة في هذا المتصفح');
                     }
@@ -3968,13 +3969,16 @@
             },
 
             async shareCurrentResource() {
+                const res = resourcesData.find(r => r.id === this.currentResourceId);
                 const url = window.location.href;
+                const title = (res && res.title) || 'منصة الطالب العراقي';
+                const text = (res && res.description) ? (res.title + '\n' + res.description) : title;
                 try {
                     if (navigator.share) {
-                        await navigator.share({ title: 'منصة الطالب العراقي', url });
+                        await navigator.share({ title, text, url });
                     } else if (navigator.clipboard) {
                         await navigator.clipboard.writeText(url);
-                        this.showToast('تم نسخ رابط الملزمة');
+                        this.showToast('تم نسخ رابط الملزمة — المشاركة المباشرة غير مدعومة بهذا المتصفح');
                     } else {
                         this.showToast('المشاركة غير مدعومة في هذا المتصفح');
                     }
