@@ -198,6 +198,11 @@
             50% { opacity: 1; }
         }
         .voice-speaking-pulse { animation: voiceSpeakingPulse 1s ease-in-out infinite; }
+        @keyframes chatBubbleIn {
+            from { opacity: 0; transform: translateY(10px) scale(0.97); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .chat-bubble-in { animation: chatBubbleIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
         .skeleton {
             background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
             background-size: 200% 100%;
@@ -1553,7 +1558,7 @@
                     <i data-lucide="more-vertical" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
             </div>
-            <div id="chatMessagesList" class="px-4 py-4 flex flex-col gap-2"></div>
+            <div id="chatMessagesList" class="px-4 py-4 flex flex-col justify-end gap-2.5" style="min-height: 65vh;"></div>
             <div class="sticky bottom-0 border-t px-4 py-3 flex items-center gap-2 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                 <input type="text" id="chatMessageInput" placeholder="اكتب رسالتك هنا..." class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.sendChatMessage();}">
                 <button onclick="app.sendChatMessage()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال">
@@ -7122,6 +7127,7 @@
                 this.updateChatHeaderPresence();
                 chatMessages.length = 0;
                 this._openMessageActionsId = null;
+                this._animatedMsgIds = new Set();
                 this.currentChatClearedAt = 0;
                 this.currentChatDeletedFor = {};
                 this.currentChatOtherReadAt = 0;
@@ -7190,19 +7196,23 @@
                     container.innerHTML = '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">ابدأ المحادثة بإرسال أول رسالة</p>';
                     return;
                 }
+                this._animatedMsgIds = this._animatedMsgIds || new Set();
                 const otherReadAt = this.currentChatOtherReadAt || 0;
-                container.innerHTML = chatMessages.map(m => {
+                container.innerHTML = chatMessages.map((m, idx) => {
                     const isMine = m.from === this.authUid;
                     const showActions = this._openMessageActionsId === m.id;
                     const isRead = isMine && otherReadAt >= (m.createdAt || 0);
+                    const isNew = !this._animatedMsgIds.has(m.id);
+                    this._animatedMsgIds.add(m.id);
+                    const prevSameSender = idx > 0 && chatMessages[idx - 1].from === m.from;
                     return `
-                        <div>
-                            <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed cursor-pointer ${isMine ? 'bg-primary text-white' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}" onclick="app.toggleMessageActions(${m.id})">
+                        <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} ${prevSameSender ? '' : 'mt-1.5'}">
+                            <div class="max-w-[78%] px-4 py-2.5 text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl rounded-ee-md' : 'theme-transition rounded-2xl rounded-es-md'} ${isNew ? 'chat-bubble-in' : ''}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" onclick="app.toggleMessageActions(${m.id})">
                                 ${escapeHtml(m.text)}${m.edited ? '<span class="text-[10px] opacity-70"> (معدّلة)</span>' : ''}
                             </div>
-                            ${isMine ? `<div class="text-[10px] mt-0.5" style="margin-inline-start: auto; width: fit-content; color: ${isRead ? '#2563EB' : 'var(--text2)'};">${isRead ? '✓✓ تمت القراءة' : '✓ تم الإرسال'}</div>` : ''}
+                            ${isMine ? `<div class="text-[10px] mt-0.5 px-1" style="color: ${isRead ? '#60A5FA' : 'var(--text2)'};">${isRead ? '✓✓ تمت القراءة' : '✓ تم الإرسال'}</div>` : ''}
                             ${showActions ? `
-                            <div class="flex items-center gap-2 mt-1 flex-wrap" style="${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'} width: fit-content;">
+                            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
                                 <button onclick="event.stopPropagation(); app.copyMessageText(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>
                                 ${isMine ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
                                 <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
