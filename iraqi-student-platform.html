@@ -2531,6 +2531,7 @@
                              onclick="app.openNews(${news.id})" ontouchstart="app.swipeStart(event, 'news-${news.id}')" ontouchmove="app.swipeMove(event, 'news-${news.id}')" ontouchend="app.swipeEnd(event, 'news-${news.id}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); touch-action: pan-y;">
                         ${isUrgent ? '<div class="absolute top-3 left-3 z-10"><span class="bg-error text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">عاجل</span></div>' : ''}
                         ${news.isPinned ? '<div class="absolute top-3 right-16 z-10"><span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-lg"><i data-lucide="pin" class="w-3 h-3 inline ml-1"></i>مثبت</span></div>' : ''}
+                        ${!isRead ? '<div class="absolute top-3 right-3 z-10"><span class="bg-primary text-white text-[10px] font-bold px-2 py-1 rounded-lg">جديد</span></div>' : ''}
                         <div class="flex gap-3">
                             <div class="w-24 h-[72px] rounded-xl overflow-hidden flex-shrink-0 theme-transition" style="background-color: var(--bg);">
                                 <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}" class="w-full h-full object-cover" loading="lazy">
@@ -2599,6 +2600,7 @@
                 this.currentNewsId = id;
                 news.isRead = true;
                 this.saveReadState(id);
+                this.renderNews();
                 const relatedNotif = notifications.find(n => n.id === id);
                 if (relatedNotif && !relatedNotif.read) {
                     relatedNotif.read = true;
