@@ -193,6 +193,11 @@
             0% { background-position: -200% 0; }
             100% { background-position: 200% 0; }
         }
+        @keyframes voiceSpeakingPulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .voice-speaking-pulse { animation: voiceSpeakingPulse 1s ease-in-out infinite; }
         .skeleton {
             background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
             background-size: 200% 100%;
@@ -1313,6 +1318,17 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
+                <button onclick="app.goToVoiceRoom()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center">
+                        <i data-lucide="mic" class="w-5 h-5 text-error"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">غرفة الدردشة الصوتية</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">اضغط وتكلم مباشرة مع زملائك بالصوت</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.goToTasks()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
                         <i data-lucide="list-checks" class="w-5 h-5 text-info"></i>
@@ -1568,6 +1584,38 @@
                 <span id="duelQuestionCounter" class="text-xs font-bold theme-transition" style="color: var(--text2);"></span>
             </div>
             <div id="duelPlayContent" class="p-4"></div>
+        </div>
+
+        <!-- ===== VOICE CHAT ROOM VIEW ===== -->
+        <div id="voiceRoomView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">غرفة الدردشة الصوتية</div>
+                    <div id="voiceRoomCount" class="text-xs theme-transition" style="color: var(--text2);">0 بالغرفة الآن</div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="rounded-xl border p-3 mb-4 flex items-start gap-2 theme-transition" style="background-color: var(--reminder-bg); border-color: var(--reminder-border);">
+                    <i data-lucide="info" class="w-4 h-4 flex-shrink-0 mt-0.5" style="color: var(--text2);"></i>
+                    <p class="text-xs leading-relaxed theme-transition" style="color: var(--text2);">دردشة صوتية مباشرة بين الطلاب — اضغط "اضغط للتحدث" لتفعيل المايك والتحدث مع الجميع بالغرفة</p>
+                </div>
+                <div id="voiceRoomList" class="grid grid-cols-3 gap-3"></div>
+                <div id="voiceRoomEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="mic" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">الغرفة فارغة حالياً</h3>
+                    <p class="text-sm max-w-[250px] theme-transition" style="color: var(--text2);">كن أول من ينضم!</p>
+                </div>
+            </div>
+            <div class="sticky bottom-0 border-t px-4 py-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button id="voiceMicBtn" onclick="app.toggleVoiceSpeak()" class="w-full h-12 rounded-xl bg-primary text-white font-bold text-sm btn-press flex items-center justify-center gap-2">
+                    <i data-lucide="mic" class="w-5 h-5"></i> اضغط للتحدث
+                </button>
+            </div>
         </div>
 
         <!-- ===== FORUM VIEW ===== -->
@@ -2056,6 +2104,8 @@
         const userChatsList = [];
         const chatMessages = [];
 
+        const voiceParticipants = [];
+
         const duelInvitesList = [];
         const duelsListData = [];
         const duelQuestionBank = [
@@ -2161,6 +2211,10 @@
             currentDuelData: null,
             currentDuelQuestionIndex: 0,
             duelAnswers: [],
+            voiceSendPeers: {},
+            voiceRecvPeers: {},
+            voiceLocalStream: null,
+            isVoiceSpeaking: false,
 
             init() {
                 this.loadTheme();
@@ -2530,6 +2584,7 @@
             logout() {
                 if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
                     this.leaveStudyRoom();
+                    this.leaveVoiceRoom();
                     this.isLoggedIn = false;
                     this.currentUser = null;
                     this.tempAvatar = null;
@@ -5589,6 +5644,299 @@
                 set(ref(window.firebaseDb, 'studyRoom/' + uid), null).catch((err) => console.warn('Leave study room failed:', err));
             },
 
+            // ==================== VOICE CHAT ROOM (WebRTC over Firebase signaling) ====================
+            goToVoiceRoom() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول للانضمام للغرفة الصوتية');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('voiceRoomView');
+                this.joinVoiceRoom();
+                this.renderVoiceRoom();
+                lucide.createIcons();
+            },
+
+            joinVoiceRoom() {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set, onDisconnect } = window.firebaseDbHelpers;
+                const myRef = ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid);
+                set(myRef, {
+                    name: this.currentUser.fullName || 'طالب',
+                    avatar: this.currentUser.avatar || '',
+                    speaking: false,
+                    joinedAt: Date.now()
+                }).catch((err) => console.warn('Join voice room failed:', err));
+                try {
+                    onDisconnect(myRef).remove();
+                    onDisconnect(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid)).remove();
+                } catch (e) {
+                    console.warn('onDisconnect setup failed:', e);
+                }
+                this.listenForVoiceParticipants();
+                this.listenForIncomingVoiceCalls();
+            },
+
+            leaveVoiceRoom() {
+                this.stopSpeaking();
+                Object.keys(this.voiceRecvPeers).forEach((uid) => this.closeVoiceRecvPeer(uid));
+                if (this._voiceCallsUnsub) { this._voiceCallsUnsub(); this._voiceCallsUnsub = null; }
+                if (this._voiceParticipantsUnsub) { this._voiceParticipantsUnsub(); this._voiceParticipantsUnsub = null; }
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid), null).catch(() => {});
+                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid), null).catch(() => {});
+                }
+                voiceParticipants.length = 0;
+            },
+
+            listenForVoiceParticipants() {
+                if (!window.firebaseDb || this._voiceParticipantsUnsub) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._voiceParticipantsUnsub = onValue(ref(window.firebaseDb, 'voiceRoom/participants'), (snap) => {
+                    const prevUids = new Set(voiceParticipants.map(p => p.uid));
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => {
+                            const e = vals[uid];
+                            if (!e) return;
+                            list.push({ uid, name: e.name || 'طالب', avatar: e.avatar || '', speaking: !!e.speaking, joinedAt: e.joinedAt || 0 });
+                        });
+                        list.sort((a, b) => a.joinedAt - b.joinedAt);
+                    }
+                    voiceParticipants.length = 0;
+                    voiceParticipants.push(...list);
+                    if (this.isVoiceSpeaking) {
+                        list.forEach((p) => {
+                            if (p.uid !== this.authUid && !prevUids.has(p.uid) && !this.voiceSendPeers[p.uid]) {
+                                this.createVoiceOffer(p.uid);
+                            }
+                        });
+                    }
+                    const currentUids = new Set(list.map(p => p.uid));
+                    Object.keys(this.voiceSendPeers).forEach((uid) => { if (!currentUids.has(uid)) this.closeVoiceSendPeer(uid); });
+                    Object.keys(this.voiceRecvPeers).forEach((uid) => { if (!currentUids.has(uid)) this.closeVoiceRecvPeer(uid); });
+                    if (this.currentView === 'voiceRoomView') { this.renderVoiceRoom(); lucide.createIcons(); }
+                });
+            },
+
+            renderVoiceRoom() {
+                const countEl = document.getElementById('voiceRoomCount');
+                const listEl = document.getElementById('voiceRoomList');
+                const emptyEl = document.getElementById('voiceRoomEmptyState');
+                const micBtn = document.getElementById('voiceMicBtn');
+                if (!countEl || !listEl || !emptyEl) return;
+                countEl.textContent = voiceParticipants.length + ' بالغرفة الآن';
+                if (voiceParticipants.length === 0) {
+                    listEl.innerHTML = '';
+                    listEl.classList.add('hidden');
+                    emptyEl.classList.remove('hidden');
+                } else {
+                    listEl.classList.remove('hidden');
+                    emptyEl.classList.add('hidden');
+                    listEl.innerHTML = voiceParticipants.map((p) => `
+                        <div class="rounded-2xl border p-3 flex flex-col items-center justify-center text-center relative theme-transition" style="background-color: var(--surface); border-color: var(--border); aspect-ratio: 1;">
+                            ${p.speaking ? '<div class="absolute inset-0 rounded-2xl border-2 border-primary voice-speaking-pulse"></div>' : ''}
+                            <img src="${personAvatarSrc(p.avatar, p.name)}" class="w-14 h-14 rounded-full object-cover mb-2">
+                            <div class="text-sm font-bold line-clamp-1 w-full theme-transition" style="color: var(--text);">${escapeHtml(p.name)}${p.uid === this.authUid ? ' (أنت)' : ''}</div>
+                            <div class="flex items-center gap-1 text-[10px] mt-1 ${p.speaking ? 'font-bold text-primary' : ''}" style="${!p.speaking ? 'color: var(--text2);' : ''}">
+                                <i data-lucide="${p.speaking ? 'mic' : 'mic-off'}" class="w-3 h-3"></i>${p.speaking ? 'يتكلم الآن' : 'مستمع'}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                if (micBtn) {
+                    if (this.isVoiceSpeaking) {
+                        micBtn.classList.add('bg-error');
+                        micBtn.classList.remove('bg-primary');
+                        micBtn.innerHTML = '<i data-lucide="mic-off" class="w-5 h-5"></i> إيقاف الكلام';
+                    } else {
+                        micBtn.classList.add('bg-primary');
+                        micBtn.classList.remove('bg-error');
+                        micBtn.innerHTML = '<i data-lucide="mic" class="w-5 h-5"></i> اضغط للتحدث';
+                    }
+                    lucide.createIcons();
+                }
+            },
+
+            toggleVoiceSpeak() {
+                if (this.isVoiceSpeaking) this.stopSpeaking(); else this.startSpeaking();
+            },
+
+            async startSpeaking() {
+                if (this.isVoiceSpeaking) return;
+                const activeSpeakers = voiceParticipants.filter(p => p.speaking).length;
+                if (activeSpeakers >= 4) {
+                    this.showToast('الغرفة ممتلئة بالمتحدثين حالياً، حاول لاحقاً');
+                    return;
+                }
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    this.showToast('المتصفح لا يدعم استخدام المايك');
+                    return;
+                }
+                try {
+                    this.voiceLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                } catch (err) {
+                    console.warn('Mic access denied:', err);
+                    this.showToast('تعذر الوصول للمايكروفون — تحقق من الأذونات');
+                    return;
+                }
+                this.isVoiceSpeaking = true;
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid + '/speaking'), true).catch(() => {});
+                }
+                voiceParticipants.forEach((p) => {
+                    if (p.uid !== this.authUid) this.createVoiceOffer(p.uid);
+                });
+                this.renderVoiceRoom();
+                this.showToast('🎙️ أنت تتكلم الآن');
+            },
+
+            stopSpeaking() {
+                if (!this.isVoiceSpeaking) return;
+                this.isVoiceSpeaking = false;
+                if (this.voiceLocalStream) {
+                    this.voiceLocalStream.getTracks().forEach((t) => t.stop());
+                    this.voiceLocalStream = null;
+                }
+                Object.keys(this.voiceSendPeers).forEach((uid) => this.closeVoiceSendPeer(uid));
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid + '/speaking'), false).catch(() => {});
+                }
+                if (this.currentView === 'voiceRoomView') this.renderVoiceRoom();
+            },
+
+            async createVoiceOffer(toUid) {
+                if (this.voiceSendPeers[toUid]) return;
+                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                this.voiceSendPeers[toUid] = pc;
+                if (this.voiceLocalStream) {
+                    this.voiceLocalStream.getTracks().forEach((track) => pc.addTrack(track, this.voiceLocalStream));
+                }
+                const { ref, set, onValue } = window.firebaseDbHelpers;
+                const callPath = 'voiceRoom/calls/' + toUid + '/' + this.authUid;
+                pc.onicecandidate = (event) => {
+                    if (!event.candidate) return;
+                    const cid = Date.now() + '_' + Math.floor(Math.random() * 100000);
+                    set(ref(window.firebaseDb, callPath + '/offerCandidates/' + cid), event.candidate.toJSON()).catch(() => {});
+                };
+                pc.onconnectionstatechange = () => {
+                    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
+                        this.closeVoiceSendPeer(toUid);
+                    }
+                };
+                this._voiceCallUnsubs = this._voiceCallUnsubs || {};
+                try {
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+                    await set(ref(window.firebaseDb, callPath + '/offer'), { sdp: offer.sdp, type: offer.type });
+                    const appliedCandidates = new Set();
+                    this._voiceCallUnsubs[toUid] = onValue(ref(window.firebaseDb, callPath), async (snap) => {
+                        if (!snap.exists()) return;
+                        const data = snap.val();
+                        if (data.answer && !pc.currentRemoteDescription) {
+                            try { await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); } catch (e) { console.warn('Set remote answer failed:', e); }
+                        }
+                        if (data.answerCandidates) {
+                            Object.keys(data.answerCandidates).forEach((cid) => {
+                                if (appliedCandidates.has(cid)) return;
+                                appliedCandidates.add(cid);
+                                pc.addIceCandidate(new RTCIceCandidate(data.answerCandidates[cid])).catch(() => {});
+                            });
+                        }
+                    });
+                } catch (err) {
+                    console.warn('Create voice offer failed:', err);
+                }
+            },
+
+            listenForIncomingVoiceCalls() {
+                if (!window.firebaseDb || !this.authUid || this._voiceCallsUnsub) return;
+                const { ref, onChildAdded } = window.firebaseDbHelpers;
+                this._voiceCallsUnsub = onChildAdded(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid), (snap) => {
+                    const fromUid = snap.key;
+                    const data = snap.val();
+                    if (!data || !data.offer) return;
+                    this.answerVoiceCall(fromUid, data.offer);
+                });
+            },
+
+            async answerVoiceCall(fromUid, offer) {
+                if (this.voiceRecvPeers[fromUid]) return;
+                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                this.voiceRecvPeers[fromUid] = pc;
+                pc.ontrack = (event) => { this.playRemoteVoiceStream(fromUid, event.streams[0]); };
+                const { ref, set, onValue } = window.firebaseDbHelpers;
+                const callPath = 'voiceRoom/calls/' + this.authUid + '/' + fromUid;
+                pc.onicecandidate = (event) => {
+                    if (!event.candidate) return;
+                    const cid = Date.now() + '_' + Math.floor(Math.random() * 100000);
+                    set(ref(window.firebaseDb, callPath + '/answerCandidates/' + cid), event.candidate.toJSON()).catch(() => {});
+                };
+                pc.onconnectionstatechange = () => {
+                    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
+                        this.closeVoiceRecvPeer(fromUid);
+                    }
+                };
+                this._voiceCallUnsubs = this._voiceCallUnsubs || {};
+                try {
+                    await pc.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await pc.createAnswer();
+                    await pc.setLocalDescription(answer);
+                    await set(ref(window.firebaseDb, callPath + '/answer'), { sdp: answer.sdp, type: answer.type });
+                    const appliedCandidates = new Set();
+                    this._voiceCallUnsubs['recv_' + fromUid] = onValue(ref(window.firebaseDb, callPath + '/offerCandidates'), (snap2) => {
+                        if (!snap2.exists()) return;
+                        const vals = snap2.val();
+                        Object.keys(vals).forEach((cid) => {
+                            if (appliedCandidates.has(cid)) return;
+                            appliedCandidates.add(cid);
+                            pc.addIceCandidate(new RTCIceCandidate(vals[cid])).catch(() => {});
+                        });
+                    });
+                } catch (err) {
+                    console.warn('Answer voice call failed:', err);
+                }
+            },
+
+            playRemoteVoiceStream(uid, stream) {
+                let audioEl = document.getElementById('voiceAudio_' + uid);
+                if (!audioEl) {
+                    audioEl = document.createElement('audio');
+                    audioEl.id = 'voiceAudio_' + uid;
+                    audioEl.className = 'voice-remote-audio';
+                    audioEl.autoplay = true;
+                    audioEl.style.display = 'none';
+                    document.body.appendChild(audioEl);
+                }
+                audioEl.srcObject = stream;
+            },
+
+            closeVoiceSendPeer(uid) {
+                const pc = this.voiceSendPeers[uid];
+                if (pc) { try { pc.close(); } catch (e) { /* noop */ } delete this.voiceSendPeers[uid]; }
+                if (this._voiceCallUnsubs && this._voiceCallUnsubs[uid]) { this._voiceCallUnsubs[uid](); delete this._voiceCallUnsubs[uid]; }
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + uid + '/' + this.authUid), null).catch(() => {});
+                }
+            },
+
+            closeVoiceRecvPeer(uid) {
+                const pc = this.voiceRecvPeers[uid];
+                if (pc) { try { pc.close(); } catch (e) { /* noop */ } delete this.voiceRecvPeers[uid]; }
+                if (this._voiceCallUnsubs && this._voiceCallUnsubs['recv_' + uid]) { this._voiceCallUnsubs['recv_' + uid](); delete this._voiceCallUnsubs['recv_' + uid]; }
+                const audioEl = document.getElementById('voiceAudio_' + uid);
+                if (audioEl) audioEl.remove();
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid + '/' + uid), null).catch(() => {});
+                }
+            },
+
             // ==================== DAILY TASKS ====================
             goToTasks() {
                 if (!this.isLoggedIn || !this.currentUser) {
@@ -6642,11 +6990,12 @@
             },
 
             switchView(viewId) {
+                if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
