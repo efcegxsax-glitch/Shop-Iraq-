@@ -27,7 +27,7 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getDatabase, ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getDatabase, ref, set, get, remove, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -57,7 +57,7 @@
             window.firebaseDb = getDatabase(app);
             window.firebaseAuth = getAuth(app);
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
-            window.firebaseDbHelpers = { ref, set, get, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
+            window.firebaseDbHelpers = { ref, set, get, remove, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
             window.firebaseStorage = getStorage(app);
             window.firebaseStorageHelpers = { ref: storageRef, uploadBytes, getDownloadURL };
             window.firebaseMessagingHelpers = { getToken };
@@ -633,7 +633,7 @@
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
                 <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الإشعارات</span>
-                <button onclick="app.goToSettings()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                <button onclick="app.openNotifPreferences()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="settings" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
             </div>
@@ -956,7 +956,7 @@
                                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
                             </button>
-                            <button onclick="app.showToast('تفضيلات الإشعارات')" class="menu-item w-full flex items-center gap-3 p-3 rounded-xl text-right">
+                            <button onclick="app.openNotifPreferences()" class="menu-item w-full flex items-center gap-3 p-3 rounded-xl text-right">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
                                     <i data-lucide="settings" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
@@ -1214,6 +1214,30 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
+                <button onclick="app.goToMessages()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
+                        <i data-lucide="mail" class="w-5 h-5 text-info"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">الرسائل الخاصة</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">راسل أي طالب مباشرة عبر رقمه التعريفي</div>
+                    </div>
+                    <span id="messagesUnreadBadge" class="hidden bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToDuels()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+                        <i data-lucide="swords" class="w-5 h-5 text-warning"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">تحدي مباشر</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">حدّ زميلك بمسابقة أسئلة سريعة واكسب نقاط إضافية</div>
+                    </div>
+                    <span id="duelInvitesBadge" class="hidden bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.goToMoreExtra()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
                         <i data-lucide="layers" class="w-5 h-5 text-purple"></i>
@@ -1463,6 +1487,87 @@
                     <div id="calendarChart" class="flex items-end gap-[2px] rounded-2xl p-3 theme-transition" style="height: 110px; background-color: var(--surface); border: 1px solid var(--border);"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- ===== PRIVATE MESSAGES VIEW ===== -->
+        <div id="messagesView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الرسائل الخاصة</span>
+                <button onclick="app.openNewChatModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="رسالة جديدة">
+                    <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+            <div id="chatsList" class="px-4 py-3 flex flex-col gap-2"></div>
+            <div id="chatsEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center px-4">
+                <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="mail" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد رسائل بعد</h3>
+                <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">ابحث عن زميلك برقمه التعريفي وابدأ محادثة</p>
+                <button onclick="app.openNewChatModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رسالة جديدة</button>
+            </div>
+        </div>
+
+        <!-- ===== CHAT THREAD VIEW ===== -->
+        <div id="chatThreadView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <img id="chatThreadAvatar" src="" class="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="">
+                <div class="flex-1 min-w-0">
+                    <div id="chatThreadName" class="font-bold text-sm truncate theme-transition" style="color: var(--text);"></div>
+                </div>
+            </div>
+            <div id="chatMessagesList" class="px-4 py-4 flex flex-col gap-2"></div>
+            <div class="sticky bottom-0 border-t px-4 py-3 flex items-center gap-2 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <input type="text" id="chatMessageInput" placeholder="اكتب رسالتك هنا..." class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.sendChatMessage();}">
+                <button onclick="app.sendChatMessage()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== DUELS VIEW ===== -->
+        <div id="duelsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">تحدي مباشر</span>
+                <button onclick="app.openNewDuelModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="تحدي جديد">
+                    <i data-lucide="plus" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+            <div class="px-4 py-4">
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">دعوات بانتظارك</h3>
+                <div id="duelInvitesList" class="flex flex-col gap-2 mb-5"></div>
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">تحدياتي</h3>
+                <div id="duelsList" class="flex flex-col gap-2"></div>
+                <div id="duelsEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="swords" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">ما عندك تحديات بعد</h3>
+                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">حدّ زميلك برقمه التعريفي وابدأ مسابقة أسئلة سريعة</p>
+                    <button onclick="app.openNewDuelModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">تحدي جديد</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== DUEL PLAY VIEW ===== -->
+        <div id="duelPlayView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.exitDuelPlay()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="x" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">تحدي مباشر</span>
+                <span id="duelQuestionCounter" class="text-xs font-bold theme-transition" style="color: var(--text2);"></span>
+            </div>
+            <div id="duelPlayContent" class="p-4"></div>
         </div>
 
         <!-- ===== FORUM VIEW ===== -->
@@ -1948,6 +2053,29 @@
 
         const monthlyActivity = {};
 
+        const userChatsList = [];
+        const chatMessages = [];
+
+        const duelInvitesList = [];
+        const duelsListData = [];
+        const duelQuestionBank = [
+            { q: 'كم عدد محافظات العراق؟', options: ['15', '18', '19', '21'], correct: 1 },
+            { q: 'ما ناتج 7 × 8؟', options: ['54', '56', '58', '64'], correct: 1 },
+            { q: 'ما هو الرمز الكيميائي للماء؟', options: ['CO2', 'H2O', 'O2', 'NaCl'], correct: 1 },
+            { q: 'من مؤلف كتاب "الأيام"؟', options: ['نجيب محفوظ', 'طه حسين', 'جبران خليل جبران', 'أحمد شوقي'], correct: 1 },
+            { q: 'ما هو أطول نهر بالعراق؟', options: ['دجلة', 'الفرات', 'ديالى', 'الزاب'], correct: 0 },
+            { q: 'ما ناتج الجذر التربيعي لـ 81؟', options: ['7', '8', '9', '11'], correct: 2 },
+            { q: 'كم عدد أضلاع المثلث؟', options: ['2', '3', '4', '5'], correct: 1 },
+            { q: 'ما هي عاصمة العراق؟', options: ['البصرة', 'أربيل', 'بغداد', 'الموصل'], correct: 2 },
+            { q: 'ما وحدة قياس القوة؟', options: ['واط', 'نيوتن', 'جول', 'أمبير'], correct: 1 },
+            { q: 'ما ناتج 15 - 9؟', options: ['4', '5', '6', '7'], correct: 2 },
+            { q: 'كم عدد أيام السنة الكبيسة؟', options: ['364', '365', '366', '367'], correct: 2 },
+            { q: 'ما هو الغاز الذي يتنفسه الإنسان؟', options: ['ثاني أكسيد الكربون', 'الأوكسجين', 'النيتروجين', 'الهيدروجين'], correct: 1 },
+            { q: 'ما ناتج 12 ÷ 4؟', options: ['2', '3', '4', '6'], correct: 1 },
+            { q: 'من هو مخترع المصباح الكهربائي؟', options: ['نيوتن', 'أديسون', 'أينشتاين', 'غاليليو'], correct: 1 },
+            { q: 'ما هو أكبر كوكب بالمجموعة الشمسية؟', options: ['الأرض', 'المريخ', 'المشتري', 'زحل'], correct: 2 }
+        ];
+
         const pointsStoreOffers = [
             { points: 5000, iqd: 500 },
             { points: 10000, iqd: 1000 },
@@ -2026,10 +2154,18 @@
             userBookmarks: {},
             userDeletedNotifs: {},
             calendarMonthOffset: 0,
+            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true },
+            currentChatUid: null,
+            currentChatOther: null,
+            currentDuelId: null,
+            currentDuelData: null,
+            currentDuelQuestionIndex: 0,
+            duelAnswers: [],
 
             init() {
                 this.loadTheme();
                 this.loadUserData();
+                this.loadNotifPrefs();
                 this.watchAuthState();
                 this.hydrateNewsCache();
                 this.loadData();
@@ -2365,6 +2501,8 @@
                     }
                     this.checkDailyStreak();
                     this.listenForUserTasks();
+                    this.listenForUserChats();
+                    this.listenForDuelInvites();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -2859,7 +2997,7 @@
 
             renderNotificationsList() {
                 const notifHex = { urgent: '#EF4444', announcement: '#3B82F6', circular: '#22C55E', update: '#F59E0B', reminder: '#8B5CF6', general: '#64748B' };
-                let filtered = notifications.filter(n => !this.isNotifDeleted(n.id));
+                let filtered = notifications.filter(n => !this.isNotifDeleted(n.id) && this.notifPrefs[n.type] !== false);
                 if (this.activeNotifFilter === 'urgent') filtered = filtered.filter(n => n.type === 'urgent');
                 else if (this.activeNotifFilter === 'unread') filtered = filtered.filter(n => !n.read);
 
@@ -3038,7 +3176,7 @@
                 lucide.createIcons();
             },
             updateNotifBadges() {
-                const visible = notifications.filter(n => !this.isNotifDeleted(n.id));
+                const visible = notifications.filter(n => !this.isNotifDeleted(n.id) && this.notifPrefs[n.type] !== false);
                 const unreadCount = visible.filter(n => !n.read).length;
                 const urgentCount = visible.filter(n => n.type === 'urgent').length;
                 
@@ -3142,6 +3280,8 @@
                     this.initPushNotifications();
                     this.checkDailyStreak();
                     this.listenForUserTasks();
+                    this.listenForUserChats();
+                    this.listenForDuelInvites();
                     this.renderNews();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
@@ -3403,8 +3543,10 @@
                         return;
                     }
                     this.updateNotifBadges();
-                    this.playNotifySound();
-                    this.showToast('إشعار جديد: ' + val.title);
+                    if (this.notifPrefs[val.type || 'announcement'] !== false) {
+                        this.playNotifySound();
+                        this.showToast('إشعار جديد: ' + val.title);
+                    }
                     if (this.currentView === 'notificationsView') this.renderNotificationsList();
                     lucide.createIcons();
                 });
@@ -5725,6 +5867,709 @@
                 this.showToast(dateStr + ': ' + (act.points || 0) + ' نقطة • ' + (act.studySessions || 0) + ' جلسة مذاكرة • ' + (act.tasksDone || 0) + ' مهمة منجزة');
             },
 
+            // ==================== NOTIFICATION PREFERENCES ====================
+            loadNotifPrefs() {
+                try {
+                    const raw = localStorage.getItem('iraqiStudentNotifPrefs');
+                    if (raw) this.notifPrefs = { ...this.notifPrefs, ...JSON.parse(raw) };
+                } catch (e) {
+                    console.warn('Load notif prefs failed:', e);
+                }
+            },
+
+            saveNotifPrefs() {
+                try {
+                    localStorage.setItem('iraqiStudentNotifPrefs', JSON.stringify(this.notifPrefs));
+                } catch (e) {
+                    console.warn('Save notif prefs failed:', e);
+                }
+            },
+
+            openNotifPreferences() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'تفضيلات الإشعارات';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر أنواع الإشعارات اللي تريد تستلمها فقط</p>
+                    <div class="flex flex-col gap-2">
+                        ${Object.keys(notificationTypes).map((type) => `
+                            <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
+                                <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(notificationTypes[type].label)}</div>
+                                <label class="toggle-switch flex-shrink-0">
+                                    <input type="checkbox" ${this.notifPrefs[type] !== false ? 'checked' : ''} onchange="app.toggleNotifPref('${type}')">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            toggleNotifPref(type) {
+                this.notifPrefs[type] = this.notifPrefs[type] === false ? true : false;
+                this.saveNotifPrefs();
+                this.updateNotifBadges();
+                if (this.currentView === 'notificationsView') this.renderNotificationsList();
+            },
+
+            // ==================== SHARED: FIND STUDENT BY NUMBER ====================
+            async findStudentByNumber(number) {
+                if (!window.firebaseDb) return null;
+                const { ref, get } = window.firebaseDbHelpers;
+                try {
+                    const snap = await get(ref(window.firebaseDb, 'users'));
+                    if (!snap.exists()) return null;
+                    const users = snap.val();
+                    let found = null, foundUid = null;
+                    Object.keys(users).forEach((k) => {
+                        if (String(users[k].studentNumber) === number) { found = users[k]; foundUid = k; }
+                    });
+                    return found ? { uid: foundUid, data: found } : null;
+                } catch (err) {
+                    console.warn('Student search failed:', err);
+                    return null;
+                }
+            },
+
+            // ==================== PRIVATE MESSAGES ====================
+            getChatId(otherUid) {
+                return [this.authUid, otherUid].sort().join('_');
+            },
+
+            goToMessages() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لاستخدام الرسائل');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('messagesView');
+                this.listenForUserChats();
+                this.renderChatsList();
+                lucide.createIcons();
+            },
+
+            listenForUserChats() {
+                if (!window.firebaseDb || !this.authUid || this._userChatsListener) { this.renderChatsList(); return; }
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._userChatsListener = onValue(ref(window.firebaseDb, 'userChats/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+                    }
+                    userChatsList.length = 0;
+                    userChatsList.push(...list);
+                    this.updateMessagesBadge();
+                    if (this.currentView === 'messagesView') this.renderChatsList();
+                });
+            },
+
+            renderChatsList() {
+                const container = document.getElementById('chatsList');
+                const empty = document.getElementById('chatsEmptyState');
+                if (!container || !empty) return;
+                if (userChatsList.length === 0) {
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                container.classList.remove('hidden');
+                empty.classList.add('hidden');
+                container.innerHTML = userChatsList.map(c => `
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold truncate theme-transition" style="color: var(--text);">${escapeHtml(c.otherName || 'طالب')}</div>
+                            <div class="text-xs truncate theme-transition" style="color: var(--text2);">${escapeHtml(c.lastMessage || '')}</div>
+                        </div>
+                        ${c.unread ? '<span class="w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0"></span>' : ''}
+                    </div>
+                `).join('');
+            },
+
+            updateMessagesBadge() {
+                const badge = document.getElementById('messagesUnreadBadge');
+                if (!badge) return;
+                const count = userChatsList.filter(c => c.unread).length;
+                badge.classList.toggle('hidden', count === 0);
+                badge.textContent = count;
+            },
+
+            openNewChatModal() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'رسالة جديدة';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">أدخل الرقم التعريفي للطالب (5 أرقام)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="newChatSearchInput" inputmode="numeric" maxlength="5" placeholder="مثال: 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                            <button onclick="app.searchNewChatStudent()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 flex-shrink-0"><i data-lucide="search" class="w-4 h-4"></i>بحث</button>
+                        </div>
+                        <div id="newChatResult"></div>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            async searchNewChatStudent() {
+                const input = document.getElementById('newChatSearchInput');
+                const result = document.getElementById('newChatResult');
+                if (!input || !result) return;
+                const query = (input.value || '').trim();
+                if (!/^\d{5}$/.test(query)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">أدخل رقماً تعريفياً مكوّناً من 5 أرقام</p>';
+                    return;
+                }
+                if (query === String(this.currentUser.studentNumber)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">لا يمكن مراسلة نفسك</p>';
+                    return;
+                }
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                lucide.createIcons();
+                const found = await this.findStudentByNumber(query);
+                if (!found) {
+                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">لم يتم العثور على طالب بهذا الرقم</p></div>';
+                    return;
+                }
+                this._pendingChatTarget = found;
+                result.innerHTML = `
+                    <div class="rounded-xl border p-3 theme-transition cursor-pointer" onclick="app.startPendingChat()" style="background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex items-center gap-3">
+                            <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}</div>
+                                <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
+                            </div>
+                            <i data-lucide="chevron-left" class="w-5 h-5" style="color: var(--text2);"></i>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+            },
+
+            startPendingChat() {
+                if (!this._pendingChatTarget) return;
+                const t = this._pendingChatTarget;
+                this.closeWalletModal();
+                this.openChat(t.uid, t.data.fullName, t.data.avatar, t.data.studentNumber);
+            },
+
+            openChat(otherUid, otherName, otherAvatar, otherStudentNumber) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لاستخدام الرسائل');
+                    this.goToAuth('login');
+                    return;
+                }
+                if (!otherName) {
+                    const existing = userChatsList.find(c => c.otherUid === otherUid);
+                    if (existing) {
+                        otherName = existing.otherName;
+                        otherAvatar = existing.otherAvatar;
+                        otherStudentNumber = existing.otherStudentNumber;
+                    }
+                }
+                this.currentChatUid = otherUid;
+                this.currentChatOther = { name: otherName || 'طالب', avatar: otherAvatar || '', studentNumber: otherStudentNumber || '' };
+                const nameEl = document.getElementById('chatThreadName');
+                const avatarEl = document.getElementById('chatThreadAvatar');
+                if (nameEl) nameEl.textContent = this.currentChatOther.name;
+                if (avatarEl) avatarEl.src = personAvatarSrc(this.currentChatOther.avatar, this.currentChatOther.name);
+                chatMessages.length = 0;
+                this.renderChatMessages();
+                this.switchView('chatThreadView');
+                this.listenForChatMessages();
+                this.markChatRead();
+                lucide.createIcons();
+            },
+
+            listenForChatMessages() {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                if (this._chatMsgUnsub) { this._chatMsgUnsub(); this._chatMsgUnsub = null; }
+                const chatId = this.getChatId(this.currentChatUid);
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._chatMsgUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (a.id || 0) - (b.id || 0));
+                    }
+                    chatMessages.length = 0;
+                    chatMessages.push(...list);
+                    if (this.currentView === 'chatThreadView') { this.renderChatMessages(); lucide.createIcons(); }
+                });
+            },
+
+            renderChatMessages() {
+                const container = document.getElementById('chatMessagesList');
+                if (!container) return;
+                if (chatMessages.length === 0) {
+                    container.innerHTML = '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">ابدأ المحادثة بإرسال أول رسالة</p>';
+                    return;
+                }
+                container.innerHTML = chatMessages.map(m => {
+                    const isMine = m.from === this.authUid;
+                    return `
+                        <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-primary text-white' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}">
+                            ${escapeHtml(m.text)}
+                        </div>
+                    `;
+                }).join('');
+                container.scrollTop = container.scrollHeight;
+            },
+
+            sendChatMessage() {
+                const input = document.getElementById('chatMessageInput');
+                if (!input) return;
+                const text = input.value.trim();
+                if (!text) return;
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    return;
+                }
+                if (!window.firebaseDb || !this.currentChatUid) return;
+                const filtered = filterBadWords(text);
+                if (filtered.filtered) this.showToast('تم حذف كلمات غير لائقة من رسالتك');
+                const { ref, set } = window.firebaseDbHelpers;
+                const chatId = this.getChatId(this.currentChatUid);
+                const msgId = Date.now();
+                const payload = { id: msgId, from: this.authUid, to: this.currentChatUid, text: filtered.clean, createdAt: msgId };
+                set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId), payload).then(() => {
+                    input.value = '';
+                    const myEntry = { otherUid: this.currentChatUid, otherName: this.currentChatOther.name, otherAvatar: this.currentChatOther.avatar, otherStudentNumber: this.currentChatOther.studentNumber, lastMessage: filtered.clean, lastAt: msgId, unread: false };
+                    set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid), myEntry).catch(() => {});
+                    const theirEntry = { otherUid: this.authUid, otherName: this.currentUser.fullName || 'طالب', otherAvatar: this.currentUser.avatar || '', otherStudentNumber: this.currentUser.studentNumber || '', lastMessage: filtered.clean, lastAt: msgId, unread: true };
+                    set(ref(window.firebaseDb, 'userChats/' + this.currentChatUid + '/' + this.authUid), theirEntry).catch(() => {});
+                }).catch((err) => {
+                    console.warn('Send message failed:', err);
+                    this.showToast('تعذر إرسال الرسالة');
+                });
+            },
+
+            markChatRead() {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/unread'), false).catch(() => {});
+            },
+
+            // ==================== LIVE DUELS ====================
+            goToDuels() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول للتحدي');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('duelsView');
+                this.listenForDuelInvites();
+                this.listenForMyDuels();
+                this.renderDuelInvites();
+                this.renderDuelsList();
+                lucide.createIcons();
+            },
+
+            listenForDuelInvites() {
+                if (!window.firebaseDb || !this.authUid || this._duelInvitesListener) { this.renderDuelInvites(); return; }
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._duelInvitesListener = onValue(ref(window.firebaseDb, 'duelInvites/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    }
+                    duelInvitesList.length = 0;
+                    duelInvitesList.push(...list);
+                    this.updateDuelsBadge();
+                    if (this.currentView === 'duelsView') { this.renderDuelInvites(); lucide.createIcons(); }
+                });
+            },
+
+            listenForMyDuels() {
+                if (!window.firebaseDb || !this.authUid || this._userDuelsListener) return;
+                const { ref, onValue, get } = window.firebaseDbHelpers;
+                this._userDuelsListener = onValue(ref(window.firebaseDb, 'userDuels/' + this.authUid), async (snap) => {
+                    const ids = snap.exists() ? Object.keys(snap.val()) : [];
+                    const list = [];
+                    for (const id of ids) {
+                        try {
+                            const dsnap = await get(ref(window.firebaseDb, 'duels/' + id));
+                            if (dsnap.exists()) list.push(dsnap.val());
+                        } catch (e) { /* skip */ }
+                    }
+                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    duelsListData.length = 0;
+                    duelsListData.push(...list);
+                    if (this.currentView === 'duelsView') { this.renderDuelsList(); lucide.createIcons(); }
+                });
+            },
+
+            renderDuelInvites() {
+                const container = document.getElementById('duelInvitesList');
+                if (!container) return;
+                if (duelInvitesList.length === 0) {
+                    container.innerHTML = '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد دعوات حالياً</p>';
+                    return;
+                }
+                container.innerHTML = duelInvitesList.map(inv => `
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${personAvatarSrc(inv.fromAvatar, inv.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                        <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(inv.fromName || 'طالب')} تحدّاك!</div>
+                        <button onclick="app.acceptDuel(${inv.duelId})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
+                        <button onclick="app.declineDuel(${inv.duelId})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                    </div>
+                `).join('');
+            },
+
+            renderDuelsList() {
+                const container = document.getElementById('duelsList');
+                const empty = document.getElementById('duelsEmptyState');
+                if (!container || !empty) return;
+                if (duelsListData.length === 0) {
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                container.classList.remove('hidden');
+                empty.classList.add('hidden');
+                container.innerHTML = duelsListData.map(d => {
+                    const isP1 = d.player1Uid === this.authUid;
+                    const opponentName = isP1 ? d.player2Name : d.player1Name;
+                    const opponentAvatar = isP1 ? d.player2Avatar : d.player1Avatar;
+                    const alreadyPlayed = !!(d.finishedBy && d.finishedBy[this.authUid]);
+                    let statusLabel = 'بانتظار القبول';
+                    let statusColor = 'var(--text2)';
+                    if (d.status === 'active') {
+                        statusLabel = alreadyPlayed ? 'بانتظار الخصم' : 'جارٍ الآن — اضغط للعب';
+                        statusColor = '#F59E0B';
+                    }
+                    if (d.status === 'finished') {
+                        statusLabel = d.winnerUid === this.authUid ? '🏆 فزت' : (d.winnerUid ? 'خسرت' : 'تعادل');
+                        statusColor = d.winnerUid === this.authUid ? '#16A34A' : (d.winnerUid ? '#EF4444' : 'var(--text2)');
+                    }
+                    const canPlay = d.status === 'active' && !alreadyPlayed;
+                    return `
+                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition ${canPlay ? 'cursor-pointer' : ''}" ${canPlay ? `onclick="app.startDuelPlay(${d.id})"` : ''} style="background-color: var(--surface); border-color: var(--border);">
+                            <img src="${personAvatarSrc(opponentAvatar, opponentName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold truncate theme-transition" style="color: var(--text);">ضد ${escapeHtml(opponentName || 'طالب')}</div>
+                                <div class="text-xs font-bold" style="color: ${statusColor};">${statusLabel}</div>
+                            </div>
+                            ${canPlay ? '<i data-lucide="chevron-left" class="w-5 h-5" style="color: var(--text2);"></i>' : ''}
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            updateDuelsBadge() {
+                const badge = document.getElementById('duelInvitesBadge');
+                if (!badge) return;
+                badge.classList.toggle('hidden', duelInvitesList.length === 0);
+                badge.textContent = duelInvitesList.length;
+            },
+
+            openNewDuelModal() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'تحدي جديد';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">أدخل الرقم التعريفي لمن تريد تحديه (5 أرقام)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="newDuelSearchInput" inputmode="numeric" maxlength="5" placeholder="مثال: 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                            <button onclick="app.searchNewDuelStudent()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 flex-shrink-0"><i data-lucide="search" class="w-4 h-4"></i>بحث</button>
+                        </div>
+                        <div id="newDuelResult"></div>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            async searchNewDuelStudent() {
+                const input = document.getElementById('newDuelSearchInput');
+                const result = document.getElementById('newDuelResult');
+                if (!input || !result) return;
+                const query = (input.value || '').trim();
+                if (!/^\d{5}$/.test(query)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">أدخل رقماً تعريفياً مكوّناً من 5 أرقام</p>';
+                    return;
+                }
+                if (query === String(this.currentUser.studentNumber)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">لا يمكنك تحدي نفسك</p>';
+                    return;
+                }
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                lucide.createIcons();
+                const found = await this.findStudentByNumber(query);
+                if (!found) {
+                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">لم يتم العثور على طالب بهذا الرقم</p></div>';
+                    return;
+                }
+                this._pendingDuelTarget = found;
+                result.innerHTML = `
+                    <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex items-center gap-3 mb-3">
+                            <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}</div>
+                                <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
+                            </div>
+                        </div>
+                        <button onclick="app.sendPendingDuelChallenge()" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press"><i data-lucide="swords" class="w-4 h-4 inline ml-1"></i>أرسل التحدي</button>
+                    </div>
+                `;
+                lucide.createIcons();
+            },
+
+            sendPendingDuelChallenge() {
+                if (!this._pendingDuelTarget) return;
+                const t = this._pendingDuelTarget;
+                this.closeWalletModal();
+                this.challengeToDuel(t.uid, t.data.fullName, t.data.avatar);
+            },
+
+            async challengeToDuel(otherUid, otherName, otherAvatar) {
+                if (!window.firebaseDb || !this.authUid || !this.isLoggedIn) {
+                    this.showToast('يجب تسجيل الدخول للتحدي');
+                    return;
+                }
+                if (otherUid === this.authUid) {
+                    this.showToast('لا يمكنك تحدي نفسك');
+                    return;
+                }
+                const { ref, set } = window.firebaseDbHelpers;
+                const duelId = Date.now();
+                const shuffled = [...duelQuestionBank].sort(() => Math.random() - 0.5).slice(0, 5);
+                const duel = {
+                    id: duelId,
+                    player1Uid: this.authUid,
+                    player1Name: this.currentUser.fullName || 'طالب',
+                    player1Avatar: this.currentUser.avatar || '',
+                    player2Uid: otherUid,
+                    player2Name: otherName || 'طالب',
+                    player2Avatar: otherAvatar || '',
+                    questions: shuffled,
+                    status: 'pending',
+                    scores: {},
+                    times: {},
+                    finishedBy: {},
+                    claimed: {},
+                    winnerUid: null,
+                    createdAt: duelId
+                };
+                try {
+                    await set(ref(window.firebaseDb, 'duels/' + duelId), duel);
+                    await set(ref(window.firebaseDb, 'duelInvites/' + otherUid + '/' + duelId), {
+                        duelId, fromUid: this.authUid, fromName: duel.player1Name, fromAvatar: duel.player1Avatar, createdAt: duelId
+                    });
+                    await set(ref(window.firebaseDb, 'userDuels/' + this.authUid + '/' + duelId), true);
+                    await set(ref(window.firebaseDb, 'userDuels/' + otherUid + '/' + duelId), true);
+                    this.showToast('🎯 تم إرسال التحدي، بانتظار قبوله');
+                } catch (err) {
+                    console.warn('Challenge failed:', err);
+                    this.showToast('تعذر إرسال التحدي');
+                }
+            },
+
+            async acceptDuel(duelId) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set, remove } = window.firebaseDbHelpers;
+                try {
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/status'), 'active');
+                    await remove(ref(window.firebaseDb, 'duelInvites/' + this.authUid + '/' + duelId));
+                    this.startDuelPlay(duelId);
+                } catch (err) {
+                    console.warn('Accept duel failed:', err);
+                    this.showToast('تعذر قبول التحدي');
+                }
+            },
+
+            declineDuel(duelId) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, remove } = window.firebaseDbHelpers;
+                remove(ref(window.firebaseDb, 'duelInvites/' + this.authUid + '/' + duelId)).catch(() => {});
+                remove(ref(window.firebaseDb, 'duels/' + duelId)).catch(() => {});
+            },
+
+            async startDuelPlay(duelId) {
+                if (!window.firebaseDb) return;
+                const { ref, get } = window.firebaseDbHelpers;
+                try {
+                    const snap = await get(ref(window.firebaseDb, 'duels/' + duelId));
+                    if (!snap.exists()) {
+                        this.showToast('التحدي غير موجود');
+                        return;
+                    }
+                    const duel = snap.val();
+                    if (duel.finishedBy && duel.finishedBy[this.authUid]) {
+                        this.showToast('أجبت على هذا التحدي، بانتظار الخصم');
+                        return;
+                    }
+                    this.currentDuelId = duelId;
+                    this.currentDuelData = duel;
+                    this.currentDuelQuestionIndex = 0;
+                    this.duelAnswers = [];
+                    this.switchView('duelPlayView');
+                    this.renderDuelQuestion();
+                    lucide.createIcons();
+                } catch (err) {
+                    console.warn('Load duel failed:', err);
+                    this.showToast('تعذر تحميل التحدي');
+                }
+            },
+
+            renderDuelQuestion() {
+                const content = document.getElementById('duelPlayContent');
+                const counter = document.getElementById('duelQuestionCounter');
+                if (!content || !this.currentDuelData) return;
+                const questions = this.currentDuelData.questions || [];
+                const idx = this.currentDuelQuestionIndex;
+                if (idx >= questions.length) { this.finishDuelPlay(); return; }
+                if (counter) counter.textContent = (idx + 1) + ' / ' + questions.length;
+                const q = questions[idx];
+                content.innerHTML = `
+                    <h3 class="text-lg font-bold mb-5 leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(q.q)}</h3>
+                    <div class="flex flex-col gap-3">
+                        ${q.options.map((opt, i) => `
+                            <button onclick="app.answerDuelQuestion(${i})" class="w-full text-right p-4 rounded-2xl border theme-transition btn-press" style="background-color: var(--surface); border-color: var(--border); color: var(--text);">
+                                ${escapeHtml(opt)}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                lucide.createIcons();
+                this._duelQuestionStartedAt = Date.now();
+            },
+
+            answerDuelQuestion(chosenIndex) {
+                const questions = this.currentDuelData.questions || [];
+                const q = questions[this.currentDuelQuestionIndex];
+                const correct = chosenIndex === q.correct;
+                const timeMs = Date.now() - (this._duelQuestionStartedAt || Date.now());
+                this.duelAnswers.push({ chosenIndex, correct, timeMs });
+                this.currentDuelQuestionIndex++;
+                this.renderDuelQuestion();
+            },
+
+            async finishDuelPlay() {
+                const score = this.duelAnswers.filter(a => a.correct).length;
+                const totalTime = this.duelAnswers.reduce((s, a) => s + a.timeMs, 0);
+                const content = document.getElementById('duelPlayContent');
+                if (content) {
+                    content.innerHTML = `
+                        <div class="flex flex-col items-center justify-center py-10 text-center">
+                            <div class="text-3xl font-bold text-primary mb-2">${score} / ${this.duelAnswers.length}</div>
+                            <p class="text-sm theme-transition" style="color: var(--text2);">إجاباتك الصحيحة — بانتظار انتهاء الخصم لمعرفة النتيجة</p>
+                        </div>
+                    `;
+                }
+                if (!window.firebaseDb || !this.authUid || !this.currentDuelId) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                const duelId = this.currentDuelId;
+                try {
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/scores/' + this.authUid), score);
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/times/' + this.authUid), totalTime);
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/finishedBy/' + this.authUid), true);
+                    this.listenForDuelResult(duelId);
+                    this.checkDuelCompletion(duelId);
+                } catch (err) {
+                    console.warn('Submit duel score failed:', err);
+                }
+            },
+
+            listenForDuelResult(duelId) {
+                if (!window.firebaseDb) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
+                this._duelResultUnsub = onValue(ref(window.firebaseDb, 'duels/' + duelId), (snap) => {
+                    if (!snap.exists()) return;
+                    const duel = snap.val();
+                    if (duel.status === 'finished' && this.currentView === 'duelPlayView' && this.currentDuelId === duelId) {
+                        if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
+                        this.showDuelResult(duel);
+                        return;
+                    }
+                    const finishedBy = duel.finishedBy || {};
+                    if (duel.status === 'active' && finishedBy[duel.player1Uid] && finishedBy[duel.player2Uid]) {
+                        this.checkDuelCompletion(duelId);
+                    }
+                });
+            },
+
+            async checkDuelCompletion(duelId) {
+                if (!window.firebaseDb) return;
+                const { ref, get, set } = window.firebaseDbHelpers;
+                try {
+                    const snap = await get(ref(window.firebaseDb, 'duels/' + duelId));
+                    if (!snap.exists()) return;
+                    const duel = snap.val();
+                    const p1 = duel.player1Uid, p2 = duel.player2Uid;
+                    const finishedBy = duel.finishedBy || {};
+                    if (!finishedBy[p1] || !finishedBy[p2]) return;
+                    if (duel.status === 'finished') { this.claimDuelReward(duelId, duel.winnerUid); return; }
+                    const scores = duel.scores || {};
+                    const s1 = scores[p1] || 0, s2 = scores[p2] || 0;
+                    const winnerUid = s1 === s2 ? null : (s1 > s2 ? p1 : p2);
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/status'), 'finished');
+                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/winnerUid'), winnerUid);
+                    this.claimDuelReward(duelId, winnerUid);
+                } catch (err) {
+                    console.warn('Duel completion check failed:', err);
+                }
+            },
+
+            claimDuelReward(duelId, winnerUid) {
+                if (!this.isLoggedIn || !this.currentUser || !window.firebaseDb || !this.authUid) return;
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                runTransaction(ref(window.firebaseDb, 'duels/' + duelId + '/claimed/' + this.authUid), (cur) => {
+                    if (cur) return;
+                    return true;
+                }).then((result) => {
+                    if (!result || !result.committed) return;
+                    const bonus = winnerUid === null ? 20 : (winnerUid === this.authUid ? 50 : 10);
+                    this.currentUser.points = (this.currentUser.points || 0) + bonus;
+                    this.saveUserData();
+                    this.syncUserToDatabase();
+                    this.logDailyActivity({ points: bonus });
+                    const msg = winnerUid === this.authUid ? '🏆 فزت بالتحدي! +' : (winnerUid === null ? '🤝 تعادل! +' : 'خسرت لكن حصلت على +');
+                    this.showToast(msg + bonus + ' نقطة');
+                }).catch((err) => console.warn('Claim reward failed:', err));
+            },
+
+            showDuelResult(duel) {
+                const content = document.getElementById('duelPlayContent');
+                if (!content) return;
+                const myScore = (duel.scores && duel.scores[this.authUid]) || 0;
+                const oppUid = duel.player1Uid === this.authUid ? duel.player2Uid : duel.player1Uid;
+                const oppName = duel.player1Uid === this.authUid ? duel.player2Name : duel.player1Name;
+                const oppScore = (duel.scores && duel.scores[oppUid]) || 0;
+                const won = duel.winnerUid === this.authUid;
+                const draw = !duel.winnerUid;
+                content.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-8 text-center">
+                        <div class="text-4xl mb-3">${draw ? '🤝' : (won ? '🏆' : '😔')}</div>
+                        <h3 class="text-lg font-bold mb-1 theme-transition" style="color: var(--text);">${draw ? 'تعادل!' : (won ? 'فزت بالتحدي!' : 'خسرت هالمرة')}</h3>
+                        <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">أنت: ${myScore} • ${escapeHtml(oppName || 'الخصم')}: ${oppScore}</p>
+                        <button onclick="app.goToDuels()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رجوع للتحديات</button>
+                    </div>
+                `;
+            },
+
+            exitDuelPlay() {
+                if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
+                this.goBack();
+            },
+
             // ==================== NAVIGATION ====================
             setTab(tab) {
                 document.querySelectorAll('.nav-item').forEach(el => {
@@ -5801,7 +6646,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
