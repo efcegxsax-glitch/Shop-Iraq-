@@ -913,7 +913,7 @@
                     </section>
 
                     <section class="px-4 py-4 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="grid grid-cols-3 gap-3">
+                        <div class="grid grid-cols-2 gap-3">
                             <div class="rounded-xl p-3 text-center theme-transition" style="background-color: var(--input-bg);">
                                 <div class="w-10 h-10 mx-auto mb-2 rounded-lg bg-primary/10 flex items-center justify-center">
                                     <i data-lucide="file-text" class="w-5 h-5 text-primary"></i>
@@ -935,6 +935,14 @@
                                 <div class="text-xs font-bold theme-transition" style="color: var(--text);">رقم الطالب</div>
                                 <div class="text-[10px] mt-0.5 theme-transition" id="profileStudentNumberValue" style="color: var(--text2);">1234567</div>
                             </div>
+                            <button onclick="app.goToFriends()" class="rounded-xl p-3 text-center theme-transition relative" style="background-color: var(--input-bg);">
+                                <div class="w-10 h-10 mx-auto mb-2 rounded-lg bg-accent/10 flex items-center justify-center">
+                                    <i data-lucide="users" class="w-5 h-5 text-accent"></i>
+                                </div>
+                                <div class="text-xs font-bold theme-transition" style="color: var(--text);">الأصدقاء</div>
+                                <div class="text-[10px] mt-0.5 theme-transition" id="profileFriendsCount" style="color: var(--text2);">0 صديق</div>
+                                <span id="friendRequestsBadge" class="hidden absolute top-1.5 left-1.5 bg-error text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">0</span>
+                            </button>
                         </div>
                     </section>
 
@@ -1626,9 +1634,9 @@
                 </button>
                 <div class="flex-1">
                     <div class="font-bold theme-transition" style="color: var(--text);">المنتدى</div>
-                    <div class="text-xs theme-transition" style="color: var(--text2);">أسئلة وأجوبة بين الطلاب</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">شارك وتفاعل مع زملائك</div>
                 </div>
-                <button onclick="app.openAskQuestionModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="اسأل سؤالاً">
+                <button onclick="app.openAskQuestionModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="منشور جديد">
                     <i data-lucide="plus" class="w-5 h-5 text-white"></i>
                 </button>
             </div>
@@ -1640,9 +1648,9 @@
                 <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="message-circle" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
                 </div>
-                <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد أسئلة بعد</h3>
-                <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">كن أول من يسأل سؤالاً في هذا المنتدى</p>
-                <button onclick="app.openAskQuestionModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">اسأل سؤالاً</button>
+                <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد منشورات بعد</h3>
+                <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">كن أول من ينشر بهذا المنتدى</p>
+                <button onclick="app.openAskQuestionModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إنشاء منشور</button>
             </div>
         </div>
 
@@ -1652,14 +1660,41 @@
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
-                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">تفاصيل السؤال</span>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">المنشور</span>
             </div>
             <div id="forumThreadContent" class="pb-4"></div>
             <div class="sticky bottom-0 border-t px-4 py-3 flex items-center gap-2 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                <input type="text" id="forumAnswerInput" placeholder="اكتب إجابتك هنا..." class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.submitForumAnswer();}">
-                <button onclick="app.submitForumAnswer()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال الإجابة">
+                <input type="text" id="forumAnswerInput" placeholder="اكتب تعليقك هنا..." class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.submitForumAnswer();}">
+                <button onclick="app.submitForumAnswer()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال التعليق">
                     <i data-lucide="send" class="w-5 h-5"></i>
                 </button>
+            </div>
+        </div>
+
+        <!-- ===== FRIENDS VIEW ===== -->
+        <div id="friendsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الأصدقاء</span>
+                <button onclick="app.openAddFriendModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="إضافة صديق">
+                    <i data-lucide="user-plus" class="w-5 h-5 text-white"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">طلبات الصداقة</h3>
+                <div id="friendRequestsList" class="flex flex-col gap-2 mb-5"></div>
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">أصدقائي</h3>
+                <div id="friendsListContainer" class="flex flex-col gap-2"></div>
+                <div id="friendsEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="users" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">ما عندك أصدقاء بعد</h3>
+                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">ابحث عن زملائك برقمهم التعريفي وأضفهم</p>
+                    <button onclick="app.openAddFriendModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إضافة صديق</button>
+                </div>
             </div>
         </div>
 
@@ -1975,6 +2010,15 @@
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
 
+        function timeAgo(ts) {
+            if (!ts) return '';
+            const diff = Date.now() - ts;
+            if (diff < 60000) return 'الآن';
+            if (diff < 3600000) return 'قبل ' + Math.floor(diff / 60000) + ' د';
+            if (diff < 86400000) return 'قبل ' + Math.floor(diff / 3600000) + ' س';
+            return 'قبل ' + Math.floor(diff / 86400000) + ' يوم';
+        }
+
         function cacheNewsData(data) {
             try { localStorage.setItem('isp_news_cache', JSON.stringify(data)); } catch (e) {}
         }
@@ -2106,6 +2150,9 @@
 
         const voiceParticipants = [];
 
+        const friendsList = [];
+        const incomingFriendRequests = [];
+
         const duelInvitesList = [];
         const duelsListData = [];
         const duelQuestionBank = [
@@ -2215,6 +2262,7 @@
             voiceRecvPeers: {},
             voiceLocalStream: null,
             isVoiceSpeaking: false,
+            sentFriendRequests: {},
 
             init() {
                 this.loadTheme();
@@ -2557,6 +2605,9 @@
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForDuelInvites();
+                    this.listenForFriends();
+                    this.listenForFriendRequests();
+                    this.listenForSentFriendRequests();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -3337,6 +3388,9 @@
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForDuelInvites();
+                    this.listenForFriends();
+                    this.listenForFriendRequests();
+                    this.listenForSentFriendRequests();
                     this.renderNews();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
@@ -5025,21 +5079,34 @@
             },
 
             createForumThreadCard(thread) {
-                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || 'أخرى';
+                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || '';
+                const likesCount = thread.likes ? Object.keys(thread.likes).length : 0;
+                const iLiked = !!(thread.likes && this.authUid && thread.likes[this.authUid]);
+                const commentsCount = Number(thread.answersCount) || 0;
                 return `
-                    <div class="file-card rounded-2xl border p-4 cursor-pointer theme-transition" style="background-color: var(--surface); border-color: var(--border);" onclick="app.openForumThread(${thread.id})">
-                        <div class="flex items-center gap-2 mb-2">
-                            <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">${escapeHtml(subjLabel)}</span>
-                        </div>
-                        <h3 class="text-sm font-bold leading-relaxed mb-1 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h3>
-                        <p class="text-xs line-clamp-2 theme-transition" style="color: var(--text2);">${escapeHtml(thread.body || '')}</p>
-                        <div class="flex items-center gap-2 mt-2">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
-                            <div class="flex-1 min-w-0 text-xs theme-transition" style="color: var(--text2);">
-                                <span class="font-bold">${escapeHtml(thread.authorName || 'طالب')}</span>
-                                ${thread.authorStudentNumber ? `<span> • ID: ${escapeHtml(thread.authorStudentNumber)}</span>` : ''}
+                    <div class="file-card rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex items-center gap-2.5 p-3.5 pb-2">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${thread.id})">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${thread.id})">${escapeHtml(thread.authorName || 'طالب')}</div>
+                                <div class="text-[11px] theme-transition" style="color: var(--text2);">${timeAgo(thread.id)}${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
-                            <span class="flex items-center gap-1 flex-shrink-0 text-xs theme-transition" style="color: var(--text2);"><i data-lucide="message-circle" class="w-3 h-3"></i>${Number(thread.answersCount) || 0} إجابة</span>
+                        </div>
+                        <div class="px-3.5 pb-3 cursor-pointer" onclick="app.openForumThread(${thread.id})">
+                            <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
+                        </div>
+                        ${(likesCount > 0 || commentsCount > 0) ? `
+                        <div class="flex items-center justify-between px-3.5 pb-2 text-xs theme-transition" style="color: var(--text2);">
+                            <span>${likesCount > 0 ? '👍 ' + likesCount : ''}</span>
+                            <span>${commentsCount > 0 ? commentsCount + ' تعليق' : ''}</span>
+                        </div>` : ''}
+                        <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
+                            <button onclick="app.toggleForumLike(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
+                                <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب
+                            </button>
+                            <button onclick="app.openForumThread(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i>تعليق
+                            </button>
                         </div>
                     </div>
                 `;
@@ -5074,33 +5141,40 @@
                 const thread = forumThreads.find(t => t.id === this.currentForumThreadId);
                 const content = document.getElementById('forumThreadContent');
                 if (!content || !thread) return;
-                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || 'أخرى';
+                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || '';
                 const answers = forumAnswers[thread.id] || [];
+                const likesCount = thread.likes ? Object.keys(thread.likes).length : 0;
+                const iLiked = !!(thread.likes && this.authUid && thread.likes[this.authUid]);
                 content.innerHTML = `
-                    <div class="px-4 pt-4 pb-3 border-b theme-transition" style="border-color: var(--border);">
-                        <span class="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg">${escapeHtml(subjLabel)}</span>
-                        <h1 class="text-lg font-bold leading-relaxed mt-2 mb-2 theme-transition" style="color: var(--text);">${escapeHtml(thread.title)}</h1>
-                        <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
-                        <div class="flex items-center gap-2 mt-3">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-7 h-7 rounded-full object-cover flex-shrink-0">
-                            <div class="text-xs theme-transition" style="color: var(--text2);">
-                                <span class="font-bold">${escapeHtml(thread.authorName || 'طالب')}</span>
-                                ${thread.authorStudentNumber ? `<span> • ID: ${escapeHtml(thread.authorStudentNumber)}</span>` : ''}
+                    <div class="px-4 pt-4 pb-1 border-b theme-transition" style="border-color: var(--border);">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${thread.id})">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${thread.id})">${escapeHtml(thread.authorName || 'طالب')}</div>
+                                <div class="text-[11px] theme-transition" style="color: var(--text2);">${timeAgo(thread.id)}${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
+                        </div>
+                        <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">${escapeHtml(thread.body || '')}</p>
+                        <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
+                            <button onclick="app.toggleForumLike(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
+                                <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب${likesCount > 0 ? ' (' + likesCount + ')' : ''}
+                            </button>
+                            <span class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
+                                <i data-lucide="message-circle" class="w-4 h-4"></i>${answers.length} تعليق
+                            </span>
                         </div>
                     </div>
                     <div class="px-4 pt-4">
-                        <h3 class="text-sm font-bold mb-3 theme-transition" style="color: var(--text);">${answers.length} إجابة</h3>
                         <div class="flex flex-col gap-3">
-                            ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد إجابات بعد، كن أول من يجيب</p>` : answers.map(a => `
-                                <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                                    <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
-                                    <div class="flex items-center gap-2 mt-2">
-                                        <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-6 h-6 rounded-full object-cover flex-shrink-0">
-                                        <div class="text-xs theme-transition" style="color: var(--text2);">
-                                            <span class="font-bold">${escapeHtml(a.authorName || 'طالب')}</span>
-                                            ${a.authorStudentNumber ? `<span> • ID: ${escapeHtml(a.authorStudentNumber)}</span>` : ''}
+                            ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد تعليقات بعد، كن أول من يعلّق</p>` : answers.map(a => `
+                                <div class="flex items-start gap-2.5">
+                                    <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromAnswer(${thread.id}, ${a.id})">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="rounded-2xl px-3.5 py-2.5 theme-transition inline-block max-w-full" style="background-color: var(--input-bg);">
+                                            <div class="text-xs font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromAnswer(${thread.id}, ${a.id})">${escapeHtml(a.authorName || 'طالب')}</div>
+                                            <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
                                         </div>
+                                        <div class="text-[10px] mt-1 theme-transition" style="color: var(--text2);">${timeAgo(a.id)}</div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -5111,31 +5185,28 @@
 
             openAskQuestionModal() {
                 if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول لطرح سؤال');
+                    this.showToast('يجب تسجيل الدخول للنشر');
                     this.goToAuth('login');
                     return;
                 }
                 const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'اسأل سؤالاً';
+                if (titleEl) titleEl.textContent = 'منشور جديد';
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 content.innerHTML = `
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <img src="${personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                        <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(this.currentUser.fullName || 'طالب')}</div>
+                    </div>
                     <div class="flex flex-col gap-3">
+                        <textarea id="askQuestionBody" rows="5" placeholder="شنو بخاطرك؟ شارك سؤال أو خبر أو أي شي يفيد زملائك..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
                         <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">المادة</label>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">القسم (اختياري)</label>
                             <select id="askQuestionSubject" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
                                 ${forumSubjects.filter(s => s.id !== 'all').map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
                             </select>
                         </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">عنوان السؤال</label>
-                            <input type="text" id="askQuestionTitle" placeholder="اكتب عنوان سؤالك" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">تفاصيل السؤال</label>
-                            <textarea id="askQuestionBody" rows="4" placeholder="اشرح سؤالك بالتفصيل..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
-                        </div>
-                        <button onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر السؤال</button>
+                        <button onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر</button>
                     </div>
                 `;
                 document.getElementById('walletModal')?.classList.remove('hidden');
@@ -5144,44 +5215,42 @@
 
             submitForumQuestion() {
                 const subjectEl = document.getElementById('askQuestionSubject');
-                const titleEl = document.getElementById('askQuestionTitle');
                 const bodyEl = document.getElementById('askQuestionBody');
-                if (!subjectEl || !titleEl || !bodyEl) return;
-                const title = titleEl.value.trim();
+                if (!subjectEl || !bodyEl) return;
                 const body = bodyEl.value.trim();
-                if (!title) {
-                    this.showToast('أدخل عنوان السؤال');
+                if (!body) {
+                    this.showToast('اكتب شي أول ما تنشر');
                     return;
                 }
                 if (!window.firebaseDb) {
                     this.showToast('لا يوجد اتصال بقاعدة البيانات');
                     return;
                 }
-                const titleFilter = filterBadWords(title);
                 const bodyFilter = filterBadWords(body);
-                if (titleFilter.filtered || bodyFilter.filtered) {
-                    this.showToast('تم حذف كلمات غير لائقة من رسالتك');
+                if (bodyFilter.filtered) {
+                    this.showToast('تم حذف كلمات غير لائقة من منشورك');
                 }
                 const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
                 const id = Date.now();
                 const payload = {
                     id: id,
                     subject: subjectEl.value,
-                    title: titleFilter.clean,
+                    title: '',
                     body: bodyFilter.clean,
                     authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
                     authorAvatar: (this.currentUser && this.currentUser.avatar) || '',
                     authorStudentNumber: (this.currentUser && this.currentUser.studentNumber) || '',
                     authorUid: this.currentUid(),
                     answersCount: 0,
+                    likes: {},
                     createdAt: serverTimestamp()
                 };
                 set(ref(window.firebaseDb, 'forumThreads/' + id), payload).then(() => {
                     this.closeWalletModal();
-                    this.showToast('تم نشر سؤالك');
+                    this.showToast('تم نشر منشورك');
                 }).catch((err) => {
-                    console.warn('Forum question publish failed:', err);
-                    this.showToast('تعذر نشر السؤال، حاول مجدداً');
+                    console.warn('Forum post publish failed:', err);
+                    this.showToast('تعذر النشر، حاول مجدداً');
                 });
             },
 
@@ -5227,6 +5296,312 @@
                     console.warn('Forum answer publish failed:', err);
                     this.showToast('تعذر نشر الإجابة، حاول مجدداً');
                 });
+            },
+
+            toggleForumLike(threadId) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول للإعجاب');
+                    this.goToAuth('login');
+                    return;
+                }
+                if (!window.firebaseDb) return;
+                const thread = forumThreads.find(t => t.id === threadId);
+                if (!thread) return;
+                const uid = this.currentUid();
+                if (!thread.likes) thread.likes = {};
+                const alreadyLiked = !!thread.likes[uid];
+                if (alreadyLiked) delete thread.likes[uid]; else thread.likes[uid] = true;
+                if (this.currentView === 'forumView') this.renderForumThreads();
+                if (this.currentView === 'forumThreadView' && this.currentForumThreadId === threadId) this.renderForumThreadDetail();
+                lucide.createIcons();
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'forumThreads/' + threadId + '/likes/' + uid), alreadyLiked ? null : true).catch((err) => {
+                    console.warn('Toggle like failed:', err);
+                });
+            },
+
+            openAuthorProfileFromThread(threadId) {
+                const t = forumThreads.find(x => x.id === threadId);
+                if (!t) return;
+                this.openAuthorProfile(t.authorUid, t.authorName, t.authorAvatar, t.authorStudentNumber);
+            },
+
+            openAuthorProfileFromAnswer(threadId, answerId) {
+                const list = forumAnswers[threadId] || [];
+                const a = list.find(x => x.id === answerId);
+                if (!a) return;
+                this.openAuthorProfile(a.authorUid, a.authorName, a.authorAvatar, a.authorStudentNumber);
+            },
+
+            openAuthorProfile(uid, name, avatar, studentNumber) {
+                if (!uid) return;
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'الملف الشخصي';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                const isMe = uid === this.authUid;
+                const status = isMe ? 'me' : this.getFriendStatus(uid);
+                let actionHtml = '';
+                if (isMe) {
+                    actionHtml = '';
+                } else if (status === 'friends') {
+                    actionHtml = `<div class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-success theme-transition" style="background-color: var(--input-bg);"><i data-lucide="user-check" class="w-4 h-4"></i>أصدقاء</div>`;
+                } else if (status === 'sent') {
+                    actionHtml = `<div class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text2);"><i data-lucide="clock" class="w-4 h-4"></i>بانتظار الرد</div>`;
+                } else if (status === 'incoming') {
+                    actionHtml = `
+                        <div class="flex gap-2">
+                            <button onclick="app.acceptFriendRequest('${uid}')" class="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">قبول الصداقة</button>
+                            <button onclick="app.rejectFriendRequest('${uid}')" class="flex-1 h-11 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                        </div>`;
+                } else {
+                    actionHtml = `<button onclick="app.sendFriendRequestTo('${uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i>إضافة صديق</button>`;
+                }
+                content.innerHTML = `
+                    <div class="flex flex-col items-center text-center py-2">
+                        <img src="${personAvatarSrc(avatar, name)}" class="w-20 h-20 rounded-full object-cover mb-3">
+                        <div class="text-base font-bold theme-transition" style="color: var(--text);">${escapeHtml(name || 'طالب')}</div>
+                        ${studentNumber ? `<div class="text-xs mt-1 theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(studentNumber)}</div>` : ''}
+                        <div class="w-full mt-4">${actionHtml}</div>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+                this._pendingProfileTarget = { uid, name, avatar, studentNumber };
+            },
+
+            // ==================== FRIENDS ====================
+            getFriendStatus(uid) {
+                if (friendsList.some(f => f.uid === uid)) return 'friends';
+                if (incomingFriendRequests.some(r => r.fromUid === uid)) return 'incoming';
+                if (this.sentFriendRequests[uid]) return 'sent';
+                return 'none';
+            },
+
+            sendFriendRequestTo(uid) {
+                if (!this._pendingProfileTarget || this._pendingProfileTarget.uid !== uid) return;
+                const t = this._pendingProfileTarget;
+                this.closeWalletModal();
+                this.sendFriendRequest(t.uid, t.name, t.avatar, t.studentNumber);
+            },
+
+            sendFriendRequest(uid, name, avatar, studentNumber) {
+                if (!window.firebaseDb || !this.authUid || !this.isLoggedIn) {
+                    this.showToast('يجب تسجيل الدخول لإضافة أصدقاء');
+                    return;
+                }
+                if (uid === this.authUid) {
+                    this.showToast('ما تكدر تضيف نفسك');
+                    return;
+                }
+                const { ref, set } = window.firebaseDbHelpers;
+                const payload = {
+                    fromUid: this.authUid,
+                    fromName: this.currentUser.fullName || 'طالب',
+                    fromAvatar: this.currentUser.avatar || '',
+                    fromStudentNumber: this.currentUser.studentNumber || '',
+                    createdAt: Date.now()
+                };
+                set(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid), payload).then(() => {
+                    set(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid), true).catch(() => {});
+                    this.sentFriendRequests[uid] = true;
+                    this.showToast('✅ تم إرسال طلب الصداقة');
+                }).catch((err) => {
+                    console.warn('Send friend request failed:', err);
+                    this.showToast('تعذر إرسال الطلب');
+                });
+            },
+
+            acceptFriendRequest(fromUid) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const req = incomingFriendRequests.find(r => r.fromUid === fromUid);
+                const name = (req && req.fromName) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === fromUid ? this._pendingProfileTarget.name : 'طالب');
+                const avatar = (req && req.fromAvatar) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === fromUid ? this._pendingProfileTarget.avatar : '');
+                const studentNumber = (req && req.fromStudentNumber) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === fromUid ? this._pendingProfileTarget.studentNumber : '');
+                const { ref, set, remove } = window.firebaseDbHelpers;
+                const myEntry = { uid: fromUid, name, avatar, studentNumber, since: Date.now() };
+                const theirEntry = { uid: this.authUid, name: this.currentUser.fullName || 'طالب', avatar: this.currentUser.avatar || '', studentNumber: this.currentUser.studentNumber || '', since: Date.now() };
+                Promise.all([
+                    set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + fromUid), myEntry),
+                    set(ref(window.firebaseDb, 'friends/' + fromUid + '/' + this.authUid), theirEntry),
+                    remove(ref(window.firebaseDb, 'friendRequests/' + this.authUid + '/' + fromUid)),
+                    remove(ref(window.firebaseDb, 'sentFriendRequests/' + fromUid + '/' + this.authUid))
+                ]).then(() => {
+                    this.showToast('🎉 صرتوا أصدقاء');
+                    this.closeWalletModal();
+                }).catch((err) => {
+                    console.warn('Accept friend request failed:', err);
+                    this.showToast('تعذر قبول الطلب');
+                });
+            },
+
+            rejectFriendRequest(fromUid) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, remove } = window.firebaseDbHelpers;
+                remove(ref(window.firebaseDb, 'friendRequests/' + this.authUid + '/' + fromUid)).catch(() => {});
+                remove(ref(window.firebaseDb, 'sentFriendRequests/' + fromUid + '/' + this.authUid)).catch(() => {});
+                this.closeWalletModal();
+            },
+
+            listenForFriends() {
+                if (!window.firebaseDb || !this.authUid || this._friendsListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._friendsListener = onValue(ref(window.firebaseDb, 'friends/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => list.push(vals[uid]));
+                        list.sort((a, b) => (b.since || 0) - (a.since || 0));
+                    }
+                    friendsList.length = 0;
+                    friendsList.push(...list);
+                    const countEl = document.getElementById('profileFriendsCount');
+                    if (countEl) countEl.textContent = list.length + ' صديق';
+                    if (this.currentView === 'friendsView') this.renderFriendsView();
+                });
+            },
+
+            listenForFriendRequests() {
+                if (!window.firebaseDb || !this.authUid || this._friendRequestsListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._friendRequestsListener = onValue(ref(window.firebaseDb, 'friendRequests/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((fromUid) => list.push({ fromUid, ...vals[fromUid] }));
+                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    }
+                    incomingFriendRequests.length = 0;
+                    incomingFriendRequests.push(...list);
+                    const badge = document.getElementById('friendRequestsBadge');
+                    if (badge) {
+                        badge.classList.toggle('hidden', list.length === 0);
+                        badge.textContent = list.length;
+                    }
+                    if (this.currentView === 'friendsView') { this.renderFriendsView(); lucide.createIcons(); }
+                });
+            },
+
+            listenForSentFriendRequests() {
+                if (!window.firebaseDb || !this.authUid || this._sentFriendRequestsListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._sentFriendRequestsListener = onValue(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid), (snap) => {
+                    this.sentFriendRequests = snap.exists() ? snap.val() : {};
+                });
+            },
+
+            goToFriends() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لعرض الأصدقاء');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('friendsView');
+                this.listenForFriends();
+                this.listenForFriendRequests();
+                this.listenForSentFriendRequests();
+                this.renderFriendsView();
+                lucide.createIcons();
+            },
+
+            renderFriendsView() {
+                const reqContainer = document.getElementById('friendRequestsList');
+                const listContainer = document.getElementById('friendsListContainer');
+                const empty = document.getElementById('friendsEmptyState');
+                if (!reqContainer || !listContainer || !empty) return;
+                reqContainer.innerHTML = incomingFriendRequests.length === 0
+                    ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات حالياً</p>'
+                    : incomingFriendRequests.map(r => `
+                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                            <img src="${personAvatarSrc(r.fromAvatar, r.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(r.fromName || 'طالب')}</div>
+                            <button onclick="app.acceptFriendRequest('${r.fromUid}')" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
+                            <button onclick="app.rejectFriendRequest('${r.fromUid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                        </div>
+                    `).join('');
+                if (friendsList.length === 0) {
+                    listContainer.innerHTML = '';
+                    listContainer.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                } else {
+                    listContainer.classList.remove('hidden');
+                    empty.classList.add('hidden');
+                    listContainer.innerHTML = friendsList.map(f => `
+                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                            <img src="${personAvatarSrc(f.avatar, f.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(f.name || 'طالب')}</div>
+                                ${f.studentNumber ? `<div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(f.studentNumber)}</div>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                }
+            },
+
+            openAddFriendModal() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول لإضافة أصدقاء');
+                    this.goToAuth('login');
+                    return;
+                }
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'إضافة صديق';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">أدخل الرقم التعريفي للطالب (5 أرقام)</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="addFriendSearchInput" inputmode="numeric" maxlength="5" placeholder="مثال: 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                            <button onclick="app.searchAddFriendStudent()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 flex-shrink-0"><i data-lucide="search" class="w-4 h-4"></i>بحث</button>
+                        </div>
+                        <div id="addFriendResult"></div>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            async searchAddFriendStudent() {
+                const input = document.getElementById('addFriendSearchInput');
+                const result = document.getElementById('addFriendResult');
+                if (!input || !result) return;
+                const query = (input.value || '').trim();
+                if (!/^\d{5}$/.test(query)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">أدخل رقماً تعريفياً مكوّناً من 5 أرقام</p>';
+                    return;
+                }
+                if (query === String(this.currentUser.studentNumber)) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">هذا رقمك أنت</p>';
+                    return;
+                }
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                lucide.createIcons();
+                const found = await this.findStudentByNumber(query);
+                if (!found) {
+                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">لم يتم العثور على طالب بهذا الرقم</p></div>';
+                    return;
+                }
+                this._pendingProfileTarget = { uid: found.uid, name: found.data.fullName, avatar: found.data.avatar, studentNumber: found.data.studentNumber };
+                const status = this.getFriendStatus(found.uid);
+                let actionHtml = '';
+                if (status === 'friends') actionHtml = '<div class="w-full h-11 rounded-xl flex items-center justify-center text-sm font-bold text-success" style="background-color: var(--input-bg);">أصدقاء بالفعل</div>';
+                else if (status === 'sent') actionHtml = '<div class="w-full h-11 rounded-xl flex items-center justify-center text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text2);">بانتظار الرد</div>';
+                else if (status === 'incoming') actionHtml = `<button onclick="app.acceptFriendRequest('${found.uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">قبول طلبه (أرسلك طلب)</button>`;
+                else actionHtml = `<button onclick="app.sendFriendRequestTo('${found.uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">إضافة صديق</button>`;
+                result.innerHTML = `
+                    <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex items-center gap-3 mb-3">
+                            <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}</div>
+                                <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
+                            </div>
+                        </div>
+                        ${actionHtml}
+                    </div>
+                `;
+                lucide.createIcons();
             },
 
             // ==================== STUDY TIMER ====================
@@ -6995,7 +7370,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
