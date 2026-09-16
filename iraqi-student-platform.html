@@ -27,7 +27,7 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -57,7 +57,7 @@
             window.firebaseDb = getDatabase(app);
             window.firebaseAuth = getAuth(app);
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
-            window.firebaseDbHelpers = { ref, set, get, remove, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
+            window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
             window.firebaseStorage = getStorage(app);
             window.firebaseStorageHelpers = { ref: storageRef, uploadBytes, getDownloadURL };
             window.firebaseMessagingHelpers = { getToken };
@@ -1295,7 +1295,7 @@
 
                 <button onclick="app.goToYoutubeStudy()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center">
-                        <i data-lucide="youtube" class="w-5 h-5 text-error"></i>
+                        <i data-lucide="video" class="w-5 h-5 text-error"></i>
                     </div>
                     <div class="flex-1">
                         <div class="font-bold theme-transition" style="color: var(--text);">يوتيوب دراسة</div>
@@ -1519,7 +1519,10 @@
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
-                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الرسائل الخاصة</span>
+                <span id="messagesViewTitle" class="font-bold flex-1 theme-transition" style="color: var(--text);">الرسائل الخاصة</span>
+                <button onclick="app.toggleArchivedView()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="الأرشيف">
+                    <i data-lucide="archive" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
                 <button onclick="app.openNewChatModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="رسالة جديدة">
                     <i data-lucide="plus" class="w-5 h-5 text-white"></i>
                 </button>
@@ -1529,7 +1532,7 @@
                 <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="mail" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
                 </div>
-                <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد رسائل بعد</h3>
+                <h3 id="chatsEmptyTitle" class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد رسائل بعد</h3>
                 <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">ابحث عن زميلك برقمه التعريفي وابدأ محادثة</p>
                 <button onclick="app.openNewChatModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رسالة جديدة</button>
             </div>
@@ -1544,9 +1547,10 @@
                 <img id="chatThreadAvatar" src="" class="w-9 h-9 rounded-full object-cover flex-shrink-0" alt="">
                 <div class="flex-1 min-w-0">
                     <div id="chatThreadName" class="font-bold text-sm truncate theme-transition" style="color: var(--text);"></div>
+                    <div id="chatThreadPresence" class="text-[11px] theme-transition" style="color: var(--text2);"></div>
                 </div>
-                <button onclick="app.deleteEntireChat()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="حذف المحادثة">
-                    <i data-lucide="trash-2" class="w-5 h-5 text-error"></i>
+                <button onclick="app.openChatOptionsMenu()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="خيارات المحادثة">
+                    <i data-lucide="more-vertical" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
             </div>
             <div id="chatMessagesList" class="px-4 py-4 flex flex-col gap-2"></div>
@@ -1686,8 +1690,10 @@
                 </button>
             </div>
             <div class="p-4">
-                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">طلبات الصداقة</h3>
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">طلبات الصداقة الواردة</h3>
                 <div id="friendRequestsList" class="flex flex-col gap-2 mb-5"></div>
+                <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">طلبات مرسلة</h3>
+                <div id="sentFriendRequestsListContainer" class="flex flex-col gap-2 mb-5"></div>
                 <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">أصدقائي</h3>
                 <div id="friendsListContainer" class="flex flex-col gap-2"></div>
                 <div id="friendsEmptyState" class="hidden flex flex-col items-center justify-center py-12 text-center">
@@ -1968,12 +1974,12 @@
                 <i data-lucide="wallet" class="w-6 h-6"></i>
                 <span class="text-[10px] font-medium">رصيدي</span>
             </button>
-            <button onclick="app.setTab('notifications')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="notifications">
+            <button onclick="app.setTab('messages')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="messages">
                 <div class="relative">
-                    <i data-lucide="bell" class="w-6 h-6"></i>
-                    <span id="navNotifBadge" class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                    <i data-lucide="message-circle" class="w-6 h-6"></i>
+                    <span id="navMessagesBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
                 </div>
-                <span class="text-[10px] font-medium">الإشعارات</span>
+                <span class="text-[10px] font-medium">الرسائل</span>
             </button>
             <button onclick="app.setTab('profile')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="profile">
                 <i data-lucide="user" class="w-6 h-6"></i>
@@ -2182,7 +2188,9 @@
 
         const friendsList = [];
         const incomingFriendRequests = [];
+        const sentFriendRequestsList = [];
         const blockedUsersList = [];
+        const friendsPresence = {};
 
         const duelInvitesList = [];
         const duelsListData = [];
@@ -2640,6 +2648,8 @@
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
+                    this.setupPresence();
+                    this.listenForPresence();
                     this.goToProfile();
                 } catch (error) {
                     console.warn('Register failed:', error);
@@ -2668,6 +2678,10 @@
                 if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
                     this.leaveStudyRoom();
                     this.leaveVoiceRoom();
+                    if (window.firebaseDb && this.authUid) {
+                        const { ref, set } = window.firebaseDbHelpers;
+                        set(ref(window.firebaseDb, 'presence/' + this.authUid), { online: false, lastSeen: Date.now() }).catch(() => {});
+                    }
                     this.isLoggedIn = false;
                     this.currentUser = null;
                     this.tempAvatar = null;
@@ -3323,12 +3337,6 @@
                     notifBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
                     notifBadge.textContent = unreadCount;
                 }
-                const navNotifBadge = document.getElementById('navNotifBadge');
-                if (navNotifBadge) {
-                    navNotifBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
-                    navNotifBadge.textContent = unreadCount;
-                }
-
                 document.querySelectorAll('.notif-tab').forEach(tab => {
                     const countEl = tab.querySelector('.notif-count');
                     if (!countEl) return;
@@ -3424,6 +3432,8 @@
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
+                    this.setupPresence();
+                    this.listenForPresence();
                     this.renderNews();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
@@ -5409,10 +5419,10 @@
                 } else if (status === 'friends') {
                     actionHtml = `
                         <div class="flex flex-col gap-2">
-                            <button onclick="app.closeWalletModal(); app.openChat('${uid}', ${JSON.stringify(name || 'طالب')}, ${JSON.stringify(avatar || '')}, ${JSON.stringify(studentNumber || '')})" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i>دردشة</button>
+                            <button onclick="app.closeWalletModal(); app.openChat('${uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i>دردشة</button>
                             <div class="flex gap-2">
                                 <button onclick="app.removeFriend('${uid}')" class="flex-1 h-10 rounded-xl font-bold text-xs theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الصداقة</button>
-                                <button onclick="app.blockUser('${uid}', ${JSON.stringify(name || 'طالب')})" class="flex-1 h-10 rounded-xl font-bold text-xs text-error btn-press" style="background-color: var(--input-bg);">حظر</button>
+                                <button onclick="app.blockUser('${uid}')" class="flex-1 h-10 rounded-xl font-bold text-xs text-error btn-press" style="background-color: var(--input-bg);">حظر</button>
                             </div>
                         </div>`;
                 } else if (status === 'sent') {
@@ -5463,21 +5473,50 @@
                     this.showToast('ما تكدر تضيف نفسك');
                     return;
                 }
-                const { ref, set } = window.firebaseDbHelpers;
-                const payload = {
-                    fromUid: this.authUid,
-                    fromName: this.currentUser.fullName || 'طالب',
-                    fromAvatar: this.currentUser.avatar || '',
-                    fromStudentNumber: this.currentUser.studentNumber || '',
-                    createdAt: Date.now()
-                };
-                set(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid), payload).then(() => {
-                    set(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid), true).catch(() => {});
-                    this.sentFriendRequests[uid] = true;
-                    this.showToast('✅ تم إرسال طلب الصداقة');
+                if (this.isBlocked(uid)) {
+                    this.showToast('هذا المستخدم محظور من طرفك');
+                    return;
+                }
+                const { ref, set, get } = window.firebaseDbHelpers;
+                get(ref(window.firebaseDb, 'blockedUsers/' + uid + '/' + this.authUid)).then((blockedSnap) => {
+                    if (blockedSnap.exists()) {
+                        this.showToast('لا يمكن إرسال طلب صداقة لهذا المستخدم');
+                        return;
+                    }
+                    const payload = {
+                        fromUid: this.authUid,
+                        fromName: this.currentUser.fullName || 'طالب',
+                        fromAvatar: this.currentUser.avatar || '',
+                        fromStudentNumber: this.currentUser.studentNumber || '',
+                        createdAt: Date.now()
+                    };
+                    const sentPayload = { toUid: uid, toName: name || 'طالب', toAvatar: avatar || '', toStudentNumber: studentNumber || '', createdAt: Date.now() };
+                    set(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid), payload).then(() => {
+                        set(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid), sentPayload).catch(() => {});
+                        this.sentFriendRequests[uid] = true;
+                        this.showToast('✅ تم إرسال طلب الصداقة');
+                    }).catch((err) => {
+                        console.warn('Send friend request failed:', err);
+                        this.showToast('تعذر إرسال الطلب');
+                    });
                 }).catch((err) => {
-                    console.warn('Send friend request failed:', err);
+                    console.warn('Block check failed:', err);
                     this.showToast('تعذر إرسال الطلب');
+                });
+            },
+
+            cancelFriendRequest(uid) {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, remove } = window.firebaseDbHelpers;
+                Promise.all([
+                    remove(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid)),
+                    remove(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid))
+                ]).then(() => {
+                    this.showToast('تم إلغاء الطلب');
+                    if (this.currentView === 'friendsView') this.searchAddFriendStudent();
+                }).catch((err) => {
+                    console.warn('Cancel request failed:', err);
+                    this.showToast('تعذر إلغاء الطلب');
                 });
             },
 
@@ -5555,7 +5594,17 @@
                 if (!window.firebaseDb || !this.authUid || this._sentFriendRequestsListener) return;
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._sentFriendRequestsListener = onValue(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid), (snap) => {
-                    this.sentFriendRequests = snap.exists() ? snap.val() : {};
+                    const map = {};
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => { map[uid] = true; list.push({ uid, ...vals[uid] }); });
+                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    }
+                    this.sentFriendRequests = map;
+                    sentFriendRequestsList.length = 0;
+                    sentFriendRequestsList.push(...list);
+                    if (this.currentView === 'friendsView') { this.renderFriendsView(); lucide.createIcons(); }
                 });
             },
 
@@ -5570,12 +5619,14 @@
                 this.listenForFriendRequests();
                 this.listenForSentFriendRequests();
                 this.listenForBlockedUsers();
+                this.listenForPresence();
                 this.renderFriendsView();
                 lucide.createIcons();
             },
 
             renderFriendsView() {
                 const reqContainer = document.getElementById('friendRequestsList');
+                const sentContainer = document.getElementById('sentFriendRequestsListContainer');
                 const listContainer = document.getElementById('friendsListContainer');
                 const empty = document.getElementById('friendsEmptyState');
                 if (!reqContainer || !listContainer || !empty) return;
@@ -5589,6 +5640,17 @@
                             <button onclick="app.rejectFriendRequest('${r.fromUid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
                         </div>
                     `).join('');
+                if (sentContainer) {
+                    sentContainer.innerHTML = sentFriendRequestsList.length === 0
+                        ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات مرسلة</p>'
+                        : sentFriendRequestsList.map(r => `
+                            <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                                <img src="${personAvatarSrc(r.toAvatar, r.toName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                                <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(r.toName || 'طالب')}</div>
+                                <button onclick="app.cancelFriendRequest('${r.uid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
+                            </div>
+                        `).join('');
+                }
                 if (friendsList.length === 0) {
                     listContainer.innerHTML = '';
                     listContainer.classList.add('hidden');
@@ -5601,11 +5663,11 @@
                             <img src="${personAvatarSrc(f.avatar, f.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(f.name || 'طالب')}</div>
-                                ${f.studentNumber ? `<div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(f.studentNumber)}</div>` : ''}
+                                <div class="text-xs theme-transition" style="color: ${(friendsPresence[f.uid] && friendsPresence[f.uid].online) ? '#16A34A' : 'var(--text2)'};">${this.presenceLabel(f.uid) || (f.studentNumber ? 'رقم: ' + escapeHtml(f.studentNumber) : '')}</div>
                             </div>
-                            <button onclick="app.openChat('${f.uid}', ${JSON.stringify(f.name || 'طالب')}, ${JSON.stringify(f.avatar || '')}, ${JSON.stringify(f.studentNumber || '')})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="دردشة"><i data-lucide="message-circle" class="w-4 h-4 text-primary"></i></button>
+                            <button onclick="app.openChat('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="دردشة"><i data-lucide="message-circle" class="w-4 h-4 text-primary"></i></button>
                             <button onclick="app.removeFriend('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="إلغاء الصداقة"><i data-lucide="user-minus" class="w-4 h-4" style="color: var(--text2);"></i></button>
-                            <button onclick="app.blockUser('${f.uid}', ${JSON.stringify(f.name || 'طالب')})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حظر"><i data-lucide="ban" class="w-4 h-4 text-error"></i></button>
+                            <button onclick="app.blockUser('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حظر"><i data-lucide="ban" class="w-4 h-4 text-error"></i></button>
                         </div>
                     `).join('');
                 }
@@ -5639,11 +5701,14 @@
                 });
             },
 
-            blockUser(uid, name) {
+            blockUser(uid) {
                 if (!window.firebaseDb || !this.authUid) return;
-                if (!confirm((name || 'هذا الطالب') + ' — حظره يلغي الصداقة ويمنعه من مراسلتك؟')) return;
+                const friend = friendsList.find(f => f.uid === uid);
+                const name = (friend && friend.name) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === uid ? this._pendingProfileTarget.name : '') || 'هذا الطالب';
+                const avatar = (friend && friend.avatar) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === uid ? this._pendingProfileTarget.avatar : '') || '';
+                if (!confirm(name + ' — حظره يلغي الصداقة ويمنعه من مراسلتك؟')) return;
                 const { ref, set, remove } = window.firebaseDbHelpers;
-                const payload = { uid, name: name || 'طالب', avatar: '', blockedAt: Date.now() };
+                const payload = { uid, name, avatar, blockedAt: Date.now() };
                 Promise.all([
                     set(ref(window.firebaseDb, 'blockedUsers/' + this.authUid + '/' + uid), payload),
                     set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + uid), null),
@@ -5691,6 +5756,47 @@
                 return blockedUsersList.some(b => b.uid === uid);
             },
 
+            // ==================== PRESENCE (online / last seen) ====================
+            setupPresence() {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set, onDisconnect } = window.firebaseDbHelpers;
+                const myRef = ref(window.firebaseDb, 'presence/' + this.authUid);
+                set(myRef, { online: true, lastSeen: Date.now() }).catch(() => {});
+                try {
+                    onDisconnect(myRef).set({ online: false, lastSeen: Date.now() });
+                } catch (e) {
+                    console.warn('Presence onDisconnect setup failed:', e);
+                }
+            },
+
+            listenForPresence() {
+                if (!window.firebaseDb || this._presenceListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._presenceListener = onValue(ref(window.firebaseDb, 'presence'), (snap) => {
+                    Object.keys(friendsPresence).forEach((k) => delete friendsPresence[k]);
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((uid) => { friendsPresence[uid] = vals[uid]; });
+                    }
+                    if (this.currentView === 'friendsView') this.renderFriendsView();
+                    if (this.currentView === 'chatThreadView') this.updateChatHeaderPresence();
+                });
+            },
+
+            presenceLabel(uid) {
+                const p = friendsPresence[uid];
+                if (!p) return '';
+                if (p.online) return 'متصل الآن';
+                if (p.lastSeen) return 'آخر ظهور ' + timeAgo(p.lastSeen);
+                return '';
+            },
+
+            updateChatHeaderPresence() {
+                const el = document.getElementById('chatThreadPresence');
+                if (!el || !this.currentChatUid) return;
+                el.textContent = this.presenceLabel(this.currentChatUid);
+            },
+
             openAddFriendModal() {
                 if (!this.isLoggedIn || !this.currentUser) {
                     this.showToast('يجب تسجيل الدخول لإضافة أصدقاء');
@@ -5703,9 +5809,9 @@
                 if (!content) return;
                 content.innerHTML = `
                     <div class="flex flex-col gap-3">
-                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">أدخل الرقم التعريفي للطالب (5 أرقام)</label>
+                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">ابحث بالاسم أو الرقم التعريفي (5 أرقام)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="addFriendSearchInput" inputmode="numeric" maxlength="5" placeholder="مثال: 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                            <input type="text" id="addFriendSearchInput" placeholder="مثال: أحمد أو 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.searchAddFriendStudent();}">
                             <button onclick="app.searchAddFriendStudent()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 flex-shrink-0"><i data-lucide="search" class="w-4 h-4"></i>بحث</button>
                         </div>
                         <div id="addFriendResult"></div>
@@ -5715,46 +5821,79 @@
                 lucide.createIcons();
             },
 
+            async findStudentsByName(query) {
+                if (!window.firebaseDb) return [];
+                const { ref, get } = window.firebaseDbHelpers;
+                try {
+                    const snap = await get(ref(window.firebaseDb, 'users'));
+                    if (!snap.exists()) return [];
+                    const users = snap.val();
+                    const q = query.toLowerCase();
+                    const matches = [];
+                    Object.keys(users).forEach((uid) => {
+                        const u = users[uid];
+                        if (u && u.fullName && u.fullName.toLowerCase().includes(q)) matches.push({ uid, data: u });
+                    });
+                    return matches.slice(0, 15);
+                } catch (err) {
+                    console.warn('Name search failed:', err);
+                    return [];
+                }
+            },
+
             async searchAddFriendStudent() {
                 const input = document.getElementById('addFriendSearchInput');
                 const result = document.getElementById('addFriendResult');
                 if (!input || !result) return;
                 const query = (input.value || '').trim();
-                if (!/^\d{5}$/.test(query)) {
-                    result.innerHTML = '<p class="text-xs font-bold text-error">أدخل رقماً تعريفياً مكوّناً من 5 أرقام</p>';
-                    return;
-                }
-                if (query === String(this.currentUser.studentNumber)) {
-                    result.innerHTML = '<p class="text-xs font-bold text-error">هذا رقمك أنت</p>';
+                if (!query) {
+                    result.innerHTML = '<p class="text-xs font-bold text-error">اكتب اسم أو رقم تعريفي للبحث</p>';
                     return;
                 }
                 result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
                 lucide.createIcons();
-                const found = await this.findStudentByNumber(query);
-                if (!found) {
-                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">لم يتم العثور على طالب بهذا الرقم</p></div>';
+                let matches = [];
+                if (/^\d{5}$/.test(query)) {
+                    const found = await this.findStudentByNumber(query);
+                    if (found) matches = [found];
+                } else {
+                    matches = await this.findStudentsByName(query);
+                }
+                matches = matches.filter(m => m.uid !== this.authUid);
+                if (matches.length === 0) {
+                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">ما لقينا أي طالب مطابق</p></div>';
                     return;
                 }
-                this._pendingProfileTarget = { uid: found.uid, name: found.data.fullName, avatar: found.data.avatar, studentNumber: found.data.studentNumber };
-                const status = this.getFriendStatus(found.uid);
+                this._addFriendMatches = matches;
+                result.innerHTML = matches.map((m, i) => this.renderAddFriendResultRow(m, i)).join('');
+                lucide.createIcons();
+            },
+
+            renderAddFriendResultRow(found, index) {
+                const status = this.isBlocked(found.uid) ? 'blocked' : this.getFriendStatus(found.uid);
                 let actionHtml = '';
-                if (status === 'friends') actionHtml = '<div class="w-full h-11 rounded-xl flex items-center justify-center text-sm font-bold text-success" style="background-color: var(--input-bg);">أصدقاء بالفعل</div>';
-                else if (status === 'sent') actionHtml = '<div class="w-full h-11 rounded-xl flex items-center justify-center text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text2);">بانتظار الرد</div>';
-                else if (status === 'incoming') actionHtml = `<button onclick="app.acceptFriendRequest('${found.uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">قبول طلبه (أرسلك طلب)</button>`;
-                else actionHtml = `<button onclick="app.sendFriendRequestTo('${found.uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">إضافة صديق</button>`;
-                result.innerHTML = `
-                    <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="flex items-center gap-3 mb-3">
-                            <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}</div>
-                                <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
-                            </div>
+                if (status === 'friends') actionHtml = '<span class="text-xs font-bold text-success flex-shrink-0">أصدقاء</span>';
+                else if (status === 'sent') actionHtml = `<button onclick="app.cancelFriendRequest('${found.uid}')" class="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الطلب</button>`;
+                else if (status === 'incoming') actionHtml = `<button onclick="app.acceptFriendRequest('${found.uid}')" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">قبول</button>`;
+                else if (status === 'blocked') actionHtml = '<span class="text-xs font-bold text-error flex-shrink-0">محظور</span>';
+                else actionHtml = `<button onclick="app.sendFriendRequestFromSearch(${index})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">إضافة</button>`;
+                return `
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition mb-2" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}</div>
+                            <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
                         </div>
                         ${actionHtml}
                     </div>
                 `;
-                lucide.createIcons();
+            },
+
+            sendFriendRequestFromSearch(index) {
+                const m = this._addFriendMatches && this._addFriendMatches[index];
+                if (!m) return;
+                this.sendFriendRequest(m.uid, m.data.fullName, m.data.avatar, m.data.studentNumber);
+                this.searchAddFriendStudent();
             },
 
             // ==================== STUDY TIMER ====================
@@ -6131,7 +6270,7 @@
                 emptyEl.classList.add('hidden');
                 listEl.innerHTML = studyRoomStudents.map((s) => {
                     const activityLabel = s.activity === 'youtube' ? 'يوتيوب دراسة' : 'مؤقت المذاكرة';
-                    const activityIcon = s.activity === 'youtube' ? 'youtube' : 'timer';
+                    const activityIcon = s.activity === 'youtube' ? 'video' : 'timer';
                     const minutes = s.startedAt ? Math.max(0, Math.round((Date.now() - s.startedAt) / 60000)) : 0;
                     return `
                         <div class="rounded-2xl border p-3 flex flex-col items-center justify-center text-center relative theme-transition" style="background-color: var(--surface); border-color: var(--border); aspect-ratio: 1;">
@@ -6847,8 +6986,11 @@
             renderChatsList() {
                 const container = document.getElementById('chatsList');
                 const empty = document.getElementById('chatsEmptyState');
+                const emptyTitle = document.getElementById('chatsEmptyTitle');
                 if (!container || !empty) return;
-                const visible = userChatsList.filter(c => !this.isBlocked(c.otherUid));
+                const showArchived = !!this.showingArchivedChats;
+                const visible = userChatsList.filter(c => !this.isBlocked(c.otherUid) && !!c.archived === showArchived);
+                if (emptyTitle) emptyTitle.textContent = showArchived ? 'لا توجد محادثات مؤرشفة' : 'لا توجد رسائل بعد';
                 if (visible.length === 0) {
                     container.innerHTML = '';
                     container.classList.add('hidden');
@@ -6861,20 +7003,34 @@
                     <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border);">
                         <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}">
                         <div class="flex-1 min-w-0">
-                            <div class="text-sm font-bold truncate theme-transition" style="color: var(--text);">${escapeHtml(c.otherName || 'طالب')}</div>
+                            <div class="text-sm font-bold truncate theme-transition flex items-center gap-1.5" style="color: var(--text);">${escapeHtml(c.otherName || 'طالب')}${c.muted ? '<i data-lucide="bell-off" class="w-3 h-3" style="color: var(--text2);"></i>' : ''}</div>
                             <div class="text-xs truncate theme-transition" style="color: var(--text2);">${escapeHtml(c.lastMessage || '')}</div>
                         </div>
-                        ${c.unread ? '<span class="w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0"></span>' : ''}
+                        ${c.unread && !c.muted ? '<span class="w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0"></span>' : ''}
                     </div>
                 `).join('');
             },
 
+            toggleArchivedView() {
+                this.showingArchivedChats = !this.showingArchivedChats;
+                const label = document.getElementById('messagesViewTitle');
+                if (label) label.textContent = this.showingArchivedChats ? 'الأرشيف' : 'الرسائل الخاصة';
+                this.renderChatsList();
+                lucide.createIcons();
+            },
+
             updateMessagesBadge() {
+                const count = userChatsList.filter(c => c.unread && !c.muted && !this.isBlocked(c.otherUid)).length;
                 const badge = document.getElementById('messagesUnreadBadge');
-                if (!badge) return;
-                const count = userChatsList.filter(c => c.unread).length;
-                badge.classList.toggle('hidden', count === 0);
-                badge.textContent = count;
+                if (badge) {
+                    badge.classList.toggle('hidden', count === 0);
+                    badge.textContent = count;
+                }
+                const navBadge = document.getElementById('navMessagesBadge');
+                if (navBadge) {
+                    navBadge.classList.toggle('hidden', count === 0);
+                    navBadge.textContent = count;
+                }
             },
 
             openNewChatModal() {
@@ -6945,12 +7101,16 @@
                     this.goToAuth('login');
                     return;
                 }
+                if (this.isBlocked(otherUid)) {
+                    this.showToast('هذا المستخدم محظور — ألغِ الحظر أولاً من قائمة الأصدقاء');
+                    return;
+                }
                 if (!otherName) {
-                    const existing = userChatsList.find(c => c.otherUid === otherUid);
+                    const existing = userChatsList.find(c => c.otherUid === otherUid) || friendsList.find(f => f.uid === otherUid);
                     if (existing) {
-                        otherName = existing.otherName;
-                        otherAvatar = existing.otherAvatar;
-                        otherStudentNumber = existing.otherStudentNumber;
+                        otherName = existing.otherName || existing.name;
+                        otherAvatar = existing.otherAvatar || existing.avatar;
+                        otherStudentNumber = existing.otherStudentNumber || existing.studentNumber;
                     }
                 }
                 this.currentChatUid = otherUid;
@@ -6959,18 +7119,31 @@
                 const avatarEl = document.getElementById('chatThreadAvatar');
                 if (nameEl) nameEl.textContent = this.currentChatOther.name;
                 if (avatarEl) avatarEl.src = personAvatarSrc(this.currentChatOther.avatar, this.currentChatOther.name);
+                this.updateChatHeaderPresence();
                 chatMessages.length = 0;
                 this._openMessageActionsId = null;
                 this.currentChatClearedAt = 0;
+                this.currentChatDeletedFor = {};
+                this.currentChatOtherReadAt = 0;
+                this.blockedByOtherInChat = false;
                 this.renderChatMessages();
                 this.switchView('chatThreadView');
                 if (window.firebaseDb && this.authUid) {
                     const { ref, get } = window.firebaseDbHelpers;
-                    get(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid)).then((snap) => {
-                        this.currentChatClearedAt = snap.exists() ? snap.val() : 0;
+                    const chatId = this.getChatId(otherUid);
+                    Promise.all([
+                        get(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid)),
+                        get(ref(window.firebaseDb, 'privateChats/' + chatId + '/deletedFor/' + this.authUid)),
+                        get(ref(window.firebaseDb, 'blockedUsers/' + otherUid + '/' + this.authUid))
+                    ]).then(([clearedSnap, deletedSnap, blockedSnap]) => {
+                        this.currentChatClearedAt = clearedSnap.exists() ? clearedSnap.val() : 0;
+                        this.currentChatDeletedFor = deletedSnap.exists() ? deletedSnap.val() : {};
+                        this.blockedByOtherInChat = blockedSnap.exists();
+                        if (this.blockedByOtherInChat) this.showToast('⚠️ هذا المستخدم قيّد التواصل معك');
                         this.listenForChatMessages();
                     }).catch(() => { this.listenForChatMessages(); });
                 }
+                this.listenForReadReceipts();
                 this.markChatRead();
                 lucide.createIcons();
             },
@@ -6980,6 +7153,7 @@
                 if (this._chatMsgUnsub) { this._chatMsgUnsub(); this._chatMsgUnsub = null; }
                 const chatId = this.getChatId(this.currentChatUid);
                 const clearedAt = this.currentChatClearedAt || 0;
+                const deletedFor = this.currentChatDeletedFor || {};
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._chatMsgUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), (snap) => {
                     const list = [];
@@ -6987,13 +7161,25 @@
                         const vals = snap.val();
                         Object.keys(vals).forEach((k) => {
                             const m = vals[k];
-                            if (m && (!clearedAt || (m.createdAt || 0) > clearedAt)) list.push(m);
+                            if (m && (!clearedAt || (m.createdAt || 0) > clearedAt) && !deletedFor[k]) list.push(m);
                         });
                         list.sort((a, b) => (a.id || 0) - (b.id || 0));
                     }
                     chatMessages.length = 0;
                     chatMessages.push(...list);
                     if (this.currentView === 'chatThreadView') { this.renderChatMessages(); lucide.createIcons(); }
+                });
+            },
+
+            listenForReadReceipts() {
+                if (!window.firebaseDb || !this.currentChatUid) return;
+                if (this._readReceiptUnsub) { this._readReceiptUnsub(); this._readReceiptUnsub = null; }
+                const chatId = this.getChatId(this.currentChatUid);
+                const otherUid = this.currentChatUid;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._readReceiptUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/readReceipts/' + otherUid), (snap) => {
+                    this.currentChatOtherReadAt = snap.exists() ? snap.val() : 0;
+                    if (this.currentView === 'chatThreadView') this.renderChatMessages();
                 });
             },
 
@@ -7004,18 +7190,23 @@
                     container.innerHTML = '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">ابدأ المحادثة بإرسال أول رسالة</p>';
                     return;
                 }
+                const otherReadAt = this.currentChatOtherReadAt || 0;
                 container.innerHTML = chatMessages.map(m => {
                     const isMine = m.from === this.authUid;
-                    const showActions = isMine && this._openMessageActionsId === m.id;
+                    const showActions = this._openMessageActionsId === m.id;
+                    const isRead = isMine && otherReadAt >= (m.createdAt || 0);
                     return `
                         <div>
-                            <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${isMine ? 'bg-primary text-white cursor-pointer' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}" ${isMine ? `onclick="app.toggleMessageActions(${m.id})"` : ''}>
+                            <div class="max-w-[75%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed cursor-pointer ${isMine ? 'bg-primary text-white' : 'theme-transition'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''} ${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'}" onclick="app.toggleMessageActions(${m.id})">
                                 ${escapeHtml(m.text)}${m.edited ? '<span class="text-[10px] opacity-70"> (معدّلة)</span>' : ''}
                             </div>
+                            ${isMine ? `<div class="text-[10px] mt-0.5" style="margin-inline-start: auto; width: fit-content; color: ${isRead ? '#2563EB' : 'var(--text2)'};">${isRead ? '✓✓ تمت القراءة' : '✓ تم الإرسال'}</div>` : ''}
                             ${showActions ? `
-                            <div class="flex items-center gap-2 mt-1" style="margin-inline-start: auto; width: fit-content;">
-                                <button onclick="app.openEditMessageModal(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>
-                                <button onclick="app.deleteChatMessage(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
+                            <div class="flex items-center gap-2 mt-1 flex-wrap" style="${isMine ? 'margin-inline-start: auto;' : 'margin-inline-end: auto;'} width: fit-content;">
+                                <button onclick="event.stopPropagation(); app.copyMessageText(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>
+                                ${isMine ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
+                                <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
+                                ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal('${m.from}', ${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
                             </div>` : ''}
                         </div>
                     `;
@@ -7028,20 +7219,65 @@
                 this.renderChatMessages();
             },
 
-            deleteChatMessage(msgId) {
+            copyMessageText(msgId) {
+                const m = chatMessages.find(x => x.id === msgId);
+                if (!m) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(m.text).then(() => {
+                        this.showToast('تم نسخ النص');
+                    }).catch(() => {
+                        this.showToast('تعذر النسخ');
+                    });
+                } else {
+                    this.showToast('النسخ غير مدعوم بهذا المتصفح');
+                }
+            },
+
+            openMessageDeleteChoice(msgId) {
+                const m = chatMessages.find(x => x.id === msgId);
+                if (!m) return;
+                const isMine = m.from === this.authUid;
+                const withinWindow = isMine && (Date.now() - (m.createdAt || 0) < 3600000);
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'حذف الرسالة';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-2">
+                        <button onclick="app.deleteChatMessage(${msgId}, false)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4" style="background-color: var(--input-bg); color: var(--text);">حذف عندي فقط</button>
+                        ${withinWindow ? `<button onclick="app.deleteChatMessage(${msgId}, true)" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4" style="background-color: var(--input-bg);">حذف لدى الطرفين</button>` : ''}
+                        <button onclick="app.closeWalletModal()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            deleteChatMessage(msgId, forBoth) {
                 if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                if (!confirm('حذف هذه الرسالة؟')) return;
                 const chatId = this.getChatId(this.currentChatUid);
-                const { ref, remove } = window.firebaseDbHelpers;
-                remove(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId)).then(() => {
+                const { ref, remove, set } = window.firebaseDbHelpers;
+                const applyLocal = () => {
                     const i = chatMessages.findIndex(m => m.id === msgId);
                     if (i > -1) chatMessages.splice(i, 1);
                     this._openMessageActionsId = null;
+                    this.closeWalletModal();
                     this.renderChatMessages();
-                }).catch((err) => {
-                    console.warn('Delete message failed:', err);
-                    this.showToast('تعذر حذف الرسالة');
-                });
+                };
+                if (forBoth) {
+                    remove(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId)).then(applyLocal).catch((err) => {
+                        console.warn('Delete message failed:', err);
+                        this.showToast('تعذر حذف الرسالة');
+                    });
+                } else {
+                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/deletedFor/' + this.authUid + '/' + msgId), true).then(() => {
+                        this.currentChatDeletedFor[msgId] = true;
+                        applyLocal();
+                    }).catch((err) => {
+                        console.warn('Hide message failed:', err);
+                        this.showToast('تعذر حذف الرسالة');
+                    });
+                }
             },
 
             openEditMessageModal(msgId) {
@@ -7096,10 +7332,101 @@
                     set(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid), Date.now())
                 ]).then(() => {
                     this.showToast('تم حذف المحادثة');
+                    this.closeWalletModal();
                     this.goBack();
                 }).catch((err) => {
                     console.warn('Delete chat failed:', err);
                     this.showToast('تعذر حذف المحادثة');
+                });
+            },
+
+            openChatOptionsMenu() {
+                if (!this.currentChatUid) return;
+                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
+                const isMuted = !!(entry && entry.muted);
+                const isArchived = !!(entry && entry.archived);
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'خيارات المحادثة';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-2">
+                        <button onclick="app.toggleMuteChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="${isMuted ? 'bell' : 'bell-off'}" class="w-4 h-4"></i>${isMuted ? 'إلغاء الكتم' : 'كتم المحادثة'}</button>
+                        <button onclick="app.toggleArchiveChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="archive" class="w-4 h-4"></i>${isArchived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة'}</button>
+                        <button onclick="app.openReportModal('${this.currentChatUid}', null)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="flag" class="w-4 h-4"></i>الإبلاغ عن المستخدم</button>
+                        <button onclick="app.deleteEntireChat()" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg);"><i data-lucide="trash-2" class="w-4 h-4"></i>حذف المحادثة</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            toggleMuteChat() {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
+                const newMuted = !(entry && entry.muted);
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/muted'), newMuted).then(() => {
+                    this.showToast(newMuted ? '🔕 تم كتم المحادثة' : '🔔 تم إلغاء الكتم');
+                    this.closeWalletModal();
+                }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
+            },
+
+            toggleArchiveChat() {
+                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
+                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
+                const newArchived = !(entry && entry.archived);
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/archived'), newArchived).then(() => {
+                    this.showToast(newArchived ? '📦 تم أرشفة المحادثة' : 'تم إلغاء الأرشفة');
+                    this.closeWalletModal();
+                    if (newArchived) this.goBack();
+                }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
+            },
+
+            openReportModal(targetUid, messageId) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول للإبلاغ');
+                    return;
+                }
+                this._pendingReportTarget = { targetUid, messageId };
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = messageId ? 'إبلاغ عن رسالة' : 'إبلاغ عن مستخدم';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <textarea id="reportReasonInput" rows="3" placeholder="اشرح سبب الإبلاغ..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
+                        <button onclick="app.submitReport()" class="w-full h-12 bg-error text-white rounded-xl font-bold text-sm btn-press">إرسال البلاغ</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            submitReport() {
+                const input = document.getElementById('reportReasonInput');
+                if (!input || !this._pendingReportTarget || !window.firebaseDb || !this.authUid) return;
+                const reason = input.value.trim();
+                if (!reason) { this.showToast('اكتب سبب الإبلاغ'); return; }
+                const { ref, set } = window.firebaseDbHelpers;
+                const id = Date.now();
+                const payload = {
+                    id,
+                    reporterUid: this.authUid,
+                    reporterName: this.currentUser.fullName || 'طالب',
+                    targetUid: this._pendingReportTarget.targetUid,
+                    messageId: this._pendingReportTarget.messageId || null,
+                    reason,
+                    createdAt: id,
+                    status: 'open'
+                };
+                set(ref(window.firebaseDb, 'reports/' + id), payload).then(() => {
+                    this.showToast('✅ تم إرسال البلاغ، شكراً لمساعدتك');
+                    this.closeWalletModal();
+                }).catch((err) => {
+                    console.warn('Report submit failed:', err);
+                    this.showToast('تعذر إرسال البلاغ');
                 });
             },
 
@@ -7113,21 +7440,29 @@
                     return;
                 }
                 if (!window.firebaseDb || !this.currentChatUid) return;
+                if (this.blockedByOtherInChat) {
+                    this.showToast('لا يمكنك مراسلة هذا المستخدم');
+                    return;
+                }
+                if (this._sendingMessage) return;
+                this._sendingMessage = true;
                 const filtered = filterBadWords(text);
                 if (filtered.filtered) this.showToast('تم حذف كلمات غير لائقة من رسالتك');
-                const { ref, set } = window.firebaseDbHelpers;
+                const { ref, set, update } = window.firebaseDbHelpers;
                 const chatId = this.getChatId(this.currentChatUid);
                 const msgId = Date.now();
                 const payload = { id: msgId, from: this.authUid, to: this.currentChatUid, text: filtered.clean, createdAt: msgId };
                 set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId), payload).then(() => {
                     input.value = '';
+                    this._sendingMessage = false;
                     const myEntry = { otherUid: this.currentChatUid, otherName: this.currentChatOther.name, otherAvatar: this.currentChatOther.avatar, otherStudentNumber: this.currentChatOther.studentNumber, lastMessage: filtered.clean, lastAt: msgId, unread: false };
-                    set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid), myEntry).catch(() => {});
+                    update(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid), myEntry).catch(() => {});
                     const theirEntry = { otherUid: this.authUid, otherName: this.currentUser.fullName || 'طالب', otherAvatar: this.currentUser.avatar || '', otherStudentNumber: this.currentUser.studentNumber || '', lastMessage: filtered.clean, lastAt: msgId, unread: true };
-                    set(ref(window.firebaseDb, 'userChats/' + this.currentChatUid + '/' + this.authUid), theirEntry).catch(() => {});
+                    update(ref(window.firebaseDb, 'userChats/' + this.currentChatUid + '/' + this.authUid), theirEntry).catch(() => {});
                 }).catch((err) => {
                     console.warn('Send message failed:', err);
-                    this.showToast('تعذر إرسال الرسالة');
+                    this._sendingMessage = false;
+                    this.showToast('تعذر إرسال الرسالة — تحقق من اتصالك وحاول مجدداً');
                 });
             },
 
@@ -7135,6 +7470,8 @@
                 if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
                 const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/unread'), false).catch(() => {});
+                const chatId = this.getChatId(this.currentChatUid);
+                set(ref(window.firebaseDb, 'privateChats/' + chatId + '/readReceipts/' + this.authUid), Date.now()).catch(() => {});
             },
 
             // ==================== LIVE DUELS ====================
@@ -7566,6 +7903,7 @@
                 else if (tab === 'wallet') this.goToWallet();
                 else if (tab === 'saved') this.goToSaved();
                 else if (tab === 'notifications') this.goToNotifications();
+                else if (tab === 'messages') this.goToMessages();
                 else if (tab === 'profile') this.goToProfile();
                 else if (tab === 'more') this.switchView('moreView');
                 this.viewHistory = [];
@@ -7640,6 +7978,7 @@
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
                 else if (viewId === 'notificationsView') this.updateNavActive('notifications');
+                else if (viewId === 'messagesView') this.updateNavActive('messages');
                 else if (viewId === 'profileView') this.updateNavActive('profile');
                 else if (viewId === 'moreView') this.updateNavActive('more');
             },
