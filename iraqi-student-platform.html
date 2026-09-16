@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
 
+    <!-- App-shell meta: makes the page installable and feel native, not like a browser tab -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="الطالب العراقي">
+    <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)">
+    <meta name="format-detection" content="telephone=no">
+    <link rel="apple-touch-icon" href="https://i.postimg.cc/kGn7bhGL/images-(14).jpg">
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22%D9%85%D9%86%D8%B5%D8%A9%20%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22short_name%22%3A%20%22%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%23F8FAFC%22%2C%20%22theme_color%22%3A%20%22%232563EB%22%2C%20%22lang%22%3A%20%22ar%22%2C%20%22dir%22%3A%20%22rtl%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22https%3A//i.postimg.cc/kGn7bhGL/images-%2814%29.jpg%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/jpeg%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -166,7 +177,14 @@
         }
 
         * { -webkit-tap-highlight-color: transparent; }
-        body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: var(--bg) !important; color: var(--text) !important; overscroll-behavior-y: none; transition: background-color 0.3s ease, color 0.3s ease; }
+        html, body { overscroll-behavior: none; }
+        body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: var(--bg) !important; color: var(--text) !important; transition: background-color 0.3s ease, color 0.3s ease; }
+
+        /* Native-app feel: no browser-style text selection/callout on UI chrome, no hidden scrollbars */
+        button, nav, header, .tab, .nav-item, [onclick] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+        img { -webkit-touch-callout: none; -webkit-user-drag: none; user-select: none; }
+        ::-webkit-scrollbar { display: none; }
+        * { -ms-overflow-style: none; scrollbar-width: none; }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
