@@ -2528,7 +2528,7 @@
                             </button>
                         </div>
                         <article class="news-card rounded-2xl p-3 border cursor-pointer relative ${!isRead ? 'border-r-4 border-r-primary' : ''} theme-transition"
-                             onclick="app.openNews(${news.id})" ontouchstart="app.swipeStart(event, 'news-${news.id}')" ontouchmove="app.swipeMove(event, 'news-${news.id}')" ontouchend="app.swipeEnd(event, 'news-${news.id}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--surface); border-color: var(--border); touch-action: pan-y;">
+                             onclick="app.openNews(${news.id})" ontouchstart="app.swipeStart(event, 'news-${news.id}')" ontouchmove="app.swipeMove(event, 'news-${news.id}')" ontouchend="app.swipeEnd(event, 'news-${news.id}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); touch-action: pan-y;">
                         ${isUrgent ? '<div class="absolute top-3 left-3 z-10"><span class="bg-error text-white text-[10px] font-bold px-2.5 py-1 rounded-lg">عاجل</span></div>' : ''}
                         ${news.isPinned ? '<div class="absolute top-3 right-16 z-10"><span class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-1 rounded-lg"><i data-lucide="pin" class="w-3 h-3 inline ml-1"></i>مثبت</span></div>' : ''}
                         <div class="flex gap-3">
@@ -2823,15 +2823,16 @@
                                     <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                                 </button>
                             </div>
-                            <div class="notif-card border rounded-xl p-4 cursor-pointer relative theme-transition" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--surface); border-color: var(--border); border-right: 4px solid ${hex};">
+                            <div class="notif-card border rounded-xl p-4 cursor-pointer relative theme-transition" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); border-right: 4px solid ${hex};">
                             <div class="flex items-start gap-3">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: ${hex}1A;">
                                     <i data-lucide="${typeStyle.icon}" class="w-5 h-5" style="color: ${hex};"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
-                                        ${notif.type === 'urgent' ? '<span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded">عاجل</span>' : ''}
-                                        <span class="text-xs font-bold" style="color: ${hex};">${typeStyle.label}</span>
+                                        ${notif.type === 'urgent'
+                                            ? '<span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded">عاجل</span>'
+                                            : `<span class="text-xs font-bold" style="color: ${hex};">${typeStyle.label}</span>`}
                                     </div>
                                     <h4 class="text-sm font-bold leading-snug theme-transition" style="color: var(--text);">${escapeHtml(notif.title)}</h4>
                                     <p class="text-xs mt-1 line-clamp-1 theme-transition" style="color: var(--text2);">${escapeHtml(notif.description)}</p>
