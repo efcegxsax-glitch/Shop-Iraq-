@@ -7456,6 +7456,8 @@
             listenForUserChats() {
                 if (!window.firebaseDb || !this.authUid || this._userChatsListener) { this.renderChatsList(); return; }
                 const { ref, onValue } = window.firebaseDbHelpers;
+                let firstLoad = true;
+                const lastSeenAt = {};
                 this._userChatsListener = onValue(ref(window.firebaseDb, 'userChats/' + this.authUid), (snap) => {
                     const list = [];
                     if (snap.exists()) {
@@ -7463,6 +7465,19 @@
                         Object.keys(vals).forEach((k) => list.push(vals[k]));
                         list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.lastAt || 0) - (a.lastAt || 0));
                     }
+                    if (!firstLoad) {
+                        list.forEach((entry) => {
+                            const prevAt = lastSeenAt[entry.otherUid] || 0;
+                            const isNewMessage = entry.unread && (entry.lastAt || 0) > prevAt;
+                            const viewingThisChat = this.currentView === 'chatThreadView' && this.currentChatUid === entry.otherUid;
+                            if (isNewMessage && !entry.muted && !viewingThisChat && !this.isBlocked(entry.otherUid)) {
+                                this.playNotifySound();
+                                this.showToast('💬 رسالة جديدة من ' + (entry.otherName || 'طالب'));
+                            }
+                        });
+                    }
+                    list.forEach((entry) => { lastSeenAt[entry.otherUid] = entry.lastAt || 0; });
+                    firstLoad = false;
                     userChatsList.length = 0;
                     userChatsList.push(...list);
                     this.updateMessagesBadge();
