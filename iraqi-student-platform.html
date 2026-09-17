@@ -1793,47 +1793,50 @@
             </div>
             <div id="walletContent">
                 <section class="px-4 pt-4">
-                    <div class="rounded-2xl p-5 relative overflow-hidden shadow-elevated" style="background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%); border-radius: 20px;">
-                        <div class="absolute -top-10 -left-10 w-40 h-40 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.06);"></div>
-                        <div class="absolute -bottom-14 -right-6 w-44 h-44 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.05);"></div>
+                    <div class="rounded-2xl p-5 relative overflow-hidden" style="background: linear-gradient(135deg, #0F172A 0%, #1C1917 55%, #0F172A 100%); border-radius: 20px; box-shadow: 0 20px 40px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);">
+                        <div class="absolute -top-10 -left-10 w-40 h-40 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(245,158,11,0.18), transparent 70%);"></div>
+                        <div class="absolute -bottom-14 -right-6 w-44 h-44 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(139,92,246,0.16), transparent 70%);"></div>
                         <div class="relative flex items-center justify-between mb-6">
                             <div class="flex items-center gap-2">
                                 <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="العراق" class="w-8 h-8 object-contain rounded">
                                 <div class="flex flex-col">
-                                    <span class="text-sm font-bold text-white leading-tight">منصة الطالب العراقي</span>
-                                    <span class="text-[10px] text-white/60">Iraqi Student Platform</span>
+                                    <span class="text-sm font-bold leading-tight" style="color: #FDE68A;">منصة الطالب العراقي</span>
+                                    <span class="text-[10px]" style="color: rgba(253,230,138,0.55);">Iraqi Student Platform</span>
                                 </div>
                             </div>
-                            <i data-lucide="wifi" class="w-5 h-5 text-white/70 rotate-90"></i>
+                            <i data-lucide="wifi" class="w-5 h-5 rotate-90" style="color: #FDE68A; opacity: 0.75;"></i>
                         </div>
-                        <div class="relative w-10 h-7 rounded-md mb-5" style="background: linear-gradient(135deg, #FDE68A, #F59E0B); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);"></div>
-                        <div class="relative text-white font-bold mb-5" style="font-family: monospace; font-size: 16px; letter-spacing: 3px;" dir="ltr">**** **** **** 4521</div>
+                        <div class="relative w-10 h-7 rounded-md mb-5" style="background: linear-gradient(135deg, #FDE68A, #D97706); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2), 0 2px 6px rgba(217,119,6,0.35);"></div>
+                        <div class="relative font-bold mb-5" style="color: #F8FAFC; font-family: monospace; font-size: 16px; letter-spacing: 3px;" dir="ltr">**** **** **** 4521</div>
                         <div class="relative flex items-center justify-between">
                             <div>
-                                <div class="text-white/50 text-[9px] mb-0.5 tracking-wide">CARD HOLDER</div>
-                                <div class="text-white text-sm font-bold" id="walletCardName">الطالب</div>
+                                <div class="text-[9px] mb-0.5 tracking-wide" style="color: rgba(248,250,252,0.45);">CARD HOLDER</div>
+                                <div class="text-sm font-bold" id="walletCardName" style="color: #F8FAFC;">الطالب</div>
                             </div>
                             <div class="flex items-center" style="direction: ltr;">
-                                <div class="w-7 h-7 rounded-full" style="background-color: #EB4B4B; opacity: 0.9;"></div>
-                                <div class="w-7 h-7 rounded-full -ml-3" style="background-color: #F59E0B; mix-blend-mode: screen;"></div>
+                                <div class="w-7 h-7 rounded-full" style="background-color: #F59E0B; opacity: 0.9;"></div>
+                                <div class="w-7 h-7 rounded-full -ml-3" style="background-color: #8B5CF6; mix-blend-mode: screen;"></div>
                             </div>
                         </div>
                     </div>
                 </section>
                 <section class="px-4 pt-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">الرصيد المتاح</div>
-                            <div id="walletBalanceValue" class="font-bold theme-transition" style="color: var(--text); font-size: 28px;">$ 42.50</div>
-                            <div id="walletBalanceIqd" class="text-sm mt-1 theme-transition" style="color: var(--text2);">≈ 56,300 د.ع</div>
+                    <div class="rounded-2xl p-4 pt-5 relative overflow-hidden theme-transition shadow-elevated" style="background-color: var(--surface); border: 1px solid var(--border);">
+                        <div class="absolute top-0 right-0 left-0 h-1" style="background: linear-gradient(90deg, #F59E0B, #8B5CF6);"></div>
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">الرصيد المتاح</div>
+                                <div id="walletBalanceValue" class="font-bold theme-transition" style="color: var(--text); font-size: 28px;">$ 42.50</div>
+                                <div id="walletBalanceIqd" class="text-sm mt-1 theme-transition" style="color: var(--text2);">≈ 56,300 د.ع</div>
+                            </div>
+                            <button onclick="app.toggleBalanceVisibility()" id="balanceEyeBtn" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                                <i data-lucide="eye" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                            </button>
                         </div>
-                        <button onclick="app.toggleBalanceVisibility()" id="balanceEyeBtn" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                            <i data-lucide="eye" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                        </button>
                     </div>
                 </section>
                 <section class="px-4 pt-4">
-                    <div class="rounded-2xl p-4 flex items-center justify-between theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);">
+                    <div class="rounded-2xl p-4 flex items-center justify-between theme-transition shadow-card" style="background-color: var(--surface); border: 1px solid var(--border);">
                         <div>
                             <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">رصيد النقاط</div>
                             <div id="walletPointsValue" class="font-bold theme-transition" style="color: var(--text); font-size: 22px;">0 نقطة</div>
@@ -1848,25 +1851,25 @@
                 <section class="px-4 pt-5">
                     <div class="grid grid-cols-4 gap-3">
                         <button onclick="app.openWithdrawModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #60A5FA, #1D4ED8);">
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #60A5FA, #1D4ED8);">
                                 <i data-lucide="arrow-up-right" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">سحب الأموال</span>
                         </button>
                         <button onclick="app.openRedeemCodeModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #34D399, #059669);">
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #FDE68A, #D97706);">
                                 <i data-lucide="ticket" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">إيداع رصيد</span>
                         </button>
                         <button onclick="app.openTransferModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #A78BFA, #7C3AED);">
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #A78BFA, #7C3AED);">
                                 <i data-lucide="send" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">تحويل</span>
                         </button>
                         <button onclick="app.showToast('طلب دفع')" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #FBBF24, #D97706);">
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #34D399, #059669);">
                                 <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">طلب دفع</span>
@@ -1878,7 +1881,7 @@
                         <h2 class="text-base font-bold theme-transition" style="color: var(--text);">آخر المعاملات</h2>
                         <button onclick="app.showAllTransactions()" class="text-sm font-medium" style="color: #2563EB;">عرض الكل</button>
                     </div>
-                    <div class="rounded-2xl border overflow-hidden theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="rounded-2xl border overflow-hidden theme-transition shadow-card" style="background-color: var(--surface); border-color: var(--border);">
                         <div id="walletTransactionsList" class="flex flex-col theme-transition"></div>
                     </div>
                 </section>
@@ -3298,16 +3301,16 @@
                                     <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                                 </button>
                             </div>
-                            <div class="notif-card border rounded-xl p-4 cursor-pointer relative theme-transition" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); border-right: 4px solid ${hex};">
+                            <div class="notif-card border rounded-xl p-4 cursor-pointer relative theme-transition shadow-card" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); border-right: 4px solid ${hex};">
                             <div class="flex items-start gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background: ${hex}1A;">
+                                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style="background: ${hex}1A;">
                                     <i data-lucide="${typeStyle.icon}" class="w-5 h-5" style="color: ${hex};"></i>
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <div class="flex items-center gap-2 mb-1">
                                         ${notif.type === 'urgent'
-                                            ? '<span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded">عاجل</span>'
-                                            : `<span class="text-xs font-bold" style="color: ${hex};">${typeStyle.label}</span>`}
+                                            ? '<span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full">عاجل</span>'
+                                            : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: ${hex}1A; color: ${hex};">${typeStyle.label}</span>`}
                                     </div>
                                     <h4 class="text-sm font-bold leading-snug theme-transition" style="color: var(--text);">${escapeHtml(notif.title)}</h4>
                                     <p class="text-xs mt-1 line-clamp-1 theme-transition" style="color: var(--text2);">${escapeHtml(notif.description)}</p>
