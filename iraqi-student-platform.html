@@ -1015,7 +1015,7 @@
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
-                            <button onclick="app.showToast('اللغة والمظهر')" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
+                            <button onclick="app.openAppearanceSettings()" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
                                     <i data-lucide="globe" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
@@ -1029,7 +1029,7 @@
                                 <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">المساعدة والدعم</div></div>
                                 <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                             </button>
-                            <button onclick="app.showToast('حول التطبيق')" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
+                            <button onclick="app.openAboutApp()" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
                                     <i data-lucide="info" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
@@ -2100,6 +2100,36 @@
             return 'قبل ' + Math.floor(diff / 86400000) + ' يوم';
         }
 
+        function hexToRgb(hex) {
+            const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+            if (!m) return null;
+            const int = parseInt(m[1], 16);
+            return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
+        }
+
+        function applyCustomThemeColor(hex) {
+            const rgb = hexToRgb(hex);
+            if (!rgb) return;
+            const { r, g, b } = rgb;
+            let styleEl = document.getElementById('customThemeStyle');
+            if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = 'customThemeStyle';
+                document.head.appendChild(styleEl);
+            }
+            styleEl.textContent = `
+                .bg-primary { background-color: ${hex} !important; }
+                .bg-primary\\/10 { background-color: rgba(${r}, ${g}, ${b}, 0.1) !important; }
+                .text-primary { color: ${hex} !important; }
+                .border-primary { border-color: ${hex} !important; }
+                .border-r-primary { border-right-color: ${hex} !important; }
+                .fill-primary { fill: ${hex} !important; }
+                .ring-primary { --tw-ring-color: ${hex} !important; }
+                .ring-primary\\/20 { --tw-ring-color: rgba(${r}, ${g}, ${b}, 0.2) !important; }
+                .shadow-primary\\/25 { --tw-shadow-color: rgba(${r}, ${g}, ${b}, 0.25) !important; }
+            `;
+        }
+
         function cacheNewsData(data) {
             try { localStorage.setItem('isp_news_cache', JSON.stringify(data)); } catch (e) {}
         }
@@ -2350,6 +2380,7 @@
 
             init() {
                 this.loadTheme();
+                this.loadCustomThemeColor();
                 this.loadUserData();
                 this.loadNotifPrefs();
                 this.watchAuthState();
@@ -2412,6 +2443,34 @@
                 }
                 this.updateThemeIcon();
                 lucide.createIcons();
+            },
+
+            loadCustomThemeColor() {
+                try {
+                    const saved = localStorage.getItem('iraqiStudentThemeColor');
+                    if (saved) {
+                        this.customThemeColor = saved;
+                        applyCustomThemeColor(saved);
+                    }
+                } catch (e) {}
+            },
+
+            saveCustomThemeColor(hex) {
+                if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+                this.customThemeColor = hex;
+                try { localStorage.setItem('iraqiStudentThemeColor', hex); } catch (e) {}
+                applyCustomThemeColor(hex);
+                this.showToast('تم تغيير لون التطبيق');
+            },
+
+            resetCustomThemeColor() {
+                this.customThemeColor = null;
+                try { localStorage.removeItem('iraqiStudentThemeColor'); } catch (e) {}
+                const styleEl = document.getElementById('customThemeStyle');
+                if (styleEl) styleEl.textContent = '';
+                const input = document.getElementById('customThemeColorInput');
+                if (input) input.value = '#2563EB';
+                this.showToast('تم استعادة اللون الافتراضي');
             },
 
             updateThemeIcon() {
@@ -4112,6 +4171,13 @@
                                 ${governorates.map(g => `<option value="${g}" ${g === currentGov ? 'selected' : ''}>${g}</option>`).join('')}
                             </select>
                         </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">المرحلة الدراسية</label>
+                            <select id="editProfileGrade" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
+                                <option value="scientific" ${(this.currentUser.grade || 'scientific') === 'scientific' ? 'selected' : ''}>سادس علمي</option>
+                                <option value="literary" ${this.currentUser.grade === 'literary' ? 'selected' : ''}>سادس أدبي</option>
+                            </select>
+                        </div>
                         <button id="editProfileSaveBtn" onclick="app.saveProfileEdits()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">حفظ التعديلات</button>
                     </div>
                 `;
@@ -4121,9 +4187,11 @@
             saveProfileEdits() {
                 const nameEl = document.getElementById('editProfileName');
                 const govEl = document.getElementById('editProfileGovernorate');
-                if (!nameEl || !govEl || !this.currentUser) return;
+                const gradeEl = document.getElementById('editProfileGrade');
+                if (!nameEl || !govEl || !gradeEl || !this.currentUser) return;
                 const name = nameEl.value.trim();
                 const governorate = govEl.value;
+                const grade = gradeEl.value;
                 if (!name) {
                     this.showToast('أدخل اسمك الثلاثي');
                     return;
@@ -4133,6 +4201,7 @@
                 this.currentUser.fullName = nameFilter.clean;
                 this.currentUser.governorate = governorate;
                 this.currentUser.location = governorate;
+                this.currentUser.grade = grade;
                 this.saveUserData();
                 this.updateProfileView();
                 this.syncUserToDatabase();
@@ -4141,6 +4210,60 @@
             },
             openSupportChannel() {
                 window.open('https://t.me/Iraqistudentplatfor', '_blank', 'noopener');
+            },
+            openAppearanceSettings() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'اللغة والمظهر';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                const currentColor = this.customThemeColor || '#2563EB';
+                content.innerHTML = `
+                    <div class="flex flex-col gap-4">
+                        <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">الوضع الليلي</div>
+                            <label class="toggle-switch flex-shrink-0">
+                                <input type="checkbox" ${this.isDarkMode ? 'checked' : ''} onchange="app.toggleDarkMode()">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">لون التطبيق الخاص فيك</div>
+                            <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر اللون اللي يعجبك — يظهر بس عندك بهذا الجهاز، وتكدر ترجعه للون الافتراضي بأي وقت إذا ما عجبك</p>
+                            <div class="flex items-center gap-3">
+                                <input type="color" id="customThemeColorInput" value="${currentColor}" class="w-14 h-12 rounded-xl border cursor-pointer" style="border-color: var(--border);" onchange="app.saveCustomThemeColor(this.value)">
+                                <button onclick="app.resetCustomThemeColor()" class="flex-1 h-12 rounded-xl font-bold text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text);">استعادة اللون الافتراضي</button>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">لغة التطبيق</div>
+                            <div class="flex gap-2">
+                                <button class="flex-1 h-11 rounded-xl font-bold text-sm bg-primary text-white">العربية</button>
+                                <button onclick="app.showToast('الترجمة الكاملة للإنكليزي قيد التطوير حالياً')" class="flex-1 h-11 rounded-xl font-bold text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text2);">English</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+            openAboutApp() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'حول التطبيق';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col items-center text-center mb-4">
+                        <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
+                            <i data-lucide="graduation-cap" class="w-8 h-8 text-primary"></i>
+                        </div>
+                        <h3 class="font-bold text-lg theme-transition" style="color: var(--text);">منصة الطالب العراقي</h3>
+                    </div>
+                    <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">منصة الطالب العراقي تطبيق مجاني يهدف لخدمة طلاب المرحلة الإعدادية بالعراق (وخصوصاً السادس)، من خلال توفير أخبار وقرارات وزارة التربية أول بأول، ملازم ومصادر دراسية، تنبيهات مواعيد الامتحانات، وتتبع يومي لأدائك الدراسي.</p>
+                    <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">كذلك يوفر منتدى للأسئلة والنقاش بين الطلاب، نظام أصدقاء ودردشة خاصة، تحديات ومسابقات تحفزك على المذاكرة، ونظام نقاط ومكافآت.</p>
+                    <p class="text-xs theme-transition" style="color: var(--text2);">تواصل معنا عبر قناة الدعم على تلغرام لأي استفسار أو اقتراح.</p>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
             },
             goToSettings() { this.showToast('الإعدادات'); },
             goToHome() { this.setTab('home'); },
