@@ -971,6 +971,13 @@
 
                     <section class="px-4 py-3">
                         <div class="flex flex-col gap-2.5">
+                            <button onclick="app.openEditProfileModal()" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
+                                <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
+                                    <i data-lucide="pencil" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                                </div>
+                                <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">تعديل الملف الشخصي</div></div>
+                                <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                            </button>
                             <button onclick="app.goToSaved()" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
                                     <i data-lucide="bookmark" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
@@ -1015,7 +1022,7 @@
                                 <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">اللغة والمظهر</div></div>
                                 <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                             </button>
-                            <button onclick="app.showToast('المساعدة والدعم')" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
+                            <button onclick="app.openSupportChannel()" class="menu-item w-full flex items-center gap-3 p-3 rounded-2xl border theme-transition text-right" style="background-color: var(--surface); border-color: var(--border);">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
                                     <i data-lucide="help-circle" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
@@ -4072,6 +4079,68 @@
                 } else {
                     readLocal();
                 }
+            },
+            openEditProfileModal() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    return;
+                }
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'تعديل الملف الشخصي';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                const governorates = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'الأنبار', 'بابل', 'كربلاء', 'النجف', 'واسط', 'صلاح الدين', 'كركوك', 'ديالى', 'دهوك', 'الموصل', 'ذي قار', 'ميسان', 'المثنى', 'القادسية'];
+                const currentGov = this.currentUser.governorate || '';
+                content.innerHTML = `
+                    <div class="flex flex-col items-center mb-4">
+                        <div class="avatar-container relative w-20 h-20 mb-2 cursor-pointer" onclick="app.triggerAvatarUpload()">
+                            <img src="${personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName)}" class="w-full h-full rounded-full object-cover border-2" style="border-color: var(--border);">
+                            <div class="avatar-overlay absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
+                                <i data-lucide="camera" class="w-5 h-5 text-white"></i>
+                            </div>
+                        </div>
+                        <span class="text-xs theme-transition" style="color: var(--text2);">اضغط على الصورة لتغييرها</span>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">الاسم الثلاثي</label>
+                            <input type="text" id="editProfileName" value="${escapeHtml(this.currentUser.fullName || '')}" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">المحافظة</label>
+                            <select id="editProfileGovernorate" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
+                                ${governorates.map(g => `<option value="${g}" ${g === currentGov ? 'selected' : ''}>${g}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button id="editProfileSaveBtn" onclick="app.saveProfileEdits()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">حفظ التعديلات</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+            saveProfileEdits() {
+                const nameEl = document.getElementById('editProfileName');
+                const govEl = document.getElementById('editProfileGovernorate');
+                if (!nameEl || !govEl || !this.currentUser) return;
+                const name = nameEl.value.trim();
+                const governorate = govEl.value;
+                if (!name) {
+                    this.showToast('أدخل اسمك الثلاثي');
+                    return;
+                }
+                const nameFilter = filterBadWords(name);
+                if (nameFilter.filtered) this.showToast('تم حذف كلمات غير لائقة من الاسم');
+                this.currentUser.fullName = nameFilter.clean;
+                this.currentUser.governorate = governorate;
+                this.currentUser.location = governorate;
+                this.saveUserData();
+                this.updateProfileView();
+                this.syncUserToDatabase();
+                this.closeWalletModal();
+                this.showToast('تم تحديث الملف الشخصي');
+            },
+            openSupportChannel() {
+                window.open('https://t.me/Iraqistudentplatfor', '_blank', 'noopener');
             },
             goToSettings() { this.showToast('الإعدادات'); },
             goToHome() { this.setTab('home'); },
