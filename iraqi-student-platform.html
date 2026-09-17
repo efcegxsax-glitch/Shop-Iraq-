@@ -1808,21 +1808,14 @@
                         </div>
                         <div class="relative w-10 h-7 rounded-md mb-5" style="background: linear-gradient(135deg, #FDE68A, #D97706); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.2), 0 2px 6px rgba(217,119,6,0.35);"></div>
                         <div class="relative font-bold mb-5" style="color: #F8FAFC; font-family: monospace; font-size: 16px; letter-spacing: 3px;" dir="ltr">**** **** **** 4521</div>
-                        <div class="relative flex items-center justify-between">
-                            <div>
-                                <div class="text-[9px] mb-0.5 tracking-wide" style="color: rgba(248,250,252,0.45);">CARD HOLDER</div>
-                                <div class="text-sm font-bold" id="walletCardName" style="color: #F8FAFC;">الطالب</div>
-                            </div>
-                            <div class="flex items-center" style="direction: ltr;">
-                                <div class="w-7 h-7 rounded-full" style="background-color: #F59E0B; opacity: 0.9;"></div>
-                                <div class="w-7 h-7 rounded-full -ml-3" style="background-color: #8B5CF6; mix-blend-mode: screen;"></div>
-                            </div>
+                        <div class="relative">
+                            <div class="text-[9px] mb-0.5 tracking-wide" style="color: rgba(248,250,252,0.45);">CARD HOLDER</div>
+                            <div class="text-sm font-bold" id="walletCardName" style="color: #F8FAFC;">الطالب</div>
                         </div>
                     </div>
                 </section>
                 <section class="px-4 pt-5">
-                    <div class="rounded-2xl p-4 pt-5 relative overflow-hidden theme-transition shadow-elevated" style="background-color: var(--surface); border: 1px solid var(--border);">
-                        <div class="absolute top-0 right-0 left-0 h-1" style="background: linear-gradient(90deg, #F59E0B, #8B5CF6);"></div>
+                    <div class="rounded-2xl p-4 theme-transition shadow-elevated" style="background-color: var(--surface); border: 1px solid var(--border);">
                         <div class="flex items-center justify-between">
                             <div>
                                 <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">الرصيد المتاح</div>
@@ -2998,7 +2991,7 @@
                 const isBookmarked = news.isBookmarked;
                 return `
                     <div class="relative overflow-hidden rounded-2xl" style="min-height: 120px;">
-                        <div class="absolute inset-0 bg-error flex items-center">
+                        <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
                             <button onclick="event.stopPropagation(); app.deleteNewsCard(${news.id})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الخبر">
                                 <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                             </button>
@@ -3296,12 +3289,12 @@
                     const hex = notifHex[notif.type] || notifHex.general;
                     return `
                         <div class="relative overflow-hidden rounded-xl">
-                            <div class="absolute inset-0 bg-error flex items-center">
+                            <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
                                 <button onclick="event.stopPropagation(); app.deleteNotification(${notif.id})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الإشعار">
                                     <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                                 </button>
                             </div>
-                            <div class="notif-card border rounded-xl p-4 cursor-pointer relative theme-transition shadow-card" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); border-right: 4px solid ${hex};">
+                            <div class="notif-card border rounded-2xl p-4 cursor-pointer relative theme-transition shadow-card" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--surface); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border-color: var(--border); border-right: 4px solid ${hex}; box-shadow: inset 0 1px 0 var(--glass-highlight);">
                             <div class="flex items-start gap-3">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style="background: ${hex}1A;">
                                     <i data-lucide="${typeStyle.icon}" class="w-5 h-5" style="color: ${hex};"></i>
@@ -3394,6 +3387,7 @@
                         c.style.transition = 'transform 0.2s ease';
                         c.style.transform = 'translateX(0)';
                         c.dataset.tx = '0';
+                        if (c.previousElementSibling) c.previousElementSibling.style.opacity = '0';
                     }
                 });
                 const card = e.currentTarget;
@@ -3408,6 +3402,7 @@
                 if (dx < -130) dx = -130;
                 card.style.transform = 'translateX(' + dx + 'px)';
                 card.dataset.tx = String(dx);
+                if (dx !== 0 && card.previousElementSibling) card.previousElementSibling.style.opacity = '1';
             },
             swipeEnd(e, key) {
                 const card = e.currentTarget;
@@ -3416,9 +3411,11 @@
                 if (tx < -55) {
                     card.style.transform = 'translateX(-110px)';
                     card.dataset.tx = '-110';
+                    if (card.previousElementSibling) card.previousElementSibling.style.opacity = '1';
                 } else {
                     card.style.transform = 'translateX(0)';
                     card.dataset.tx = '0';
+                    if (card.previousElementSibling) card.previousElementSibling.style.opacity = '0';
                 }
                 this._swipe = null;
             },
@@ -4818,7 +4815,7 @@
             redeemTopupCode() {
                 const input = document.getElementById('topupCodeInput');
                 if (!input || !this.currentUser) return;
-                const code = input.value.trim().toUpperCase();
+                const code = input.value.trim().toUpperCase().replace(/\s+/g, '');
                 if (!code) {
                     this.showToast('أدخل كود التعبئة');
                     return;
@@ -4829,39 +4826,38 @@
                 }
                 const btn = document.getElementById('topupRedeemBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
-                const { ref, get, runTransaction } = window.firebaseDbHelpers;
+                const { ref, get, update, runTransaction } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const codeRef = ref(window.firebaseDb, 'topupCodes/' + code);
-                // A plain get() first warms the SDK's local cache for this exact path.
-                // Without it, runTransaction's first (speculative) call sees an
-                // unsynced local value of null — even for a code that genuinely
-                // exists on the server — and a naive "abort if null" inside the
-                // transaction wrongly reports every never-before-seen code as invalid.
+                let codeValueIqd = 0;
                 get(codeRef).then((snap) => {
                     if (!snap.exists()) {
                         this.showToast('الكود غير موجود، تأكد من كتابته صح');
                         return Promise.reject('handled');
                     }
-                    if (snap.val().used) {
+                    const data = snap.val();
+                    if (data.used) {
                         this.showToast('هذا الكود مستخدم مسبقاً');
                         return Promise.reject('handled');
                     }
-                    return runTransaction(codeRef, (current) => {
-                        if (!current || current.used) return;
-                        current.used = true;
-                        current.usedBy = uid;
-                        current.usedAt = Date.now();
-                        return current;
+                    codeValueIqd = Number(data.value) || 0;
+                    // Transact only on the boolean "used" leaf, and never abort on a
+                    // null/unsynced local guess — only on a confirmed "already true"
+                    // read back from the server. Aborting on null (as the previous
+                    // version did) falsely rejected genuinely unused codes whenever
+                    // this device hadn't already cached that exact path.
+                    return runTransaction(ref(window.firebaseDb, 'topupCodes/' + code + '/used'), (current) => {
+                        if (current === true) return;
+                        return true;
                     });
                 }).then((result) => {
-                    if (!result || !result.committed || !result.snapshot.exists() || result.snapshot.val().usedBy !== uid) {
-                        this.showToast('تم استخدام هذا الكود للتو من جهاز آخر');
+                    if (!result || !result.committed) {
+                        this.showToast('هذا الكود مستخدم مسبقاً');
                         if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
                         return;
                     }
-                    const data = result.snapshot.val();
-                    const iqd = Number(data.value) || 0;
-                    const usdAmount = iqd / 1325;
+                    update(codeRef, { usedBy: uid, usedAt: Date.now() }).catch(() => {});
+                    const usdAmount = codeValueIqd / 1325;
                     this.currentUser.balance = Math.round(((this.currentUser.balance || 0) + usdAmount) * 100) / 100;
                     this.saveUserData();
                     this.syncUserToDatabase();
@@ -4875,7 +4871,7 @@
                     });
                     this.renderWalletBalance();
                     this.closeWalletModal();
-                    this.showToast('تم إيداع ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك بنجاح');
+                    this.showToast('تم إيداع ' + codeValueIqd.toLocaleString('en-US') + ' د.ع لرصيدك بنجاح');
                 }).catch((err) => {
                     if (err !== 'handled') {
                         console.warn('Redeem code failed:', err);
