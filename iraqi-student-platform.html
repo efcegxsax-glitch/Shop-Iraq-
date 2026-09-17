@@ -387,6 +387,10 @@
             padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
         }
 
+        /* Bottom nav hidden while browsing the results site full-screen inside the app */
+        body.results-nav-hidden #bottomNav { display: none; }
+        body.results-nav-hidden #mainContent { padding-bottom: 0; }
+
         /* Animated streak flame (replaces the static emoji) */
         .flame {
             display: inline-block;
@@ -1409,6 +1413,22 @@
                         <button onclick="app.stopYoutubeStudySession()" class="text-xs font-bold px-3 py-1.5 rounded-lg" style="background-color: var(--input-bg); color: var(--error);">إنهاء الجلسة</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ===== RESULTS VIEW ===== -->
+        <div id="resultsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">النتائج</span>
+                <button onclick="app.openResultsExternally()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="فتح بمتصفح خارجي">
+                    <i data-lucide="external-link" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+            </div>
+            <div style="height: calc(100vh - 61px);">
+                <iframe id="resultsIframe" class="w-full h-full" src="" title="النتائج" frameborder="0"></iframe>
             </div>
         </div>
 
@@ -2834,13 +2854,24 @@
 
             setCategory(id) {
                 if (id === 'results') {
-                    window.open('https://results.mlazemna.com/ntbth/', '_blank', 'noopener');
+                    this.goToResults();
                     return;
                 }
                 this.activeCategory = id;
                 this.renderCategories();
                 this.renderNews();
                 lucide.createIcons();
+            },
+
+            goToResults() {
+                const iframe = document.getElementById('resultsIframe');
+                if (iframe && !iframe.src) iframe.src = 'https://results.mlazemna.com/ntbth/';
+                this.switchView('resultsView');
+                lucide.createIcons();
+            },
+
+            openResultsExternally() {
+                window.open('https://results.mlazemna.com/ntbth/', '_blank', 'noopener');
             },
 
             renderDailyTip() {
@@ -7975,7 +8006,7 @@
 
             setCategoryAndGoHome(catId) {
                 if (catId === 'results') {
-                    window.open('https://results.mlazemna.com/ntbth/', '_blank', 'noopener');
+                    this.goToResults();
                     return;
                 }
                 this.activeCategory = catId;
@@ -7991,7 +8022,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
@@ -8001,6 +8032,7 @@
                 this.currentView = viewId;
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
+                document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
                 window.scrollTo(0, 0);
 
                 if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
