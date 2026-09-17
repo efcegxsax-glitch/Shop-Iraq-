@@ -1608,14 +1608,17 @@
                     <input type="text" id="chatMessageInput" placeholder="اكتب رسالتك هنا..." class="w-full h-12 px-4 rounded-xl auth-input text-sm" oninput="app.updateChatSendMode()" onkeydown="if(event.key==='Enter'){event.preventDefault(); app.sendChatMessage();}">
                 </div>
                 <div id="chatVoiceRecordingBar" class="hidden flex-1 flex items-center gap-2 h-12 px-4 rounded-xl theme-transition" style="background-color: var(--input-bg);">
-                    <span class="w-2.5 h-2.5 rounded-full bg-error animate-pulse"></span>
-                    <span class="text-sm font-bold flex-1 theme-transition" id="chatVoiceRecordingTime" style="color: var(--text);">0:00</span>
-                    <button onclick="app.cancelVoiceRecording()" class="text-xs font-bold text-error">إلغاء</button>
+                    <span class="w-2.5 h-2.5 rounded-full bg-error animate-pulse flex-shrink-0"></span>
+                    <span class="text-sm font-bold flex-shrink-0 theme-transition" id="chatVoiceRecordingTime" style="color: var(--text);">0:00</span>
+                    <span id="chatVoiceCancelHint" class="text-xs font-bold flex-1 text-center theme-transition" style="color: var(--text2);">⬆ اسحب للإلغاء</span>
                 </div>
                 <button id="chatSendBtn" onclick="app.sendChatMessage()" onmousedown="event.preventDefault()" class="hidden btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال">
                     <i data-lucide="send" class="w-5 h-5"></i>
                 </button>
-                <button id="chatMicBtn" onclick="app.toggleVoiceRecording()" onmousedown="event.preventDefault()" class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="تسجيل رسالة صوتية">
+                <button id="chatMicBtn"
+                    ontouchstart="app.startVoiceHold(event)" ontouchmove="app.trackVoiceHoldMove(event)" ontouchend="app.endVoiceHold(event, true)" ontouchcancel="app.endVoiceHold(event, false)"
+                    onmousedown="app.startVoiceHold(event)" onmousemove="app.trackVoiceHoldMove(event)" onmouseup="app.endVoiceHold(event, true)" onmouseleave="app.endVoiceHold(event, false)"
+                    class="btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" style="touch-action: none;" aria-label="اضغط باستمرار لتسجيل رسالة صوتية">
                     <i data-lucide="mic" class="w-5 h-5"></i>
                 </button>
             </div>
@@ -7626,7 +7629,13 @@
                     } else if (m.type === 'voice') {
                         const mm = Math.floor((m.duration || 0) / 60);
                         const ss = String((m.duration || 0) % 60).padStart(2, '0');
-                        bodyHtml = `<div class="flex items-center gap-2"><audio controls src="${m.audioUrl}" style="height: 36px; max-width: 200px;"></audio><span class="text-[10px] opacity-70">${mm}:${ss}</span></div>`;
+                        bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
+                                <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${m.id})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
+                                <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
+                                <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0">${mm}:${ss}</span>
+                                <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${m.id})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
+                                <audio id="voiceAudio-${m.id}" src="${m.audioUrl}" class="hidden" preload="none" onplay="app.onVoicePlay(${m.id})" onpause="app.onVoicePause(${m.id})" onended="app.onVoiceEnded(${m.id})" ontimeupdate="app.onVoiceTimeUpdate(${m.id})"></audio>
+                            </div>`;
                     } else if (m.type === 'file') {
                         bodyHtml = `<a href="${m.fileUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
                                 <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
@@ -7976,26 +7985,34 @@
                 }
             },
 
-            toggleVoiceRecording() {
-                if (this._voiceRecorder && this._voiceRecorder.state === 'recording') {
-                    this.stopVoiceRecording(true);
-                    return;
-                }
-                if (!this.currentChatUid) return;
+            startVoiceHold(e) {
+                if (e.type === 'mousedown' && this._voiceTouchActive) return;
+                if (this._voiceHoldActive) return;
+                if (e.type === 'touchstart') this._voiceTouchActive = true;
+                e.preventDefault();
+                this._voiceHoldActive = true;
+                this._voiceHoldCancelled = false;
+                const point = e.touches ? e.touches[0] : e;
+                this._voiceHoldStartY = point.clientY;
+                this._voiceHoldStartX = point.clientX;
+                if (!this.currentChatUid) { this._voiceHoldActive = false; return; }
                 if (this.blockedByOtherInChat) {
                     this.showToast('لا يمكنك مراسلة هذا المستخدم');
+                    this._voiceHoldActive = false;
                     return;
                 }
                 if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
                     this.showToast('التسجيل الصوتي غير مدعوم بهذا المتصفح');
+                    this._voiceHoldActive = false;
                     return;
                 }
                 navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+                    if (!this._voiceHoldActive) { stream.getTracks().forEach(t => t.stop()); return; }
                     this._voiceStream = stream;
                     this._voiceChunks = [];
                     const recorder = new MediaRecorder(stream);
                     this._voiceRecorder = recorder;
-                    recorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) this._voiceChunks.push(e.data); };
+                    recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) this._voiceChunks.push(ev.data); };
                     recorder.onstop = () => { this._handleVoiceRecordingStop(); };
                     recorder.start();
                     this._voiceStartTime = Date.now();
@@ -8003,15 +8020,38 @@
                     this._updateVoiceRecordingTime();
                     this._voiceTimerInterval = setInterval(() => this._updateVoiceRecordingTime(), 500);
                 }).catch(() => {
+                    this._voiceHoldActive = false;
                     this.showToast('تعذر الوصول للمايكروفون — تحقق من الأذونات');
                 });
+            },
+
+            trackVoiceHoldMove(e) {
+                if (!this._voiceHoldActive) return;
+                const point = e.touches ? e.touches[0] : e;
+                if (!point) return;
+                const dy = this._voiceHoldStartY - point.clientY;
+                const dx = Math.abs(this._voiceHoldStartX - point.clientX);
+                const cancelling = dy > 60 || dx > 60;
+                this._voiceHoldCancelled = cancelling;
+                const hint = document.getElementById('chatVoiceCancelHint');
+                if (hint) {
+                    hint.textContent = cancelling ? '✕ اترك للإلغاء' : '⬆ اسحب للإلغاء';
+                    hint.style.color = cancelling ? 'var(--error)' : 'var(--text2)';
+                }
+            },
+
+            endVoiceHold(e, isRelease) {
+                if (e.type === 'touchend' || e.type === 'touchcancel') this._voiceTouchActive = false;
+                if (!this._voiceHoldActive) return;
+                this._voiceHoldActive = false;
+                const shouldSend = isRelease && !this._voiceHoldCancelled;
+                this.stopVoiceRecording(shouldSend);
             },
 
             _showVoiceRecordingUI(show) {
                 document.getElementById('chatAttachmentBtn')?.classList.toggle('hidden', show);
                 document.getElementById('chatTextInputWrap')?.classList.toggle('hidden', show);
-                document.getElementById('chatMicBtn')?.classList.toggle('hidden', show);
-                document.getElementById('chatSendBtn')?.classList.toggle('hidden', show);
+                document.getElementById('chatSendBtn')?.classList.toggle('hidden', show || document.getElementById('chatMessageInput')?.value.trim().length === 0);
                 document.getElementById('chatVoiceRecordingBar')?.classList.toggle('hidden', !show);
                 if (!show) this.updateChatSendMode();
             },
@@ -8032,10 +8072,6 @@
                 if (this._voiceRecorder.state === 'recording') this._voiceRecorder.stop();
                 if (this._voiceStream) this._voiceStream.getTracks().forEach(t => t.stop());
                 clearInterval(this._voiceTimerInterval);
-            },
-
-            cancelVoiceRecording() {
-                this.stopVoiceRecording(false);
             },
 
             _handleVoiceRecordingStop() {
@@ -8060,6 +8096,59 @@
                 };
                 reader.onerror = () => { this.showToast('تعذر معالجة التسجيل'); };
                 reader.readAsDataURL(blob);
+            },
+
+            toggleVoicePlayback(msgId) {
+                const audio = document.getElementById('voiceAudio-' + msgId);
+                if (!audio) return;
+                document.querySelectorAll('audio').forEach((a) => { if (a !== audio && !a.paused) a.pause(); });
+                if (audio.paused) audio.play().catch(() => { this.showToast('تعذر تشغيل الرسالة الصوتية'); });
+                else audio.pause();
+            },
+
+            onVoicePlay(msgId) {
+                const btn = document.getElementById('voicePlayBtn-' + msgId);
+                if (btn) btn.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i>';
+                lucide.createIcons();
+            },
+
+            onVoicePause(msgId) {
+                const btn = document.getElementById('voicePlayBtn-' + msgId);
+                if (btn) btn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i>';
+                lucide.createIcons();
+            },
+
+            onVoiceEnded(msgId) {
+                this.onVoicePause(msgId);
+                const progress = document.getElementById('voiceProgress-' + msgId);
+                if (progress) progress.style.width = '0%';
+                const audio = document.getElementById('voiceAudio-' + msgId);
+                if (audio) audio.currentTime = 0;
+            },
+
+            onVoiceTimeUpdate(msgId) {
+                const audio = document.getElementById('voiceAudio-' + msgId);
+                const progress = document.getElementById('voiceProgress-' + msgId);
+                const durationEl = document.getElementById('voiceDuration-' + msgId);
+                if (!audio) return;
+                if (progress && audio.duration) progress.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
+                if (durationEl && audio.duration) {
+                    const remaining = Math.max(0, Math.floor(audio.duration - audio.currentTime));
+                    const m = Math.floor(remaining / 60);
+                    const s = remaining % 60;
+                    durationEl.textContent = m + ':' + String(s).padStart(2, '0');
+                }
+            },
+
+            cycleVoiceSpeed(msgId) {
+                const audio = document.getElementById('voiceAudio-' + msgId);
+                const btn = document.getElementById('voiceSpeedBtn-' + msgId);
+                if (!audio) return;
+                const speeds = [1, 1.5, 2];
+                const idx = speeds.indexOf(audio.playbackRate || 1);
+                const next = speeds[(idx + 1) % speeds.length];
+                audio.playbackRate = next;
+                if (btn) btn.textContent = next + 'x';
             },
 
             markChatRead() {
