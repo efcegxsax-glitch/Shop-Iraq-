@@ -46,6 +46,7 @@
             <button class="tab" data-tab="exams">🗓️ جدول الامتحانات</button>
             <button class="tab" data-tab="holidays">🎉 العطل الرسمية</button>
             <button class="tab" data-tab="topup">💳 أكواد تعبئة</button>
+            <button class="tab" data-tab="store">🏪 متجر</button>
             <button class="tab" data-tab="ban">🚫 حظر طالب</button>
         </div>
 
@@ -248,6 +249,28 @@
             </div>
         </div>
 
+        <!-- Store / Marketplace -->
+        <div id="sec-store" class="hidden">
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">🏪 طلبات فتح المتاجر</h3>
+                <div class="flex gap-2 mb-3">
+                    <button class="subtab active" data-ssf="pending" onclick="setStoreSubFilter('pending')">قيد المراجعة</button>
+                    <button class="subtab" data-ssf="approved" onclick="setStoreSubFilter('approved')">مفعّلة</button>
+                    <button class="subtab" data-ssf="rejected" onclick="setStoreSubFilter('rejected')">مرفوضة</button>
+                </div>
+                <div id="storeAppsList"></div>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📦 منتجات المتاجر (ريلز)</h3>
+                <div class="flex gap-2 mb-3">
+                    <button class="subtab active" data-spf="pending" onclick="setProductSubFilter('pending')">قيد المراجعة</button>
+                    <button class="subtab" data-spf="approved" onclick="setProductSubFilter('approved')">منشورة</button>
+                    <button class="subtab" data-spf="rejected" onclick="setProductSubFilter('rejected')">مرفوضة</button>
+                </div>
+                <div id="storeProductsAdminList"></div>
+            </div>
+        </div>
+
         <!-- Ban Student -->
         <div id="sec-ban" class="hidden">
             <div class="card">
@@ -370,7 +393,7 @@
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'store', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
             });
         });
 
@@ -606,6 +629,93 @@
             (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('📋 تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
 
+        // ---------- Store / Marketplace approvals ----------
+        const CATEGORY_LABELS = { stationery: 'قرطاسية', books: 'كتب', notes: 'ملازم', supplies: 'مستلزمات' };
+
+        let storeAppsData = [];
+        let storeAppsFilter = 'pending';
+        window.setStoreSubFilter = (f) => {
+            storeAppsFilter = f;
+            document.querySelectorAll('[data-ssf]').forEach(b => b.classList.toggle('active', b.dataset.ssf === f));
+            renderStoreAppsList();
+        };
+        function renderStoreAppsList() {
+            const box = el('storeAppsList');
+            if (!box) return;
+            const list = storeAppsData.filter(s => s.status === storeAppsFilter);
+            if (list.length === 0) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد طلبات</p>'; return; }
+            box.innerHTML = list.map(s => `
+                <div class="row-item" style="align-items:flex-start;">
+                    <img src="${escapeHtml(s.logo || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name || 'S') + '&background=2563EB&color=fff'))}" alt="">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(s.name || '')}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(s.ownerName || '')} • ${escapeHtml(CATEGORY_LABELS[s.category] || s.category || '')}</div>
+                        ${s.description ? `<div class="text-slate-400 text-xs mt-1">${escapeHtml(s.description)}</div>` : ''}
+                        ${s.status === 'rejected' && s.rejectionReason ? `<div class="text-xs mt-1" style="color:#DC2626;">السبب: ${escapeHtml(s.rejectionReason)}</div>` : ''}
+                    </div>
+                    ${s.status === 'pending' ? `
+                        <div class="flex flex-col gap-1">
+                            <button class="del" style="background:#16A34A;" onclick="approveStore('${escapeHtml(s.ownerUid)}')">قبول</button>
+                            <button class="del" onclick="rejectStore('${escapeHtml(s.ownerUid)}')">رفض</button>
+                        </div>
+                    ` : `<button class="del" onclick="deleteItem('stores', '${escapeHtml(s.ownerUid)}')">حذف</button>`}
+                </div>`).join('');
+        }
+        window.approveStore = async (uid) => {
+            try {
+                await set(ref(db, 'stores/' + uid + '/status'), 'approved');
+                toast('✅ تم قبول المتجر');
+            } catch (e) { console.warn(e); toast('❌ فشل القبول', false); }
+        };
+        window.rejectStore = async (uid) => {
+            const reason = prompt('سبب الرفض (اختياري):') || '';
+            try {
+                await set(ref(db, 'stores/' + uid + '/status'), 'rejected');
+                await set(ref(db, 'stores/' + uid + '/rejectionReason'), reason);
+                toast('🚫 تم رفض المتجر');
+            } catch (e) { console.warn(e); toast('❌ فشل الرفض', false); }
+        };
+
+        let storeProductsData = [];
+        let storeProductsFilter = 'pending';
+        window.setProductSubFilter = (f) => {
+            storeProductsFilter = f;
+            document.querySelectorAll('[data-spf]').forEach(b => b.classList.toggle('active', b.dataset.spf === f));
+            renderStoreProductsAdminList();
+        };
+        function renderStoreProductsAdminList() {
+            const box = el('storeProductsAdminList');
+            if (!box) return;
+            const list = storeProductsData.filter(p => p.status === storeProductsFilter);
+            if (list.length === 0) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد منتجات</p>'; return; }
+            box.innerHTML = list.map(p => `
+                <div class="row-item" style="align-items:flex-start;">
+                    <img src="${escapeHtml(p.imageUrl || '')}" alt="">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(p.title || '')}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(p.storeName || '')} • ${escapeHtml(CATEGORY_LABELS[p.category] || p.category || '')} • ${Number(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                    </div>
+                    ${p.status === 'pending' ? `
+                        <div class="flex flex-col gap-1">
+                            <button class="del" style="background:#16A34A;" onclick="approveProduct(${p.id})">قبول</button>
+                            <button class="del" onclick="rejectProduct(${p.id})">رفض</button>
+                        </div>
+                    ` : `<button class="del" onclick="deleteItem('storeProducts', ${p.id})">حذف</button>`}
+                </div>`).join('');
+        }
+        window.approveProduct = async (id) => {
+            try {
+                await set(ref(db, 'storeProducts/' + id + '/status'), 'approved');
+                toast('✅ تم قبول المنتج');
+            } catch (e) { console.warn(e); toast('❌ فشل القبول', false); }
+        };
+        window.rejectProduct = async (id) => {
+            try {
+                await set(ref(db, 'storeProducts/' + id + '/status'), 'rejected');
+                toast('🚫 تم رفض المنتج');
+            } catch (e) { console.warn(e); toast('❌ فشل الرفض', false); }
+        };
+
         // ---------- Ban Student ----------
         window.banStudent = async () => {
             const number = val('ban_number');
@@ -767,6 +877,14 @@
             onValue(ref(db, 'topupCodes'), (snap) => {
                 topupCodesData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
                 renderTopupList();
+            });
+            onValue(ref(db, 'stores'), (snap) => {
+                storeAppsData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderStoreAppsList();
+            });
+            onValue(ref(db, 'storeProducts'), (snap) => {
+                storeProductsData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderStoreProductsAdminList();
             });
             onValue(ref(db, 'bannedStudents'), (snap) => {
                 const box = el('bannedList');

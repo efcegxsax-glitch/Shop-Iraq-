@@ -397,6 +397,19 @@
         body.results-nav-hidden #bottomNav { display: none; }
         body.results-nav-hidden #mainContent { padding-bottom: 0; }
 
+        /* ===== Store (reels-style marketplace) ===== */
+        body.store-nav-hidden #bottomNav { display: none; }
+        body.store-nav-hidden #mainContent { padding-bottom: 0; padding-top: 0; }
+        .store-feed { position: absolute; inset: 0; overflow-y: auto; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; background: #000; }
+        .store-card { position: relative; width: 100%; height: 100dvh; scroll-snap-align: start; scroll-snap-stop: always; background: #111; overflow: hidden; }
+        .store-card-media { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .store-card-gradient { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 38%, rgba(0,0,0,0.4) 100%); pointer-events: none; }
+        .store-card-actions { position: absolute; left: 12px; bottom: 118px; display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 2; }
+        .store-card-info { position: absolute; right: 16px; left: 72px; bottom: 24px; z-index: 2; }
+        .store-cat-tab { background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; border: none; }
+        .store-cat-tab.active { background: #fff; color: #0F172A; }
+        .store-action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; background: none; border: none; }
+
         /* Animated streak flame (replaces the static emoji) */
         .flame {
             display: inline-block;
@@ -1785,6 +1798,76 @@
             </div>
         </div>
 
+        <!-- ===== STORE VIEW (Reels-style marketplace) ===== -->
+        <div id="storeView" class="hidden page-slide-rtl">
+            <div class="fixed top-0 right-0 left-0 z-40 flex items-center gap-2 px-3" style="padding-top: calc(0.75rem + env(safe-area-inset-top)); padding-bottom: 0.5rem;">
+                <button onclick="app.goBack()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: rgba(0,0,0,0.45);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 text-white"></i>
+                </button>
+                <div class="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar" id="storeCategoryTabs">
+                    <button onclick="app.setStoreCategory('all')" class="store-cat-tab active flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="all">الكل</button>
+                    <button onclick="app.setStoreCategory('stationery')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="stationery">قرطاسية</button>
+                    <button onclick="app.setStoreCategory('books')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="books">كتب</button>
+                    <button onclick="app.setStoreCategory('notes')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="notes">ملازم</button>
+                    <button onclick="app.setStoreCategory('supplies')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="supplies">مستلزمات</button>
+                </div>
+                <button onclick="app.openStoreCart()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center relative flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="السلة">
+                    <i data-lucide="shopping-cart" class="w-4 h-4 text-white"></i>
+                    <span id="storeCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                </button>
+                <button onclick="app.goToMyStore()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="متجري">
+                    <i data-lucide="briefcase" class="w-4 h-4 text-white"></i>
+                </button>
+            </div>
+            <div id="storeFeed" class="store-feed"></div>
+            <div id="storeEmptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6" style="background: #0F172A;">
+                <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4" style="background-color: rgba(255,255,255,0.1);">
+                    <i data-lucide="store" class="w-10 h-10 text-white/70"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-2 text-white">لا توجد منتجات بعد</h3>
+                <p class="text-sm text-white/70 mb-4">كن أول من يفتح متجره وينشر منتج</p>
+                <button onclick="app.goToMyStore()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">افتح متجرك</button>
+            </div>
+        </div>
+
+        <!-- ===== STORE CART VIEW ===== -->
+        <div id="storeCartView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">سلة المشتريات</span>
+            </div>
+            <div class="p-4">
+                <div id="storeCartList" class="flex flex-col gap-3 mb-4"></div>
+                <div id="storeCartEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                        <i data-lucide="shopping-cart" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                    </div>
+                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">السلة فاضية</h3>
+                    <button onclick="app.goToStore()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">تصفح المتجر</button>
+                </div>
+                <div id="storeCartSummary" class="hidden rounded-2xl border p-4 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm theme-transition" style="color: var(--text2);">المجموع</span>
+                        <span id="storeCartTotal" class="font-bold theme-transition" style="color: var(--text); font-size: 18px;">0 نقطة</span>
+                    </div>
+                    <button onclick="app.checkoutStoreCart()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">إتمام الشراء</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MY STORE VIEW (seller dashboard) ===== -->
+        <div id="myStoreView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">متجري</span>
+            </div>
+            <div id="myStoreContent" class="p-4"></div>
+        </div>
+
         <!-- ===== STUDY TIMER VIEW ===== -->
         <div id="studyTimerView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
@@ -2036,33 +2119,40 @@
 
     <!-- ==================== BOTTOM NAVIGATION ==================== -->
     <nav id="bottomNav" class="fixed left-3 right-3 border z-50 theme-transition" style="background-color: var(--surface); border-color: var(--border); height: 64px; border-radius: 32px; bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: inset 0 1px 0 var(--glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.04);">
-        <div class="flex items-center justify-around h-full px-2 max-w-lg mx-auto">
-            <button onclick="app.setTab('home')" class="nav-item active flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all" data-tab="home">
-                <i data-lucide="home" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">الرئيسية</span>
+        <div class="flex items-center justify-around h-full px-1 max-w-lg mx-auto">
+            <button onclick="app.setTab('home')" class="nav-item active flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all" data-tab="home">
+                <i data-lucide="home" class="w-5 h-5"></i>
+                <span class="text-[9px] font-medium">الرئيسية</span>
             </button>
-            <button onclick="app.setTab('resources')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="resources">
-                <i data-lucide="book-open" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">الملازم</span>
+            <button onclick="app.setTab('resources')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="resources">
+                <i data-lucide="book-open" class="w-5 h-5"></i>
+                <span class="text-[9px] font-medium">الملازم</span>
             </button>
-            <button onclick="app.setTab('leaderboard')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="leaderboard">
-                <i data-lucide="trophy" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">المتقدمون</span>
-            </button>
-            <button onclick="app.setTab('wallet')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="wallet">
-                <i data-lucide="wallet" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">رصيدي</span>
-            </button>
-            <button onclick="app.setTab('messages')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="messages">
+            <button onclick="app.setTab('store')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="store">
                 <div class="relative">
-                    <i data-lucide="message-circle" class="w-6 h-6"></i>
+                    <i data-lucide="store" class="w-5 h-5"></i>
+                    <span id="navStoreCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                </div>
+                <span class="text-[9px] font-medium">متجر</span>
+            </button>
+            <button onclick="app.setTab('leaderboard')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="leaderboard">
+                <i data-lucide="trophy" class="w-5 h-5"></i>
+                <span class="text-[9px] font-medium">المتقدمون</span>
+            </button>
+            <button onclick="app.setTab('wallet')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="wallet">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+                <span class="text-[9px] font-medium">رصيدي</span>
+            </button>
+            <button onclick="app.setTab('messages')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="messages">
+                <div class="relative">
+                    <i data-lucide="message-circle" class="w-5 h-5"></i>
                     <span id="navMessagesBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
                 </div>
-                <span class="text-[10px] font-medium">الرسائل</span>
+                <span class="text-[9px] font-medium">الرسائل</span>
             </button>
-            <button onclick="app.setTab('profile')" class="nav-item flex flex-col items-center justify-center gap-1 w-16 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="profile">
-                <i data-lucide="user" class="w-6 h-6"></i>
-                <span class="text-[10px] font-medium">حسابي</span>
+            <button onclick="app.setTab('profile')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="profile">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                <span class="text-[9px] font-medium">حسابي</span>
             </button>
         </div>
     </nav>
@@ -2301,6 +2391,11 @@
         const blockedUsersList = [];
         const friendsPresence = {};
 
+        const storeProductsList = [];
+        const storeCart = [];
+        const myStoreProducts = [];
+        const storeCategories = { all: 'الكل', stationery: 'قرطاسية', books: 'كتب', notes: 'ملازم', supplies: 'مستلزمات' };
+
         const duelInvitesList = [];
         const duelsListData = [];
         const duelQuestionBank = [
@@ -2369,6 +2464,8 @@
             currentView: 'homeView',
             previousView: null,
             activeCategory: 'all',
+            activeStoreCategory: 'all',
+            myStoreInfo: null,
             activeNotifFilter: 'all',
             activeStage: 'sixth-science',
             activeSubject: null,
@@ -8277,6 +8374,583 @@
                 set(ref(window.firebaseDb, 'privateChats/' + chatId + '/readReceipts/' + this.authUid), Date.now()).catch(() => {});
             },
 
+            // ==================== STORE (reels-style marketplace) ====================
+            goToStore() {
+                this.switchView('storeView');
+                this.listenForStoreProducts();
+                this.loadStoreCart();
+                this.renderStoreFeed();
+                lucide.createIcons();
+            },
+
+            listenForStoreProducts() {
+                if (!window.firebaseDb || this._storeProductsListener) { this.renderStoreFeed(); return; }
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._storeProductsListener = onValue(ref(window.firebaseDb, 'storeProducts'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((id) => {
+                            const p = vals[id];
+                            if (p && p.status === 'approved') list.push(p);
+                        });
+                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    }
+                    storeProductsList.length = 0;
+                    storeProductsList.push(...list);
+                    if (this.currentView === 'storeView') this.renderStoreFeed();
+                });
+            },
+
+            setStoreCategory(cat) {
+                this.activeStoreCategory = cat;
+                document.querySelectorAll('.store-cat-tab').forEach((btn) => {
+                    btn.classList.toggle('active', btn.dataset.cat === cat);
+                });
+                this.renderStoreFeed();
+            },
+
+            renderStoreFeed() {
+                const container = document.getElementById('storeFeed');
+                const empty = document.getElementById('storeEmptyState');
+                if (!container || !empty) return;
+                const filtered = this.activeStoreCategory === 'all' ? storeProductsList : storeProductsList.filter(p => p.category === this.activeStoreCategory);
+                if (filtered.length === 0) {
+                    container.innerHTML = '';
+                    container.classList.add('hidden');
+                    empty.classList.remove('hidden');
+                    return;
+                }
+                container.classList.remove('hidden');
+                empty.classList.add('hidden');
+                container.innerHTML = filtered.map(p => this.createStoreProductCard(p)).join('');
+                lucide.createIcons();
+            },
+
+            createStoreProductCard(p) {
+                const iLiked = !!(p.likes && this.authUid && p.likes[this.authUid]);
+                const likesCount = p.likes ? Object.keys(p.likes).length : 0;
+                const inCart = storeCart.some(c => c.productId === p.id);
+                return `
+                    <div class="store-card" data-product-id="${p.id}">
+                        <img src="${safeImage(p.imageUrl)}" class="store-card-media" alt="${escapeHtml(p.title)}">
+                        <div class="store-card-gradient"></div>
+                        <div class="store-card-actions">
+                            <button class="store-action-btn" onclick="app.openStoreOwnerProfile(${p.id})">
+                                <img src="${personAvatarSrc(p.storeLogo, p.storeName)}" class="w-11 h-11 rounded-full object-cover" style="border: 2px solid #fff;">
+                            </button>
+                            <button class="store-action-btn" onclick="app.toggleProductLike(${p.id})">
+                                <i data-lucide="heart" class="w-7 h-7 ${iLiked ? 'fill-error' : ''}" style="color: ${iLiked ? '#DC2626' : '#fff'};"></i>
+                                <span class="text-white text-[11px] font-bold">${likesCount}</span>
+                            </button>
+                            <button class="store-action-btn" onclick="app.addToCart(${p.id})">
+                                <i data-lucide="${inCart ? 'check-circle-2' : 'shopping-cart'}" class="w-7 h-7" style="color: ${inCart ? '#4ADE80' : '#fff'};"></i>
+                                <span class="text-white text-[11px] font-bold">${inCart ? 'مضافة' : 'أضف'}</span>
+                            </button>
+                            <button class="store-action-btn" onclick="app.buyProductNow(${p.id})">
+                                <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center"><i data-lucide="zap" class="w-5 h-5 text-white"></i></div>
+                                <span class="text-white text-[11px] font-bold">شراء</span>
+                            </button>
+                        </div>
+                        <div class="store-card-info">
+                            <div class="text-white font-bold text-sm mb-1">${escapeHtml(p.storeName || 'متجر')}</div>
+                            <div class="text-white text-sm mb-1 line-clamp-2">${escapeHtml(p.title)}</div>
+                            ${p.description ? `<div class="text-white/80 text-xs mb-2 line-clamp-2">${escapeHtml(p.description)}</div>` : ''}
+                            <div class="inline-flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1 rounded-lg" style="background: rgba(37,99,235,0.9);"><i data-lucide="star" class="w-3 h-3"></i>${(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                        </div>
+                    </div>
+                `;
+            },
+
+            openStoreOwnerProfile(productId) {
+                const p = storeProductsList.find(x => x.id === productId);
+                if (!p) return;
+                this.openAuthorProfile(p.ownerUid, p.storeName, p.storeLogo, '');
+            },
+
+            toggleProductLike(productId) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    this.goToAuth('login');
+                    return;
+                }
+                if (!window.firebaseDb) return;
+                const p = storeProductsList.find(x => x.id === productId);
+                if (!p) return;
+                const alreadyLiked = !!(p.likes && p.likes[this.authUid]);
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'storeProducts/' + productId + '/likes/' + this.authUid), alreadyLiked ? null : true).catch(() => {
+                    this.showToast('تعذر تنفيذ العملية');
+                });
+            },
+
+            saveStoreCart() {
+                try { localStorage.setItem('iraqiStudentStoreCart', JSON.stringify(storeCart)); } catch (e) {}
+            },
+
+            loadStoreCart() {
+                try {
+                    const raw = localStorage.getItem('iraqiStudentStoreCart');
+                    const arr = raw ? JSON.parse(raw) : [];
+                    storeCart.length = 0;
+                    if (Array.isArray(arr)) storeCart.push(...arr);
+                } catch (e) {}
+                this.updateStoreCartBadge();
+            },
+
+            updateStoreCartBadge() {
+                const count = storeCart.length;
+                ['storeCartBadge', 'navStoreCartBadge'].forEach((id) => {
+                    const badge = document.getElementById(id);
+                    if (badge) { badge.classList.toggle('hidden', count === 0); badge.textContent = count; }
+                });
+            },
+
+            addToCart(productId) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    this.goToAuth('login');
+                    return;
+                }
+                const p = storeProductsList.find(x => x.id === productId);
+                if (!p) return;
+                if (p.ownerUid === this.authUid) {
+                    this.showToast('لا يمكنك شراء منتج من متجرك أنت');
+                    return;
+                }
+                if (storeCart.some(c => c.productId === productId)) {
+                    this.showToast('المنتج موجود بالسلة أصلاً');
+                    return;
+                }
+                storeCart.push({ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, imageUrl: p.imageUrl, pricePoints: p.pricePoints, storeName: p.storeName });
+                this.saveStoreCart();
+                this.updateStoreCartBadge();
+                this.renderStoreFeed();
+                this.showToast('✅ أُضيف للسلة');
+            },
+
+            removeFromCart(productId) {
+                const idx = storeCart.findIndex(c => c.productId === productId);
+                if (idx === -1) return;
+                storeCart.splice(idx, 1);
+                this.saveStoreCart();
+                this.updateStoreCartBadge();
+                this.renderStoreCart();
+            },
+
+            openStoreCart() {
+                this.switchView('storeCartView');
+                this.loadStoreCart();
+                this.renderStoreCart();
+                lucide.createIcons();
+            },
+
+            renderStoreCart() {
+                const list = document.getElementById('storeCartList');
+                const empty = document.getElementById('storeCartEmptyState');
+                const summary = document.getElementById('storeCartSummary');
+                const totalEl = document.getElementById('storeCartTotal');
+                if (!list || !empty || !summary) return;
+                if (storeCart.length === 0) {
+                    list.innerHTML = '';
+                    empty.classList.remove('hidden');
+                    summary.classList.add('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+                summary.classList.remove('hidden');
+                list.innerHTML = storeCart.map(c => `
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${safeImage(c.imageUrl)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(c.title)}</div>
+                            <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(c.storeName || 'متجر')}</div>
+                            <div class="text-xs font-bold mt-1 text-primary">${(c.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                        </div>
+                        <button onclick="app.removeFromCart(${c.productId})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
+                    </div>
+                `).join('');
+                const total = storeCart.reduce((sum, c) => sum + (c.pricePoints || 0), 0);
+                if (totalEl) totalEl.textContent = total.toLocaleString('en-US') + ' نقطة';
+                lucide.createIcons();
+            },
+
+            checkoutStoreCart() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    return;
+                }
+                if (storeCart.length === 0) return;
+                const total = storeCart.reduce((sum, c) => sum + (c.pricePoints || 0), 0);
+                const myPoints = this.currentUser.points || 0;
+                if (myPoints < total) {
+                    this.showToast('نقاطك غير كافية لإتمام الشراء');
+                    return;
+                }
+                if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
+                const { ref, set } = window.firebaseDbHelpers;
+                const orderId = Date.now();
+                const items = storeCart.map(c => ({ productId: c.productId, storeId: c.storeId, ownerUid: c.ownerUid, title: c.title, pricePoints: c.pricePoints }));
+                const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items, totalPoints: total, status: 'placed', createdAt: Date.now() };
+                set(ref(window.firebaseDb, 'storeOrders/' + orderId), order).then(() => {
+                    this.currentUser.points = myPoints - total;
+                    this.saveUserData();
+                    this.syncUserToDatabase();
+                    storeCart.length = 0;
+                    this.saveStoreCart();
+                    this.updateStoreCartBadge();
+                    this.showToast('✅ تم الشراء بنجاح! خُصم ' + total.toLocaleString('en-US') + ' نقطة');
+                    this.goBack();
+                }).catch((err) => {
+                    console.warn('Checkout failed:', err);
+                    this.showToast('تعذر إتمام الشراء — حاول مجدداً');
+                });
+            },
+
+            buyProductNow(productId) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    this.goToAuth('login');
+                    return;
+                }
+                const p = storeProductsList.find(x => x.id === productId);
+                if (!p) return;
+                if (p.ownerUid === this.authUid) {
+                    this.showToast('لا يمكنك شراء منتج من متجرك أنت');
+                    return;
+                }
+                const myPoints = this.currentUser.points || 0;
+                if (myPoints < (p.pricePoints || 0)) {
+                    this.showToast('نقاطك غير كافية لشراء هذا المنتج');
+                    return;
+                }
+                if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
+                const { ref, set } = window.firebaseDbHelpers;
+                const orderId = Date.now();
+                const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items: [{ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, pricePoints: p.pricePoints }], totalPoints: p.pricePoints, status: 'placed', createdAt: Date.now() };
+                set(ref(window.firebaseDb, 'storeOrders/' + orderId), order).then(() => {
+                    this.currentUser.points = myPoints - (p.pricePoints || 0);
+                    this.saveUserData();
+                    this.syncUserToDatabase();
+                    this.showToast('✅ تم شراء "' + p.title + '" بنجاح!');
+                }).catch((err) => {
+                    console.warn('Buy now failed:', err);
+                    this.showToast('تعذر إتمام الشراء — حاول مجدداً');
+                });
+            },
+
+            // ---- My Store (seller dashboard) ----
+            goToMyStore() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('myStoreView');
+                this.listenForMyStore();
+                lucide.createIcons();
+            },
+
+            listenForMyStore() {
+                if (!window.firebaseDb || !this.authUid || this._myStoreListener) { this.renderMyStoreView(); return; }
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._myStoreListener = onValue(ref(window.firebaseDb, 'stores/' + this.authUid), (snap) => {
+                    this.myStoreInfo = snap.exists() ? snap.val() : null;
+                    if (this.myStoreInfo && this.myStoreInfo.status === 'approved') this.listenForMyStoreProducts();
+                    if (this.currentView === 'myStoreView') this.renderMyStoreView();
+                });
+            },
+
+            listenForMyStoreProducts() {
+                if (!window.firebaseDb || !this.authUid || this._myStoreProductsListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._myStoreProductsListener = onValue(ref(window.firebaseDb, 'storeProducts'), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((id) => {
+                            const p = vals[id];
+                            if (p && p.ownerUid === this.authUid) list.push(p);
+                        });
+                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+                    }
+                    myStoreProducts.length = 0;
+                    myStoreProducts.push(...list);
+                    if (this.currentView === 'myStoreView') this.renderMyStoreView();
+                });
+            },
+
+            renderMyStoreView() {
+                const content = document.getElementById('myStoreContent');
+                if (!content) return;
+                const store = this.myStoreInfo;
+                if (!store) {
+                    content.innerHTML = `
+                        <div class="flex flex-col items-center text-center py-8">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
+                                <i data-lucide="store" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                            </div>
+                            <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">ما عندك متجر بعد</h3>
+                            <p class="text-sm mb-6 max-w-[280px] theme-transition" style="color: var(--text2);">افتح متجرك الخاص وابدأ ببيع القرطاسية والكتب والملازم لزملائك — يحتاج موافقة الإدارة أول ما تنشئه</p>
+                            <button onclick="app.openStoreApplicationModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">افتح متجرك</button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+                if (store.status === 'pending') {
+                    content.innerHTML = `
+                        <div class="flex flex-col items-center text-center py-8">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4" style="background-color: var(--update-bg, #FFFBEB);">
+                                <i data-lucide="clock" class="w-10 h-10 text-warning"></i>
+                            </div>
+                            <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">طلبك بانتظار الموافقة</h3>
+                            <p class="text-sm max-w-[280px] theme-transition" style="color: var(--text2);">متجر "${escapeHtml(store.name)}" قيد المراجعة من الإدارة، راح نخبرك أول ما ينتهي</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+                if (store.status === 'rejected') {
+                    content.innerHTML = `
+                        <div class="flex flex-col items-center text-center py-8">
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-error/10">
+                                <i data-lucide="x-circle" class="w-10 h-10 text-error"></i>
+                            </div>
+                            <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">تم رفض طلب متجرك</h3>
+                            ${store.rejectionReason ? `<p class="text-sm mb-4 max-w-[280px] theme-transition" style="color: var(--text2);">السبب: ${escapeHtml(store.rejectionReason)}</p>` : ''}
+                            <button onclick="app.openStoreApplicationModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة التقديم</button>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                    return;
+                }
+                const pendingCount = myStoreProducts.filter(p => p.status === 'pending').length;
+                content.innerHTML = `
+                    <div class="flex items-center gap-3 p-4 rounded-2xl border mb-4 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${personAvatarSrc(store.logo, store.name)}" class="w-14 h-14 rounded-2xl object-cover flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(store.name)}</div>
+                            <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(storeCategories[store.category] || '')}</div>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-full bg-success/10 text-success">مفعّل</span>
+                    </div>
+                    <button onclick="app.openAddProductModal()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mb-4 flex items-center justify-center gap-2"><i data-lucide="plus" class="w-4 h-4"></i>أضف منتج جديد</button>
+                    ${pendingCount > 0 ? `<p class="text-xs mb-3 theme-transition" style="color: var(--text2);">لديك ${pendingCount} منتج قيد المراجعة</p>` : ''}
+                    <h3 class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">منتجاتك</h3>
+                    <div class="flex flex-col gap-2">
+                        ${myStoreProducts.length === 0 ? `<p class="text-sm text-center py-8 theme-transition" style="color: var(--text2);">لم تنشر أي منتج بعد</p>` : myStoreProducts.map(p => this.createMyStoreProductRow(p)).join('')}
+                    </div>
+                `;
+                lucide.createIcons();
+            },
+
+            createMyStoreProductRow(p) {
+                const statusMap = { pending: { label: 'قيد المراجعة', color: '#F59E0B' }, approved: { label: 'منشور', color: '#16A34A' }, rejected: { label: 'مرفوض', color: '#DC2626' } };
+                const st = statusMap[p.status] || statusMap.pending;
+                return `
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <img src="${safeImage(p.imageUrl)}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(p.title)}</div>
+                            <div class="text-xs font-bold mt-0.5" style="color: ${st.color};">${st.label}</div>
+                            <div class="text-xs theme-transition" style="color: var(--text2);">${(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                        </div>
+                        <button onclick="app.deleteMyStoreProduct(${p.id})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
+                    </div>
+                `;
+            },
+
+            deleteMyStoreProduct(productId) {
+                if (!window.firebaseDb) return;
+                const { ref, remove } = window.firebaseDbHelpers;
+                remove(ref(window.firebaseDb, 'storeProducts/' + productId)).then(() => {
+                    this.showToast('تم حذف المنتج');
+                }).catch(() => { this.showToast('تعذر الحذف'); });
+            },
+
+            openStoreApplicationModal() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'افتح متجرك';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                this._pendingStoreLogo = null;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div class="flex flex-col items-center mb-1">
+                            <div class="avatar-container relative w-20 h-20 mb-2 cursor-pointer" onclick="document.getElementById('storeApplyLogoInput').click()">
+                                <img id="storeApplyLogoPreview" src="https://ui-avatars.com/api/?name=Store&background=2563EB&color=fff&size=200" class="w-full h-full rounded-2xl object-cover border-2" style="border-color: var(--border);">
+                                <div class="avatar-overlay absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center"><i data-lucide="camera" class="w-5 h-5 text-white"></i></div>
+                            </div>
+                            <input type="file" id="storeApplyLogoInput" accept="image/*" class="hidden" onchange="app.previewStoreLogo(event)">
+                            <span class="text-xs theme-transition" style="color: var(--text2);">شعار المتجر (اختياري)</span>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">اسم المتجر</label>
+                            <input type="text" id="storeApplyName" placeholder="مثال: مكتبة الأمل" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">وصف قصير</label>
+                            <textarea id="storeApplyDesc" rows="3" placeholder="شنو تبيع بمتجرك؟" class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">التصنيف الرئيسي</label>
+                            <select id="storeApplyCategory" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
+                                ${Object.keys(storeCategories).filter(k => k !== 'all').map(k => `<option value="${k}">${storeCategories[k]}</option>`).join('')}
+                            </select>
+                        </div>
+                        <button id="storeApplySubmitBtn" onclick="app.submitStoreApplication()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">إرسال طلب فتح المتجر</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            previewStoreLogo(event) {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const preview = document.getElementById('storeApplyLogoPreview');
+                    if (preview) preview.src = e.target.result;
+                    this._pendingStoreLogo = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            },
+
+            submitStoreApplication() {
+                const nameEl = document.getElementById('storeApplyName');
+                const descEl = document.getElementById('storeApplyDesc');
+                const catEl = document.getElementById('storeApplyCategory');
+                if (!nameEl || !descEl || !catEl || !this.currentUser) return;
+                const name = nameEl.value.trim();
+                if (!name) {
+                    this.showToast('أدخل اسم المتجر');
+                    return;
+                }
+                if (!window.firebaseDb) {
+                    this.showToast('لا يوجد اتصال بقاعدة البيانات');
+                    return;
+                }
+                const nameFilter = filterBadWords(name);
+                const descFilter = filterBadWords(descEl.value.trim());
+                const btn = document.getElementById('storeApplySubmitBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'جاري الإرسال...'; }
+                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
+                const payload = {
+                    ownerUid: this.authUid,
+                    ownerName: this.currentUser.fullName || 'طالب',
+                    name: nameFilter.clean,
+                    description: descFilter.clean,
+                    category: catEl.value,
+                    logo: this._pendingStoreLogo || '',
+                    status: 'pending',
+                    createdAt: serverTimestamp()
+                };
+                set(ref(window.firebaseDb, 'stores/' + this.authUid), payload).then(() => {
+                    this._pendingStoreLogo = null;
+                    this.closeWalletModal();
+                    this.showToast('✅ تم إرسال طلبك، بانتظار موافقة الإدارة');
+                }).catch((err) => {
+                    console.warn('Store application failed:', err);
+                    this.showToast('تعذر إرسال الطلب — حاول مجدداً');
+                    if (btn) { btn.disabled = false; btn.textContent = 'إرسال طلب فتح المتجر'; }
+                });
+            },
+
+            openAddProductModal() {
+                if (!this.myStoreInfo || this.myStoreInfo.status !== 'approved') {
+                    this.showToast('متجرك لازم يكون مفعّل أول');
+                    return;
+                }
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'منتج جديد';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">صورة المنتج</label>
+                            <input type="file" id="storeProductImage" accept="image/*" onchange="app.previewStoreProductImage(event)" class="w-full text-sm">
+                            <img id="storeProductImagePreview" class="hidden mt-2 rounded-xl w-full max-h-48 object-cover" alt="معاينة">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">اسم المنتج</label>
+                            <input type="text" id="storeProductTitle" placeholder="مثال: دفتر 100 ورقة" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">الوصف</label>
+                            <textarea id="storeProductDesc" rows="3" placeholder="تفاصيل المنتج..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">التصنيف</label>
+                            <select id="storeProductCategory" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
+                                ${Object.keys(storeCategories).filter(k => k !== 'all').map(k => `<option value="${k}">${storeCategories[k]}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">السعر بالنقاط</label>
+                            <input type="number" id="storeProductPrice" min="1" placeholder="مثال: 500" class="w-full h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
+                        </div>
+                        <button id="storeProductSubmitBtn" onclick="app.submitStoreProduct()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر المنتج (للمراجعة)</button>
+                    </div>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            previewStoreProductImage(event) {
+                const file = event.target.files && event.target.files[0];
+                const preview = document.getElementById('storeProductImagePreview');
+                if (!file || !preview) return;
+                const reader = new FileReader();
+                reader.onload = (e) => { preview.src = e.target.result; preview.classList.remove('hidden'); };
+                reader.readAsDataURL(file);
+            },
+
+            async submitStoreProduct() {
+                const imageEl = document.getElementById('storeProductImage');
+                const titleEl = document.getElementById('storeProductTitle');
+                const descEl = document.getElementById('storeProductDesc');
+                const catEl = document.getElementById('storeProductCategory');
+                const priceEl = document.getElementById('storeProductPrice');
+                if (!titleEl || !descEl || !catEl || !priceEl || !this.currentUser || !this.myStoreInfo) return;
+                const title = titleEl.value.trim();
+                const price = parseInt(priceEl.value, 10);
+                const imageFile = imageEl && imageEl.files && imageEl.files[0];
+                if (!title) { this.showToast('أدخل اسم المنتج'); return; }
+                if (!imageFile) { this.showToast('أضف صورة للمنتج'); return; }
+                if (!price || price < 1) { this.showToast('أدخل سعر صحيح بالنقاط'); return; }
+                if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
+                const btn = document.getElementById('storeProductSubmitBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'جاري النشر...'; }
+                const titleFilter = filterBadWords(title);
+                const descFilter = filterBadWords(descEl.value.trim());
+                const imageUrl = await compressForumImage(imageFile);
+                if (!imageUrl) {
+                    this.showToast('تعذرت معالجة الصورة');
+                    if (btn) { btn.disabled = false; btn.textContent = 'نشر المنتج (للمراجعة)'; }
+                    return;
+                }
+                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
+                const id = Date.now();
+                const payload = {
+                    id, storeId: this.authUid, ownerUid: this.authUid,
+                    storeName: this.myStoreInfo.name, storeLogo: this.myStoreInfo.logo || '',
+                    title: titleFilter.clean, description: descFilter.clean,
+                    category: catEl.value, pricePoints: price,
+                    imageUrl, status: 'pending', likes: {}, createdAt: serverTimestamp()
+                };
+                set(ref(window.firebaseDb, 'storeProducts/' + id), payload).then(() => {
+                    this.closeWalletModal();
+                    this.showToast('✅ تم إرسال منتجك للمراجعة');
+                }).catch((err) => {
+                    console.warn('Product publish failed:', err);
+                    this.showToast('تعذر النشر — حاول مجدداً');
+                    if (btn) { btn.disabled = false; btn.textContent = 'نشر المنتج (للمراجعة)'; }
+                });
+            },
+
             // ==================== LIVE DUELS ====================
             goToDuels() {
                 // Gated for now: reworking this into a bigger feature (live challenge +
@@ -8710,6 +9384,7 @@
                 else if (tab === 'resources') this.goToResources();
                 else if (tab === 'leaderboard') this.goToLeaderboard();
                 else if (tab === 'wallet') this.goToWallet();
+                else if (tab === 'store') this.goToStore();
                 else if (tab === 'saved') this.goToSaved();
                 else if (tab === 'notifications') this.goToNotifications();
                 else if (tab === 'messages') this.goToMessages();
@@ -8776,7 +9451,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
@@ -8787,6 +9462,7 @@
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
+                document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
                 window.scrollTo(0, 0);
 
                 if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
@@ -8797,6 +9473,7 @@
                 else if (viewId === 'messagesView') this.updateNavActive('messages');
                 else if (viewId === 'profileView') this.updateNavActive('profile');
                 else if (viewId === 'moreView') this.updateNavActive('more');
+                else if (viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView') this.updateNavActive('store');
             },
 
             updateNavActive(tab) {
