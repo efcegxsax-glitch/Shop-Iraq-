@@ -203,6 +203,15 @@
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .chat-bubble-in { animation: chatBubbleIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        @keyframes voiceRecBarPulse { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+        .voice-rec-bar { width: 3px; height: 16px; border-radius: 2px; background: var(--error); animation: voiceRecBarPulse 0.9s ease-in-out infinite; }
+        .voice-rec-bar:nth-child(1) { animation-delay: 0s; }
+        .voice-rec-bar:nth-child(2) { animation-delay: 0.12s; }
+        .voice-rec-bar:nth-child(3) { animation-delay: 0.24s; }
+        .voice-rec-bar:nth-child(4) { animation-delay: 0.36s; }
+        .voice-rec-bar:nth-child(5) { animation-delay: 0.48s; }
+        .voice-rec-bar:nth-child(6) { animation-delay: 0.24s; }
+        .voice-rec-bar:nth-child(7) { animation-delay: 0.12s; }
         .skeleton {
             background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
             background-size: 200% 100%;
@@ -1609,6 +1618,9 @@
                 </div>
                 <div id="chatVoiceRecordingBar" class="hidden flex-1 flex items-center gap-2 h-12 px-4 rounded-xl theme-transition" style="background-color: var(--input-bg);">
                     <span class="w-2.5 h-2.5 rounded-full bg-error animate-pulse flex-shrink-0"></span>
+                    <div class="flex items-center gap-[3px] flex-shrink-0" style="height: 16px;">
+                        <span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span>
+                    </div>
                     <span class="text-sm font-bold flex-shrink-0 theme-transition" id="chatVoiceRecordingTime" style="color: var(--text);">0:00</span>
                     <span id="chatVoiceCancelHint" class="text-xs font-bold flex-1 text-center theme-transition" style="color: var(--text2);">⬆ اسحب للإلغاء</span>
                 </div>
@@ -7551,6 +7563,16 @@
                 this.updateChatSendMode();
                 this.renderChatMessages();
                 this.switchView('chatThreadView');
+                // Start streaming messages immediately with default filters (clearedAt=0,
+                // deletedFor={}) instead of waiting on the 3 metadata get() calls below —
+                // for the overwhelming majority of chats those are empty anyway, and
+                // gating the message listener behind them was adding a full extra
+                // round-trip of latency before anything appeared. If the metadata turns
+                // out to be non-default (the user had actually cleared this chat or
+                // deleted specific messages), the listener is re-armed with the correct
+                // filters — listenForChatMessages() already tears down any previous
+                // listener first, so this is safe to call twice.
+                this.listenForChatMessages();
                 if (window.firebaseDb && this.authUid) {
                     const { ref, get } = window.firebaseDbHelpers;
                     const chatId = this.getChatId(otherUid);
@@ -7559,12 +7581,15 @@
                         get(ref(window.firebaseDb, 'privateChats/' + chatId + '/deletedFor/' + this.authUid)),
                         get(ref(window.firebaseDb, 'blockedUsers/' + otherUid + '/' + this.authUid))
                     ]).then(([clearedSnap, deletedSnap, blockedSnap]) => {
-                        this.currentChatClearedAt = clearedSnap.exists() ? clearedSnap.val() : 0;
-                        this.currentChatDeletedFor = deletedSnap.exists() ? deletedSnap.val() : {};
+                        const clearedAt = clearedSnap.exists() ? clearedSnap.val() : 0;
+                        const deletedFor = deletedSnap.exists() ? deletedSnap.val() : {};
                         this.blockedByOtherInChat = blockedSnap.exists();
                         if (this.blockedByOtherInChat) this.showToast('⚠️ هذا المستخدم قيّد التواصل معك');
-                        this.listenForChatMessages();
-                    }).catch(() => { this.listenForChatMessages(); });
+                        const changed = clearedAt !== this.currentChatClearedAt || JSON.stringify(deletedFor) !== JSON.stringify(this.currentChatDeletedFor);
+                        this.currentChatClearedAt = clearedAt;
+                        this.currentChatDeletedFor = deletedFor;
+                        if (changed) this.listenForChatMessages();
+                    }).catch(() => {});
                 }
                 this.listenForReadReceipts();
                 this.markChatRead();
@@ -7627,14 +7652,15 @@
                     if (m.type === 'image') {
                         bodyHtml = `<img src="${safeImage(m.imageUrl)}" class="rounded-xl block" style="max-width: 220px; max-height: 280px; object-fit: cover;" alt="صورة">`;
                     } else if (m.type === 'voice') {
-                        const mm = Math.floor((m.duration || 0) / 60);
-                        const ss = String((m.duration || 0) % 60).padStart(2, '0');
+                        const totalDuration = Math.max(0, Math.round(m.duration || 0));
+                        const mm = Math.floor(totalDuration / 60);
+                        const ss = String(totalDuration % 60).padStart(2, '0');
                         bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
                                 <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${m.id})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
                                 <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
-                                <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0">${mm}:${ss}</span>
+                                <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0" data-total="${totalDuration}">${mm}:${ss}</span>
                                 <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${m.id})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
-                                <audio id="voiceAudio-${m.id}" src="${m.audioUrl}" class="hidden" preload="none" onplay="app.onVoicePlay(${m.id})" onpause="app.onVoicePause(${m.id})" onended="app.onVoiceEnded(${m.id})" ontimeupdate="app.onVoiceTimeUpdate(${m.id})"></audio>
+                                <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${m.audioUrl}" class="hidden" preload="none" onplay="app.onVoicePlay(${m.id})" onpause="app.onVoicePause(${m.id})" onended="app.onVoiceEnded(${m.id})" ontimeupdate="app.onVoiceTimeUpdate(${m.id})"></audio>
                             </div>`;
                     } else if (m.type === 'file') {
                         bodyHtml = `<a href="${m.fileUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
@@ -8083,7 +8109,12 @@
                 this._voiceStream = null;
                 this._voiceChunks = [];
                 this._voiceStartTime = null;
-                if (!shouldSend || chunks.length === 0 || durationSecs < 1) return;
+                if (!shouldSend) return;
+                if (chunks.length === 0 || durationSecs < 1) {
+                    this.showToast('الرسالة الصوتية قصيرة جداً');
+                    return;
+                }
+                this.showToast('جاري إرسال الرسالة الصوتية...');
                 const blob = new Blob(chunks, { type: 'audio/webm' });
                 const reader = new FileReader();
                 reader.onload = () => {
@@ -8124,6 +8155,15 @@
                 if (progress) progress.style.width = '0%';
                 const audio = document.getElementById('voiceAudio-' + msgId);
                 if (audio) audio.currentTime = 0;
+                this._resetVoiceDurationLabel(msgId);
+            },
+
+            _resetVoiceDurationLabel(msgId) {
+                const durationEl = document.getElementById('voiceDuration-' + msgId);
+                if (durationEl && durationEl.dataset.total) {
+                    const total = Number(durationEl.dataset.total) || 0;
+                    durationEl.textContent = Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
+                }
             },
 
             onVoiceTimeUpdate(msgId) {
@@ -8131,9 +8171,15 @@
                 const progress = document.getElementById('voiceProgress-' + msgId);
                 const durationEl = document.getElementById('voiceDuration-' + msgId);
                 if (!audio) return;
-                if (progress && audio.duration) progress.style.width = ((audio.currentTime / audio.duration) * 100) + '%';
-                if (durationEl && audio.duration) {
-                    const remaining = Math.max(0, Math.floor(audio.duration - audio.currentTime));
+                // audio.duration is unreliable for MediaRecorder-produced webm blobs
+                // (often reports Infinity/NaN since the container lacks a proper
+                // duration header) — use the wall-clock duration recorded at capture
+                // time and stored on the message instead, which is always accurate.
+                const totalDuration = Number(audio.dataset.duration) || 0;
+                if (totalDuration <= 0) return;
+                if (progress) progress.style.width = Math.min(100, (audio.currentTime / totalDuration) * 100) + '%';
+                if (durationEl) {
+                    const remaining = Math.max(0, Math.round(totalDuration - audio.currentTime));
                     const m = Math.floor(remaining / 60);
                     const s = remaining % 60;
                     durationEl.textContent = m + ':' + String(s).padStart(2, '0');
