@@ -406,8 +406,6 @@
         .store-card-gradient { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.1) 38%, rgba(0,0,0,0.4) 100%); pointer-events: none; }
         .store-card-actions { position: absolute; left: 12px; bottom: 118px; display: flex; flex-direction: column; gap: 20px; align-items: center; z-index: 2; }
         .store-card-info { position: absolute; right: 16px; left: 72px; bottom: 24px; z-index: 2; }
-        .store-cat-tab { background: rgba(255,255,255,0.18); color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); white-space: nowrap; border: none; }
-        .store-cat-tab.active { background: #fff; color: #0F172A; }
         .store-action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; background: none; border: none; }
 
         /* Animated streak flame (replaces the static emoji) */
@@ -1800,23 +1798,13 @@
 
         <!-- ===== STORE VIEW (Reels-style marketplace) ===== -->
         <div id="storeView" class="hidden page-slide-rtl">
-            <div class="fixed top-0 right-0 left-0 z-40 flex items-center gap-2 px-3" style="padding-top: calc(0.75rem + env(safe-area-inset-top)); padding-bottom: 0.5rem;">
+            <div class="fixed top-0 right-0 left-0 z-40 flex items-center justify-between px-3" style="padding-top: calc(0.75rem + env(safe-area-inset-top)); padding-bottom: 0.5rem;">
                 <button onclick="app.goBack()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: rgba(0,0,0,0.45);">
                     <i data-lucide="chevron-right" class="w-5 h-5 text-white"></i>
                 </button>
-                <div class="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar" id="storeCategoryTabs">
-                    <button onclick="app.setStoreCategory('all')" class="store-cat-tab active flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="all">الكل</button>
-                    <button onclick="app.setStoreCategory('stationery')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="stationery">قرطاسية</button>
-                    <button onclick="app.setStoreCategory('books')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="books">كتب</button>
-                    <button onclick="app.setStoreCategory('notes')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="notes">ملازم</button>
-                    <button onclick="app.setStoreCategory('supplies')" class="store-cat-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-bold" data-cat="supplies">مستلزمات</button>
-                </div>
-                <button onclick="app.openStoreCart()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center relative flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="السلة">
-                    <i data-lucide="shopping-cart" class="w-4 h-4 text-white"></i>
-                    <span id="storeCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
-                </button>
-                <button onclick="app.goToMyStore()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="متجري">
-                    <i data-lucide="briefcase" class="w-4 h-4 text-white"></i>
+                <button onclick="app.goToMyStore()" class="btn-press h-9 px-4 rounded-full flex items-center gap-1.5 flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="متجري">
+                    <i data-lucide="store" class="w-4 h-4 text-white"></i>
+                    <span class="text-white text-xs font-bold">متجري</span>
                 </button>
             </div>
             <div id="storeFeed" class="store-feed"></div>
@@ -2188,6 +2176,27 @@
             return isSafeImageUrl(value) ? value : FALLBACK_IMAGE;
         }
 
+        function isSafeVideoUrl(value) {
+            try {
+                const str = String(value);
+                if (str.startsWith('data:')) {
+                    return /^data:video\/(mp4|webm|ogg|quicktime);base64,/i.test(str);
+                }
+                const url = new URL(str, window.location.href);
+                return url.protocol === 'https:';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function safeVideo(value) {
+            return isSafeVideoUrl(value) ? value : '';
+        }
+
+        function safeStoreMedia(value, mediaType) {
+            return mediaType === 'video' ? safeVideo(value) : safeImage(value);
+        }
+
         function personAvatarSrc(avatar, name) {
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
@@ -2464,7 +2473,6 @@
             currentView: 'homeView',
             previousView: null,
             activeCategory: 'all',
-            activeStoreCategory: 'all',
             myStoreInfo: null,
             activeNotifFilter: 'all',
             activeStage: 'sixth-science',
@@ -8402,20 +8410,11 @@
                 });
             },
 
-            setStoreCategory(cat) {
-                this.activeStoreCategory = cat;
-                document.querySelectorAll('.store-cat-tab').forEach((btn) => {
-                    btn.classList.toggle('active', btn.dataset.cat === cat);
-                });
-                this.renderStoreFeed();
-            },
-
             renderStoreFeed() {
                 const container = document.getElementById('storeFeed');
                 const empty = document.getElementById('storeEmptyState');
                 if (!container || !empty) return;
-                const filtered = this.activeStoreCategory === 'all' ? storeProductsList : storeProductsList.filter(p => p.category === this.activeStoreCategory);
-                if (filtered.length === 0) {
+                if (storeProductsList.length === 0) {
                     container.innerHTML = '';
                     container.classList.add('hidden');
                     empty.classList.remove('hidden');
@@ -8423,17 +8422,43 @@
                 }
                 container.classList.remove('hidden');
                 empty.classList.add('hidden');
-                container.innerHTML = filtered.map(p => this.createStoreProductCard(p)).join('');
+                container.innerHTML = storeProductsList.map(p => this.createStoreProductCard(p)).join('');
                 lucide.createIcons();
+                this.setupStoreFeedVideoAutoplay();
+                this.updateStoreCartBadge();
+            },
+
+            setupStoreFeedVideoAutoplay() {
+                const container = document.getElementById('storeFeed');
+                if (!container) return;
+                if (this._storeVideoObserver) this._storeVideoObserver.disconnect();
+                const videos = container.querySelectorAll('video.store-card-media');
+                if (videos.length === 0) return;
+                this._storeVideoObserver = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        const video = entry.target;
+                        if (entry.isIntersecting) {
+                            video.play().catch(() => {});
+                        } else {
+                            video.pause();
+                            video.currentTime = 0;
+                        }
+                    });
+                }, { threshold: 0.6 });
+                videos.forEach((v) => this._storeVideoObserver.observe(v));
             },
 
             createStoreProductCard(p) {
                 const iLiked = !!(p.likes && this.authUid && p.likes[this.authUid]);
                 const likesCount = p.likes ? Object.keys(p.likes).length : 0;
                 const inCart = storeCart.some(c => c.productId === p.id);
+                const isVideo = p.mediaType === 'video';
+                const media = isVideo
+                    ? `<video class="store-card-media" src="${safeVideo(p.imageUrl)}" muted loop playsinline preload="metadata"></video>`
+                    : `<img src="${safeImage(p.imageUrl)}" class="store-card-media" alt="${escapeHtml(p.title)}">`;
                 return `
                     <div class="store-card" data-product-id="${p.id}">
-                        <img src="${safeImage(p.imageUrl)}" class="store-card-media" alt="${escapeHtml(p.title)}">
+                        ${media}
                         <div class="store-card-gradient"></div>
                         <div class="store-card-actions">
                             <button class="store-action-btn" onclick="app.openStoreOwnerProfile(${p.id})">
@@ -8446,6 +8471,13 @@
                             <button class="store-action-btn" onclick="app.addToCart(${p.id})">
                                 <i data-lucide="${inCart ? 'check-circle-2' : 'shopping-cart'}" class="w-7 h-7" style="color: ${inCart ? '#4ADE80' : '#fff'};"></i>
                                 <span class="text-white text-[11px] font-bold">${inCart ? 'مضافة' : 'أضف'}</span>
+                            </button>
+                            <button class="store-action-btn" onclick="app.openStoreCart()">
+                                <div class="relative">
+                                    <i data-lucide="shopping-bag" class="w-7 h-7 text-white"></i>
+                                    <span class="store-card-cart-badge hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
+                                </div>
+                                <span class="text-white text-[11px] font-bold">السلة</span>
                             </button>
                             <button class="store-action-btn" onclick="app.buyProductNow(${p.id})">
                                 <div class="w-10 h-10 rounded-full bg-primary flex items-center justify-center"><i data-lucide="zap" class="w-5 h-5 text-white"></i></div>
@@ -8500,10 +8532,8 @@
 
             updateStoreCartBadge() {
                 const count = storeCart.length;
-                ['storeCartBadge', 'navStoreCartBadge'].forEach((id) => {
-                    const badge = document.getElementById(id);
-                    if (badge) { badge.classList.toggle('hidden', count === 0); badge.textContent = count; }
-                });
+                const badges = document.querySelectorAll('#navStoreCartBadge, .store-card-cart-badge');
+                badges.forEach((badge) => { badge.classList.toggle('hidden', count === 0); badge.textContent = count; });
             },
 
             addToCart(productId) {
@@ -8522,9 +8552,8 @@
                     this.showToast('المنتج موجود بالسلة أصلاً');
                     return;
                 }
-                storeCart.push({ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, imageUrl: p.imageUrl, pricePoints: p.pricePoints, storeName: p.storeName });
+                storeCart.push({ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, imageUrl: p.imageUrl, mediaType: p.mediaType || 'image', pricePoints: p.pricePoints, storeName: p.storeName });
                 this.saveStoreCart();
-                this.updateStoreCartBadge();
                 this.renderStoreFeed();
                 this.showToast('✅ أُضيف للسلة');
             },
@@ -8561,7 +8590,9 @@
                 summary.classList.remove('hidden');
                 list.innerHTML = storeCart.map(c => `
                     <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <img src="${safeImage(c.imageUrl)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0">
+                        ${c.mediaType === 'video'
+                            ? `<video src="${safeVideo(c.imageUrl)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" muted preload="metadata"></video>`
+                            : `<img src="${safeImage(c.imageUrl)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0">`}
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(c.title)}</div>
                             <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(c.storeName || 'متجر')}</div>
@@ -8750,7 +8781,9 @@
                 const st = statusMap[p.status] || statusMap.pending;
                 return `
                     <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <img src="${safeImage(p.imageUrl)}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">
+                        ${p.mediaType === 'video'
+                            ? `<video src="${safeVideo(p.imageUrl)}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0" muted preload="metadata"></video>`
+                            : `<img src="${safeImage(p.imageUrl)}" class="w-14 h-14 rounded-xl object-cover flex-shrink-0">`}
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(p.title)}</div>
                             <div class="text-xs font-bold mt-0.5" style="color: ${st.color};">${st.label}</div>
@@ -8870,9 +8903,11 @@
                 content.innerHTML = `
                     <div class="flex flex-col gap-3">
                         <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">صورة المنتج</label>
-                            <input type="file" id="storeProductImage" accept="image/*" onchange="app.previewStoreProductImage(event)" class="w-full text-sm">
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">صورة أو فيديو قصير للمنتج</label>
+                            <input type="file" id="storeProductImage" accept="image/*,video/*" onchange="app.previewStoreProductImage(event)" class="w-full text-sm">
+                            <p class="text-xs mt-1 theme-transition" style="color: var(--text2);">فيديو قصير أفضل لعرض المنتج — بحد أقصى 15MB</p>
                             <img id="storeProductImagePreview" class="hidden mt-2 rounded-xl w-full max-h-48 object-cover" alt="معاينة">
+                            <video id="storeProductVideoPreview" class="hidden mt-2 rounded-xl w-full max-h-48 object-cover" muted playsinline controls></video>
                         </div>
                         <div>
                             <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">اسم المنتج</label>
@@ -8901,11 +8936,21 @@
 
             previewStoreProductImage(event) {
                 const file = event.target.files && event.target.files[0];
-                const preview = document.getElementById('storeProductImagePreview');
-                if (!file || !preview) return;
-                const reader = new FileReader();
-                reader.onload = (e) => { preview.src = e.target.result; preview.classList.remove('hidden'); };
-                reader.readAsDataURL(file);
+                const imgPreview = document.getElementById('storeProductImagePreview');
+                const vidPreview = document.getElementById('storeProductVideoPreview');
+                if (!file || !imgPreview || !vidPreview) return;
+                imgPreview.classList.add('hidden');
+                vidPreview.pause();
+                vidPreview.removeAttribute('src');
+                vidPreview.classList.add('hidden');
+                const url = URL.createObjectURL(file);
+                if (file.type.startsWith('video/')) {
+                    vidPreview.src = url;
+                    vidPreview.classList.remove('hidden');
+                } else {
+                    imgPreview.src = url;
+                    imgPreview.classList.remove('hidden');
+                }
             },
 
             async submitStoreProduct() {
@@ -8917,18 +8962,28 @@
                 if (!titleEl || !descEl || !catEl || !priceEl || !this.currentUser || !this.myStoreInfo) return;
                 const title = titleEl.value.trim();
                 const price = parseInt(priceEl.value, 10);
-                const imageFile = imageEl && imageEl.files && imageEl.files[0];
+                const mediaFile = imageEl && imageEl.files && imageEl.files[0];
                 if (!title) { this.showToast('أدخل اسم المنتج'); return; }
-                if (!imageFile) { this.showToast('أضف صورة للمنتج'); return; }
+                if (!mediaFile) { this.showToast('أضف صورة أو فيديو للمنتج'); return; }
                 if (!price || price < 1) { this.showToast('أدخل سعر صحيح بالنقاط'); return; }
                 if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
+                const isVideo = mediaFile.type.startsWith('video/');
+                if (isVideo && mediaFile.size > 15 * 1024 * 1024) {
+                    this.showToast('الفيديو كبير جداً — اختر فيديو أقصر (أقل من 15MB)');
+                    return;
+                }
                 const btn = document.getElementById('storeProductSubmitBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري النشر...'; }
                 const titleFilter = filterBadWords(title);
                 const descFilter = filterBadWords(descEl.value.trim());
-                const imageUrl = await compressForumImage(imageFile);
-                if (!imageUrl) {
-                    this.showToast('تعذرت معالجة الصورة');
+                const mediaUrl = isVideo ? await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = () => resolve(null);
+                    reader.readAsDataURL(mediaFile);
+                }) : await compressForumImage(mediaFile);
+                if (!mediaUrl) {
+                    this.showToast('تعذرت معالجة الملف');
                     if (btn) { btn.disabled = false; btn.textContent = 'نشر المنتج (للمراجعة)'; }
                     return;
                 }
@@ -8939,7 +8994,8 @@
                     storeName: this.myStoreInfo.name, storeLogo: this.myStoreInfo.logo || '',
                     title: titleFilter.clean, description: descFilter.clean,
                     category: catEl.value, pricePoints: price,
-                    imageUrl, status: 'pending', likes: {}, createdAt: serverTimestamp()
+                    imageUrl: mediaUrl, mediaType: isVideo ? 'video' : 'image',
+                    status: 'pending', likes: {}, createdAt: serverTimestamp()
                 };
                 set(ref(window.firebaseDb, 'storeProducts/' + id), payload).then(() => {
                     this.closeWalletModal();

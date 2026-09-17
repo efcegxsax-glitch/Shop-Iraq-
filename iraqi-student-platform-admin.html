@@ -22,7 +22,7 @@
         .chk input { width: 18px; height: 18px; }
         #toast { position: fixed; bottom: 20px; right: 20px; left: 20px; background: #16A34A; color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 700; text-align: center; display: none; z-index: 99; }
         .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #0F172A; border: 1px solid #334155; border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
-        .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+        .row-item img, .row-item video { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
         .row-item .del { margin-inline-start: auto; background: #DC2626; color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
     </style>
 </head>
@@ -690,9 +690,9 @@
             if (list.length === 0) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد منتجات</p>'; return; }
             box.innerHTML = list.map(p => `
                 <div class="row-item" style="align-items:flex-start;">
-                    <img src="${escapeHtml(p.imageUrl || '')}" alt="">
+                    ${p.mediaType === 'video' ? `<video src="${escapeHtml(p.imageUrl || '')}" muted preload="metadata"></video>` : `<img src="${escapeHtml(p.imageUrl || '')}" alt="">`}
                     <div class="flex-1 min-w-0">
-                        <div class="font-bold truncate">${escapeHtml(p.title || '')}</div>
+                        <div class="font-bold truncate">${escapeHtml(p.title || '')} ${p.mediaType === 'video' ? '🎬' : ''}</div>
                         <div class="text-slate-400 text-xs">${escapeHtml(p.storeName || '')} • ${escapeHtml(CATEGORY_LABELS[p.category] || p.category || '')} • ${Number(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
                     </div>
                     ${p.status === 'pending' ? `
