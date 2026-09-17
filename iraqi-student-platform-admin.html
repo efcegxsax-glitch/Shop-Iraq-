@@ -13,6 +13,8 @@
         .card { background: #1E293B; border: 1px solid #334155; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
         .tab { padding: 10px 18px; border-radius: 999px; font-size: 14px; font-weight: 700; cursor: pointer; background: #334155; border: none; color: #CBD5E1; white-space: nowrap; }
         .tab.active { background: #2563EB; color: #fff; }
+        .subtab { padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: #334155; border: none; color: #CBD5E1; white-space: nowrap; }
+        .subtab.active { background: #2563EB; color: #fff; }
         .btn { background: #2563EB; color: #fff; font-weight: 700; border-radius: 12px; padding: 12px 24px; cursor: pointer; border: none; font-size: 14px; }
         .btn:disabled { opacity: .6; }
         .btn-danger { background: #DC2626; }
@@ -43,6 +45,7 @@
             <button class="tab" data-tab="ticker">📢 الشريط الإخباري</button>
             <button class="tab" data-tab="exams">🗓️ جدول الامتحانات</button>
             <button class="tab" data-tab="holidays">🎉 العطل الرسمية</button>
+            <button class="tab" data-tab="topup">💳 أكواد تعبئة</button>
             <button class="tab" data-tab="ban">🚫 حظر طالب</button>
         </div>
 
@@ -224,6 +227,27 @@
             </div>
         </div>
 
+        <!-- Topup Codes -->
+        <div id="sec-topup" class="hidden">
+            <div class="card">
+                <label>قيمة الكود (بالدينار العراقي) *</label>
+                <input type="number" id="tc_value" placeholder="مثال: 5000 أو 10000 أو 25000" min="250" step="250">
+                <label class="mt-3">عدد الأكواد المطلوب توليدها</label>
+                <input type="number" id="tc_count" value="1" min="1" max="50">
+                <button class="btn w-full mt-4" id="tc_generate">توليد الأكواد</button>
+                <p class="text-xs text-slate-500 mt-2">كل كود يُستخدم مرة واحدة فقط من طالب واحد فقط — بعدها يصبح غير صالح تلقائياً.</p>
+            </div>
+            <div class="card">
+                <h3 class="font-bold mb-3 text-sm">📋 الأكواد المولّدة</h3>
+                <div class="flex gap-2 mb-3">
+                    <button class="subtab active" data-tcf="all" onclick="setTopupFilter('all')">الكل</button>
+                    <button class="subtab" data-tcf="unused" onclick="setTopupFilter('unused')">غير مستخدمة</button>
+                    <button class="subtab" data-tcf="used" onclick="setTopupFilter('used')">مستخدمة</button>
+                </div>
+                <div id="topupList"></div>
+            </div>
+        </div>
+
         <!-- Ban Student -->
         <div id="sec-ban" class="hidden">
             <div class="card">
@@ -346,7 +370,7 @@
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                ['news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
             });
         });
 
@@ -525,6 +549,63 @@
         };
         el('h_publish').addEventListener('click', publishHoliday);
 
+        // ---------- Topup Codes ----------
+        function generateCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const group = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+            return group() + '-' + group() + '-' + group();
+        }
+        window.generateTopupCodes = async () => {
+            const value = parseInt(val('tc_value'), 10);
+            const count = Math.max(1, Math.min(50, parseInt(val('tc_count'), 10) || 1));
+            if (!value || value < 250) { toast('أدخل قيمة كود صحيحة', false); return; }
+            const btn = el('tc_generate');
+            btn.disabled = true;
+            try {
+                for (let i = 0; i < count; i++) {
+                    const code = generateCode();
+                    await set(ref(db, 'topupCodes/' + code), {
+                        code, value, used: false, usedBy: null, usedAt: null, createdAt: serverTimestamp()
+                    });
+                }
+                toast('✅ تم توليد ' + count + ' كود بقيمة ' + value.toLocaleString('en-US') + ' د.ع');
+                el('tc_value').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('❌ فشل التوليد: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('tc_generate').addEventListener('click', generateTopupCodes);
+
+        let topupCodesData = [];
+        let topupFilter = 'all';
+        window.setTopupFilter = (f) => {
+            topupFilter = f;
+            document.querySelectorAll('[data-tcf]').forEach(b => b.classList.toggle('active', b.dataset.tcf === f));
+            renderTopupList();
+        };
+        function renderTopupList() {
+            const box = el('topupList');
+            if (!box) return;
+            let list = topupCodesData;
+            if (topupFilter === 'unused') list = list.filter(c => !c.used);
+            else if (topupFilter === 'used') list = list.filter(c => c.used);
+            if (list.length === 0) { box.innerHTML = '<p class="text-xs text-slate-500">لا توجد أكواد</p>'; return; }
+            box.innerHTML = list.map(c => `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c.code)}</div>
+                        <div class="text-slate-400 text-xs">${Number(c.value).toLocaleString('en-US')} د.ع ${c.used ? '• مستخدم ✅' : '• غير مستخدم'}</div>
+                    </div>
+                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode('${c.code}')">نسخ</button>`}
+                    <button class="del" onclick="deleteItem('topupCodes', '${c.code}')">حذف</button>
+                </div>`).join('');
+        }
+        window.copyTopupCode = (code) => {
+            (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('📋 تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
+        };
+
         // ---------- Ban Student ----------
         window.banStudent = async () => {
             const number = val('ban_number');
@@ -682,6 +763,10 @@
                         </div>
                         <button class="del" onclick="deleteItem('holidays', ${h.id})">حذف</button>
                     </div>`).join('');
+            });
+            onValue(ref(db, 'topupCodes'), (snap) => {
+                topupCodesData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderTopupList();
             });
             onValue(ref(db, 'bannedStudents'), (snap) => {
                 const box = el('bannedList');

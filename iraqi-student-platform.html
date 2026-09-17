@@ -1793,22 +1793,31 @@
             </div>
             <div id="walletContent">
                 <section class="px-4 pt-4">
-                    <div class="rounded-2xl p-5 relative overflow-hidden shadow-card" style="background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%); border-radius: 16px;">
-                        <div class="flex items-center justify-between mb-5">
+                    <div class="rounded-2xl p-5 relative overflow-hidden shadow-elevated" style="background: linear-gradient(135deg, #0F172A 0%, #1E3A8A 55%, #2563EB 100%); border-radius: 20px;">
+                        <div class="absolute -top-10 -left-10 w-40 h-40 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.06);"></div>
+                        <div class="absolute -bottom-14 -right-6 w-44 h-44 rounded-full pointer-events-none" style="background: rgba(255,255,255,0.05);"></div>
+                        <div class="relative flex items-center justify-between mb-6">
                             <div class="flex items-center gap-2">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="العراق" class="w-8 h-8 object-contain">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="العراق" class="w-8 h-8 object-contain rounded">
                                 <div class="flex flex-col">
                                     <span class="text-sm font-bold text-white leading-tight">منصة الطالب العراقي</span>
-                                    <span class="text-[10px] text-white/70">Iraqi Student Platform</span>
+                                    <span class="text-[10px] text-white/60">Iraqi Student Platform</span>
                                 </div>
                             </div>
+                            <i data-lucide="wifi" class="w-5 h-5 text-white/70 rotate-90"></i>
+                        </div>
+                        <div class="relative w-10 h-7 rounded-md mb-5" style="background: linear-gradient(135deg, #FDE68A, #F59E0B); box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);"></div>
+                        <div class="relative text-white font-bold mb-5" style="font-family: monospace; font-size: 16px; letter-spacing: 3px;" dir="ltr">**** **** **** 4521</div>
+                        <div class="relative flex items-center justify-between">
+                            <div>
+                                <div class="text-white/50 text-[9px] mb-0.5 tracking-wide">CARD HOLDER</div>
+                                <div class="text-white text-sm font-bold" id="walletCardName">الطالب</div>
+                            </div>
                             <div class="flex items-center" style="direction: ltr;">
-                                <div class="w-7 h-7 rounded-full" style="background-color: #EF4444;"></div>
+                                <div class="w-7 h-7 rounded-full" style="background-color: #EB4B4B; opacity: 0.9;"></div>
                                 <div class="w-7 h-7 rounded-full -ml-3" style="background-color: #F59E0B; mix-blend-mode: screen;"></div>
                             </div>
                         </div>
-                        <div class="text-white/80 text-sm mb-1" id="walletCardName">الطالب</div>
-                        <div class="text-white font-bold tracking-widest" style="font-family: monospace; font-size: 14px;" dir="ltr">**** **** **** 4521</div>
                     </div>
                 </section>
                 <section class="px-4 pt-5">
@@ -1839,26 +1848,26 @@
                 <section class="px-4 pt-5">
                     <div class="grid grid-cols-4 gap-3">
                         <button onclick="app.openWithdrawModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);">
-                                <i data-lucide="banknote" class="w-6 h-6" style="color: #2563EB;"></i>
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #60A5FA, #1D4ED8);">
+                                <i data-lucide="arrow-up-right" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">سحب الأموال</span>
                         </button>
-                        <button onclick="app.showToast('إيداع رصيد')" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background-color: #ECFDF5; border: 1px solid #BBF7D0;">
-                                <i data-lucide="piggy-bank" class="w-6 h-6" style="color: #16A34A;"></i>
+                        <button onclick="app.openRedeemCodeModal()" class="btn-press flex flex-col items-center gap-2">
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #34D399, #059669);">
+                                <i data-lucide="ticket" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">إيداع رصيد</span>
                         </button>
                         <button onclick="app.openTransferModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background-color: #F5F3FF; border: 1px solid #DDD6FE;">
-                                <i data-lucide="send" class="w-6 h-6" style="color: #8B5CF6;"></i>
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #A78BFA, #7C3AED);">
+                                <i data-lucide="send" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">تحويل</span>
                         </button>
                         <button onclick="app.showToast('طلب دفع')" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-16 h-16 rounded-2xl flex items-center justify-center" style="background-color: #FFFBEB; border: 1px solid #FDE68A;">
-                                <i data-lucide="file-text" class="w-6 h-6" style="color: #F59E0B;"></i>
+                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-sm" style="background: linear-gradient(135deg, #FBBF24, #D97706);">
+                                <i data-lucide="file-text" class="w-6 h-6 text-white"></i>
                             </div>
                             <span class="text-xs font-medium theme-transition" style="color: var(--text);">طلب دفع</span>
                         </button>
@@ -4630,7 +4639,47 @@
                 this.renderWalletBalance();
                 this.renderWalletPoints();
                 this.renderWalletTransactions();
+                this.listenForWalletTransactions();
                 lucide.createIcons();
+            },
+
+            listenForWalletTransactions() {
+                if (!window.firebaseDb || !this.authUid || this._walletTxListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._walletTxListener = onValue(ref(window.firebaseDb, 'walletTransactions/' + this.authUid), (snap) => {
+                    const list = [];
+                    if (snap.exists()) {
+                        const vals = snap.val();
+                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
+                    }
+                    walletTransactions.length = 0;
+                    walletTransactions.push(...list);
+                    if (this.currentView === 'walletView') this.renderWalletTransactions();
+                });
+            },
+
+            addWalletTransaction(tx) {
+                const now = new Date();
+                const pad = (n) => String(n).padStart(2, '0');
+                const record = {
+                    id: Date.now(),
+                    title: tx.title,
+                    date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
+                    amount: tx.amount,
+                    isNegative: !!tx.isNegative,
+                    icon: tx.icon,
+                    iconColor: tx.iconColor,
+                    iconBg: tx.iconBg
+                };
+                walletTransactions.unshift(record);
+                this.renderWalletTransactions();
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'walletTransactions/' + this.authUid + '/' + record.id), record).catch((err) => {
+                        console.warn('Wallet transaction save failed:', err);
+                    });
+                }
             },
 
             renderWalletPoints() {
@@ -4721,7 +4770,99 @@
                 `).join('');
             },
 
-            showAllTransactions() { this.showToast('عرض جميع المعاملات'); },
+            showAllTransactions() {
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'سجل المعاملات';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = walletTransactions.length === 0
+                    ? '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">لا توجد معاملات بعد</p>'
+                    : '<div class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">' + walletTransactions.map(t => `
+                        <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
+                            <div class="w-10 h-10 rounded-full ${t.iconBg} flex items-center justify-center flex-shrink-0">
+                                <i data-lucide="${t.icon}" class="w-5 h-5 ${t.iconColor}"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold text-sm theme-transition" style="color: var(--text);">${escapeHtml(t.title)}</div>
+                                <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(t.date)}</div>
+                            </div>
+                            <div class="font-bold text-sm flex-shrink-0" style="color: ${t.isNegative ? '#DC2626' : '#16A34A'};" dir="ltr">${escapeHtml(t.amount)}</div>
+                        </div>
+                    `).join('') + '</div>';
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            openRedeemCodeModal() {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('يجب تسجيل الدخول');
+                    this.goToAuth('login');
+                    return;
+                }
+                const titleEl = document.getElementById('walletModalTitle');
+                if (titleEl) titleEl.textContent = 'إيداع رصيد بكود تعبئة';
+                const content = document.getElementById('walletModalContent');
+                if (!content) return;
+                content.innerHTML = `
+                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">أدخل كود التعبئة اللي حصلت عليه، ويتم إضافة قيمته لرصيدك مباشرة</p>
+                    <input type="text" id="topupCodeInput" placeholder="مثال: ABCD-1234-EFGH" class="w-full h-12 px-4 rounded-xl auth-input text-sm mb-3" dir="ltr" style="text-transform: uppercase;">
+                    <button id="topupRedeemBtn" onclick="app.redeemTopupCode()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">تأكيد الإيداع</button>
+                `;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+
+            redeemTopupCode() {
+                const input = document.getElementById('topupCodeInput');
+                if (!input || !this.currentUser) return;
+                const code = input.value.trim().toUpperCase();
+                if (!code) {
+                    this.showToast('أدخل كود التعبئة');
+                    return;
+                }
+                if (!window.firebaseDb) {
+                    this.showToast('لا يوجد اتصال بقاعدة البيانات');
+                    return;
+                }
+                const btn = document.getElementById('topupRedeemBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                const uid = this.currentUid();
+                runTransaction(ref(window.firebaseDb, 'topupCodes/' + code), (current) => {
+                    if (!current || current.used) return;
+                    current.used = true;
+                    current.usedBy = uid;
+                    current.usedAt = Date.now();
+                    return current;
+                }).then((result) => {
+                    if (!result || !result.committed || !result.snapshot.exists() || result.snapshot.val().usedBy !== uid) {
+                        this.showToast('الكود غير صحيح أو مستخدم مسبقاً');
+                        if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
+                        return;
+                    }
+                    const data = result.snapshot.val();
+                    const iqd = Number(data.value) || 0;
+                    const usdAmount = iqd / 1325;
+                    this.currentUser.balance = Math.round(((this.currentUser.balance || 0) + usdAmount) * 100) / 100;
+                    this.saveUserData();
+                    this.syncUserToDatabase();
+                    this.addWalletTransaction({
+                        title: 'إيداع بكود تعبئة',
+                        amount: '+$' + usdAmount.toFixed(2),
+                        isNegative: false,
+                        icon: 'ticket',
+                        iconColor: 'text-success',
+                        iconBg: 'bg-success/10'
+                    });
+                    this.renderWalletBalance();
+                    this.closeWalletModal();
+                    this.showToast('تم إيداع ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك بنجاح');
+                }).catch((err) => {
+                    console.warn('Redeem code failed:', err);
+                    this.showToast('تعذر التحقق من الكود — تحقق من اتصالك وحاول مجدداً');
+                    if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
+                });
+            },
 
             openWithdrawModal() {
                 const titleEl = document.getElementById('walletModalTitle');
@@ -5281,19 +5422,14 @@
                             points: receiverData.points || 0,
                             weeklyChange: receiverData.weeklyChange || 0
                         }).catch((err) => { console.warn('Receiver leaderboard sync failed:', err); });
-                        const now = new Date();
-                        const pad = (n) => String(n).padStart(2, '0');
-                        walletTransactions.unshift({
-                            id: Date.now(),
+                        this.addWalletTransaction({
                             title: 'تحويل إلى ' + (receiver.data.fullName || 'طالب'),
-                            date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
                             amount: '-$' + amount.toFixed(2),
                             isNegative: true,
                             icon: 'send',
                             iconColor: 'text-error',
                             iconBg: 'bg-error/10'
                         });
-                        this.renderWalletTransactions();
                         this.renderWalletBalance();
                         this.transferReceiver = null;
                         content.innerHTML = `
@@ -6456,12 +6592,8 @@
                 this.currentUser.balance = (this.currentUser.balance || 0) + usdAmount;
                 this.saveUserData();
                 this.syncUserToDatabase();
-                const now = new Date();
-                const pad = (n) => String(n).padStart(2, '0');
-                walletTransactions.unshift({
-                    id: Date.now(),
+                this.addWalletTransaction({
                     title: 'استبدال ' + points.toLocaleString('en-US') + ' نقطة',
-                    date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes()),
                     amount: '+$' + usdAmount.toFixed(2),
                     isNegative: false,
                     icon: 'gift',
