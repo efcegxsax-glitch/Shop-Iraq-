@@ -28,7 +28,6 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         // TODO: Add SDKs for Firebase products that you want to use
@@ -58,8 +57,6 @@
             window.firebaseAuth = getAuth(app);
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
             window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
-            window.firebaseStorage = getStorage(app);
-            window.firebaseStorageHelpers = { ref: storageRef, uploadBytes, getDownloadURL };
             window.firebaseMessagingHelpers = { getToken };
 
             // الإشعارات عبر FCM تتطلب متصفحاً وسياقاً آمناً (https + Service Worker) — يجب التحقق قبل getMessaging()
@@ -2105,10 +2102,10 @@
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
 
-        function compressForumImage(file) {
+        function compressForumImage(file, maxWidth) {
             return new Promise((resolve) => {
                 createImageBitmap(file).then((bitmap) => {
-                    const maxW = 1280;
+                    const maxW = maxWidth || 1280;
                     const scale = Math.min(1, maxW / bitmap.width);
                     const canvas = document.createElement('canvas');
                     canvas.width = Math.round(bitmap.width * scale);
@@ -4141,45 +4138,26 @@
             },
             handleProfileAvatarUpload(event) {
                 const file = event.target.files?.[0];
+                event.target.value = '';
                 if (!file || !this.currentUser) return;
                 if (!file.type.startsWith('image/')) {
                     this.showToast('يرجى اختيار صورة صحيحة');
                     return;
                 }
-                if (file.size > 2 * 1024 * 1024) {
-                    this.showToast('حجم الصورة يجب ألا يتجاوز 2MB');
-                    return;
-                }
-                const applyAvatar = (src) => {
-                    this.currentUser.avatar = src;
+                // Stored as a compressed base64 data URL, same as every other image in
+                // the app (news, forum, resources) — never uploaded to Firebase Storage,
+                // which this project doesn't use.
+                compressForumImage(file, 480).then((dataUrl) => {
+                    if (!dataUrl) {
+                        this.showToast('تعذرت معالجة الصورة');
+                        return;
+                    }
+                    this.currentUser.avatar = dataUrl;
                     this.saveUserData();
                     this.updateProfileView();
                     this.syncUserToDatabase();
                     this.showToast('تم تحديث الصورة الشخصية');
-                };
-                const readLocal = () => {
-                    const reader = new FileReader();
-                    reader.onerror = () => {
-                        this.showToast('تعذر قراءة الصورة');
-                    };
-                    reader.onload = (e) => {
-                        applyAvatar(e.target.result);
-                    };
-                    reader.readAsDataURL(file);
-                };
-                if (window.firebaseStorage && window.firebaseStorageHelpers) {
-                    const uid = this.currentUid();
-                    const avatarRef = window.firebaseStorageHelpers.ref(window.firebaseStorage, 'avatars/' + uid + '.jpg');
-                    window.firebaseStorageHelpers.uploadBytes(avatarRef, file).then(() => {
-                        return window.firebaseStorageHelpers.getDownloadURL(avatarRef);
-                    }).then((url) => {
-                        applyAvatar(url);
-                    }).catch(() => {
-                        readLocal();
-                    });
-                } else {
-                    readLocal();
-                }
+                });
             },
             openEditProfileModal() {
                 if (!this.isLoggedIn || !this.currentUser) {
