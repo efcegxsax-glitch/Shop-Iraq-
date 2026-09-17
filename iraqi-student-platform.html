@@ -4186,6 +4186,7 @@
                     this.showToast('يجب تسجيل الدخول');
                     return;
                 }
+                this._pendingAvatarUrl = null;
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تعديل الملف الشخصي';
                 const content = document.getElementById('walletModalContent');
@@ -4195,14 +4196,21 @@
                 content.innerHTML = `
                     <div class="flex flex-col items-center mb-4">
                         <div class="avatar-container relative w-20 h-20 mb-2 cursor-pointer" onclick="app.triggerAvatarUpload()">
-                            <img src="${personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName)}" class="w-full h-full rounded-full object-cover border-2" style="border-color: var(--border);">
+                            <img id="editProfileAvatarPreview" src="${personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName)}" class="w-full h-full rounded-full object-cover border-2" style="border-color: var(--border);">
                             <div class="avatar-overlay absolute inset-0 bg-black/40 rounded-full flex items-center justify-center">
                                 <i data-lucide="camera" class="w-5 h-5 text-white"></i>
                             </div>
                         </div>
-                        <span class="text-xs theme-transition" style="color: var(--text2);">اضغط على الصورة لتغييرها</span>
+                        <span class="text-xs theme-transition" style="color: var(--text2);">اضغط على الصورة لرفع صورة من جهازك</span>
                     </div>
                     <div class="flex flex-col gap-3">
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 theme-transition" style="color: var(--text2);">أو ضع رابط صورة مباشر (اختياري)</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="editProfileAvatarUrl" placeholder="https://..." class="flex-1 h-10 px-3 rounded-lg auth-input text-xs" dir="ltr">
+                                <button onclick="app.applyAvatarUrlPreview()" class="px-3 h-10 rounded-lg font-bold text-xs flex-shrink-0 theme-transition" style="background-color: var(--input-bg); color: var(--text);">تطبيق</button>
+                            </div>
+                        </div>
                         <div>
                             <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">الاسم الثلاثي</label>
                             <input type="text" id="editProfileName" value="${escapeHtml(this.currentUser.fullName || '')}" class="w-full h-12 px-4 rounded-xl auth-input text-sm">
@@ -4244,12 +4252,32 @@
                 this.currentUser.governorate = governorate;
                 this.currentUser.location = governorate;
                 this.currentUser.grade = grade;
+                if (this._pendingAvatarUrl) {
+                    this.currentUser.avatar = this._pendingAvatarUrl;
+                    this._pendingAvatarUrl = null;
+                }
                 this.saveUserData();
                 this.updateProfileView();
                 this.syncUserToDatabase();
                 this.closeWalletModal();
                 this.showToast('تم تحديث الملف الشخصي');
             },
+
+            applyAvatarUrlPreview() {
+                const input = document.getElementById('editProfileAvatarUrl');
+                if (!input) return;
+                const url = input.value.trim();
+                if (!url) return;
+                if (!isSafeImageUrl(url)) {
+                    this.showToast('الرابط غير صالح — يجب أن يكون رابط صورة يبدأ بـ https');
+                    return;
+                }
+                this._pendingAvatarUrl = url;
+                const preview = document.getElementById('editProfileAvatarPreview');
+                if (preview) preview.src = url;
+                this.showToast('تم تطبيق الصورة — اضغط "حفظ التعديلات" لتثبيتها');
+            },
+
             openSupportChannel() {
                 window.open('https://t.me/Iraqistudentplatfor', '_blank', 'noopener');
             },
