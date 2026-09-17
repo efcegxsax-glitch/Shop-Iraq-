@@ -4826,17 +4826,33 @@
                 }
                 const btn = document.getElementById('topupRedeemBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
-                const { ref, runTransaction } = window.firebaseDbHelpers;
+                const { ref, get, runTransaction } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
-                runTransaction(ref(window.firebaseDb, 'topupCodes/' + code), (current) => {
-                    if (!current || current.used) return;
-                    current.used = true;
-                    current.usedBy = uid;
-                    current.usedAt = Date.now();
-                    return current;
+                const codeRef = ref(window.firebaseDb, 'topupCodes/' + code);
+                // A plain get() first warms the SDK's local cache for this exact path.
+                // Without it, runTransaction's first (speculative) call sees an
+                // unsynced local value of null — even for a code that genuinely
+                // exists on the server — and a naive "abort if null" inside the
+                // transaction wrongly reports every never-before-seen code as invalid.
+                get(codeRef).then((snap) => {
+                    if (!snap.exists()) {
+                        this.showToast('الكود غير موجود، تأكد من كتابته صح');
+                        return Promise.reject('handled');
+                    }
+                    if (snap.val().used) {
+                        this.showToast('هذا الكود مستخدم مسبقاً');
+                        return Promise.reject('handled');
+                    }
+                    return runTransaction(codeRef, (current) => {
+                        if (!current || current.used) return;
+                        current.used = true;
+                        current.usedBy = uid;
+                        current.usedAt = Date.now();
+                        return current;
+                    });
                 }).then((result) => {
                     if (!result || !result.committed || !result.snapshot.exists() || result.snapshot.val().usedBy !== uid) {
-                        this.showToast('الكود غير صحيح أو مستخدم مسبقاً');
+                        this.showToast('تم استخدام هذا الكود للتو من جهاز آخر');
                         if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
                         return;
                     }
@@ -4858,8 +4874,10 @@
                     this.closeWalletModal();
                     this.showToast('تم إيداع ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك بنجاح');
                 }).catch((err) => {
-                    console.warn('Redeem code failed:', err);
-                    this.showToast('تعذر التحقق من الكود — تحقق من اتصالك وحاول مجدداً');
+                    if (err !== 'handled') {
+                        console.warn('Redeem code failed:', err);
+                        this.showToast('تعذر التحقق من الكود — تحقق من اتصالك وحاول مجدداً');
+                    }
                     if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
                 });
             },
