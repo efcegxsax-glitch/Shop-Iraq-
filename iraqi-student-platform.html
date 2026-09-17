@@ -2358,7 +2358,8 @@
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 setInterval(() => this.checkNetwork(), 5000);
-                setInterval(() => { if (this.currentView === 'homeView') { this.renderExamCountdown(); this.renderHolidays(); } }, 60000);
+                setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
+                setInterval(() => { if (this.currentView === 'homeView') this.renderHolidays(); }, 60000);
                 setInterval(() => this.checkTaskReminders(), 120000);
             },
 
@@ -2832,6 +2833,10 @@
             },
 
             setCategory(id) {
+                if (id === 'results') {
+                    window.open('https://results.mlazemna.com/ntbth/', '_blank', 'noopener');
+                    return;
+                }
                 this.activeCategory = id;
                 this.renderCategories();
                 this.renderNews();
@@ -3803,24 +3808,21 @@
                     const days = Math.floor(diff / 86400000);
                     const hours = Math.floor((diff % 86400000) / 3600000);
                     const minutes = Math.floor((diff % 3600000) / 60000);
+                    const seconds = Math.floor((diff % 60000) / 1000);
+                    const unit = (value, label) => `
+                        <div class="rounded-xl py-2 text-center border bg-circular-bg border-circular-border theme-transition">
+                            <div class="font-bold text-success" style="font-size: 18px;">${value}</div>
+                            <div class="text-[10px] theme-transition" style="color: var(--text2);">${label}</div>
+                        </div>
+                    `;
                     return `
-                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 150px; background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 220px; background-color: var(--surface); border-color: var(--border);">
                             <div class="text-xs font-bold mb-2 line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(ex.subject)}</div>
-                            <div class="flex items-center gap-1.5">
-                                <div class="text-center">
-                                    <div class="font-bold text-primary" style="font-size: 20px;">${days}</div>
-                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">يوم</div>
-                                </div>
-                                <span class="theme-transition" style="color: var(--text2);">:</span>
-                                <div class="text-center">
-                                    <div class="font-bold text-primary" style="font-size: 20px;">${hours}</div>
-                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">ساعة</div>
-                                </div>
-                                <span class="theme-transition" style="color: var(--text2);">:</span>
-                                <div class="text-center">
-                                    <div class="font-bold text-primary" style="font-size: 20px;">${minutes}</div>
-                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">دقيقة</div>
-                                </div>
+                            <div class="grid grid-cols-4 gap-1.5">
+                                ${unit(seconds, 'ثانية')}
+                                ${unit(minutes, 'دقيقة')}
+                                ${unit(hours, 'ساعة')}
+                                ${unit(days, 'يوم')}
                             </div>
                         </div>
                     `;
@@ -7972,6 +7974,10 @@
             },
 
             setCategoryAndGoHome(catId) {
+                if (catId === 'results') {
+                    window.open('https://results.mlazemna.com/ntbth/', '_blank', 'noopener');
+                    return;
+                }
                 this.activeCategory = catId;
                 this.renderCategories();
                 this.renderNews();
