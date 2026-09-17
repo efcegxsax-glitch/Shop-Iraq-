@@ -361,7 +361,7 @@
             gap: 48px;
             white-space: nowrap;
             width: max-content;
-            animation: tickerScroll 18s linear infinite;
+            animation: tickerScroll 13s linear infinite;
         }
         .news-ticker-track:hover { animation-play-state: paused; }
         @keyframes tickerScroll {
@@ -1421,8 +1421,11 @@
                     <p class="text-xs theme-transition" style="color: var(--text2);">أثناء المشاهدة راح نسألك بين فترة وأخرى "هل ما زلت هنا؟". تجاهل السؤال يخصم 1000 نقطة ويوقف احتساب نقاط المشاهدة لمدة 24 ساعة.</p>
                 </div>
                 <div id="youtubeStudyPlayer" class="hidden">
-                    <div class="rounded-2xl overflow-hidden mb-3" style="aspect-ratio: 16/9; background-color: #000;">
-                        <iframe id="youtubeStudyIframe" class="w-full h-full" src="" title="يوتيوب دراسة" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div id="youtubeStudyPlayerWrap" class="rounded-2xl overflow-hidden mb-3 relative" style="aspect-ratio: 16/9; background-color: #000;">
+                        <iframe id="youtubeStudyIframe" class="w-full h-full" src="" title="يوتيوب دراسة" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                        <button onclick="app.toggleYoutubeFullscreen()" class="btn-press absolute bottom-2 left-2 w-9 h-9 rounded-lg bg-black/60 flex items-center justify-center" aria-label="ملء الشاشة">
+                            <i data-lucide="maximize" class="w-4 h-4 text-white"></i>
+                        </button>
                     </div>
                     <div class="flex items-center justify-between rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                         <div class="text-sm theme-transition" style="color: var(--text2);">نقاط هذه الجلسة: <span id="youtubeStudySessionPoints" class="font-bold" style="color: var(--text);">0</span></div>
@@ -6514,6 +6517,19 @@
                 lucide.createIcons();
             },
 
+            toggleYoutubeFullscreen() {
+                const wrap = document.getElementById('youtubeStudyPlayerWrap');
+                if (!wrap) return;
+                const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+                if (fsElement) {
+                    (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
+                } else {
+                    const request = wrap.requestFullscreen || wrap.webkitRequestFullscreen;
+                    if (request) request.call(wrap);
+                    else this.showToast('ملء الشاشة غير مدعوم بهذا المتصفح');
+                }
+            },
+
             scheduleNextYoutubePresenceCheck() {
                 if (!this.youtubeStudySessionActive) return;
                 const delayMs = (3 + Math.random() * 3) * 60 * 1000;
@@ -6522,6 +6538,13 @@
 
             showYoutubePresenceCheck() {
                 if (!this.youtubeStudySessionActive) return;
+                // The presence-check modal isn't a descendant of the fullscreened video
+                // container, so browsers won't render it while fullscreen is active —
+                // the user would have no way to see or answer it and would lose 1000
+                // points through no fault of their own. Drop out of fullscreen first so
+                // the prompt is always visible and clickable.
+                const fsElement = document.fullscreenElement || document.webkitFullscreenElement;
+                if (fsElement) (document.exitFullscreen || document.webkitExitFullscreen || (() => {})).call(document);
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تحقق من الحضور';
                 const content = document.getElementById('walletModalContent');
@@ -8207,6 +8230,12 @@
 
             // ==================== LIVE DUELS ====================
             goToDuels() {
+                // Gated for now: reworking this into a bigger feature (live challenge +
+                // voice chat room together) rather than the current text-quiz-only
+                // version. The rest of the duels code below is untouched and ready to
+                // re-enable once that combined feature is built — just remove this guard.
+                this.showToast('🚀 تحدي مباشر مع غرفة دردشة صوتية — قريباً');
+                return;
                 if (!this.isLoggedIn || !this.currentUser) {
                     this.showToast('يجب تسجيل الدخول للتحدي');
                     this.goToAuth('login');
