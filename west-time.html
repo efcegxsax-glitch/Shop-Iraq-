@@ -185,13 +185,12 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 #siteHeader.scrolled .header-inner{height:var(--header-h-scrolled);}
 .brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .brand-mark{
-  width:40px;height:40px;border-radius:50%;
-  border:2px solid var(--black);
+  width:42px;height:42px;
   display:flex;align-items:center;justify-content:center;
-  font-size:1.1rem;flex-shrink:0;
+  flex-shrink:0;color:var(--black);
 }
-.brand-name{font-weight:900;font-size:clamp(1.05rem,2vw,1.35rem);letter-spacing:.5px;}
-.brand-name small{display:block;font-size:.58rem;font-weight:500;letter-spacing:3px;color:var(--gray-500);margin-top:1px;}
+.brand-name{font-weight:900;font-size:clamp(1.05rem,2vw,1.4rem);letter-spacing:.5px;}
+.brand-name small{display:block;font-size:.56rem;font-weight:700;letter-spacing:3px;color:var(--gray-500);margin-top:2px;}
 
 .main-nav{display:flex;align-items:center;gap:clamp(10px,2vw,28px);}
 .main-nav a{
@@ -264,138 +263,77 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .mobile-drawer .divider{height:1px;background:var(--line);margin:14px 0;}
 
 /* ========================================================================
-   4) الهيرو
+   4) الهيرو + شريط الصور المتحرك (مدمجين بقسم واحد فخم بطابع كابوي)
    ======================================================================== */
-.hero{
-  position:relative;
-  padding-block:clamp(36px,7vw,84px);
-  background:linear-gradient(180deg,var(--ivory) 0%, var(--white) 78%);
-  overflow:hidden;
-}
-.hero::before{
-  content:"";position:absolute;inset:0;
-  background-image:repeating-linear-gradient(115deg, rgba(11,11,12,.025) 0 2px, transparent 2px 22px);
-  pointer-events:none;
-}
-.hero-inner{
-  position:relative;z-index:1;
-  display:grid;
-  grid-template-columns:1fr;
-  gap:clamp(28px,5vw,50px);
-  align-items:center;
-}
-@media(min-width:860px){
-  .hero-inner{grid-template-columns:1.05fr .95fr;}
-}
-.hero-text{text-align:center;}
-@media(min-width:860px){.hero-text{text-align:right;}}
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:8px;
-  font-size:.78rem;font-weight:700;letter-spacing:2px;color:var(--gray-600);
-  border:1px dashed var(--gray-400);
-  padding:6px 16px;border-radius:999px;margin-bottom:18px;
-}
-.hero-title{
-  font-size:clamp(2.1rem,5.4vw,4.2rem);
-  font-weight:900;line-height:1.15;
-  margin-bottom:18px;
-  letter-spacing:-.5px;
-}
-.hero-desc{
-  font-size:clamp(1rem,1.8vw,1.2rem);
-  color:var(--gray-600);
-  max-width:520px;
-  margin-bottom:30px;
-}
-@media(min-width:860px){.hero-desc{margin-inline:0;}}
-.hero-desc{margin-inline:auto;}
-.hero-cta{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
-@media(min-width:860px){.hero-cta{justify-content:flex-start;}}
-.hero-stats{display:flex;gap:clamp(18px,4vw,40px);margin-top:36px;flex-wrap:wrap;justify-content:center;}
-@media(min-width:860px){.hero-stats{justify-content:flex-start;}}
-.hero-stat b{display:block;font-size:clamp(1.3rem,2.4vw,1.9rem);font-weight:900;}
-.hero-stat span{font-size:.78rem;color:var(--gray-500);font-weight:600;}
-
-.hero-visual{
-  position:relative;
-  display:flex;align-items:center;justify-content:center;
-  aspect-ratio:1/1;
-  max-width:460px;margin-inline:auto;
-  width:100%;
-}
-.hero-visual .ring{
-  position:absolute;inset:0;border-radius:50%;
-  border:1px dashed var(--gray-300);
-}
-.hero-visual .ring2{inset:10%;border:1px solid var(--line);}
-.hero-visual img{
-  width:78%;height:78%;border-radius:50%;
-  object-fit:cover;box-shadow:var(--shadow-lg);
-  border:8px solid var(--white);
-}
-
-/* ========================================================================
-   5) شريط الصور المتحرك (Slider)
-   ======================================================================== */
-.slider-section{padding-block:clamp(28px,5vw,60px);background:var(--black);}
-.slider-wrap{
-  position:relative;
-  width:100%;
-  max-width:var(--maxw);
-  margin-inline:auto;
-  padding-inline:clamp(16px,4vw,48px);
-}
+.hero-slider{position:relative;background:var(--black);overflow:hidden;}
 .slider-viewport{
-  position:relative;
-  width:100%;
-  aspect-ratio:16/9;
-  max-height:560px;
-  border-radius:var(--radius-lg);
-  overflow:hidden;
-  box-shadow:var(--shadow-lg);
+  position:relative;width:100%;
+  height:clamp(560px,86vh,760px);
   touch-action:pan-y;
 }
-@media(max-width:600px){.slider-viewport{aspect-ratio:4/5;}}
+@media(max-width:640px){.slider-viewport{height:clamp(600px,92vh,720px);}}
 .slide{
   position:absolute;inset:0;
   opacity:0;visibility:hidden;
-  transition:opacity .7s var(--ease);
-  display:flex;align-items:flex-end;
+  transition:opacity .9s var(--ease);
+  display:flex;align-items:center;
 }
 .slide.active{opacity:1;visibility:visible;z-index:2;}
 .slide img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .slide::after{
   content:"";position:absolute;inset:0;
-  background:linear-gradient(0deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.15) 55%, rgba(0,0,0,.05) 100%);
+  background:
+    linear-gradient(0deg, rgba(0,0,0,.72) 0%, rgba(0,0,0,.42) 45%, rgba(0,0,0,.22) 100%),
+    linear-gradient(100deg, rgba(0,0,0,.55) 0%, rgba(0,0,0,.15) 55%, transparent 85%);
 }
 .slide-content{
   position:relative;z-index:2;
-  padding:clamp(20px,4vw,54px);
+  width:100%;
+  padding:clamp(20px,6vw,80px) clamp(16px,4vw,48px);
+  padding-block-start:calc(var(--header-h) + clamp(16px,4vw,40px));
   color:var(--white);
-  max-width:640px;
 }
+.slide-content-inner{max-width:640px;margin-inline:auto;text-align:center;}
+@media(min-width:860px){.slide-content-inner{margin-inline:0;text-align:right;}}
 .slide-cat{
-  display:inline-block;font-size:.72rem;font-weight:700;letter-spacing:2px;
-  color:var(--beige);margin-bottom:10px;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:.76rem;font-weight:700;letter-spacing:2px;
+  color:var(--ivory);margin-bottom:16px;
+  border:1px dashed rgba(246,241,231,.5);
+  padding:6px 16px;border-radius:999px;
 }
-.slide-title{font-size:clamp(1.4rem,3.6vw,2.6rem);font-weight:900;margin-bottom:10px;line-height:1.2;}
-.slide-desc{font-size:clamp(.88rem,1.6vw,1.05rem);color:rgba(255,255,255,.85);margin-bottom:20px;max-width:480px;}
+.slide-title{font-size:clamp(2rem,5.2vw,4rem);font-weight:900;margin-bottom:14px;line-height:1.16;letter-spacing:-.5px;}
+.slide-desc{font-size:clamp(.95rem,1.7vw,1.15rem);color:rgba(255,255,255,.86);margin-bottom:26px;max-width:480px;margin-inline:auto;}
+@media(min-width:860px){.slide-desc{margin-inline:0;}}
+.slide-cta-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+@media(min-width:860px){.slide-cta-row{justify-content:flex-start;}}
+.slide-btn{background:var(--white);color:var(--black);}
+.slide-btn:hover{background:var(--ivory);}
+.slide-caption{
+  position:absolute;z-index:2;bottom:clamp(70px,10vh,96px);
+  left:clamp(16px,4vw,48px);
+  color:rgba(255,255,255,.75);
+  font-size:.72rem;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  display:none;
+}
+@media(min-width:640px){.slide-caption{display:block;}}
 
 .slider-arrow{
   position:absolute;top:50%;translate:0 -50%;
   width:44px;height:44px;border-radius:50%;
-  background:rgba(255,255,255,.9);color:var(--black);
+  background:rgba(255,255,255,.16);color:var(--white);
+  border:1px solid rgba(255,255,255,.35);
   display:flex;align-items:center;justify-content:center;
-  z-index:5;box-shadow:var(--shadow-sm);
+  z-index:5;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
   transition:background .2s var(--ease),transform .2s var(--ease);
 }
-.slider-arrow:hover{background:var(--white);transform:translateY(-50%) scale(1.06);}
+.slider-arrow:hover{background:rgba(255,255,255,.3);transform:translateY(-50%) scale(1.06);}
 .slider-arrow.prev{right:14px;}
 .slider-arrow.next{left:14px;}
 @media(max-width:520px){.slider-arrow{width:36px;height:36px;}.slider-arrow.prev{right:8px;}.slider-arrow.next{left:8px;}}
 
 .slider-dots{
-  position:absolute;bottom:16px;left:50%;translate:-50% 0;
+  position:absolute;bottom:clamp(20px,4vh,34px);left:50%;translate:-50% 0;
   display:flex;gap:8px;z-index:5;
 }
 .slider-dot{
@@ -404,6 +342,17 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   transition:all .25s var(--ease);
 }
 .slider-dot.active{background:var(--white);width:26px;border-radius:6px;}
+
+/* شريط ثقة رفيع تحت الهيرو */
+.trust-bar{background:var(--ivory);border-bottom:1px solid var(--line-soft);}
+.trust-bar-inner{
+  display:flex;justify-content:center;flex-wrap:wrap;
+  gap:clamp(20px,5vw,56px);
+  padding-block:18px;
+}
+.trust-stat{display:flex;align-items:baseline;gap:6px;}
+.trust-stat b{font-size:clamp(1.1rem,2vw,1.4rem);font-weight:900;}
+.trust-stat span{font-size:.76rem;color:var(--gray-600);font-weight:600;}
 
 /* ========================================================================
    6) شريط الأقسام
@@ -416,22 +365,30 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .section-heading h2{font-size:clamp(1.25rem,2.4vw,1.7rem);font-weight:900;}
 .section-heading p{color:var(--gray-500);font-size:.88rem;}
 .categories-scroll{
-  display:flex;gap:10px;overflow-x:auto;padding-bottom:10px;
+  display:flex;gap:clamp(14px,3vw,22px);overflow-x:auto;padding:4px 4px 12px;
   scrollbar-width:none;-ms-overflow-style:none;
   scroll-snap-type:x proximity;
 }
 .categories-scroll::-webkit-scrollbar{display:none;}
-.cat-chip{
+.cat-circle-item{
   flex-shrink:0;scroll-snap-align:start;
-  padding:10px 20px;border-radius:999px;
-  border:1.5px solid var(--line);
-  font-weight:700;font-size:.86rem;color:var(--black-2);
-  background:var(--white);
-  transition:all .2s var(--ease);
-  white-space:nowrap;min-height:42px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  width:76px;
 }
-.cat-chip:hover{border-color:var(--black);}
-.cat-chip.active{background:var(--black);color:var(--white);border-color:var(--black);}
+.cat-circle{
+  width:64px;height:64px;border-radius:50%;
+  background:var(--gray-100);border:1.5px solid var(--line-soft);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--black-2);
+  transition:all .2s var(--ease);
+}
+.cat-circle-item:hover .cat-circle{border-color:var(--black);}
+.cat-circle-item.active .cat-circle{background:var(--black);border-color:var(--black);color:var(--white);}
+.cat-circle-item span{
+  font-size:.72rem;font-weight:700;color:var(--gray-600);
+  text-align:center;line-height:1.25;
+}
+.cat-circle-item.active span{color:var(--black);font-weight:800;}
 
 /* ========================================================================
    7) شريط البحث والفلترة
@@ -491,14 +448,39 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .product-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .5s var(--ease);}
 .product-card:hover .product-thumb img{transform:scale(1.07);}
 .product-thumb .stock-badge{position:absolute;top:10px;right:10px;}
-.product-thumb .featured-badge{position:absolute;top:10px;left:10px;}
+.product-thumb .featured-badge{
+  position:absolute;top:10px;left:10px;
+  background:var(--beige);color:var(--black);
+}
+.wishlist-btn{
+  position:absolute;top:10px;right:10px;z-index:2;
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.9);backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--black);box-shadow:var(--shadow-sm);
+  transition:transform .2s var(--ease),background .2s var(--ease);
+}
+.wishlist-btn:hover{transform:scale(1.08);}
+.wishlist-btn.active{color:#b23a3a;}
+.wishlist-btn.active svg{fill:#b23a3a;}
+.product-thumb .stock-badge{top:auto;bottom:10px;right:10px;}
 .product-body{padding:clamp(12px,2vw,18px);display:flex;flex-direction:column;gap:6px;flex:1;}
 .product-brand{font-size:.72rem;color:var(--gray-500);font-weight:700;letter-spacing:1px;text-transform:uppercase;}
 .product-name{font-size:clamp(.92rem,1.6vw,1.05rem);font-weight:800;line-height:1.35;min-height:2.7em;}
 .product-price{font-size:clamp(1rem,1.8vw,1.2rem);font-weight:900;margin-top:4px;}
 .product-price small{font-size:.7rem;font-weight:600;color:var(--gray-500);}
+.stock-status{display:flex;align-items:center;gap:6px;font-size:.76rem;font-weight:700;color:var(--gray-600);}
+.stock-dot{width:7px;height:7px;border-radius:50%;background:#3f8f5f;flex-shrink:0;}
+.stock-status.out .stock-dot{background:var(--gray-400);}
+.stock-status.out{color:var(--gray-500);}
 .product-actions{display:flex;gap:8px;margin-top:10px;}
 .product-actions .btn{flex:1;padding:10px 8px;font-size:.8rem;}
+.product-actions .btn-add svg{flex-shrink:0;}
+
+/* ========================================================================
+   الساعات المميزة (قسم مختصر)
+   ======================================================================== */
+.featured-section{padding-block:clamp(18px,3vw,30px) 4px;}
 
 /* ========================================================================
    9) نافذة تفاصيل المنتج
@@ -736,6 +718,41 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 .empty-state svg{opacity:.3;}
 .empty-state h4{font-size:1.1rem;font-weight:800;color:var(--black-2);}
 
+/* ========================================================================
+   14) الشريط السفلي بطابع تطبيقات الجوال (Bottom Nav)
+   ======================================================================== */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;z-index:550;
+  background:rgba(255,255,255,.97);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-top:1px solid var(--line-soft);
+  box-shadow:0 -8px 24px rgba(11,11,12,.06);
+  padding-bottom:env(safe-area-inset-bottom,0);
+}
+@media(max-width:899px){.bottom-nav{display:flex;}}
+.bottom-nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:10px 4px 8px;color:var(--gray-500);position:relative;
+  min-height:56px;justify-content:center;
+}
+.bottom-nav-item svg{transition:transform .2s var(--ease);}
+.bottom-nav-item span{font-size:.66rem;font-weight:700;}
+.bottom-nav-item.active{color:var(--black);}
+.bottom-nav-item.active svg{transform:translateY(-2px);}
+.bottom-nav-item .bn-badge{
+  position:absolute;top:4px;left:calc(50% + 6px);
+  background:var(--black);color:var(--white);
+  font-size:.6rem;font-weight:800;min-width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;padding:0 3px;
+  border:2px solid var(--white);
+}
+body.has-bottom-nav{padding-bottom:0;}
+@media(max-width:899px){
+  body.has-bottom-nav{padding-bottom:64px;}
+  #scrollTopBtn{bottom:76px;}
+}
+
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important;scroll-behavior:auto !important;}
 }
@@ -748,8 +765,10 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
 <header id="siteHeader">
   <div class="header-inner">
     <a href="#home" class="brand" aria-label="WEST TIME - الصفحة الرئيسية">
-      <span class="brand-mark" aria-hidden="true">◆</span>
-      <span class="brand-name">WEST TIME<small>LUXURY WATCHES</small></span>
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="30" height="30" viewBox="0 0 48 48" fill="none"><path d="M6 22c0-2 2-3 4-2l3 1.4c2.6 1.2 5.6 1.6 9 1.6 4.2 0 7.6-.5 11-1.6l4-1.3c2-.7 4 .4 4 2.3 0 1.4-1 2.6-2.3 3l-3 .9c1 .6 1.7 1.7 1.7 3 0 2-1.6 3.6-3.6 3.6H10.2C8.1 33 6.5 31.3 6.5 29.3c0-1.3.7-2.4 1.8-3l-2.6-.8C4.6 25 3.6 23.8 3.6 22.4 3.6 20.5 5.2 19 7 19" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><path d="M24 22.5V15m-6.5 7.5c0-4 1.8-9 6.5-9s6.5 5 6.5 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      <span class="brand-name">WEST TIME<small>MORE THAN TIME</small></span>
     </a>
 
     <nav class="main-nav" aria-label="روابط رئيسية">
@@ -760,6 +779,9 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
     </nav>
 
     <div class="header-actions">
+      <button class="btn-icon" id="headerSearchBtn" aria-label="بحث" title="بحث">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3" stroke-linecap="round"/></svg>
+      </button>
       <button class="btn-icon" id="openDashboardBtnMobile" aria-label="لوحة الطلبات" title="لوحة الطلبات">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2z"/></svg>
       </button>
@@ -794,44 +816,26 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   </div>
 </div>
 
-<!-- ============================= الهيرو ============================= -->
-<section class="hero" id="home">
-  <div class="container hero-inner">
-    <div class="hero-text">
-      <span class="hero-eyebrow">✦ WEST TIME — منذ لحظة الاختيار</span>
-      <h1 class="hero-title">الوقت إله هيبة</h1>
-      <p class="hero-desc">اختار ساعتك، خلي حضورك يحچي عنك. تشكيلة ساعات فاخرة بطابع أنيق، لكل رجل وامرأة يعرفون قيمة التفاصيل.</p>
-      <div class="hero-cta">
-        <a href="#products" class="btn btn-black">تصفح الساعات</a>
-        <a href="#categories" class="btn btn-outline">الأقسام</a>
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat"><b id="statProducts">0</b><span>موديل متوفر</span></div>
-        <div class="hero-stat"><b>18</b><span>محافظة توصيل</span></div>
-        <div class="hero-stat"><b>+5</b><span>ماركات عالمية</span></div>
-      </div>
-    </div>
-    <div class="hero-visual" aria-hidden="true">
-      <div class="ring"></div>
-      <div class="ring ring2"></div>
-      <img id="heroImage" alt="ساعة فاخرة WEST TIME" loading="eager">
-    </div>
+<!-- ============================= الهيرو + شريط الصور المتحرك (مدمجين) ============================= -->
+<section class="hero-slider" id="home">
+  <div class="slider-viewport" id="sliderViewport">
+    <!-- الشرائح تُبنى ديناميكياً من مصفوفة slides في الجافاسكربت -->
   </div>
+  <button class="slider-arrow prev" id="sliderPrev" aria-label="الصورة السابقة">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
+  </button>
+  <button class="slider-arrow next" id="sliderNext" aria-label="الصورة التالية">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+  </button>
+  <div class="slider-dots" id="sliderDots"></div>
 </section>
 
-<!-- ============================= شريط الصور المتحرك ============================= -->
-<section class="slider-section">
-  <div class="slider-wrap">
-    <div class="slider-viewport" id="sliderViewport">
-      <!-- الشرائح تُبنى ديناميكياً من مصفوفة slides في الجافاسكربت -->
-    </div>
-    <button class="slider-arrow prev" id="sliderPrev" aria-label="الصورة السابقة">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
-    </button>
-    <button class="slider-arrow next" id="sliderNext" aria-label="الصورة التالية">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
-    </button>
-    <div class="slider-dots" id="sliderDots"></div>
+<!-- ============================= شريط الثقة ============================= -->
+<section class="trust-bar">
+  <div class="container trust-bar-inner">
+    <div class="trust-stat"><b id="statProducts">0</b><span>موديل متوفر</span></div>
+    <div class="trust-stat"><b>18</b><span>محافظة توصيل</span></div>
+    <div class="trust-stat"><b>+5</b><span>ماركات عالمية</span></div>
   </div>
 </section>
 
@@ -842,6 +846,15 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
     <p>اختار القسم اللي يناسبك</p>
   </div>
   <div class="categories-scroll" id="categoriesScroll" role="tablist" aria-label="أقسام الساعات"></div>
+</section>
+
+<!-- ============================= الساعات المميزة ============================= -->
+<section class="featured-section container" id="featured">
+  <div class="section-heading">
+    <h2>✦ الساعات المميزة</h2>
+    <a href="#products" id="viewAllFeatured" style="font-weight:700;font-size:.86rem;text-decoration:underline;">عرض الكل ‹</a>
+  </div>
+  <div class="products-grid" id="featuredGrid"></div>
 </section>
 
 <!-- ============================= المنتجات ============================= -->
@@ -1065,13 +1078,39 @@ a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,te
   <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 </button>
 
+<!-- ============================= الشريط السفلي (جوال) ============================= -->
+<nav class="bottom-nav" aria-label="تنقل سريع" id="bottomNav">
+  <a href="#home" class="bottom-nav-item active" data-bn="home">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg>
+    <span>الرئيسية</span>
+  </a>
+  <a href="#categories" class="bottom-nav-item" data-bn="categories">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>الأقسام</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="bnCartBtn" data-bn="cart">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 6H6"/></svg>
+    <span>السلة</span>
+    <span class="bn-badge" id="bnCartCount" style="display:none;">0</span>
+  </button>
+  <button type="button" class="bottom-nav-item" id="bnOrdersBtn" data-bn="orders">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 3h6a2 2 0 0 1 2 2v16l-5-3-5 3V5a2 2 0 0 1 2-2z"/></svg>
+    <span>طلباتي</span>
+  </button>
+  <button type="button" class="bottom-nav-item" id="bnMoreBtn" data-bn="more">
+    <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+    <span>المزيد</span>
+  </button>
+</nav>
+
 <script>
 (function(){
 "use strict";
 
 /* ========================================================================
-   مولّد صور Placeholder (SVG محلي بدون إنترنت) — استبدله بروابط صور حقيقية
-   بكل بساطة عن طريق تغيير قيمة "image" داخل مصفوفة products أو slides.
+   مولّد صور Placeholder (SVG محلي بدون إنترنت، بدون أي طلب خارجي) — استبدله
+   بروابط صور حقيقية بكل بساطة عن طريق تغيير قيمة "image" داخل مصفوفة
+   products أو slides.
    ======================================================================== */
 function watchPlaceholder({bg="#0b0b0c", caseColor="#f6f1e7", face="#ffffff", ring="#0b0b0c", label="WEST TIME", accent="#0b0b0c"}={}){
   const cx=350, cy=330, rCase=168, rFace=136;
@@ -1089,40 +1128,101 @@ function watchPlaceholder({bg="#0b0b0c", caseColor="#f6f1e7", face="#ffffff", ri
     return `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${ring}" stroke-width="${w}" stroke-linecap="round"/>`;
   }
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 700" width="700" height="700">
-    <rect width="700" height="700" fill="${bg}"/>
-    <rect width="700" height="700" fill="url(#stripes)"/>
     <defs>
       <pattern id="stripes" width="26" height="26" patternTransform="rotate(35)" patternUnits="userSpaceOnUse">
         <rect width="26" height="26" fill="transparent"/>
         <line x1="0" y1="0" x2="0" y2="26" stroke="${accent}" stroke-opacity="0.05" stroke-width="10"/>
       </pattern>
+      <radialGradient id="caseGrad" cx="35%" cy="30%" r="75%">
+        <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/>
+        <stop offset="55%" stop-color="${caseColor}" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="shadowGrad" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#000000" stop-opacity=".28"/>
+        <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+      </radialGradient>
     </defs>
+    <rect width="700" height="700" fill="${bg}"/>
+    <rect width="700" height="700" fill="url(#stripes)"/>
+    <ellipse cx="350" cy="565" rx="185" ry="30" fill="url(#shadowGrad)"/>
     <rect x="326" y="128" width="48" height="42" rx="6" fill="${caseColor}" stroke="${ring}" stroke-width="4"/>
     <rect x="326" y="490" width="48" height="42" rx="6" fill="${caseColor}" stroke="${ring}" stroke-width="4"/>
     <rect x="518" y="308" width="30" height="44" rx="6" fill="${caseColor}" stroke="${ring}" stroke-width="4"/>
     <circle cx="${cx}" cy="${cy}" r="${rCase}" fill="${caseColor}" stroke="${ring}" stroke-width="7"/>
+    <circle cx="${cx}" cy="${cy}" r="${rCase}" fill="url(#caseGrad)"/>
     <circle cx="${cx}" cy="${cy}" r="${rFace}" fill="${face}" stroke="${ring}" stroke-width="2.5"/>
     ${ticks}
     ${hand(-55,86,9)}
     ${hand(70,110,6)}
     <circle cx="${cx}" cy="${cy}" r="8" fill="${ring}"/>
+    <path d="M255,255 A140,140 0 0 1 400,215" fill="none" stroke="#ffffff" stroke-opacity=".5" stroke-width="6" stroke-linecap="round"/>
     <rect x="180" y="590" width="340" height="46" rx="23" fill="${bg}" fill-opacity="0.9"/>
     <text x="350" y="620" font-family="Tajawal,Arial,sans-serif" font-size="22" font-weight="700" fill="${face}" text-anchor="middle">${label}</text>
   </svg>`;
   return "data:image/svg+xml,"+encodeURIComponent(svg);
 }
-function bannerPlaceholder({bg="#0b0b0c", accent="#f6f1e7"}={}){
-  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900">
-    <rect width="1600" height="900" fill="${bg}"/>
+
+/* منظر صحراوي كابوي بالأبيض والأسود لخلفية شريط العرض الرئيسي (بدون أي صور خارجية) */
+function desertScene({riderX=420, cactus=true, night=false}={}){
+  const W=1600,H=1000,horizon=630;
+  const sunX=riderX, sunY=horizon-10;
+  function cactusShape(cx,cy,scale,fill){
+    return `<g transform="translate(${cx},${cy}) scale(${scale})">
+      <rect x="-8" y="-90" width="16" height="90" rx="8" fill="${fill}"/>
+      <path d="M-8,-40 C-34,-40 -34,-64 -22,-66 C-14,-68 -8,-60 -8,-50 Z" fill="${fill}"/>
+      <path d="M8,-58 C32,-58 32,-36 22,-32 C14,-30 8,-38 8,-48 Z" fill="${fill}"/>
+    </g>`;
+  }
+  let mountains="";
+  const layers=[
+    {y:horizon-30, amp:34, op:.22},
+    {y:horizon-10, amp:50, op:.4},
+    {y:horizon+10, amp:70, op:.72}
+  ];
+  layers.forEach((l,li)=>{
+    let d=`M0,${horizon+20} `;
+    const step=W/9;
+    for(let x=0;x<=W;x+=step){
+      const peak=l.y-(Math.abs(Math.sin((x/W*7)+li))*l.amp);
+      d+=`L${x.toFixed(0)},${peak.toFixed(0)} `;
+    }
+    d+=`L${W},${horizon+20} Z`;
+    mountains+=`<path d="${d}" fill="#0b0b0c" fill-opacity="${l.op}"/>`;
+  });
+  let stars="";
+  if(night){
+    for(let i=0;i<26;i++){
+      const sx=(i*137)%W, sy=(i*97)%(horizon-60);
+      stars+=`<circle cx="${sx}" cy="${sy}" r="${1+(i%3)}" fill="#f6f1e7" fill-opacity="${.3+(i%5)*.1}"/>`;
+    }
+  }
+  const cacti=cactus?cactusShape(riderX-260,horizon+90,1.1,"#0b0b0c")+cactusShape(riderX+300,horizon+70,.8,"#0b0b0c"):"";
+  const skyTop=night?"#0b0b0c":"#111113", skyMid=night?"#1c1b1f":"#3c3831", skyGlow="#f6f1e7";
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
     <defs>
-      <pattern id="p2" width="30" height="30" patternTransform="rotate(35)" patternUnits="userSpaceOnUse">
-        <line x1="0" y1="0" x2="0" y2="30" stroke="${accent}" stroke-opacity="0.06" stroke-width="12"/>
+      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="${skyTop}"/>
+        <stop offset="55%" stop-color="${skyMid}"/>
+        <stop offset="100%" stop-color="${skyGlow}" stop-opacity=".55"/>
+      </linearGradient>
+      <radialGradient id="sunGlow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#f6f1e7" stop-opacity=".9"/>
+        <stop offset="60%" stop-color="#f6f1e7" stop-opacity=".18"/>
+        <stop offset="100%" stop-color="#f6f1e7" stop-opacity="0"/>
+      </radialGradient>
+      <pattern id="grain" width="26" height="26" patternTransform="rotate(35)" patternUnits="userSpaceOnUse">
+        <line x1="0" y1="0" x2="0" y2="26" stroke="#f6f1e7" stroke-opacity="0.035" stroke-width="10"/>
       </pattern>
     </defs>
-    <rect width="1600" height="900" fill="url(#p2)"/>
-    <circle cx="1180" cy="450" r="330" fill="none" stroke="${accent}" stroke-opacity="0.18" stroke-width="2"/>
-    <circle cx="1180" cy="450" r="230" fill="none" stroke="${accent}" stroke-opacity="0.28" stroke-width="2"/>
-    <circle cx="1180" cy="450" r="130" fill="none" stroke="${accent}" stroke-opacity="0.35" stroke-width="6"/>
+    <rect width="${W}" height="${horizon+20}" fill="url(#sky)"/>
+    ${stars}
+    <circle cx="${sunX}" cy="${sunY}" r="230" fill="url(#sunGlow)"/>
+    <circle cx="${sunX}" cy="${sunY}" r="70" fill="#f6f1e7" fill-opacity=".85"/>
+    ${mountains}
+    <rect x="0" y="${horizon+18}" width="${W}" height="${H-horizon-18}" fill="#0b0b0c"/>
+    <rect x="0" y="${horizon+18}" width="${W}" height="${H-horizon-18}" fill="url(#grain)"/>
+    ${cacti}
+    <rect width="${W}" height="${H}" fill="url(#grain)" opacity=".5"/>
   </svg>`;
   return "data:image/svg+xml,"+encodeURIComponent(svg);
 }
@@ -1131,11 +1231,11 @@ function bannerPlaceholder({bg="#0b0b0c", accent="#f6f1e7"}={}){
    ========== ١) هنا تضيف / تعدل صور شريط العرض المتحرك (slides) ==========
    ======================================================================== */
 const slides=[
-  {image:bannerPlaceholder({bg:"#0b0b0c",accent:"#f6f1e7"}), title:"مجموعة الخريف الفاخرة", description:"تصاميم أنيقة بطابع كابوي أسود وأبيض تناسب كل مناسبة.", buttonText:"شوف المجموعة", category:"all"},
-  {image:bannerPlaceholder({bg:"#1c1b1f",accent:"#ffffff"}), title:"ساعات رجالية بحضور قوي", description:"خامات فاخرة وحركة دقيقة تعكس شخصيتك أينما رحت.", buttonText:"تصفح الرجالية", category:"men"},
-  {image:bannerPlaceholder({bg:"#232326",accent:"#ece2cd"}), title:"لمسة أنوثة كلاسيكية", description:"تصاميم ناعمة بألوان عاجية تناسب إطلالتك اليومية.", buttonText:"تصفح النسائية", category:"women"},
-  {image:bannerPlaceholder({bg:"#0b0b0c",accent:"#d9d5cb"}), title:"ساعات رياضية عملية", description:"مقاومة للماء ومتينة، مصممة لأسلوب حياة نشيط.", buttonText:"تصفح الرياضية", category:"sport"},
-  {image:bannerPlaceholder({bg:"#161618",accent:"#f6f1e7"}), title:"قطع كلاسيكية خالدة", description:"أناقة لا تنتهي، بتصميم يليق بأي مناسبة.", buttonText:"تصفح الكلاسيكية", category:"classic"}
+  {image:desertScene({riderX:1180,cactus:true}), title:"الوقت إله هيبة", description:"اختار ساعتك، خلي حضورك يحچي عنك. تشكيلة ساعات فاخرة بطابع كابوي أنيق.", buttonText:"تصفح الساعات", category:"all", caption:"قطعة تروي حكايتك"},
+  {image:desertScene({riderX:420,cactus:true}), title:"ساعات رجالية بحضور قوي", description:"خامات فاخرة وحركة دقيقة تعكس شخصيتك أينما رحت.", buttonText:"تصفح الرجالية", category:"men", caption:"ساعة . رجل أرقى"},
+  {image:desertScene({riderX:1180,cactus:false,night:true}), title:"لمسة أنوثة كلاسيكية", description:"تصاميم ناعمة بألوان عاجية تناسب إطلالتك اليومية.", buttonText:"تصفح النسائية", category:"women", caption:"لمسة لا تُنسى"},
+  {image:desertScene({riderX:420,cactus:true}), title:"ساعات رياضية عملية", description:"مقاومة للماء ومتينة، مصممة لأسلوب حياة نشيط.", buttonText:"تصفح الرياضية", category:"sport", caption:"دقة . قوة . ثبات"},
+  {image:desertScene({riderX:1180,cactus:false,night:true}), title:"قطع كلاسيكية خالدة", description:"أناقة لا تنتهي، بتصميم يليق بأي مناسبة.", buttonText:"تصفح الكلاسيكية", category:"classic", caption:"أناقة بلا وقت"}
 ];
 
 /* ========================================================================
@@ -1181,7 +1281,7 @@ const orderStatuses=["جديد","قيد التواصل","تم التأكيد","�
 /* ========================================================================
    حالة التطبيق + التخزين المحلي
    ======================================================================== */
-const STORAGE_CART="wt_cart_v1", STORAGE_ORDERS="wt_orders_v1", STORAGE_STOCK="wt_stock_v1";
+const STORAGE_CART="wt_cart_v1", STORAGE_ORDERS="wt_orders_v1", STORAGE_STOCK="wt_stock_v1", STORAGE_WISHLIST="wt_wishlist_v1";
 
 function loadJSON(key,fallback){
   try{const v=localStorage.getItem(key); return v?JSON.parse(v):fallback;}catch(e){return fallback;}
@@ -1203,9 +1303,15 @@ function setStock(id,val){ stockMap[id]=Math.max(0,val); saveJSON(STORAGE_STOCK,
 
 let cart=loadJSON(STORAGE_CART,[]);
 let orders=loadJSON(STORAGE_ORDERS,[]);
+let wishlist=loadJSON(STORAGE_WISHLIST,[]);
 
 function saveCart(){ saveJSON(STORAGE_CART,cart); updateCartUI(); }
 function saveOrders(){ saveJSON(STORAGE_ORDERS,orders); }
+function isWished(id){ return wishlist.includes(id); }
+function toggleWishlist(id){
+  wishlist=isWished(id)?wishlist.filter(x=>x!==id):[...wishlist,id];
+  saveJSON(STORAGE_WISHLIST,wishlist);
+}
 
 let state={category:"all",search:"",brand:"all",sort:"featured"};
 let currentProduct=null, pdQty=1;
@@ -1285,11 +1391,16 @@ function buildSlider(){
     <div class="slide ${i===0?"active":""}" data-index="${i}">
       <img src="${s.image}" alt="${s.title}" loading="${i===0?"eager":"lazy"}">
       <div class="slide-content">
-        <span class="slide-cat">WEST TIME</span>
-        <h3 class="slide-title">${s.title}</h3>
-        <p class="slide-desc">${s.description}</p>
-        ${s.buttonText?`<button class="btn btn-black slide-btn" data-cat="${s.category}">${s.buttonText}</button>`:""}
+        <div class="slide-content-inner">
+          <span class="slide-cat">✦ WEST TIME</span>
+          <h1 class="slide-title">${s.title}</h1>
+          <p class="slide-desc">${s.description}</p>
+          <div class="slide-cta-row">
+            ${s.buttonText?`<button class="btn slide-btn" data-cat="${s.category}">${s.buttonText} →</button>`:""}
+          </div>
+        </div>
       </div>
+      ${s.caption?`<span class="slide-caption">${s.caption}</span>`:""}
     </div>`).join("");
   sliderDots.innerHTML=slides.map((_,i)=>`<button class="slider-dot ${i===0?"active":""}" data-goto="${i}" aria-label="اذهب للصورة ${i+1}"></button>`).join("");
 
@@ -1338,13 +1449,28 @@ function goToProductsWithCategory(cat){
 /* ========================================================================
    الأقسام
    ======================================================================== */
+const categoryIcons={
+  all:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  men:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/></svg>`,
+  women:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M12 13v8M9 18h6"/></svg>`,
+  classic:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`,
+  sport:`<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>`
+};
+function categoryIcon(key){
+  if(categoryIcons[key]) return categoryIcons[key];
+  const initials=key.slice(0,2).toUpperCase();
+  return `<span style="font-size:.85rem;font-weight:900;">${initials}</span>`;
+}
 const categoriesScroll=document.getElementById("categoriesScroll");
 function buildCategories(){
   categoriesScroll.innerHTML=categoriesList.map(c=>`
-    <button class="cat-chip ${c.key===state.category?"active":""}" data-cat="${c.key}" role="tab" aria-selected="${c.key===state.category}">${c.label}</button>
+    <button class="cat-circle-item ${c.key===state.category?"active":""}" data-cat="${c.key}" role="tab" aria-selected="${c.key===state.category}">
+      <span class="cat-circle">${categoryIcon(c.key)}</span>
+      <span>${c.label}</span>
+    </button>
   `).join("");
   categoriesScroll.querySelectorAll("[data-cat]").forEach(btn=>{
-    btn.addEventListener("click",()=>setActiveCategory(btn.getAttribute("data-cat")));
+    btn.addEventListener("click",()=>{ setActiveCategory(btn.getAttribute("data-cat")); document.getElementById("products").scrollIntoView({behavior:"smooth"}); });
   });
 }
 function setActiveCategory(cat){
@@ -1392,6 +1518,62 @@ function getFilteredProducts(){
   return list;
 }
 
+const CART_ICON_SVG=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h8.8a2 2 0 0 0 2-1.6L22 6H6"/></svg>`;
+const HEART_ICON_SVG=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>`;
+
+function productCardHTML(p){
+  const stock=getStock(p.id);
+  const outOfStock=stock<=0;
+  const wished=isWished(p.id);
+  return `
+    <article class="product-card" data-id="${p.id}" tabindex="0" role="button" aria-label="${p.name}">
+      <div class="product-thumb">
+        <button type="button" class="wishlist-btn btn-wishlist ${wished?"active":""}" data-id="${p.id}" aria-label="أضف للمفضلة">${HEART_ICON_SVG}</button>
+        <img src="${p.image}" alt="${p.name} - ${p.brand}" loading="lazy">
+        ${outOfStock?`<span class="badge badge-out stock-badge">نفذت الكمية</span>`:""}
+        ${p.featured&&!outOfStock?`<span class="badge featured-badge">⭐ مميز</span>`:""}
+      </div>
+      <div class="product-body">
+        <span class="product-brand">${p.brand}</span>
+        <h3 class="product-name">${p.name}</h3>
+        <div class="product-price">${fmtPrice(p.price)}</div>
+        <div class="stock-status ${outOfStock?"out":""}"><span class="stock-dot"></span>${outOfStock?"نفذت الكمية":"متوفر"}</div>
+        <div class="product-actions">
+          <button class="btn btn-ghost btn-details" data-id="${p.id}">التفاصيل</button>
+          <button class="btn btn-black btn-add" data-id="${p.id}" ${outOfStock?"disabled":""}>${outOfStock?"غير متوفرة":CART_ICON_SVG+" أضف للسلة"}</button>
+        </div>
+      </div>
+    </article>`;
+}
+
+function bindProductCardEvents(container){
+  container.querySelectorAll(".product-card").forEach(card=>{
+    card.addEventListener("click",e=>{
+      if(e.target.closest(".btn-add")||e.target.closest(".btn-wishlist")) return;
+      openProductModal(parseInt(card.getAttribute("data-id"),10));
+    });
+    card.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openProductModal(parseInt(card.getAttribute("data-id"),10)); }
+    });
+  });
+  container.querySelectorAll(".btn-details").forEach(btn=>{
+    btn.addEventListener("click",e=>{ e.stopPropagation(); openProductModal(parseInt(btn.getAttribute("data-id"),10)); });
+  });
+  container.querySelectorAll(".btn-add").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      addToCart(parseInt(btn.getAttribute("data-id"),10),1);
+    });
+  });
+  container.querySelectorAll(".btn-wishlist").forEach(btn=>{
+    btn.addEventListener("click",e=>{
+      e.stopPropagation();
+      toggleWishlist(parseInt(btn.getAttribute("data-id"),10));
+      btn.classList.toggle("active",isWished(parseInt(btn.getAttribute("data-id"),10)));
+    });
+  });
+}
+
 function renderProducts(){
   const list=getFilteredProducts();
   resultsCount.textContent=list.length+" ساعة متوفرة للعرض";
@@ -1404,47 +1586,20 @@ function renderProducts(){
       </div>`;
     return;
   }
-  productsGrid.innerHTML=list.map(p=>{
-    const stock=getStock(p.id);
-    const outOfStock=stock<=0;
-    return `
-    <article class="product-card" data-id="${p.id}" tabindex="0" role="button" aria-label="${p.name}">
-      <div class="product-thumb">
-        <img src="${p.image}" alt="${p.name} - ${p.brand}" loading="lazy">
-        ${outOfStock?`<span class="badge badge-out stock-badge">نفذت الكمية</span>`:""}
-        ${p.featured&&!outOfStock?`<span class="badge badge-black featured-badge">مميزة</span>`:""}
-      </div>
-      <div class="product-body">
-        <span class="product-brand">${p.brand}</span>
-        <h3 class="product-name">${p.name}</h3>
-        <div class="product-price">${fmtPrice(p.price)}</div>
-        <div class="product-actions">
-          <button class="btn btn-ghost btn-details" data-id="${p.id}">التفاصيل</button>
-          <button class="btn btn-black btn-add" data-id="${p.id}" ${outOfStock?"disabled":""}>${outOfStock?"غير متوفرة":"أضف للسلة"}</button>
-        </div>
-      </div>
-    </article>`;
-  }).join("");
-
-  productsGrid.querySelectorAll(".product-card").forEach(card=>{
-    card.addEventListener("click",e=>{
-      if(e.target.closest(".btn-add")) return;
-      openProductModal(parseInt(card.getAttribute("data-id"),10));
-    });
-    card.addEventListener("keydown",e=>{
-      if(e.key==="Enter"||e.key===" "){ e.preventDefault(); openProductModal(parseInt(card.getAttribute("data-id"),10)); }
-    });
-  });
-  productsGrid.querySelectorAll(".btn-details").forEach(btn=>{
-    btn.addEventListener("click",e=>{ e.stopPropagation(); openProductModal(parseInt(btn.getAttribute("data-id"),10)); });
-  });
-  productsGrid.querySelectorAll(".btn-add").forEach(btn=>{
-    btn.addEventListener("click",e=>{
-      e.stopPropagation();
-      addToCart(parseInt(btn.getAttribute("data-id"),10),1);
-    });
-  });
+  productsGrid.innerHTML=list.map(productCardHTML).join("");
+  bindProductCardEvents(productsGrid);
 }
+
+const featuredGrid=document.getElementById("featuredGrid");
+function renderFeatured(){
+  const list=products.filter(p=>p.featured).slice(0,4);
+  if(list.length===0){ document.getElementById("featured").style.display="none"; return; }
+  featuredGrid.innerHTML=list.map(productCardHTML).join("");
+  bindProductCardEvents(featuredGrid);
+}
+document.getElementById("viewAllFeatured").addEventListener("click",()=>{
+  sortFilter.value="featured"; state.sort="featured"; renderProducts();
+});
 
 /* ========================================================================
    مودال تفاصيل المنتج
@@ -1612,6 +1767,8 @@ function updateCartUI(){
   const count=cartCount();
   cartCountEl.textContent=count;
   cartCountEl.style.display=count>0?"flex":"none";
+  const bnCartCount=document.getElementById("bnCartCount");
+  if(bnCartCount){ bnCartCount.textContent=count; bnCartCount.style.display=count>0?"flex":"none"; }
   cartTotalEl.textContent=fmtPrice(cartTotal());
   renderCart();
   if(document.getElementById("checkoutModal").classList.contains("open")) renderCheckoutSummary();
@@ -1853,15 +2010,41 @@ document.querySelectorAll("[data-nav-link]").forEach(link=>{
 });
 
 /* ========================================================================
+   زر البحث بالهيدر
+   ======================================================================== */
+document.getElementById("headerSearchBtn").addEventListener("click",()=>{
+  document.getElementById("products").scrollIntoView({behavior:"smooth"});
+  setTimeout(()=>searchInput.focus(),400);
+});
+
+/* ========================================================================
+   الشريط السفلي (جوال)
+   ======================================================================== */
+const bottomNav=document.getElementById("bottomNav");
+function setBottomNavActive(key){
+  bottomNav.querySelectorAll(".bottom-nav-item").forEach(b=>b.classList.toggle("active",b.getAttribute("data-bn")===key));
+}
+bottomNav.querySelectorAll("a.bottom-nav-item").forEach(link=>{
+  link.addEventListener("click",()=>setBottomNavActive(link.getAttribute("data-bn")));
+});
+document.getElementById("bnCartBtn").addEventListener("click",()=>{ setBottomNavActive("cart"); openCart(); });
+document.getElementById("bnOrdersBtn").addEventListener("click",()=>{ setBottomNavActive("orders"); openDashboard(); });
+document.getElementById("bnMoreBtn").addEventListener("click",()=>{
+  setBottomNavActive("more");
+  document.querySelector(".site-footer").scrollIntoView({behavior:"smooth"});
+});
+
+/* ========================================================================
    التهيئة الأولية
    ======================================================================== */
 function init(){
-  document.getElementById("heroImage").src=products[0].image;
+  document.body.classList.add("has-bottom-nav");
   document.getElementById("statProducts").textContent=products.length;
   buildSlider();
   startAutoplay();
   buildCategories();
   buildBrandFilter();
+  renderFeatured();
   renderProducts();
   updateCartUI();
 }
