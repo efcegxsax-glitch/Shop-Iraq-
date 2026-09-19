@@ -511,7 +511,7 @@
             </div>
             <div class="image-pane" id="paneUpload">
                 <input type="file" id="fImageFile" accept="image/*">
-                <p class="hint">يتم ضغط الصورة تلقائيًا قبل الحفظ. للمتاجر الكبيرة يُفضّل استخدام رابط صورة بدل الرفع المباشر.</p>
+                <p class="hint">اختر صورة من الاستديو (مكتبة الصور) أو التقطها بالكاميرا مباشرة، وتتحول تلقائيًا لرابط Base64 عالي الدقة يُحفظ مع الساعة.</p>
             </div>
             <div class="image-preview" id="imagePreview">لا توجد صورة محددة</div>
 
@@ -640,23 +640,30 @@ import { getDatabase, ref, push, set, update, remove, onValue } from "https://ww
     fImageFile.addEventListener('change', () => {
         const file = fImageFile.files[0];
         if (!file) return;
+        setPreview('');
+        imagePreview.textContent = 'جاري تجهيز الصورة بأعلى دقة...';
         const reader = new FileReader();
         reader.onload = ev => {
             const img = new Image();
             img.onload = () => {
-                const maxDim = 900;
+                /* دقة عالية جدًا: أقصى بُعد 2200px بجودة 95% (شبه بدون فقدان بصري) */
+                const maxDim = 2200;
                 const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
                 const canvas = document.createElement('canvas');
                 canvas.width = Math.round(img.width * scale);
                 canvas.height = Math.round(img.height * scale);
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                uploadedImageData = canvas.toDataURL('image/jpeg', 0.8);
+                uploadedImageData = canvas.toDataURL('image/jpeg', 0.95);
                 fImageUrl.value = '';
                 setPreview(uploadedImageData);
+                const sizeMB = (uploadedImageData.length * 0.75 / 1024 / 1024).toFixed(1);
+                toast(`تم تجهيز الصورة بدقة عالية (${canvas.width}×${canvas.height}, ~${sizeMB}MB)`);
             };
+            img.onerror = () => { toast('تعذّر قراءة هذه الصورة، جرّب ملفًا آخر', 'error'); imagePreview.textContent = 'لا توجد صورة محددة'; };
             img.src = ev.target.result;
         };
+        reader.onerror = () => { toast('تعذّر قراءة الملف', 'error'); imagePreview.textContent = 'لا توجد صورة محددة'; };
         reader.readAsDataURL(file);
     });
 
