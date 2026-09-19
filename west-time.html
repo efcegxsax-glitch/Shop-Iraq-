@@ -2390,7 +2390,7 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
     /* =====================================================
        إعدادات المتجر — عدّلها حسب متجرك
        ===================================================== */
-    const CURRENCY = '$';          // رمز العملة المعروض بجانب الأسعار
+    const CURRENCY = 'د.ع';        // رمز العملة المعروض بجانب الأسعار (دينار عراقي)
     const STORE_WHATSAPP = '';     // رقم واتساب بالصيغة الدولية بدون + (مثال: 9665XXXXXXXX). إذا تُرك فارغًا يعمل زر الطلب كتجربة فقط
     const AUTOPLAY_SECONDS = 6;    // مدة بقاء كل شريحة في الأعلى
 
@@ -2436,84 +2436,84 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
 
     const SEED_PRODUCTS = [
         {
-            id: 'seed-1', brand: 'Rolex', name: 'Submariner Date', price: 14500, badge: 'الأكثر طلبًا',
+            id: 'seed-1', brand: 'Rolex', name: 'Submariner Date', price: 19000000, badge: 'الأكثر طلبًا',
             image: '1587836374828-4dbafa94cf0e',
             desc: 'ساعة غوص أيقونية بإطار خزفي دوّار',
             details: 'الساعة التي وضعت معيار ساعات الغوص، بعلبة Oyster محكمة وإطار دوّار باتجاه واحد وعقارب مضيئة تُقرأ بوضوح تحت الماء.',
             specs: { movement: 'أوتوماتيكية', size: '41 مم', material: 'فولاذ Oystersteel', water: '300 متر' }
         },
         {
-            id: 'seed-2', brand: 'Rolex', name: 'Cosmograph Daytona', price: 32000, badge: 'إصدار محدود',
+            id: 'seed-2', brand: 'Rolex', name: 'Cosmograph Daytona', price: 42000000, badge: 'إصدار محدود',
             image: '1612817159949-195b6eb9e31a',
             desc: 'كرونوغراف السباقات بثلاثة عدادات',
             details: 'صُممت لسائقي السباقات بمقياس سرعة على الإطار ووظيفة كرونوغراف دقيقة، وأصبحت من أكثر الساعات طلبًا في العالم.',
             specs: { movement: 'أوتوماتيكية كرونوغراف', size: '40 مم', material: 'ذهب أصفر 18 قيراط', water: '100 متر' }
         },
         {
-            id: 'seed-3', brand: 'Rolex', name: 'Datejust 36', price: 9800, badge: '',
+            id: 'seed-3', brand: 'Rolex', name: 'Datejust 36', price: 12800000, badge: '',
             image: '1547996160-81dfa63595aa',
             desc: 'أناقة يومية بنافذة تاريخ مكبّرة',
             details: 'تصميم متوازن يناسب العمل والمناسبات، مع عدسة Cyclops التي تكبّر التاريخ وإطار مضلّع يعكس الضوء بأناقة.',
             specs: { movement: 'أوتوماتيكية', size: '36 مم', material: 'فولاذ وذهب أصفر', water: '100 متر' }
         },
         {
-            id: 'seed-4', brand: 'Patek Philippe', name: 'Nautilus', price: 68000, badge: 'حصري',
+            id: 'seed-4', brand: 'Patek Philippe', name: 'Nautilus', price: 89000000, badge: 'حصري',
             image: '1523170335258-f5ed11844a49',
             desc: 'تصميم رياضي فاخر بميناء أزرق متدرّج',
             details: 'علبة بزوايا مستديرة مستوحاة من كوّات السفن، وسوار مدمج بتشطيب يدوي يجمع الطابع الرياضي مع الفخامة الهادئة.',
             specs: { movement: 'أوتوماتيكية', size: '40 مم', material: 'فولاذ مقاوم للصدأ', water: '120 متر' }
         },
         {
-            id: 'seed-5', brand: 'Patek Philippe', name: 'Calatrava', price: 31500, badge: '',
+            id: 'seed-5', brand: 'Patek Philippe', name: 'Calatrava', price: 41300000, badge: '',
             image: '1524805444758-089113d48a6d',
             desc: 'الساعة الرسمية بأبسط صورها',
             details: 'خطوط نقية وميناء واضح وحزام جلد؛ ساعة رسمية تعتمد على البساطة والتشطيب الدقيق بدل الزخرفة.',
             specs: { movement: 'أوتوماتيكية', size: '39 مم', material: 'ذهب أبيض 18 قيراط', water: '30 متر' }
         },
         {
-            id: 'seed-6', brand: 'Omega', name: 'Speedmaster Moonwatch', price: 7600, badge: 'جديد',
+            id: 'seed-6', brand: 'Omega', name: 'Speedmaster Moonwatch', price: 10000000, badge: 'جديد',
             image: '1614164185128-e4ec99c436d7',
             desc: 'الكرونوغراف الذي رافق رحلات القمر',
             details: 'ساعة يدوية التعبئة ارتبط اسمها ببعثات أبولو، بميناء أسود وعدادات فرعية وإطار مقياس سرعة كلاسيكي.',
             specs: { movement: 'يدوية التعبئة', size: '42 مم', material: 'فولاذ مقاوم للصدأ', water: '50 متر' }
         },
         {
-            id: 'seed-7', brand: 'Omega', name: 'Seamaster Diver 300M', price: 5900, badge: '',
+            id: 'seed-7', brand: 'Omega', name: 'Seamaster Diver 300M', price: 7700000, badge: '',
             image: '1622434641406-a158123450f9',
             desc: 'ساعة غوص بميناء منقوش بالأمواج',
             details: 'ساعة غوص عملية بصمام لتسريب الهيليوم وميناء خزفي بنقوش الأمواج، تناسب البحر والارتداء اليومي.',
             specs: { movement: 'أوتوماتيكية', size: '42 مم', material: 'فولاذ مقاوم للصدأ', water: '300 متر' }
         },
         {
-            id: 'seed-8', brand: 'Omega', name: 'Constellation', price: 6800, badge: '',
+            id: 'seed-8', brand: 'Omega', name: 'Constellation', price: 8900000, badge: '',
             image: '1548171915-e79a380a2a4b',
             desc: 'مخالب جانبية مميزة وسوار متكامل',
             details: 'تصميم معروف بمخالبه الجانبية وإطاره المنقوش بالأرقام الرومانية، يمنح المعصم حضورًا أنيقًا دون مبالغة.',
             specs: { movement: 'أوتوماتيكية', size: '39 مم', material: 'فولاذ وذهب', water: '50 متر' }
         },
         {
-            id: 'seed-9', brand: 'Casio', name: 'G-Shock GA-2100', price: 110, badge: '',
+            id: 'seed-9', brand: 'Casio', name: 'G-Shock GA-2100', price: 144000, badge: '',
             image: '1533139502658-0198f920d8e8',
             desc: 'علبة ثمانية الأضلاع مقاومة للصدمات',
             details: 'تصميم نحيف بهيكل كربوني يتحمل الصدمات والاهتزاز، مع شاشة رقمية وعقارب وإضاءة LED للاستخدام اليومي.',
             specs: { movement: 'كوارتز', size: '45.4 مم', material: 'راتنج مقوّى بالكربون', water: '200 متر' }
         },
         {
-            id: 'seed-10', brand: 'Casio', name: 'Edifice Chronograph', price: 220, badge: '',
+            id: 'seed-10', brand: 'Casio', name: 'Edifice Chronograph', price: 288000, badge: '',
             image: '1542496658-e33a6d0d50f6',
             desc: 'كرونوغراف معدني بطابع رياضي',
             details: 'ساعة كرونوغراف بسوار فولاذي وميناء متعدد الطبقات، مستوحاة من رياضة السيارات بسعر في المتناول.',
             specs: { movement: 'كوارتز كرونوغراف', size: '44 مم', material: 'فولاذ مقاوم للصدأ', water: '100 متر' }
         },
         {
-            id: 'seed-11', brand: 'Seiko', name: 'Presage Cocktail Time', price: 480, badge: 'جديد',
+            id: 'seed-11', brand: 'Seiko', name: 'Presage Cocktail Time', price: 630000, badge: 'جديد',
             image: '1522312346375-d1a52e2b99b3',
             desc: 'ميناء لامع يتغيّر لونه مع الضوء',
             details: 'ميناء بنقش شعاعي يتبدّل لونه مع زاوية الضوء وحركة أوتوماتيكية يابانية؛ خيار ممتاز كأول ساعة ميكانيكية.',
             specs: { movement: 'أوتوماتيكية', size: '40.5 مم', material: 'فولاذ مقاوم للصدأ', water: '50 متر' }
         },
         {
-            id: 'seed-12', brand: 'Seiko', name: 'Prospex Turtle', price: 520, badge: '',
+            id: 'seed-12', brand: 'Seiko', name: 'Prospex Turtle', price: 680000, badge: '',
             image: '1508685096489-7aacd43bd3b1',
             desc: 'ساعة غوص بعلبة وسادية مريحة',
             details: 'علبة وسادية الشكل تثبت على المعصم براحة، وإضاءة قوية وإطار غوص دوّار؛ مصممة للاستخدام الفعلي.',

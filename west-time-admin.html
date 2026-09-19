@@ -410,8 +410,8 @@
     <div class="stats">
         <div class="stat"><b id="statTotal">0</b><span>إجمالي الساعات المنشورة</span></div>
         <div class="stat"><b id="statBrands">0</b><span>عدد الماركات</span></div>
-        <div class="stat"><b id="statValue">0</b><span>إجمالي قيمة المخزون ($)</span></div>
-        <div class="stat"><b id="statAvg">0</b><span>متوسط السعر ($)</span></div>
+        <div class="stat"><b id="statValue">0</b><span>إجمالي قيمة المخزون (د.ع)</span></div>
+        <div class="stat"><b id="statAvg">0</b><span>متوسط السعر (د.ع)</span></div>
     </div>
 
     <section class="panel">
@@ -449,8 +449,8 @@
                     <input type="text" id="fName" placeholder="مثال: Submariner Date" required>
                 </div>
                 <div class="field">
-                    <label>السعر ($)</label>
-                    <input type="number" id="fPrice" min="0" step="0.01" placeholder="0" required>
+                    <label>السعر (د.ع)</label>
+                    <input type="number" id="fPrice" min="0" step="250" placeholder="0" required>
                 </div>
 
                 <div class="field">
@@ -814,7 +814,7 @@ import { getDatabase, ref, push, set, update, remove, onValue } from "https://ww
                     ${w.badge ? `<span><i class="fa-solid fa-tag"></i> ${esc(w.badge)}</span>` : ''}
                 </div>
             </div>
-            <div class="watch-row-price">${fmt(w.price)} $</div>
+            <div class="watch-row-price">${fmt(w.price)} د.ع</div>
             <div class="row-actions">
                 <button class="row-btn edit" type="button" data-edit="${w.id}" aria-label="تعديل"><i class="fa-solid fa-pen"></i></button>
                 <button class="row-btn delete" type="button" data-delete="${w.id}" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
