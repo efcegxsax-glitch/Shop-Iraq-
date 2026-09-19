@@ -3279,7 +3279,8 @@ import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12
         const fromDb = data
             ? Object.keys(data).map(key => ({ id: key, ...data[key] }))
             : [];
-        products = fromDb.length ? fromDb : SEED_PRODUCTS;
+        /* الساعات المنشورة من لوحة التحكم تُضاف إلى المجموعة الأساسية، ولا تستبدلها */
+        products = [...SEED_PRODUCTS, ...fromDb];
         refreshAll();
     }, () => {
         products = SEED_PRODUCTS;
