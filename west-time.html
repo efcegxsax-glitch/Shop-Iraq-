@@ -1458,6 +1458,16 @@
             margin-bottom: 12px;
         }
 
+        .modal-code {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 14px;
+        }
+
+        .modal-code:empty {
+            display: none;
+        }
+
         .modal-price {
             color: var(--gold-light);
             font-size: 24px;
@@ -2349,6 +2359,7 @@
             <div class="modal-details">
                 <div class="modal-brand" id="modalBrand"></div>
                 <h2 class="modal-name" id="modalName"></h2>
+                <div class="modal-code" id="modalCode"></div>
                 <div class="modal-price" id="modalPrice"></div>
                 <p class="modal-description" id="modalDescription"></p>
                 <div class="specs" id="modalSpecs"></div>
@@ -2369,7 +2380,10 @@
 <!-- ================= TOASTS ================= -->
 <div class="toast-container" id="toastContainer" aria-live="polite"></div>
 
-<script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
 (() => {
     'use strict';
 
@@ -2380,7 +2394,30 @@
     const STORE_WHATSAPP = '';     // رقم واتساب بالصيغة الدولية بدون + (مثال: 9665XXXXXXXX). إذا تُرك فارغًا يعمل زر الطلب كتجربة فقط
     const AUTOPLAY_SECONDS = 6;    // مدة بقاء كل شريحة في الأعلى
 
+    /* =====================================================
+       Firebase — قاعدة بيانات الساعات (تُدار من لوحة التحكم west-time-admin.html)
+       ===================================================== */
+    const firebaseConfig = {
+        apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
+        authDomain: "iraqi-student-platform-9918d.firebaseapp.com",
+        databaseURL: "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com",
+        projectId: "iraqi-student-platform-9918d",
+        storageBucket: "iraqi-student-platform-9918d.firebasestorage.app",
+        messagingSenderId: "16734952715",
+        appId: "1:16734952715:web:09d6bf07a568135085960e",
+        measurementId: "G-KQG1STTK8V"
+    };
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
+
     const photo = (id, w = 800) => `https://images.unsplash.com/photo-${id}?q=80&w=${w}&auto=format&fit=crop`;
+
+    /* رابط الصورة: من فايربيس (رابط مباشر أو صورة مرفوعة Base64) أو من قائمة العرض الافتراضية */
+    const imgSrc = (p, w = 800) => {
+        if (!p.image) return '';
+        if (p.image.startsWith('data:') || /^https?:\/\//.test(p.image)) return p.image;
+        return photo(p.image, w);
+    };
 
     const BRAND_AR = {
         'Rolex': 'رولكس',
@@ -2397,92 +2434,93 @@
         water: 'مقاومة الماء'
     };
 
-    const products = [
+    const SEED_PRODUCTS = [
         {
-            id: 1, brand: 'Rolex', name: 'Submariner Date', price: 14500, badge: 'الأكثر طلبًا',
+            id: 'seed-1', brand: 'Rolex', name: 'Submariner Date', price: 14500, badge: 'الأكثر طلبًا',
             image: '1587836374828-4dbafa94cf0e',
             desc: 'ساعة غوص أيقونية بإطار خزفي دوّار',
             details: 'الساعة التي وضعت معيار ساعات الغوص، بعلبة Oyster محكمة وإطار دوّار باتجاه واحد وعقارب مضيئة تُقرأ بوضوح تحت الماء.',
             specs: { movement: 'أوتوماتيكية', size: '41 مم', material: 'فولاذ Oystersteel', water: '300 متر' }
         },
         {
-            id: 2, brand: 'Rolex', name: 'Cosmograph Daytona', price: 32000, badge: 'إصدار محدود',
+            id: 'seed-2', brand: 'Rolex', name: 'Cosmograph Daytona', price: 32000, badge: 'إصدار محدود',
             image: '1612817159949-195b6eb9e31a',
             desc: 'كرونوغراف السباقات بثلاثة عدادات',
             details: 'صُممت لسائقي السباقات بمقياس سرعة على الإطار ووظيفة كرونوغراف دقيقة، وأصبحت من أكثر الساعات طلبًا في العالم.',
             specs: { movement: 'أوتوماتيكية كرونوغراف', size: '40 مم', material: 'ذهب أصفر 18 قيراط', water: '100 متر' }
         },
         {
-            id: 3, brand: 'Rolex', name: 'Datejust 36', price: 9800, badge: '',
+            id: 'seed-3', brand: 'Rolex', name: 'Datejust 36', price: 9800, badge: '',
             image: '1547996160-81dfa63595aa',
             desc: 'أناقة يومية بنافذة تاريخ مكبّرة',
             details: 'تصميم متوازن يناسب العمل والمناسبات، مع عدسة Cyclops التي تكبّر التاريخ وإطار مضلّع يعكس الضوء بأناقة.',
             specs: { movement: 'أوتوماتيكية', size: '36 مم', material: 'فولاذ وذهب أصفر', water: '100 متر' }
         },
         {
-            id: 4, brand: 'Patek Philippe', name: 'Nautilus', price: 68000, badge: 'حصري',
+            id: 'seed-4', brand: 'Patek Philippe', name: 'Nautilus', price: 68000, badge: 'حصري',
             image: '1523170335258-f5ed11844a49',
             desc: 'تصميم رياضي فاخر بميناء أزرق متدرّج',
             details: 'علبة بزوايا مستديرة مستوحاة من كوّات السفن، وسوار مدمج بتشطيب يدوي يجمع الطابع الرياضي مع الفخامة الهادئة.',
             specs: { movement: 'أوتوماتيكية', size: '40 مم', material: 'فولاذ مقاوم للصدأ', water: '120 متر' }
         },
         {
-            id: 5, brand: 'Patek Philippe', name: 'Calatrava', price: 31500, badge: '',
+            id: 'seed-5', brand: 'Patek Philippe', name: 'Calatrava', price: 31500, badge: '',
             image: '1524805444758-089113d48a6d',
             desc: 'الساعة الرسمية بأبسط صورها',
             details: 'خطوط نقية وميناء واضح وحزام جلد؛ ساعة رسمية تعتمد على البساطة والتشطيب الدقيق بدل الزخرفة.',
             specs: { movement: 'أوتوماتيكية', size: '39 مم', material: 'ذهب أبيض 18 قيراط', water: '30 متر' }
         },
         {
-            id: 6, brand: 'Omega', name: 'Speedmaster Moonwatch', price: 7600, badge: 'جديد',
+            id: 'seed-6', brand: 'Omega', name: 'Speedmaster Moonwatch', price: 7600, badge: 'جديد',
             image: '1614164185128-e4ec99c436d7',
             desc: 'الكرونوغراف الذي رافق رحلات القمر',
             details: 'ساعة يدوية التعبئة ارتبط اسمها ببعثات أبولو، بميناء أسود وعدادات فرعية وإطار مقياس سرعة كلاسيكي.',
             specs: { movement: 'يدوية التعبئة', size: '42 مم', material: 'فولاذ مقاوم للصدأ', water: '50 متر' }
         },
         {
-            id: 7, brand: 'Omega', name: 'Seamaster Diver 300M', price: 5900, badge: '',
+            id: 'seed-7', brand: 'Omega', name: 'Seamaster Diver 300M', price: 5900, badge: '',
             image: '1622434641406-a158123450f9',
             desc: 'ساعة غوص بميناء منقوش بالأمواج',
             details: 'ساعة غوص عملية بصمام لتسريب الهيليوم وميناء خزفي بنقوش الأمواج، تناسب البحر والارتداء اليومي.',
             specs: { movement: 'أوتوماتيكية', size: '42 مم', material: 'فولاذ مقاوم للصدأ', water: '300 متر' }
         },
         {
-            id: 8, brand: 'Omega', name: 'Constellation', price: 6800, badge: '',
+            id: 'seed-8', brand: 'Omega', name: 'Constellation', price: 6800, badge: '',
             image: '1548171915-e79a380a2a4b',
             desc: 'مخالب جانبية مميزة وسوار متكامل',
             details: 'تصميم معروف بمخالبه الجانبية وإطاره المنقوش بالأرقام الرومانية، يمنح المعصم حضورًا أنيقًا دون مبالغة.',
             specs: { movement: 'أوتوماتيكية', size: '39 مم', material: 'فولاذ وذهب', water: '50 متر' }
         },
         {
-            id: 9, brand: 'Casio', name: 'G-Shock GA-2100', price: 110, badge: '',
+            id: 'seed-9', brand: 'Casio', name: 'G-Shock GA-2100', price: 110, badge: '',
             image: '1533139502658-0198f920d8e8',
             desc: 'علبة ثمانية الأضلاع مقاومة للصدمات',
             details: 'تصميم نحيف بهيكل كربوني يتحمل الصدمات والاهتزاز، مع شاشة رقمية وعقارب وإضاءة LED للاستخدام اليومي.',
             specs: { movement: 'كوارتز', size: '45.4 مم', material: 'راتنج مقوّى بالكربون', water: '200 متر' }
         },
         {
-            id: 10, brand: 'Casio', name: 'Edifice Chronograph', price: 220, badge: '',
+            id: 'seed-10', brand: 'Casio', name: 'Edifice Chronograph', price: 220, badge: '',
             image: '1542496658-e33a6d0d50f6',
             desc: 'كرونوغراف معدني بطابع رياضي',
             details: 'ساعة كرونوغراف بسوار فولاذي وميناء متعدد الطبقات، مستوحاة من رياضة السيارات بسعر في المتناول.',
             specs: { movement: 'كوارتز كرونوغراف', size: '44 مم', material: 'فولاذ مقاوم للصدأ', water: '100 متر' }
         },
         {
-            id: 11, brand: 'Seiko', name: 'Presage Cocktail Time', price: 480, badge: 'جديد',
+            id: 'seed-11', brand: 'Seiko', name: 'Presage Cocktail Time', price: 480, badge: 'جديد',
             image: '1522312346375-d1a52e2b99b3',
             desc: 'ميناء لامع يتغيّر لونه مع الضوء',
             details: 'ميناء بنقش شعاعي يتبدّل لونه مع زاوية الضوء وحركة أوتوماتيكية يابانية؛ خيار ممتاز كأول ساعة ميكانيكية.',
             specs: { movement: 'أوتوماتيكية', size: '40.5 مم', material: 'فولاذ مقاوم للصدأ', water: '50 متر' }
         },
         {
-            id: 12, brand: 'Seiko', name: 'Prospex Turtle', price: 520, badge: '',
+            id: 'seed-12', brand: 'Seiko', name: 'Prospex Turtle', price: 520, badge: '',
             image: '1508685096489-7aacd43bd3b1',
             desc: 'ساعة غوص بعلبة وسادية مريحة',
             details: 'علبة وسادية الشكل تثبت على المعصم براحة، وإضاءة قوية وإطار غوص دوّار؛ مصممة للاستخدام الفعلي.',
             specs: { movement: 'أوتوماتيكية', size: '45 مم', material: 'فولاذ مقاوم للصدأ', water: '200 متر' }
         }
     ];
+    let products = SEED_PRODUCTS;
 
     /* =====================================================
        أدوات مساعدة
@@ -2802,7 +2840,7 @@
     function renderStrip() {
         const item = (p, hidden) => `
             <button class="strip-item" type="button" data-open="${p.id}"${hidden ? ' tabindex="-1"' : ''}>
-                <img src="${photo(p.image, 160)}" alt="" draggable="false">
+                <img src="${imgSrc(p, 160)}" alt="" draggable="false">
                 <span>
                     <span class="strip-brand">${esc(p.brand.toUpperCase())}</span>
                     <span class="strip-name">${esc(p.name)}</span>
@@ -2816,7 +2854,7 @@
 
     stripTrack.addEventListener('click', e => {
         const btn = e.target.closest('[data-open]');
-        if (btn) openModal(+btn.dataset.open, btn);
+        if (btn) openModal(btn.dataset.open, btn);
     });
 
     /* =====================================================
@@ -2826,7 +2864,8 @@
     const countEl = $('#productsCount');
     const searchInput = $('#searchInput');
     const sortSelect = $('#sortSelect');
-    const chips = $$('.brand-chip');
+    const brandsList = $('#brandsList');
+    const KNOWN_BRANDS = ['Rolex', 'Patek Philippe', 'Omega', 'Casio', 'Seiko'];
 
     const favButtonState = on => ({
         cls: on ? 'active' : '',
@@ -2841,7 +2880,7 @@
             <div class="product-image-wrap" data-open="${p.id}">
                 ${p.badge ? `<span class="product-badge">${esc(p.badge)}</span>` : ''}
                 <button class="product-favorite ${f.cls}" type="button" data-fav="${p.id}" aria-pressed="${favs.has(p.id)}" aria-label="${f.label}">${f.icon}</button>
-                <img class="product-image" src="${photo(p.image)}" alt="${esc(p.brand + ' ' + p.name)}" loading="lazy" decoding="async" draggable="false">
+                <img class="product-image" src="${imgSrc(p)}" alt="${esc(p.brand + ' ' + p.name)}" loading="lazy" decoding="async" draggable="false">
             </div>
             <div class="product-info">
                 <div class="product-brand">${esc(p.brand.toUpperCase())}</div>
@@ -2898,9 +2937,32 @@
         grid.innerHTML = list.length ? list.map(cardHTML).join('') : emptyHTML();
     }
 
+    function renderBrandChips() {
+        const extra = [...new Set(products.map(p => p.brand))]
+            .filter(b => !KNOWN_BRANDS.includes(b))
+            .sort((a, b) => a.localeCompare(b));
+        const brands = [...KNOWN_BRANDS, ...extra];
+        const countOf = brand => products.filter(p => p.brand === brand).length;
+
+        const chipHTML = (brand, label, on, count) => `
+            <button class="brand-chip${on ? ' active' : ''}" type="button" data-brand="${esc(brand)}" aria-pressed="${on}">
+                ${esc(label)}${count != null ? `<span class="chip-count">(${count})</span>` : ''}
+            </button>`;
+
+        brandsList.innerHTML =
+            chipHTML('all', 'الكل', state.brand === 'all') +
+            brands.filter(b => countOf(b) > 0 || KNOWN_BRANDS.includes(b)).map(b => chipHTML(b, b, state.brand === b, countOf(b))).join('') +
+            `<button class="brand-chip${state.brand === 'favorites' ? ' active' : ''}" type="button" data-brand="favorites" aria-pressed="${state.brand === 'favorites'}">
+                <i class="fa-solid fa-heart"></i> المفضلة
+                <span class="chip-count fav-count-text"></span>
+            </button>`;
+
+        updateFavUI();
+    }
+
     function setBrand(brand) {
         state.brand = brand;
-        chips.forEach(chip => {
+        $$('.brand-chip', brandsList).forEach(chip => {
             const on = chip.dataset.brand === brand;
             chip.classList.toggle('active', on);
             chip.setAttribute('aria-pressed', String(on));
@@ -2914,7 +2976,10 @@
         setBrand('all');
     }
 
-    chips.forEach(chip => chip.addEventListener('click', () => setBrand(chip.dataset.brand)));
+    brandsList.addEventListener('click', e => {
+        const chip = e.target.closest('.brand-chip');
+        if (chip) setBrand(chip.dataset.brand);
+    });
 
     let searchTimer;
     searchInput.addEventListener('input', () => {
@@ -2932,13 +2997,13 @@
 
     grid.addEventListener('click', e => {
         const fav = e.target.closest('[data-fav]');
-        if (fav) { toggleFav(+fav.dataset.fav); return; }
+        if (fav) { toggleFav(fav.dataset.fav); return; }
 
         const add = e.target.closest('[data-add]');
-        if (add) { addToCart(+add.dataset.add); return; }
+        if (add) { addToCart(add.dataset.add); return; }
 
         const open = e.target.closest('[data-open]');
-        if (open) { openModal(+open.dataset.open, open); return; }
+        if (open) { openModal(open.dataset.open, open); return; }
 
         const action = e.target.closest('[data-action]');
         if (action) resetFilters();
@@ -3024,7 +3089,7 @@
             const p = byId(item.id);
             return `
             <div class="cart-item">
-                <img src="${photo(p.image, 200)}" alt="${esc(p.brand + ' ' + p.name)}" loading="lazy">
+                <img src="${imgSrc(p, 200)}" alt="${esc(p.brand + ' ' + p.name)}" loading="lazy">
                 <div class="cart-item-info">
                     <div class="cart-item-brand">${esc(p.brand.toUpperCase())}</div>
                     <div class="cart-item-name">${esc(p.name)}</div>
@@ -3097,10 +3162,10 @@
 
     cartItemsEl.addEventListener('click', e => {
         const qty = e.target.closest('[data-qty]');
-        if (qty) { changeQty(+qty.dataset.id, +qty.dataset.qty); return; }
+        if (qty) { changeQty(qty.dataset.id, +qty.dataset.qty); return; }
 
         const remove = e.target.closest('[data-remove]');
-        if (remove) { removeFromCart(+remove.dataset.remove); return; }
+        if (remove) { removeFromCart(remove.dataset.remove); return; }
 
         if (e.target.closest('[data-action="browse"]')) {
             closeCart();
@@ -3153,16 +3218,17 @@
         modalTrigger = trigger || document.activeElement;
 
         modalImage.removeAttribute('data-fb');
-        modalImage.src = photo(p.image, 1000);
+        modalImage.src = imgSrc(p, 1000);
         modalImage.alt = `${p.brand} ${p.name}`;
-        $('#modalBrand').textContent = p.brand.toUpperCase();
-        $('#modalName').textContent = p.name;
-        $('#modalPrice').innerHTML = money(p.price);
-        $('#modalDescription').textContent = p.details;
+        $('#modalBrand').textContent = (p.brand || '').toUpperCase();
+        $('#modalName').textContent = p.name || '';
+        $('#modalCode').textContent = p.code ? `كود المنتج: ${p.code}` : '';
+        $('#modalPrice').innerHTML = money(p.price || 0);
+        $('#modalDescription').textContent = p.details || p.desc || '';
         $('#modalSpecs').innerHTML = Object.entries(SPEC_LABELS).map(([key, label]) => `
             <div class="spec">
                 <span class="spec-label">${label}</span>
-                <span class="spec-value">${esc(p.specs[key])}</span>
+                <span class="spec-value">${esc((p.specs && p.specs[key]) || '—')}</span>
             </div>`).join('');
 
         modalFav.dataset.fav = id;
@@ -3197,10 +3263,35 @@
     });
 
     /* =====================================================
+       مزامنة الساعات مع فايربيس (تُنشر من لوحة التحكم west-time-admin.html)
+       ===================================================== */
+    function refreshAll() {
+        [...favs].forEach(id => { if (!byId(id)) favs.delete(id); });
+        cart = cart.filter(i => byId(i.id));
+        renderBrandChips();
+        renderStrip();
+        renderProducts();
+        renderCart();
+    }
+
+    onValue(ref(db, 'watches'), snapshot => {
+        const data = snapshot.val();
+        const fromDb = data
+            ? Object.keys(data).map(key => ({ id: key, ...data[key] }))
+            : [];
+        products = fromDb.length ? fromDb : SEED_PRODUCTS;
+        refreshAll();
+    }, () => {
+        products = SEED_PRODUCTS;
+        refreshAll();
+    });
+
+    /* =====================================================
        التشغيل
        ===================================================== */
     $('#year').textContent = new Date().getFullYear();
     initHeroSlider();
+    renderBrandChips();
     renderStrip();
     renderProducts();
     renderCart();

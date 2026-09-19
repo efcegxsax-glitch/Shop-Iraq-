@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b">
+<title>لوحة تحكم WEST TIME</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+<style>
+    :root {
+        color-scheme: dark;
+        --bg: #0b0b0b;
+        --surface: #141414;
+        --surface-2: #1b1b1b;
+        --surface-3: #222222;
+        --gold: #d4af37;
+        --gold-light: #f0d477;
+        --white: #ffffff;
+        --muted: #999999;
+        --muted-2: #6f6f6f;
+        --border: rgba(255,255,255,0.08);
+        --success: #63c174;
+        --danger: #e36b6b;
+        --radius-lg: 22px;
+        --radius-md: 14px;
+        --radius-sm: 10px;
+        --transition: 0.2s ease;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+        font-family: 'Tajawal', 'Segoe UI', Tahoma, sans-serif;
+        background:
+            radial-gradient(circle at 50% -10%, rgba(212,175,55,0.07), transparent 35%),
+            var(--bg);
+        color: var(--white);
+        min-height: 100vh;
+        padding-bottom: 60px;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
+
+    .wrap {
+        width: min(1080px, calc(100% - 32px));
+        margin: 0 auto;
+    }
+
+    /* HEADER */
+    .top {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        background: rgba(11,11,11,0.92);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border);
+        padding: 18px 0;
+        margin-bottom: 26px;
+    }
+
+    .top-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .brand-block .brand-name { font-size: 20px; font-weight: 800; letter-spacing: 2px; }
+    .brand-block .brand-sub { color: var(--gold); font-size: 10px; letter-spacing: 3px; font-weight: 700; margin-top: 4px; }
+
+    .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        font-size: 12px;
+        color: var(--muted);
+        transition: var(--transition);
+    }
+
+    .back-link:hover { color: var(--gold); border-color: rgba(212,175,55,0.45); }
+
+    /* STATS */
+    .stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+        margin-bottom: 26px;
+    }
+
+    .stat {
+        padding: 16px 18px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+    }
+
+    .stat b { display: block; font-size: 22px; color: var(--gold-light); margin-bottom: 4px; }
+    .stat span { font-size: 11px; color: var(--muted); }
+
+    /* PANEL */
+    .panel {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: linear-gradient(145deg, #161616, #111111);
+        padding: 22px;
+        margin-bottom: 26px;
+    }
+
+    .panel-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 16px;
+        font-weight: 800;
+        margin-bottom: 18px;
+        color: var(--gold-light);
+    }
+
+    .panel-title i { color: var(--gold); }
+
+    .field-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 14px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field.span-2 { grid-column: span 2; }
+    .field.span-3 { grid-column: span 3; }
+
+    .field label {
+        font-size: 11px;
+        color: var(--muted);
+        font-weight: 700;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+        width: 100%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--white);
+        padding: 11px 14px;
+        outline: none;
+        font-size: 13px;
+        transition: var(--transition);
+    }
+
+    .field textarea { resize: vertical; min-height: 76px; line-height: 1.7; }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+        border-color: rgba(212,175,55,0.6);
+        box-shadow: 0 0 0 3px rgba(212,175,55,0.07);
+    }
+
+    .field select option { background: var(--surface); }
+
+    .hint { font-size: 10px; color: var(--muted-2); }
+
+    .image-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .image-tab {
+        padding: 7px 14px;
+        border-radius: 50px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        transition: var(--transition);
+    }
+
+    .image-tab.active { background: var(--gold); color: #111; border-color: var(--gold); }
+
+    .image-pane { display: none; }
+    .image-pane.active { display: block; }
+
+    .image-preview {
+        width: 100%;
+        height: 160px;
+        border-radius: var(--radius-sm);
+        border: 1px dashed var(--border);
+        background: var(--surface);
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        color: var(--muted-2);
+        font-size: 11px;
+    }
+
+    .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .specs-title {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--gold);
+        margin: 18px 0 10px;
+    }
+
+    .form-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .btn {
+        min-height: 44px;
+        border: 0;
+        border-radius: 50px;
+        padding: 0 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 700;
+        transition: var(--transition);
+    }
+
+    .btn-gold { color: #111; background: var(--gold); }
+    .btn-gold:hover { background: var(--gold-light); transform: translateY(-1px); }
+    .btn-gold:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-outline { color: var(--white); background: transparent; border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+
+    .edit-flag {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 50px;
+        background: rgba(212,175,55,0.12);
+        border: 1px solid rgba(212,175,55,0.35);
+        color: var(--gold-light);
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+
+    .edit-flag.active { display: inline-flex; }
+
+    /* LIST */
+    .list-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+    }
+
+    .search-box { position: relative; flex: 1; min-width: 220px; max-width: 360px; }
+    .search-box i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+    .search-box input {
+        width: 100%;
+        height: 42px;
+        padding: 0 42px 0 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 50px;
+        color: var(--white);
+        outline: none;
+        font-size: 12px;
+    }
+
+    .watch-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .watch-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        background: var(--surface);
+        transition: var(--transition);
+    }
+
+    .watch-row:hover { border-color: rgba(212,175,55,0.3); }
+
+    .watch-row img {
+        width: 56px;
+        height: 56px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: var(--surface-3);
+        flex-shrink: 0;
+    }
+
+    .watch-row-info { flex: 1; min-width: 0; }
+    .watch-row-brand { color: var(--gold); font-size: 9px; font-weight: 800; letter-spacing: 1px; }
+    .watch-row-name { font-size: 14px; font-weight: 700; margin: 3px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .watch-row-meta { font-size: 11px; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; }
+    .watch-row-price { color: var(--gold-light); font-weight: 800; font-size: 14px; white-space: nowrap; }
+
+    .row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+    .row-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: 1px solid var(--border);
+        background: var(--surface-2);
+        color: var(--white);
+        transition: var(--transition);
+    }
+
+    .row-btn.edit:hover { color: var(--gold); border-color: var(--gold); }
+    .row-btn.delete:hover { color: var(--danger); border-color: rgba(227,107,107,0.5); }
+
+    .empty-list {
+        text-align: center;
+        padding: 50px 20px;
+        color: var(--muted);
+        border: 1px dashed var(--border);
+        border-radius: var(--radius-lg);
+    }
+
+    .empty-list i { font-size: 30px; color: var(--gold); margin-bottom: 12px; }
+
+    /* TOAST */
+    .toast-container {
+        position: fixed;
+        right: 20px;
+        bottom: 25px;
+        z-index: 500;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .toast {
+        min-width: 260px;
+        max-width: 350px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 17px;
+        border: 1px solid var(--border);
+        border-radius: 13px;
+        background: #1b1b1b;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+        animation: toastIn 0.3s ease forwards;
+        font-size: 13px;
+    }
+
+    .toast i { color: var(--success); }
+    .toast.error i { color: var(--danger); }
+
+    @keyframes toastIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes toastOut { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(15px); } }
+
+    @media (max-width: 760px) {
+        .stats { grid-template-columns: repeat(2, 1fr); }
+        .field-grid { grid-template-columns: 1fr 1fr; }
+        .field.span-2, .field.span-3 { grid-column: span 2; }
+    }
+
+    @media (max-width: 480px) {
+        .field-grid { grid-template-columns: 1fr; }
+        .field.span-2, .field.span-3 { grid-column: span 1; }
+        .watch-row { flex-wrap: wrap; }
+        .row-actions { margin-inline-start: auto; }
+    }
+</style>
+</head>
+<body>
+
+<header class="top">
+    <div class="wrap top-inner">
+        <div class="brand-block">
+            <div class="brand-name">WEST TIME</div>
+            <div class="brand-sub">لوحة التحكم</div>
+        </div>
+        <a href="west-time.html" class="back-link" target="_blank" rel="noopener">
+            <i class="fa-solid fa-arrow-up-left-from-circle"></i>
+            عرض المتجر
+        </a>
+    </div>
+</header>
+
+<main class="wrap">
+
+    <div class="stats">
+        <div class="stat"><b id="statTotal">0</b><span>إجمالي الساعات المنشورة</span></div>
+        <div class="stat"><b id="statBrands">0</b><span>عدد الماركات</span></div>
+        <div class="stat"><b id="statValue">0</b><span>إجمالي قيمة المخزون ($)</span></div>
+        <div class="stat"><b id="statAvg">0</b><span>متوسط السعر ($)</span></div>
+    </div>
+
+    <section class="panel">
+        <div class="panel-title"><i class="fa-solid fa-clock"></i> نشر / تعديل ساعة</div>
+
+        <div class="edit-flag" id="editFlag">
+            <i class="fa-solid fa-pen"></i>
+            <span>أنت تعدّل ساعة منشورة الآن</span>
+        </div>
+
+        <form id="watchForm">
+            <div class="field-grid">
+                <div class="field">
+                    <label>القسم / الماركة</label>
+                    <select id="fBrandSelect">
+                        <option value="Rolex">Rolex</option>
+                        <option value="Patek Philippe">Patek Philippe</option>
+                        <option value="Omega">Omega</option>
+                        <option value="Casio">Casio</option>
+                        <option value="Seiko">Seiko</option>
+                        <option value="__other__">+ ماركة جديدة</option>
+                    </select>
+                </div>
+                <div class="field" id="fBrandOtherWrap" style="display:none;">
+                    <label>اسم الماركة الجديدة</label>
+                    <input type="text" id="fBrandOther" placeholder="مثال: Tissot">
+                </div>
+                <div class="field">
+                    <label>كود المنتج</label>
+                    <input type="text" id="fCode" placeholder="مثال: RLX-013" required>
+                </div>
+
+                <div class="field span-2">
+                    <label>اسم الساعة</label>
+                    <input type="text" id="fName" placeholder="مثال: Submariner Date" required>
+                </div>
+                <div class="field">
+                    <label>السعر ($)</label>
+                    <input type="number" id="fPrice" min="0" step="0.01" placeholder="0" required>
+                </div>
+
+                <div class="field">
+                    <label>الشارة (اختياري)</label>
+                    <select id="fBadgeSelect">
+                        <option value="">بدون شارة</option>
+                        <option value="جديد">جديد</option>
+                        <option value="الأكثر طلبًا">الأكثر طلبًا</option>
+                        <option value="حصري">حصري</option>
+                        <option value="إصدار محدود">إصدار محدود</option>
+                        <option value="__other__">شارة مخصصة</option>
+                    </select>
+                </div>
+                <div class="field" id="fBadgeOtherWrap" style="display:none;">
+                    <label>نص الشارة</label>
+                    <input type="text" id="fBadgeOther" placeholder="مثال: عرض خاص">
+                </div>
+                <div class="field span-3">
+                    <label>وصف مختصر (يظهر على بطاقة المنتج)</label>
+                    <input type="text" id="fDesc" placeholder="جملة قصيرة تصف الساعة" required>
+                </div>
+
+                <div class="field span-3">
+                    <label>التفاصيل الكاملة (تظهر عند فتح الساعة)</label>
+                    <textarea id="fDetails" placeholder="وصف تفصيلي للساعة، الخامات، الاستخدام..." required></textarea>
+                </div>
+            </div>
+
+            <div class="specs-title">المواصفات</div>
+            <div class="field-grid">
+                <div class="field">
+                    <label>الحركة</label>
+                    <input type="text" id="fMovement" placeholder="أوتوماتيكية" required>
+                </div>
+                <div class="field">
+                    <label>قطر العلبة</label>
+                    <input type="text" id="fSize" placeholder="41 مم" required>
+                </div>
+                <div class="field">
+                    <label>المادة</label>
+                    <input type="text" id="fMaterial" placeholder="فولاذ مقاوم للصدأ" required>
+                </div>
+                <div class="field">
+                    <label>مقاومة الماء</label>
+                    <input type="text" id="fWater" placeholder="100 متر" required>
+                </div>
+            </div>
+
+            <div class="specs-title">صورة الساعة</div>
+            <div class="image-tabs">
+                <button type="button" class="image-tab active" data-tab="url">رابط صورة</button>
+                <button type="button" class="image-tab" data-tab="upload">رفع من الجهاز</button>
+            </div>
+
+            <div class="image-pane active" id="paneUrl">
+                <input type="url" id="fImageUrl" placeholder="https://...">
+                <p class="hint">الصق رابط صورة مباشر (يفضّل بأبعاد مربعة تقريبًا).</p>
+            </div>
+            <div class="image-pane" id="paneUpload">
+                <input type="file" id="fImageFile" accept="image/*">
+                <p class="hint">يتم ضغط الصورة تلقائيًا قبل الحفظ. للمتاجر الكبيرة يُفضّل استخدام رابط صورة بدل الرفع المباشر.</p>
+            </div>
+            <div class="image-preview" id="imagePreview">لا توجد صورة محددة</div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-gold" id="submitBtn">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span id="submitLabel">نشر الساعة</span>
+                </button>
+                <button type="button" class="btn btn-outline" id="cancelEditBtn" style="display:none;">
+                    إلغاء التعديل
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="panel">
+        <div class="panel-title"><i class="fa-solid fa-list"></i> الساعات المنشورة</div>
+
+        <div class="list-toolbar">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="search" id="listSearch" placeholder="ابحث بالاسم أو الكود أو الماركة...">
+            </div>
+        </div>
+
+        <div class="watch-list" id="watchList"></div>
+    </section>
+
+</main>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getDatabase, ref, push, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+(() => {
+    'use strict';
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
+        authDomain: "iraqi-student-platform-9918d.firebaseapp.com",
+        databaseURL: "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com",
+        projectId: "iraqi-student-platform-9918d",
+        storageBucket: "iraqi-student-platform-9918d.firebasestorage.app",
+        messagingSenderId: "16734952715",
+        appId: "1:16734952715:web:09d6bf07a568135085960e",
+        measurementId: "G-KQG1STTK8V"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const watchesRef = ref(db, 'watches');
+
+    const $ = s => document.querySelector(s);
+    const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const fmt = n => Number(n || 0).toLocaleString('en-US');
+
+    let watches = [];
+    let editingId = null;
+    let uploadedImageData = '';
+
+    /* =====================================================
+       التنبيهات
+       ===================================================== */
+    const toastBox = $('#toastContainer');
+    function toast(message, type = 'success') {
+        const el = document.createElement('div');
+        el.className = 'toast' + (type === 'error' ? ' error' : '');
+        el.innerHTML = `<i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i><span></span>`;
+        el.querySelector('span').textContent = message;
+        toastBox.appendChild(el);
+        while (toastBox.children.length > 3) toastBox.firstElementChild.remove();
+        setTimeout(() => {
+            el.style.animation = 'toastOut 0.3s ease forwards';
+            el.addEventListener('animationend', () => el.remove(), { once: true });
+            setTimeout(() => el.remove(), 400);
+        }, 2800);
+    }
+
+    /* =====================================================
+       نموذج الماركة / الشارة (إظهار حقل "أخرى")
+       ===================================================== */
+    const brandSelect = $('#fBrandSelect');
+    const brandOtherWrap = $('#fBrandOtherWrap');
+    const brandOther = $('#fBrandOther');
+    brandSelect.addEventListener('change', () => {
+        const other = brandSelect.value === '__other__';
+        brandOtherWrap.style.display = other ? 'flex' : 'none';
+        brandOther.required = other;
+    });
+
+    const badgeSelect = $('#fBadgeSelect');
+    const badgeOtherWrap = $('#fBadgeOtherWrap');
+    const badgeOther = $('#fBadgeOther');
+    badgeSelect.addEventListener('change', () => {
+        badgeOtherWrap.style.display = badgeSelect.value === '__other__' ? 'flex' : 'none';
+    });
+
+    /* =====================================================
+       تبويب الصورة (رابط / رفع)
+       ===================================================== */
+    const imageTabs = document.querySelectorAll('.image-tab');
+    const paneUrl = $('#paneUrl');
+    const paneUpload = $('#paneUpload');
+    const imagePreview = $('#imagePreview');
+    const fImageUrl = $('#fImageUrl');
+    const fImageFile = $('#fImageFile');
+
+    imageTabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            imageTabs.forEach(t => t.classList.toggle('active', t === tab));
+            paneUrl.classList.toggle('active', tab.dataset.tab === 'url');
+            paneUpload.classList.toggle('active', tab.dataset.tab === 'upload');
+        });
+    });
+
+    function setPreview(src) {
+        imagePreview.innerHTML = src ? `<img src="${src}" alt="">` : 'لا توجد صورة محددة';
+    }
+
+    fImageUrl.addEventListener('input', () => {
+        uploadedImageData = '';
+        setPreview(fImageUrl.value.trim());
+    });
+
+    fImageFile.addEventListener('change', () => {
+        const file = fImageFile.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = new Image();
+            img.onload = () => {
+                const maxDim = 900;
+                const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                uploadedImageData = canvas.toDataURL('image/jpeg', 0.8);
+                fImageUrl.value = '';
+                setPreview(uploadedImageData);
+            };
+            img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function currentImage() {
+        return uploadedImageData || fImageUrl.value.trim();
+    }
+
+    /* =====================================================
+       النموذج: حفظ / نشر
+       ===================================================== */
+    const form = $('#watchForm');
+    const submitBtn = $('#submitBtn');
+    const submitLabel = $('#submitLabel');
+    const editFlag = $('#editFlag');
+    const cancelEditBtn = $('#cancelEditBtn');
+
+    function resetForm() {
+        form.reset();
+        editingId = null;
+        uploadedImageData = '';
+        setPreview('');
+        brandOtherWrap.style.display = 'none';
+        badgeOtherWrap.style.display = 'none';
+        editFlag.classList.remove('active');
+        cancelEditBtn.style.display = 'none';
+        submitLabel.textContent = 'نشر الساعة';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    cancelEditBtn.addEventListener('click', resetForm);
+
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+
+        const brand = brandSelect.value === '__other__' ? brandOther.value.trim() : brandSelect.value;
+        const badge = badgeSelect.value === '__other__' ? badgeOther.value.trim() : badgeSelect.value;
+        const image = currentImage();
+
+        if (!brand) { toast('الرجاء اختيار أو كتابة اسم الماركة', 'error'); return; }
+        if (!image) { toast('الرجاء إضافة صورة للساعة (رابط أو رفع ملف)', 'error'); return; }
+
+        const payload = {
+            code: $('#fCode').value.trim(),
+            brand,
+            name: $('#fName').value.trim(),
+            price: Number($('#fPrice').value) || 0,
+            badge,
+            desc: $('#fDesc').value.trim(),
+            details: $('#fDetails').value.trim(),
+            image,
+            specs: {
+                movement: $('#fMovement').value.trim(),
+                size: $('#fSize').value.trim(),
+                material: $('#fMaterial').value.trim(),
+                water: $('#fWater').value.trim()
+            },
+            updatedAt: Date.now()
+        };
+
+        submitBtn.disabled = true;
+        try {
+            if (editingId) {
+                await update(ref(db, `watches/${editingId}`), payload);
+                toast('تم تحديث الساعة بنجاح');
+            } else {
+                payload.createdAt = Date.now();
+                await set(push(watchesRef), payload);
+                toast('تم نشر الساعة في المتجر بنجاح');
+            }
+            resetForm();
+        } catch (err) {
+            toast('حدث خطأ أثناء الحفظ: ' + err.message, 'error');
+        } finally {
+            submitBtn.disabled = false;
+        }
+    });
+
+    function startEdit(w) {
+        editingId = w.id;
+        const known = ['Rolex', 'Patek Philippe', 'Omega', 'Casio', 'Seiko'];
+        if (known.includes(w.brand)) {
+            brandSelect.value = w.brand;
+            brandOtherWrap.style.display = 'none';
+        } else {
+            brandSelect.value = '__other__';
+            brandOtherWrap.style.display = 'flex';
+            brandOther.value = w.brand || '';
+        }
+
+        const knownBadges = ['', 'جديد', 'الأكثر طلبًا', 'حصري', 'إصدار محدود'];
+        if (knownBadges.includes(w.badge || '')) {
+            badgeSelect.value = w.badge || '';
+            badgeOtherWrap.style.display = 'none';
+        } else {
+            badgeSelect.value = '__other__';
+            badgeOtherWrap.style.display = 'flex';
+            badgeOther.value = w.badge || '';
+        }
+
+        $('#fCode').value = w.code || '';
+        $('#fName').value = w.name || '';
+        $('#fPrice').value = w.price || '';
+        $('#fDesc').value = w.desc || '';
+        $('#fDetails').value = w.details || '';
+        $('#fMovement').value = (w.specs && w.specs.movement) || '';
+        $('#fSize').value = (w.specs && w.specs.size) || '';
+        $('#fMaterial').value = (w.specs && w.specs.material) || '';
+        $('#fWater').value = (w.specs && w.specs.water) || '';
+
+        uploadedImageData = '';
+        fImageUrl.value = w.image && w.image.startsWith('data:') ? '' : (w.image || '');
+        if (w.image && w.image.startsWith('data:')) uploadedImageData = w.image;
+        setPreview(w.image || '');
+
+        editFlag.classList.add('active');
+        cancelEditBtn.style.display = 'inline-flex';
+        submitLabel.textContent = 'حفظ التعديلات';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function deleteWatch(id, name) {
+        if (!confirm(`هل تريد حذف "${name}" نهائيًا من المتجر؟`)) return;
+        try {
+            await remove(ref(db, `watches/${id}`));
+            toast('تم حذف الساعة');
+            if (editingId === id) resetForm();
+        } catch (err) {
+            toast('تعذّر الحذف: ' + err.message, 'error');
+        }
+    }
+
+    /* =====================================================
+       القائمة والإحصائيات
+       ===================================================== */
+    const watchListEl = $('#watchList');
+    const listSearch = $('#listSearch');
+    let searchTerm = '';
+
+    function rowHTML(w) {
+        return `
+        <div class="watch-row">
+            <img src="${esc(w.image || '')}" alt="">
+            <div class="watch-row-info">
+                <div class="watch-row-brand">${esc((w.brand || '').toUpperCase())}</div>
+                <div class="watch-row-name">${esc(w.name || '')}</div>
+                <div class="watch-row-meta">
+                    <span><i class="fa-solid fa-barcode"></i> ${esc(w.code || '—')}</span>
+                    ${w.badge ? `<span><i class="fa-solid fa-tag"></i> ${esc(w.badge)}</span>` : ''}
+                </div>
+            </div>
+            <div class="watch-row-price">${fmt(w.price)} $</div>
+            <div class="row-actions">
+                <button class="row-btn edit" type="button" data-edit="${w.id}" aria-label="تعديل"><i class="fa-solid fa-pen"></i></button>
+                <button class="row-btn delete" type="button" data-delete="${w.id}" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+            </div>
+        </div>`;
+    }
+
+    function renderList() {
+        const q = searchTerm.trim().toLowerCase();
+        const list = !q ? watches : watches.filter(w =>
+            `${w.brand} ${w.name} ${w.code}`.toLowerCase().includes(q)
+        );
+
+        watchListEl.innerHTML = list.length
+            ? list.map(rowHTML).join('')
+            : `<div class="empty-list"><i class="fa-solid fa-clock"></i><p>${watches.length ? 'لا توجد نتائج مطابقة' : 'لم يتم نشر أي ساعة بعد. استخدم النموذج أعلاه للبدء.'}</p></div>`;
+
+        $('#statTotal').textContent = watches.length;
+        $('#statBrands').textContent = new Set(watches.map(w => w.brand)).size;
+        const total = watches.reduce((s, w) => s + (Number(w.price) || 0), 0);
+        $('#statValue').textContent = fmt(total);
+        $('#statAvg').textContent = fmt(watches.length ? Math.round(total / watches.length) : 0);
+    }
+
+    watchListEl.addEventListener('click', e => {
+        const editBtn = e.target.closest('[data-edit]');
+        if (editBtn) { const w = watches.find(x => x.id === editBtn.dataset.edit); if (w) startEdit(w); return; }
+        const delBtn = e.target.closest('[data-delete]');
+        if (delBtn) { const w = watches.find(x => x.id === delBtn.dataset.delete); deleteWatch(delBtn.dataset.delete, w ? w.name : ''); }
+    });
+
+    listSearch.addEventListener('input', () => {
+        searchTerm = listSearch.value;
+        renderList();
+    });
+
+    onValue(watchesRef, snapshot => {
+        const data = snapshot.val();
+        watches = data
+            ? Object.keys(data).map(key => ({ id: key, ...data[key] })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+            : [];
+        renderList();
+    }, err => {
+        toast('تعذّر الاتصال بقاعدة البيانات: ' + err.message, 'error');
+    });
+})();
+</script>
+
+</body>
+</html>
