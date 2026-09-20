@@ -10,11 +10,11 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="الطالب العراقي">
-    <meta name="theme-color" content="#F8FAFC" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#F5F7FB" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)">
     <meta name="format-detection" content="telephone=no">
     <link rel="apple-touch-icon" href="https://i.postimg.cc/kGn7bhGL/images-(14).jpg">
-    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22%D9%85%D9%86%D8%B5%D8%A9%20%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22short_name%22%3A%20%22%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%23F8FAFC%22%2C%20%22theme_color%22%3A%20%22%232563EB%22%2C%20%22lang%22%3A%20%22ar%22%2C%20%22dir%22%3A%20%22rtl%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22https%3A//i.postimg.cc/kGn7bhGL/images-%2814%29.jpg%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/jpeg%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
+    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22%D9%85%D9%86%D8%B5%D8%A9%20%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22short_name%22%3A%20%22%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%23F5F7FB%22%2C%20%22theme_color%22%3A%20%22%23315E9B%22%2C%20%22lang%22%3A%20%22ar%22%2C%20%22dir%22%3A%20%22rtl%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22https%3A//i.postimg.cc/kGn7bhGL/images-%2814%29.jpg%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/jpeg%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,17 +97,18 @@
                         sans: ['"IBM Plex Sans Arabic"', 'sans-serif'],
                     },
                     colors: {
-                        primary: '#2563EB',
-                        secondary: '#64748B',
-                        background: '#F8FAFC',
+                        primary: '#315E9B',
+                        'primary-soft': '#E8F0FA',
+                        secondary: '#718096',
+                        background: '#F5F7FB',
                         surface: '#FFFFFF',
-                        success: '#16A34A',
-                        warning: '#F59E0B',
-                        error: '#DC2626',
+                        success: '#3E8E68',
+                        warning: '#C58A35',
+                        error: '#B85C5C',
                         info: '#0EA5E9',
-                        border: '#E2E8F0',
-                        'text-primary': '#0F172A',
-                        'text-secondary': '#64748B',
+                        border: '#E8EDF5',
+                        'text-primary': '#172033',
+                        'text-secondary': '#718096',
                         'urgent-bg': '#FEF2F2',
                         'urgent-border': '#FECACA',
                         'announcement-bg': '#EFF6FF',
@@ -143,39 +144,78 @@
 
     <style>
         :root {
-            --bg: #F8FAFC; --surface: rgba(255, 255, 255, 0.62); --text: #0F172A; --text2: #64748B;
-            --border: rgba(148, 163, 184, 0.35); --input-bg: rgba(241, 245, 249, 0.65); --card-hover: rgba(255, 255, 255, 0.8);
-            --bg-rgb: 248, 250, 252;
-            --glass-highlight: rgba(255, 255, 255, 0.5);
+            --bg: #F5F7FB; --surface: rgba(255, 255, 255, 0.62); --text: #172033; --text2: #718096;
+            --border: rgba(148, 163, 184, 0.20); --input-bg: rgba(232, 240, 250, 0.65); --card-hover: rgba(255, 255, 255, 0.85);
+            --bg-rgb: 245, 247, 251;
+            --glass-highlight: rgba(255, 255, 255, 0.55);
+            --primary: #315E9B; --primary-soft: #E8F0FA;
+            --glass-fixed-bg: rgba(255, 255, 255, 0.72); --glass-fixed-border: rgba(255, 255, 255, 0.70);
+            --glass-card-bg: rgba(255, 255, 255, 0.62); --glass-card-border: rgba(255, 255, 255, 0.65);
+            --success: #3E8E68; --warning: #C58A35; --error: #B85C5C;
+            --urgent-bg: #FEF2F2; --urgent-border: #FECACA;
+            --reminder-bg: #F5F3FF; --reminder-border: #DDD6FE;
+            --update-bg: #FFFBEB; --update-border: #FDE68A;
         }
         .dark {
             --bg: #0F172A; --surface: rgba(30, 41, 59, 0.55); --text: #F1F5F9; --text2: #94A3B8;
-            --border: rgba(148, 163, 184, 0.22); --input-bg: rgba(51, 65, 85, 0.5); --card-hover: rgba(51, 65, 85, 0.7);
+            --border: rgba(148, 163, 184, 0.18); --input-bg: rgba(51, 65, 85, 0.5); --card-hover: rgba(51, 65, 85, 0.7);
             --bg-rgb: 15, 23, 42;
             --glass-highlight: rgba(255, 255, 255, 0.08);
+            --primary: #5480B8; --primary-soft: rgba(84, 128, 184, 0.14);
+            --glass-fixed-bg: rgba(30, 41, 59, 0.70); --glass-fixed-border: rgba(148, 163, 184, 0.16);
+            --glass-card-bg: rgba(30, 41, 59, 0.62); --glass-card-border: rgba(148, 163, 184, 0.14);
+            --success: #4FA37D; --warning: #D6A24D; --error: #C97575;
+            --urgent-bg: rgba(220, 38, 38, 0.15); --urgent-border: rgba(220, 38, 38, 0.3);
+            --reminder-bg: rgba(139, 92, 246, 0.15); --reminder-border: rgba(139, 92, 246, 0.3);
+            --update-bg: rgba(245, 158, 11, 0.15); --update-border: rgba(245, 158, 11, 0.3);
         }
 
-        /* ===== Liquid Glass surfaces (iOS 26 / iPhone 17 style) ===== */
+        /* ===== Liquid Glass surfaces ===== */
         /* Translucent tint everywhere var(--surface)/var(--input-bg) is used (cheap: just
            color, no blur) — real blur is reserved for the few fixed "chrome" elements
-           (header, bottom nav, sticky sub-headers, modal sheet), never for repeated
-           scrolling list cards, which is what made the whole app feel heavy/laggy. */
+           (header, bottom nav) and a handful of important cards (welcome card, modal
+           sheet), never for repeated scrolling list cards, which is what made the whole
+           app feel heavy/laggy. */
         [style*="var(--surface)"], [style*="var(--input-bg)"], .auth-input {
             box-shadow: inset 0 1px 0 var(--glass-highlight), 0 1px 2px rgba(0, 0, 0, 0.04);
         }
-        header.app-header, nav.fixed, .sticky.top-16, #walletModal > div {
-            backdrop-filter: blur(20px) saturate(180%);
-            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        header.app-header, nav.fixed, .sticky.top-16 {
+            background-color: var(--glass-fixed-bg) !important;
+            border-color: var(--glass-fixed-border) !important;
+            backdrop-filter: blur(20px) saturate(135%);
+            -webkit-backdrop-filter: blur(20px) saturate(135%);
+        }
+        .glass-card {
+            background-color: var(--glass-card-bg) !important;
+            border-color: var(--glass-card-border) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 16px rgba(23, 32, 51, 0.06);
         }
         .nav-item { position: relative; }
-        .nav-item.active {
-            background-color: var(--input-bg);
-            box-shadow: inset 0 1px 0 var(--glass-highlight);
+        .nav-item.active { background-color: transparent; }
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background-color: var(--primary);
         }
 
         * { -webkit-tap-highlight-color: transparent; }
         html, body { overscroll-behavior: none; }
-        body { font-family: 'IBM Plex Sans Arabic', sans-serif; background-color: var(--bg) !important; color: var(--text) !important; transition: background-color 0.3s ease, color 0.3s ease; }
+        body {
+            font-family: 'IBM Plex Sans Arabic', sans-serif;
+            background:
+                radial-gradient(circle at 90% 0%, rgba(49, 94, 155, 0.08), transparent 32%),
+                var(--bg) !important;
+            color: var(--text) !important;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        .dark body { background: radial-gradient(circle at 90% 0%, rgba(84, 128, 184, 0.10), transparent 32%), var(--bg) !important; }
 
         /* Native-app feel: no browser-style text selection/callout on UI chrome, no hidden scrollbars */
         button, nav, header, .tab, .nav-item, [onclick] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
@@ -221,16 +261,31 @@
 
         .ptr-spinner { transition: all 0.3s ease; }
 
-        .page-enter { animation: pageEnter 0.3s ease-out forwards; }
+        .page-enter { animation: pageEnter 0.22s ease-out forwards; }
         @keyframes pageEnter {
             from { opacity: 0; transform: translateY(8px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .page-slide-rtl { animation: pageSlideRTL 0.3s ease-in-out forwards; }
+        .page-slide-rtl { animation: pageSlideRTL 0.22s ease-in-out forwards; }
         @keyframes pageSlideRTL {
             from { opacity: 0; transform: translateX(-30px); }
             to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes modalSheetIn {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        #walletModal:not(.hidden) .modal-sheet { animation: modalSheetIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
         }
 
         .news-card, .notif-card, .file-card, .subject-card, .menu-item {
@@ -256,13 +311,13 @@
         }
 
         .swiper-pagination-bullet { background: #fff; opacity: 0.5; }
-        .swiper-pagination-bullet-active { opacity: 1; background: #2563EB; }
+        .swiper-pagination-bullet-active { opacity: 1; background: #315E9B; }
 
         .network-bar { transition: transform 0.3s ease; }
         .network-bar.hidden-bar { transform: translateY(-100%); }
 
         button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-            outline: 2px solid #2563EB;
+            outline: 2px solid #315E9B;
             outline-offset: 2px;
         }
 
@@ -322,7 +377,7 @@
             transition: all 0.2s ease;
         }
         .auth-input:focus {
-            border-color: #2563EB;
+            border-color: #315E9B;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
             outline: none;
         }
@@ -337,7 +392,7 @@
         .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #CBD5E1; transition: .3s; border-radius: 28px; }
         .dark .toggle-slider { background-color: #475569; }
         .toggle-slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .toggle-slider { background-color: #2563EB; }
+        input:checked + .toggle-slider { background-color: #315E9B; }
         input:checked + .toggle-slider:before { transform: translateX(20px); }
         /* Phone screen fit adjustments */
         html { overflow-x: clip; }
@@ -457,14 +512,14 @@
         .study-scene { position: relative; width: 100%; height: 92px; }
         .study-desk {
             position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%);
-            width: 110px; height: 8px; background: #2563EB; opacity: 0.15; border-radius: 4px;
+            width: 110px; height: 8px; background: #315E9B; opacity: 0.15; border-radius: 4px;
         }
         .study-person {
             position: absolute; bottom: 20px; left: 50%; transform: translateX(-46px);
             animation: studyBob 2.6s ease-in-out infinite;
         }
-        .study-head { width: 22px; height: 22px; border-radius: 50%; background: #2563EB; margin: 0 auto; }
-        .study-body { width: 32px; height: 26px; border-radius: 14px 14px 5px 5px; background: #2563EB; margin: -3px auto 0; }
+        .study-head { width: 22px; height: 22px; border-radius: 50%; background: #315E9B; margin: 0 auto; }
+        .study-body { width: 32px; height: 26px; border-radius: 14px 14px 5px 5px; background: #315E9B; margin: -3px auto 0; }
         @keyframes studyBob {
             0%, 100% { transform: translateX(-46px) translateY(0) rotate(0deg); }
             50%      { transform: translateX(-46px) translateY(-3px) rotate(-3deg); }
@@ -512,8 +567,8 @@
                 <img id="appLogoImg" src="https://i.postimg.cc/kGn7bhGL/images-(14).jpg" alt="شعار منصة الطالب العراقي" class="w-full h-full object-cover">
             </div>
             <div class="flex flex-col">
-                <h1 class="text-base font-bold leading-tight theme-transition" style="color: var(--text);">منصة الطالب العراقي</h1>
-                <p class="text-xs theme-transition" style="color: var(--text2);">أخبار وزارة التربية أولاً بأول</p>
+                <h1 id="homeGreetingText" class="text-base font-bold leading-tight theme-transition" style="color: var(--text);">منصة الطالب العراقي</h1>
+                <p id="homeGreetingSub" class="text-xs theme-transition" style="color: var(--text2);">أخبار وزارة التربية أولاً بأول</p>
             </div>
         </div>
 
@@ -521,6 +576,9 @@
             <button onclick="app.goToNotifications()" class="btn-press relative w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="الإشعارات">
                 <i data-lucide="bell" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-xs font-bold rounded-full flex items-center justify-center">0</span>
+            </button>
+            <button onclick="app.goToProfile()" class="btn-press w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border theme-transition" style="border-color: var(--border);" aria-label="حسابي">
+                <img id="homeHeaderAvatar" src="https://ui-avatars.com/api/?name=Student&background=315E9B&color=fff&size=100" class="w-full h-full object-cover" alt="">
             </button>
             <button onclick="app.goToMore()" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="المزيد">
                 <i data-lucide="menu" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
@@ -533,6 +591,37 @@
 
         <!-- ===== HOME VIEW ===== -->
         <div id="homeView" class="page-enter">
+            <section class="px-4 pt-4" id="homeWelcomeSection">
+                <div class="glass-card relative overflow-hidden rounded-2xl border p-5 theme-transition" style="background-color: var(--surface);">
+                    <div class="absolute top-0 bottom-0 right-0 w-1" style="background-color: var(--primary);"></div>
+                    <div class="flex items-start gap-4">
+                        <div class="flex-1 min-w-0">
+                            <h2 class="text-lg font-bold leading-snug mb-1.5 theme-transition" style="color: var(--text);">أهلاً بك في منصة الطالب العراقي</h2>
+                            <p class="text-sm leading-relaxed mb-4 theme-transition" style="color: var(--text2);">منصتك التعليمية الشاملة لمساعدتك على تحقيق أهدافك الأكاديمية.</p>
+                            <button onclick="app.goToResources()" class="btn-press bg-primary inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white">
+                                متابعة الدراسة
+                                <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                        <div class="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style="background-color: var(--primary-soft);">
+                            <i data-lucide="graduation-cap" class="w-7 h-7" style="color: var(--primary);"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-2.5 mt-4" id="homeStatsRow"></div>
+            </section>
+
+            <section class="px-4 pt-5" id="homeNotifPreviewSection">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-base font-bold theme-transition" style="color: var(--text);">آخر التنبيهات</h2>
+                    <button onclick="app.goToNotifications()" class="text-xs font-semibold flex items-center gap-1 theme-transition" style="color: var(--primary);">
+                        عرض الكل <i data-lucide="chevron-left" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div id="homeNotifPreviewList" class="flex flex-col gap-2"></div>
+            </section>
+
             <section class="px-4 pt-4 pb-2">
                 <div class="relative">
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 theme-transition" style="color: var(--text2);">
@@ -756,7 +845,7 @@
                 <!-- Avatar Upload -->
                 <div class="flex flex-col items-center mb-6">
                     <div class="relative w-24 h-24 mb-3">
-                        <img id="authAvatarPreview" src="https://ui-avatars.com/api/?name=User&background=2563EB&color=fff&size=200" 
+                        <img id="authAvatarPreview" src="https://ui-avatars.com/api/?name=User&background=315E9B&color=fff&size=200" 
                             class="w-full h-full rounded-full object-cover border-4 theme-transition" style="border-color: var(--border);">
                         <button onclick="document.getElementById('authAvatarInput').click()" 
                             class="absolute bottom-0 left-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-lg btn-press">
@@ -1972,7 +2061,7 @@
                 <section class="px-4 py-5">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-base font-bold theme-transition" style="color: var(--text);">آخر المعاملات</h2>
-                        <button onclick="app.showAllTransactions()" class="text-sm font-medium" style="color: #2563EB;">عرض الكل</button>
+                        <button onclick="app.showAllTransactions()" class="text-sm font-medium" style="color: #315E9B;">عرض الكل</button>
                     </div>
                     <div class="rounded-2xl border overflow-hidden theme-transition shadow-card" style="background-color: var(--surface); border-color: var(--border);">
                         <div id="walletTransactionsList" class="flex flex-col theme-transition"></div>
@@ -2092,7 +2181,7 @@
     <!-- ==================== WALLET MODAL ==================== -->
     <div id="walletModal" class="hidden fixed inset-0 z-[70] flex items-end justify-center">
         <div class="absolute inset-0" style="background-color: rgba(0,0,0,0.5);" onclick="app.closeWalletModal()"></div>
-        <div class="relative w-full max-w-[480px] rounded-t-3xl theme-transition" style="background-color: var(--surface);">
+        <div class="modal-sheet glass-card relative w-full max-w-[480px] rounded-t-3xl border theme-transition" style="background-color: var(--surface);">
             <div class="p-4 pb-8">
                 <div class="flex items-center justify-between mb-4 px-1">
                     <h3 id="walletModalTitle" class="font-bold theme-transition" style="color: var(--text);">سحب الأموال</h3>
@@ -2198,7 +2287,7 @@
         }
 
         function personAvatarSrc(avatar, name) {
-            return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
+            return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=315E9B&color=fff&size=200');
         }
 
         function compressForumImage(file, maxWidth) {
@@ -2540,6 +2629,7 @@
                 this.renderNotificationsList();
                 this.renderNewsTicker();
                 this.renderDailyTip();
+                this.renderHomeHeader();
                 this.loadNewsFromDatabase();
                 this.listenForNews();
                 this.loadResourcesFromDatabase();
@@ -2608,7 +2698,7 @@
                 const styleEl = document.getElementById('customThemeStyle');
                 if (styleEl) styleEl.textContent = '';
                 const input = document.getElementById('customThemeColorInput');
-                if (input) input.value = '#2563EB';
+                if (input) input.value = '#315E9B';
                 this.showToast('تم استعادة اللون الافتراضي');
             },
 
@@ -2798,7 +2888,7 @@
                         governorate: '',
                         phone: '',
                         email: identifier,
-                        avatar: this.tempAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(identifier) + '&background=2563EB&color=fff&size=200',
+                        avatar: this.tempAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(identifier) + '&background=315E9B&color=fff&size=200',
                         school: 'طالب',
                         location: '',
                         grade: 'scientific',
@@ -2867,7 +2957,7 @@
                         governorate: governorate,
                         phone: phone || '',
                         email: email || '',
-                        avatar: this.tempAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563EB&color=fff&size=200`,
+                        avatar: this.tempAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=315E9B&color=fff&size=200`,
                         school: 'طالب في المرحلة الإعدادية',
                         location: governorate,
                         grade: 'scientific',
@@ -2936,6 +3026,7 @@
                     this.userRead = {};
                     this.userBookmarks = {};
                     localStorage.removeItem('iraqiStudentUser');
+                    this.renderHomeHeader();
                     if (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuthHelpers) {
                         const { signOut } = window.firebaseAuthHelpers;
                         signOut(window.firebaseAuth).catch((err) => {
@@ -3086,6 +3177,82 @@
                 const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
                 const tip = dailyTips[dayOfYear % dailyTips.length];
                 el.textContent = tip;
+            },
+
+            renderHomeHeader() {
+                const titleEl = document.getElementById('homeGreetingText');
+                const subEl = document.getElementById('homeGreetingSub');
+                const avatarEl = document.getElementById('homeHeaderAvatar');
+                if (!titleEl || !subEl) return;
+                if (this.isLoggedIn && this.currentUser) {
+                    const hour = new Date().getHours();
+                    const greeting = (hour >= 5 && hour < 12) ? 'صباح الخير' : 'مساء الخير';
+                    const firstName = String(this.currentUser.fullName || '').trim().split(/\s+/)[0] || 'طالب';
+                    titleEl.textContent = `${greeting}، ${firstName}`;
+                    subEl.textContent = 'معاً نحو مستقبل أفضل';
+                    if (avatarEl) avatarEl.src = personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName);
+                } else {
+                    titleEl.textContent = 'منصة الطالب العراقي';
+                    subEl.textContent = 'أخبار وزارة التربية أولاً بأول';
+                    if (avatarEl) avatarEl.src = 'https://ui-avatars.com/api/?name=Student&background=315E9B&color=fff&size=100';
+                }
+                this.renderHomeStats();
+                this.renderHomeNotifPreview();
+            },
+
+            renderHomeStats() {
+                const row = document.getElementById('homeStatsRow');
+                if (!row) return;
+                const points = this.isLoggedIn && this.currentUser ? (this.currentUser.points || 0) : 0;
+                const visibleNotifs = notifications.filter(n => !this.isNotifDeleted(n.id) && this.notifPrefs[n.type] !== false);
+                const unreadCount = visibleNotifs.filter(n => !n.read).length;
+                const now = Date.now();
+                const upcomingExams = examSchedule
+                    .filter((ex) => { const t = new Date(ex.date).getTime(); return !isNaN(t) && t > now; })
+                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                const daysToExam = upcomingExams.length > 0 ? Math.max(0, Math.ceil((new Date(upcomingExams[0].date).getTime() - now) / 86400000)) : null;
+                const tile = (icon, label, value) => `
+                    <div class="rounded-2xl border p-3 flex flex-col gap-1.5 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <i data-lucide="${icon}" class="w-[18px] h-[18px]" style="color: var(--primary);"></i>
+                        <div class="text-lg font-bold theme-transition" style="color: var(--text);">${value}</div>
+                        <div class="text-[11px] theme-transition" style="color: var(--text2);">${label}</div>
+                    </div>
+                `;
+                row.innerHTML = tile('star', 'نقاطي', points.toLocaleString('en-US'))
+                    + tile('bell', 'إشعارات جديدة', unreadCount.toLocaleString('en-US'))
+                    + tile('calendar-clock', 'أقرب امتحان', daysToExam === null ? '—' : (daysToExam + ' يوم'));
+                lucide.createIcons();
+            },
+
+            renderHomeNotifPreview() {
+                const list = document.getElementById('homeNotifPreviewList');
+                const section = document.getElementById('homeNotifPreviewSection');
+                if (!list || !section) return;
+                const notifHex = { urgent: '#EF4444', announcement: '#3B82F6', circular: '#22C55E', update: '#F59E0B', reminder: '#8B5CF6', general: '#64748B' };
+                const visible = notifications.filter(n => !this.isNotifDeleted(n.id) && this.notifPrefs[n.type] !== false);
+                const preview = visible.slice(0, 2);
+                if (preview.length === 0) { section.classList.add('hidden'); return; }
+                section.classList.remove('hidden');
+                list.innerHTML = preview.map((notif) => {
+                    const typeStyle = notificationTypes[notif.type] || notificationTypes.general;
+                    const hex = notifHex[notif.type] || notifHex.general;
+                    return `
+                        <div class="flex items-center gap-3 rounded-2xl border p-3 cursor-pointer theme-transition" onclick="app.openNotification(${notif.id})" style="background-color: var(--surface); border-color: var(--border); border-right: 3px solid ${hex};">
+                            <div class="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background: ${hex}1A;">
+                                <i data-lucide="${typeStyle.icon}" class="w-4 h-4" style="color: ${hex};"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(notif.title)}</h4>
+                                <p class="text-xs line-clamp-1 theme-transition" style="color: var(--text2);">${escapeHtml(notif.description)}</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                <span class="text-[10px] theme-transition" style="color: var(--text2);" data-timeago="${notif.id}">${timeAgo(notif.id)}</span>
+                                <i data-lucide="chevron-left" class="w-3.5 h-3.5" style="color: var(--text2);"></i>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                lucide.createIcons();
             },
 
             renderNewsTicker() {
@@ -3688,6 +3855,7 @@
                         console.warn('User news state load failed:', stateErr);
                     }
                     this.updateProfileView();
+                    this.renderHomeHeader();
                     this.initPushNotifications();
                     this.checkDailyStreak();
                     this.listenForUserTasks();
@@ -3956,6 +4124,7 @@
                     }
                     if (!isNew) {
                         this.updateNotifBadges();
+                        if (this.currentView === 'homeView') { this.renderHomeStats(); this.renderHomeNotifPreview(); }
                         lucide.createIcons();
                         return;
                     }
@@ -3965,6 +4134,7 @@
                         this.showToast('إشعار جديد: ' + val.title);
                     }
                     if (this.currentView === 'notificationsView') this.renderNotificationsList();
+                    if (this.currentView === 'homeView') { this.renderHomeStats(); this.renderHomeNotifPreview(); }
                     lucide.createIcons();
                 });
             },
@@ -4024,7 +4194,7 @@
                     }
                     examSchedule.length = 0;
                     examSchedule.push(...list);
-                    if (this.currentView === 'homeView') this.renderExamCountdown();
+                    if (this.currentView === 'homeView') { this.renderExamCountdown(); this.renderHomeStats(); }
                 });
             },
 
@@ -4369,7 +4539,7 @@
                 if (titleEl) titleEl.textContent = 'اللغة والمظهر';
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
-                const currentColor = this.customThemeColor || '#2563EB';
+                const currentColor = this.customThemeColor || '#315E9B';
                 content.innerHTML = `
                     <div class="flex flex-col gap-4">
                         <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
@@ -5057,7 +5227,7 @@
                 if (!content) return;
                 content.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8 text-center">
-                        <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4" style="color: #2563EB;"></i>
+                        <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4" style="color: #315E9B;"></i>
                         <h4 class="font-bold mb-1 theme-transition" style="color: var(--text);">جاري تنفيذ عملية السحب</h4>
                         <p class="text-sm theme-transition" style="color: var(--text2);">يرجى عدم إغلاق النافذة</p>
                     </div>
@@ -5417,7 +5587,7 @@
                 }
                 result.innerHTML = `
                     <div class="flex items-center justify-center gap-2 py-3">
-                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i>
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #315E9B;"></i>
                         <span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث عن الطالب...</span>
                     </div>`;
                 lucide.createIcons();
@@ -5447,7 +5617,7 @@
                     result.innerHTML = `
                         <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                             <div class="flex items-center gap-3">
-                                <img src="${safeImage(found.avatar) !== FALLBACK_IMAGE ? found.avatar : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(found.fullName || 'Student') + '&background=2563EB&color=fff&size=200'}" alt="${escapeHtml(found.fullName || '')}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
+                                <img src="${safeImage(found.avatar) !== FALLBACK_IMAGE ? found.avatar : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(found.fullName || 'Student') + '&background=315E9B&color=fff&size=200'}" alt="${escapeHtml(found.fullName || '')}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.fullName || 'طالب')}</div>
                                     <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(found.governorate || '—')} • رقم: ${escapeHtml(found.studentNumber || '—')}</div>
@@ -5502,7 +5672,7 @@
                 let senderDeducted = false;
                 content.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-6 text-center">
-                        <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3" style="color: #2563EB;"></i>
+                        <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3" style="color: #315E9B;"></i>
                         <p class="text-sm theme-transition" style="color: var(--text2);">جاري تنفيذ التحويل...</p>
                     </div>`;
                 lucide.createIcons();
@@ -6426,7 +6596,7 @@
                     result.innerHTML = '<p class="text-xs font-bold text-error">اكتب اسم أو رقم تعريفي للبحث</p>';
                     return;
                 }
-                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #315E9B;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
                 lucide.createIcons();
                 let matches = [];
                 if (/^\d{5}$/.test(query)) {
@@ -7607,7 +7777,7 @@
                 container.classList.remove('hidden');
                 empty.classList.add('hidden');
                 container.innerHTML = visible.map(c => `
-                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border); ${c.pinned ? 'border-color: var(--primary, #2563EB);' : ''}">
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border); ${c.pinned ? 'border-color: var(--primary, #315E9B);' : ''}">
                         <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}" onclick="event.stopPropagation(); app.openProfileFromChatsList('${c.otherUid}')">
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold truncate theme-transition flex items-center gap-1.5" style="color: var(--text);">${c.pinned ? '<i data-lucide="pin" class="w-3 h-3 text-primary"></i>' : ''}${escapeHtml(c.otherName || 'طالب')}${c.muted ? '<i data-lucide="bell-off" class="w-3 h-3" style="color: var(--text2);"></i>' : ''}</div>
@@ -7672,7 +7842,7 @@
                     result.innerHTML = '<p class="text-xs font-bold text-error">لا يمكن مراسلة نفسك</p>';
                     return;
                 }
-                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #315E9B;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
                 lucide.createIcons();
                 const found = await this.findStudentByNumber(query);
                 if (!found) {
@@ -8812,7 +8982,7 @@
                     <div class="flex flex-col gap-3">
                         <div class="flex flex-col items-center mb-1">
                             <div class="avatar-container relative w-20 h-20 mb-2 cursor-pointer" onclick="document.getElementById('storeApplyLogoInput').click()">
-                                <img id="storeApplyLogoPreview" src="https://ui-avatars.com/api/?name=Store&background=2563EB&color=fff&size=200" class="w-full h-full rounded-2xl object-cover border-2" style="border-color: var(--border);">
+                                <img id="storeApplyLogoPreview" src="https://ui-avatars.com/api/?name=Store&background=315E9B&color=fff&size=200" class="w-full h-full rounded-2xl object-cover border-2" style="border-color: var(--border);">
                                 <div class="avatar-overlay absolute inset-0 bg-black/40 rounded-2xl flex items-center justify-center"><i data-lucide="camera" class="w-5 h-5 text-white"></i></div>
                             </div>
                             <input type="file" id="storeApplyLogoInput" accept="image/*" class="hidden" onchange="app.previewStoreLogo(event)">
@@ -9161,7 +9331,7 @@
                     result.innerHTML = '<p class="text-xs font-bold text-error">لا يمكنك تحدي نفسك</p>';
                     return;
                 }
-                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #2563EB;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
+                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: #315E9B;"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
                 lucide.createIcons();
                 const found = await this.findStudentByNumber(query);
                 if (!found) {
@@ -9521,7 +9691,7 @@
                 document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
+                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); this.renderHomeHeader(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
