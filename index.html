@@ -1,712 +1,696 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>واجهة تطبيق جوال حقيقية وحيوية</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>منصة الطالب العراقي - الملف الشخصي</title>
 
-    <!-- التحقق الفوري المباشر قبل تحميل أي عنصر لتجنب إظهار الواجهة إطلاقاً في حال كان المستخدم مسجلاً -->
-    <script>
-        // التحويل الفوري يتم فقط إذا أكمل المستخدم تسجيل دخول حقيقي سابقاً (مفتاح الجلسة + علامة إتمام الدخول معاً)، أما المستخدم الجديد فتظهر له واجهة إنشاء الحساب وتسجيل الدخول أولاً
-        if (localStorage.getItem('app_active_user_uid') && localStorage.getItem('app_login_completed') === 'true') {
-            document.documentElement.style.display = 'none';
-            window.location.replace('home.html');
-        }
-    </script>
-    
-    <!-- خط Cairo الاحترافي لدعم النصوص العربية -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <!-- مكتبة الأيقونات للحقول والأزرار -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
-    <style>
-        /* إعدادات تصفير الهوامش وتأمين أبعاد شاشات الموبايل */
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Cairo', sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-        /* قفل الشاشة تماماً لتتصرف كتطبيق حقيقي بدون سكرول عشوائي */
-        html, body {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #FFFFFF;
-        }
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js"></script>
 
-        /* حاوية التطبيق الحرة - تملأ كامل شاشة الهاتف */
-        .app-container {
-            width: 100%;
-            height: 100vh;
-            height: 100dvh;
-            background-color: #FFFFFF;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-        }
+<style>
+  :root {
+    --color-primary: #315E9B;
+    --color-background: #F5F7FB;
+    --color-surface: rgba(255, 255, 255, 0.68);
+    --color-text: #172033;
+    --color-text-secondary: #718096;
+    --color-border: rgba(148, 163, 184, 0.20);
+    --color-success: #3E8E68;
+    --color-warning: #C58A35;
+    --color-error: #B85C5C;
 
-        /* ------------------------------------------------ */
-        /* [ تأثيرات الظهور التدريجي عند فتح التطبيق أول مرة ] */
-        /* ------------------------------------------------ */
-        @keyframes slideUpFade {
-            from {
-                opacity: 0;
-                transform: translateY(24px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
+    --radius-card: 16px;
+    --radius-button: 12px;
+    --radius-pill: 999px;
 
-        /* ------------------------------------------------ */
-        /* [1] قسم رأس التطبيق (الصورة والعناوين) */
-        /* ------------------------------------------------ */
-        .app-header {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            padding-top: 25px;
-            opacity: 0;
-            animation: slideUpFade 0.5s cubic-bezier(0.1, 0.76, 0.55, 0.94) forwards;
-        }
+    --space-page: 16px;
+    --space-section: 24px;
+    --space-card: 16px;
 
-        .image-wrapper {
-            width: 100%;
-            height: 150px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    --touch-target: 44px;
+  }
 
-        .image-wrapper img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
+  * {
+    box-sizing: border-box;
+  }
 
-        /* تقليص ذكي وانسيابي للصورة في وضع إنشاء الحساب */
-        .signup-mode .image-wrapper {
-            height: 100px;
-        }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--color-background);
+    color: var(--color-text);
+    font-family: "IBM Plex Sans Arabic", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 
-        .text-wrapper {
-            text-align: center;
-            padding: 12px 24px 4px 24px;
-        }
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(49, 94, 155, 0.08), transparent 45%),
+      radial-gradient(circle at 90% 10%, rgba(49, 94, 155, 0.06), transparent 40%),
+      var(--color-background);
+    padding: 24px 12px;
+  }
 
-        .main-title {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1A1D20;
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
+  .app-shell {
+    width: 100%;
+    max-width: 360px;
+    min-height: 812px;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    border-radius: 32px;
+    box-shadow: 0 20px 60px rgba(23, 32, 51, 0.12);
+    overflow: hidden;
+    position: relative;
+  }
 
-        .subtitle {
-            font-size: 13.5px;
-            font-weight: 400;
-            color: #8A8D91;
-            margin-top: 2px;
-            transition: opacity 0.2s ease;
-        }
+  /* Status bar */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px var(--space-page) 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+  }
 
-        /* كلاس مساعد لإخفاء النصوص مؤقتاً أثناء الأنيميشن */
-        .text-fade {
-            opacity: 0;
-            transform: translateY(-4px);
-        }
+  .status-bar .status-icons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-text);
+  }
 
-        /* ------------------------------------------------ */
-        /* [2] استمارة الحقول والأزرار القياسية للموبايل */
-        /* ------------------------------------------------ */
-        .form-content {
-            padding: 10px 24px;
-            display: flex;
-            flex-direction: column;
-            opacity: 0;
-            animation: slideUpFade 0.5s cubic-bezier(0.1, 0.76, 0.55, 0.94) 0.1s forwards;
-        }
+  /* Glassmorphism surfaces */
+  .glass {
+    background: var(--color-surface);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+    border: 1px solid var(--color-border);
+  }
 
-        .input-box {
-            position: relative;
-            margin-bottom: 12px;
-            width: 100%;
-        }
+  /* Header */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 12px var(--space-page) 0;
+    padding: 10px 14px;
+    border-radius: var(--radius-card);
+  }
 
-        /* حقل الاسم المنزلق */
-        .name-field {
-            max-height: 0;
-            opacity: 0;
-            margin-bottom: 0;
-            overflow: hidden;
-            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                        opacity 0.25s ease, 
-                        margin-bottom 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+  .app-header .brand-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
 
-        /* إظهار حقل الاسم بشكل انسيابي */
-        .signup-mode .name-field {
-            max-height: 50px;
-            opacity: 1;
-            margin-bottom: 12px;
-        }
+  .icon-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-pill);
+    background: rgba(49, 94, 155, 0.08);
+    color: var(--color-primary);
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.15s ease;
+  }
 
-        .input-box input {
-            width: 100%;
-            height: 50px;
-            border: 1px solid #E2E4E8;
-            border-radius: 14px;
-            padding-right: 16px;
-            padding-left: 46px;
-            font-size: 15px;
-            color: #1A1D20;
-            outline: none;
-            background-color: #FDFDFD;
-            transition: border-color 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease;
-        }
+  .icon-btn:hover {
+    background: rgba(49, 94, 155, 0.14);
+  }
 
-        .input-box input:focus {
-            border-color: #FFC425;
-            background-color: #FFFFFF;
-            box-shadow: 0 0 0 4px rgba(255, 196, 37, 0.08);
-        }
+  .icon-btn:active {
+    transform: scale(0.94);
+  }
 
-        .input-box .icon-left {
-            position: absolute;
-            left: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #1A1D20;
-            font-size: 16px;
-        }
+  .icon-btn .dot {
+    position: absolute;
+    top: 8px;
+    left: 9px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-error);
+    border: 1.5px solid #fff;
+  }
 
-        .input-box.password-field input,
-        .input-box.name-field input {
-            padding-right: 46px;
-        }
+  /* Main scroll area */
+  .app-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 var(--space-page) 12px;
+    animation: fadeInUp 0.22s ease-out;
+  }
 
-        .input-box .icon-right {
-            position: absolute;
-            right: 16px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #1A1D20;
-            font-size: 16px;
-            cursor: pointer;
-        }
+  .app-main::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
 
-        .forgot-link {
-            text-align: right;
-            margin-top: -4px;
-            margin-bottom: 14px;
-            transition: all 0.3s ease;
-        }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
 
-        .signup-mode .forgot-link {
-            max-height: 0;
-            margin-bottom: 0;
-            opacity: 0;
-            overflow: hidden;
-            pointer-events: none;
-        }
+  /* Profile card */
+  .profile-card {
+    margin-top: var(--space-section);
+    border-radius: var(--radius-card);
+    padding: 20px var(--space-card) var(--space-card);
+    text-align: center;
+    box-shadow: 0 8px 24px rgba(49, 94, 155, 0.06);
+  }
 
-        /* زر الإجراء الرئيسي */
-        .btn-primary {
-            width: 100%;
-            height: 50px;
-            background-color: #FFC425;
-            border: none;
-            border-radius: 14px;
-            color: #1A1D20;
-            font-size: 15.5px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 4px 12px rgba(255, 196, 37, 0.15);
-            transition: transform 0.1s ease, background-color 0.2s ease, box-shadow 0.2s ease;
-        }
+  .avatar-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin: 0 auto 12px;
+    overflow: hidden;
+    background: #E7EEF9;
+    border: 3px solid #ffffff;
+    box-shadow: 0 4px 14px rgba(49, 94, 155, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-        .btn-primary:active {
-            transform: scale(0.96);
-            box-shadow: 0 2px 6px rgba(255, 196, 37, 0.05);
-        }
+  .avatar-wrap svg,
+  .avatar-wrap img {
+    width: 100%;
+    height: 100%;
+  }
 
-        .btn-primary.loading {
-            background-color: #E2E4E8;
-            color: #8A8D91;
-            box-shadow: none;
-            pointer-events: none;
-        }
+  .profile-name {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-bottom: 8px;
+  }
 
-        /* ------------------------------------------------ */
-        /* [3] خيارات تسجيل الدخول الاجتماعي */
-        /* ------------------------------------------------ */
-        .divider {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            margin: 8px 24px;
-            opacity: 0;
-            animation: slideUpFade 0.5s cubic-bezier(0.1, 0.76, 0.55, 0.94) 0.2s forwards;
-        }
+  .grade-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(49, 94, 155, 0.10);
+    color: var(--color-primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 10px;
+  }
 
-        .divider span {
-            padding: 0 12px;
-            color: #8A8D91;
-            font-size: 13px;
-        }
+  .student-id-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 2px;
+  }
 
-        .divider::before, .divider::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #E2E4E8;
-        }
+  .student-id-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    letter-spacing: 0.5px;
+    margin-bottom: 16px;
+  }
 
-        .social-wrap {
-            display: flex;
-            gap: 12px;
-            padding: 0 24px;
-            margin-bottom: 12px;
-            opacity: 0;
-            animation: slideUpFade 0.5s cubic-bezier(0.1, 0.76, 0.55, 0.94) 0.25s forwards;
-        }
+  /* Edit button */
+  .btn-edit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: var(--touch-target);
+    padding: 0 22px;
+    border-radius: var(--radius-button);
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    color: var(--color-primary);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+    box-shadow: 0 2px 8px rgba(23, 32, 51, 0.05);
+  }
 
-        .btn-social {
-            flex: 1;
-            height: 46px;
-            border: 1px solid #E2E4E8;
-            border-radius: 14px;
-            background-color: #FFFFFF;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            color: #1A1D20;
-            transition: transform 0.1s ease, background-color 0.2s ease;
-        }
+  .btn-edit:active {
+    transform: scale(0.98);
+  }
 
-        .btn-social:active {
-            transform: scale(0.96);
-            background-color: #F8F9FA;
-        }
+  /* Stats row */
+  .stats-row {
+    margin-top: var(--space-section);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(49, 94, 155, 0.06);
+  }
 
-        .fa-facebook {
-            color: #1877F2;
-            font-size: 17px;
-        }
+  .stat-item {
+    padding: var(--space-card) 8px;
+    text-align: center;
+    border-left: 1px solid var(--color-border);
+  }
 
-        /* ------------------------------------------------ */
-        /* [4] تذييل التطبيق والموجة السفلية المدمجة */
-        /* ------------------------------------------------ */
-        .app-footer {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            margin-top: auto;
-            opacity: 0;
-            animation: slideUpFade 0.5s cubic-bezier(0.1, 0.76, 0.55, 0.94) 0.3s forwards;
-        }
+  .stat-item:last-child {
+    border-left: none;
+  }
 
-        .toggle-prompt {
-            text-align: center;
-            font-size: 14px;
-            color: #8A8D91;
-            font-weight: 600;
-            margin-bottom: 12px;
-            z-index: 10;
-        }
+  .stat-icon {
+    width: 34px;
+    height: 34px;
+    margin: 0 auto 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(49, 94, 155, 0.08);
+    color: var(--color-primary);
+  }
 
-        .toggle-prompt a {
-            color: #FFC425;
-            text-decoration: none;
-            font-weight: 700;
-            margin-right: 4px;
-            cursor: pointer;
-            display: inline-block;
-            transition: transform 0.1s ease;
-        }
+  .stat-label {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 4px;
+  }
 
-        .toggle-prompt a:active {
-            transform: scale(0.95);
-        }
+  .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+  }
 
-        .wave-container {
-            width: 100%;
-            line-height: 0;
-        }
+  /* Section title */
+  .section-title {
+    margin-top: var(--space-section);
+    margin-bottom: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+  }
 
-        .wave-container svg {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-    </style>
+  /* Settings list */
+  .settings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: var(--space-card);
+    border-radius: var(--radius-card);
+    min-height: var(--touch-target);
+    cursor: pointer;
+    border: none;
+    width: 100%;
+    text-align: right;
+    font-family: inherit;
+    box-shadow: 0 4px 14px rgba(23, 32, 51, 0.04);
+    transition: transform 0.12s ease, box-shadow 0.15s ease;
+  }
+
+  .settings-item:active {
+    transform: scale(0.99);
+  }
+
+  .settings-item .chevron {
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
+  }
+
+  .settings-item .item-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: rgba(49, 94, 155, 0.08);
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .settings-item.danger .item-icon {
+    background: rgba(184, 92, 92, 0.10);
+    color: var(--color-error);
+  }
+
+  .settings-item .item-texts {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .settings-item .item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: 2px;
+  }
+
+  .settings-item.danger .item-title {
+    color: var(--color-error);
+  }
+
+  .settings-item .item-desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .item-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Toggle switch (for dark mode item) */
+  .toggle-switch {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    border-radius: var(--radius-pill);
+    background: rgba(148, 163, 184, 0.35);
+    flex-shrink: 0;
+    transition: background 0.2s ease;
+    border: none;
+    cursor: pointer;
+  }
+
+  .toggle-switch.on {
+    background: var(--color-primary);
+  }
+
+  .toggle-switch .knob {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    transition: transform 0.2s ease;
+  }
+
+  .toggle-switch.on .knob {
+    transform: translateX(-18px);
+  }
+
+  /* Bottom navigation */
+  .bottom-nav {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 10px var(--space-page) calc(10px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--color-border);
+    background: rgba(255, 255, 255, 0.85);
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
+
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: var(--touch-target);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 500;
+    transition: color 0.15s ease;
+  }
+
+  .nav-item.active {
+    color: var(--color-primary);
+    font-weight: 700;
+  }
+
+  .nav-item .nav-indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    margin-top: 1px;
+    opacity: 0;
+  }
+
+  .nav-item.active .nav-indicator {
+    opacity: 1;
+  }
+
+  /* Accessibility focus states */
+  button:focus-visible,
+  .settings-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 380px) {
+    .app-shell {
+      border-radius: 0;
+      min-height: 100vh;
+    }
+    body {
+      padding: 0;
+    }
+  }
+</style>
 </head>
 <body>
 
-    <div class="app-container" id="appModule">
-        
-        <!-- [1] قسم رأس التطبيق -->
-        <div class="app-header">
-            <div class="image-wrapper">
-                <img src="https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg" alt="App Illustration">
-            </div>
-            <div class="text-wrapper">
-                <h1 class="main-title" id="titleText">مرحباً بك مجدداً</h1>
-                <p class="subtitle" id="subText">سجِّل للدخول للمتابعة</p>
-            </div>
+<div class="app-shell">
+
+  <!-- Status bar -->
+  <div class="status-bar" aria-hidden="true">
+    <span id="clock">9:41</span>
+    <span class="status-icons">
+      <i data-lucide="signal" style="width:16px;height:16px"></i>
+      <i data-lucide="wifi" style="width:16px;height:16px"></i>
+      <i data-lucide="battery-full" style="width:18px;height:18px"></i>
+    </span>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header glass">
+    <button class="icon-btn" type="button" aria-label="الإشعارات">
+      <i data-lucide="bell" style="width:19px;height:19px"></i>
+      <span class="dot"></span>
+    </button>
+    <span class="brand-title">منصة الطالب العراقي</span>
+    <button class="icon-btn" type="button" aria-label="حسابي">
+      <i data-lucide="user" style="width:19px;height:19px"></i>
+    </button>
+  </header>
+
+  <main class="app-main">
+
+    <!-- Profile Card -->
+    <section class="profile-card glass" aria-label="بيانات الطالب">
+      <div class="avatar-wrap">
+        <svg viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="36" cy="36" r="36" fill="#E7EEF9"/>
+          <circle cx="36" cy="30" r="12" fill="#315E9B"/>
+          <path d="M36 45c-12 0-20 7-20 16v11h40V61c0-9-8-16-20-16z" fill="#315E9B"/>
+          <circle cx="36" cy="28" r="9" fill="#F6C9A0"/>
+          <path d="M27 24c0-6 4-10 9-10s9 4 9 10c-3-2-6-3-9-3s-6 1-9 3z" fill="#172033"/>
+        </svg>
+      </div>
+      <h1 class="profile-name">أحمد محمد</h1>
+      <span class="grade-pill">
+        <i data-lucide="graduation-cap" style="width:14px;height:14px"></i>
+        السادس العلمي
+      </span>
+      <div class="student-id-label">رقم الطالب</div>
+      <div class="student-id-value">20251234</div>
+      <button class="btn-edit" type="button">
+        تعديل الملف
+        <i data-lucide="pencil" style="width:15px;height:15px"></i>
+      </button>
+    </section>
+
+    <!-- Stats Row -->
+    <section class="stats-row glass" aria-label="الإحصائيات">
+      <div class="stat-item">
+        <div class="stat-icon"><i data-lucide="trophy" style="width:18px;height:18px"></i></div>
+        <div class="stat-label">الترتيب</div>
+        <div class="stat-value">142</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon"><i data-lucide="star" style="width:18px;height:18px"></i></div>
+        <div class="stat-label">النقاط</div>
+        <div class="stat-value">87%</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-icon"><i data-lucide="book-open" style="width:18px;height:18px"></i></div>
+        <div class="stat-label">المواد المكتملة</div>
+        <div class="stat-value">2 / 3</div>
+      </div>
+    </section>
+
+    <!-- Settings Section -->
+    <h2 class="section-title">الإعدادات</h2>
+
+    <div class="settings-list">
+
+      <button class="settings-item glass" type="button">
+        <div class="item-main">
+          <span class="item-icon"><i data-lucide="bell" style="width:19px;height:19px"></i></span>
+          <span class="item-texts">
+            <span class="item-title">تفضيلات الإشعارات</span>
+            <span class="item-desc">إدارة التنبيهات والتنبيهات المخصصة</span>
+          </span>
         </div>
+        <i data-lucide="chevron-left" class="chevron" style="width:18px;height:18px"></i>
+      </button>
 
-        <!-- [2] الحقول والأزرار القياسية للموبايل مع الأنيميشن -->
-        <div class="form-content">
-            <form onsubmit="onFormSubmit(event)">
-                
-                <!-- حقل الاسم المنزلق -->
-                <div class="input-box name-field" id="nameContainer">
-                    <input type="text" id="nameInput" placeholder="الاسم الكامل">
-                    <i class="fa-regular fa-user icon-right"></i>
-                </div>
-
-                <div class="input-box">
-                    <input type="email" placeholder="البريد الإلكتروني" required>
-                    <i class="fa-regular fa-envelope icon-left"></i>
-                </div>
-
-                <div class="input-box password-field">
-                    <input type="password" id="passInput" placeholder="كلمة المرور" required>
-                    <i class="fa-solid fa-lock icon-left"></i>
-                    <i class="fa-regular fa-eye icon-right" onclick="viewPasswordToggle()"></i>
-                </div>
-
-                <div class="forgot-link">
-                    <a href="#" onclick="alert('تم إرسال رابط إعادة تعيين كلمة المرور!')">نسيت كلمة المرور؟</a>
-                </div>
-
-                <button type="submit" id="mainActionBtn" class="btn-primary">تسجيل الدخول</button>
-                
-            </form>
+      <div class="settings-item glass" role="group" aria-label="الوضع الليلي">
+        <div class="item-main">
+          <span class="item-icon"><i data-lucide="moon" style="width:19px;height:19px"></i></span>
+          <span class="item-texts">
+            <span class="item-title">الوضع الليلي</span>
+            <span class="item-desc">تفعيل الوضع الليلي لتقليل إجهاد العين</span>
+          </span>
         </div>
+        <button class="toggle-switch" id="darkModeToggle" type="button" aria-pressed="false" aria-label="تبديل الوضع الليلي">
+          <span class="knob"></span>
+        </button>
+      </div>
 
-        <!-- [3] خط خيارات التواصل الاجتماعي -->
-        <div class="divider">
-            <span>أو سجِّل الدخول باستخدام</span>
+      <button class="settings-item glass" type="button">
+        <div class="item-main">
+          <span class="item-icon"><i data-lucide="shield" style="width:19px;height:19px"></i></span>
+          <span class="item-texts">
+            <span class="item-title">الخصوصية</span>
+            <span class="item-desc">إعدادات الخصوصية وحماية البيانات</span>
+          </span>
         </div>
+        <i data-lucide="chevron-left" class="chevron" style="width:18px;height:18px"></i>
+      </button>
 
-        <div class="social-wrap">
-            <button type="button" class="btn-social" onclick="triggerSocial('Google')">
-                <svg width="16" height="16" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                </svg>
-                Google
-            </button>
-
-            <button type="button" class="btn-social" onclick="triggerSocial('Facebook')">
-                <i class="fa-brands fa-facebook"></i>
-                Facebook
-            </button>
+      <button class="settings-item glass danger" type="button" id="logoutBtn">
+        <div class="item-main">
+          <span class="item-icon"><i data-lucide="log-out" style="width:19px;height:19px"></i></span>
+          <span class="item-texts">
+            <span class="item-title">تسجيل الخروج</span>
+            <span class="item-desc">الخروج من حسابك بأمان</span>
+          </span>
         </div>
-
-        <!-- [4] التذييل والموجة السفلية الملتصقة تماماً بالأسفل -->
-        <div class="app-footer">
-            <div class="toggle-prompt" id="switchPrompt">
-                ليس لديك حساب؟<a href="#" onclick="changeMode(event)">إنشاء حساب</a>
-            </div>
-            <div class="wave-container">
-                <svg viewBox="0 0 420 120" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-                    <path d="M0 45C90 100 280 40 420 75V120H0V45Z" fill="#FFF2CE" opacity="0.6"/>
-                    <path d="M0 55C100 110 290 50 420 82V120H0V55Z" fill="#FFC425"/>
-                    <path d="M0 72C110 123 300 70 420 100V120H0V72Z" fill="#1A1D20"/>
-                </svg>
-            </div>
-        </div>
+        <i data-lucide="chevron-left" class="chevron" style="width:18px;height:18px"></i>
+      </button>
 
     </div>
+  </main>
 
-    <!-- تهيئة الفايربيس وربطه مع واجهة الدخول والحفظ الدائم للجلسة -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-analytics.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-        import { getDatabase, ref, set, get, child } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+  <!-- Bottom Navigation -->
+  <nav class="bottom-nav" aria-label="التنقل الرئيسي">
+    <button class="nav-item" type="button">
+      <i data-lucide="home" style="width:21px;height:21px"></i>
+      الرئيسية
+      <span class="nav-indicator"></span>
+    </button>
+    <button class="nav-item" type="button">
+      <i data-lucide="newspaper" style="width:21px;height:21px"></i>
+      الأخبار
+      <span class="nav-indicator"></span>
+    </button>
+    <button class="nav-item" type="button">
+      <i data-lucide="book-open" style="width:21px;height:21px"></i>
+      المواد
+      <span class="nav-indicator"></span>
+    </button>
+    <button class="nav-item active" type="button" aria-current="page">
+      <i data-lucide="user" style="width:21px;height:21px"></i>
+      حسابي
+      <span class="nav-indicator"></span>
+    </button>
+  </nav>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyBo9t1b_Y4YZQLigluUMHekcKqDSV8Pn7s",
-            authDomain: "shop-iraq-86dd8.firebaseapp.com",
-            databaseURL: "https://shop-iraq-86dd8-default-rtdb.firebaseio.com",
-            projectId: "shop-iraq-86dd8",
-            storageBucket: "shop-iraq-86dd8.firebasestorage.app",
-            messagingSenderId: "763958830934",
-            appId: "1:763958830934:web:6622ef3125e26ce71018f7",
-            measurementId: "G-55F4YEXMV9"
-        };
+</div>
 
-        const app = initializeApp(firebaseConfig);
-        const analytics = getAnalytics(app);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
+<script>
+  lucide.createIcons();
 
-        // معالجة واستلام نتيجة تسجيل الدخول المباشر المضمون للهواتف الذكية عبر Google Redirect
-        getRedirectResult(auth).then(async (result) => {
-            if (result && result.user) {
-                const user = result.user;
-                const snapshot = await get(child(ref(db), 'users/' + user.uid));
-                if (!snapshot.exists()) {
-                    const generatedId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-                    const userData = {
-                        uid: user.uid,
-                        name: user.displayName || 'مستخدم شوب العراق',
-                        email: user.email || '',
-                        userId: generatedId,
-                        balance: 0,
-                        points: 0,
-                        banned: false,
-                        banReason: 'مخالفة الشروط والأحكام العامة للتطبيق.',
-                        managedStore: '',
-                        avatar: user.photoURL || 'https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg',
-                        createdAt: new Date().toISOString()
-                    };
-                    await set(ref(db, 'users/' + user.uid), userData);
-                }
-                localStorage.setItem('app_active_user_uid', user.uid);
-                localStorage.setItem('app_login_completed', 'true');
-                window.location.href = 'home.html';
-            }
-        }).catch((err) => {
-            console.error("Redirect error: ", err);
-            if (err.code === 'auth/unauthorized-domain') {
-                alert('⚠️ تنبيه: النطاق غير مصرح به في الفايربيس!');
-            }
-        });
+  // Live clock in status bar (mirrors device time, purely cosmetic)
+  function updateClock() {
+    const el = document.getElementById('clock');
+    if (!el) return;
+    const now = new Date();
+    let h = now.getHours();
+    const m = now.getMinutes().toString().padStart(2, '0');
+    h = h % 12;
+    if (h === 0) h = 12;
+    el.textContent = h + ':' + m;
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
 
-        // التحقق التلقائي اللحظي عند فتح التطبيق لإكمال الدخول مباشرة والانتقال إلى home.html بدون إظهار نموذج التسجيل
-        onAuthStateChanged(auth, async (user) => {
-            if (user && localStorage.getItem('app_login_completed') === 'true') {
-                localStorage.setItem('app_active_user_uid', user.uid);
-                try {
-                    const snapshot = await get(child(ref(db), 'users/' + user.uid));
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        // توليد رمز عشوائي فريد للمستخدم إذا لم يكن لديه رمز مخزن مسبقاً وحفظه بقاعدة البيانات
-                        let sessionUserId = data.userId;
-                        if (!sessionUserId) {
-                            sessionUserId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-                            await set(ref(db, 'users/' + user.uid + '/userId'), sessionUserId);
-                        }
-                        localStorage.setItem('app_user_balance', data.balance !== undefined ? data.balance : 0);
-                        localStorage.setItem('app_user_points', data.points !== undefined ? data.points : 0);
-                        localStorage.setItem('app_user_banned', data.banned ? 'true' : 'false');
-                        localStorage.setItem('app_ban_reason', data.banReason || '');
-                        localStorage.setItem('app_user_managed_store', data.managedStore || '');
-                        localStorage.setItem('app_user_name', data.name || 'مستخدم شوب العراق');
-                        localStorage.setItem('app_user_id_num', sessionUserId);
-                    }
-                } catch (err) {
-                    console.error("Error fetching user session: ", err);
-                }
-                window.location.href = 'home.html';
-            }
-        });
+  // Dark mode toggle (visual state only, no separate theme implemented per design ref)
+  const darkModeToggle = document.getElementById('darkModeToggle');
+  darkModeToggle.addEventListener('click', () => {
+    const isOn = darkModeToggle.classList.toggle('on');
+    darkModeToggle.setAttribute('aria-pressed', isOn ? 'true' : 'false');
+  });
 
-        window.currentStatusSignUp = false;
+  // Bottom nav active state switching
+  document.querySelectorAll('.nav-item').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach((b) => {
+        b.classList.remove('active');
+        b.removeAttribute('aria-current');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-current', 'page');
+    });
+  });
 
-        window.changeMode = function(event) {
-            if(event) event.preventDefault();
-            
-            const appModule = document.getElementById('appModule');
-            const titleText = document.getElementById('titleText');
-            const subText = document.getElementById('subText');
-            const mainActionBtn = document.getElementById('mainActionBtn');
-            const switchPrompt = document.getElementById('switchPrompt');
-            const nameInput = document.getElementById('nameInput');
+  // Settings items press feedback / navigation stub
+  document.querySelectorAll('.settings-item').forEach((item) => {
+    if (item.id === 'darkModeToggle') return;
+    item.addEventListener('click', (e) => {
+      if (e.target.closest('#darkModeToggle')) return;
+    });
+  });
 
-            window.currentStatusSignUp = !window.currentStatusSignUp;
+  // Edit profile button stub
+  document.querySelector('.btn-edit').addEventListener('click', () => {
+    console.log('تعديل الملف الشخصي');
+  });
 
-            titleText.classList.add('text-fade');
-            subText.classList.add('text-fade');
-
-            setTimeout(() => {
-                if (window.currentStatusSignUp) {
-                    appModule.classList.add('signup-mode');
-                    titleText.textContent = 'إنشاء حساب جديد';
-                    subText.textContent = 'أدخل بياناتك للانضمام إلينا';
-                    mainActionBtn.textContent = 'إنشاء الحساب';
-                    switchPrompt.innerHTML = 'لديك حساب بالفعل؟<a href="#" onclick="changeMode(event)">تسجيل الدخول</a>';
-                    nameInput.required = true; 
-                } else {
-                    appModule.classList.remove('signup-mode');
-                    titleText.textContent = 'مرحباً بك مجدداً';
-                    subText.textContent = 'سجِّل للدخول للمتابعة';
-                    mainActionBtn.textContent = 'تسجيل الدخول';
-                    switchPrompt.innerHTML = 'ليس لديك حساب؟<a href="#" onclick="changeMode(event)">إنشاء حساب</a>';
-                    nameInput.required = false; 
-                }
-                
-                titleText.classList.remove('text-fade');
-                subText.classList.remove('text-fade');
-            }, 180);
-        };
-
-        window.viewPasswordToggle = function() {
-            const passInput = document.getElementById('passInput');
-            const toggleIcon = document.querySelector('.password-field .icon-right');
-            
-            if (passInput.type === 'password') {
-                passInput.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passInput.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
-            }
-        };
-
-        window.onFormSubmit = async function(event) {
-            event.preventDefault();
-            const mainActionBtn = document.getElementById('mainActionBtn');
-            const nameInput = document.getElementById('nameInput');
-            const emailInput = document.querySelector('input[type="email"]');
-            const passInput = document.getElementById('passInput');
-
-            const email = emailInput.value.trim();
-            const password = passInput.value;
-            const fullName = nameInput.value.trim() || 'مستخدم شوب العراق';
-
-            mainActionBtn.classList.add('loading');
-            
-            if (window.currentStatusSignUp) {
-                mainActionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إنشاء الحساب...';
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    const generatedId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-
-                    const userData = {
-                        uid: user.uid,
-                        name: fullName,
-                        email: email,
-                        userId: generatedId,
-                        balance: 0,
-                        points: 0,
-                        banned: false,
-                        banReason: 'مخالفة الشروط والأحكام العامة للتطبيق.',
-                        managedStore: '',
-                        avatar: 'https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg',
-                        createdAt: new Date().toISOString()
-                    };
-
-                    await set(ref(db, 'users/' + user.uid), userData);
-
-                    localStorage.setItem('app_active_user_uid', user.uid);
-                    localStorage.setItem('app_login_completed', 'true');
-                    localStorage.setItem('app_user_balance', userData.balance);
-                    localStorage.setItem('app_user_points', userData.points);
-                    localStorage.setItem('app_user_banned', 'false');
-                    localStorage.setItem('app_user_name', userData.name);
-                    localStorage.setItem('app_user_id_num', userData.userId);
-
-                    mainActionBtn.classList.remove('loading');
-                    mainActionBtn.innerHTML = 'إنشاء الحساب';
-                    alert('تم إنشاء حسابك بنجاح! 🎉');
-                    window.location.href = 'home.html';
-                    
-                } catch (error) {
-                    mainActionBtn.classList.remove('loading');
-                    mainActionBtn.innerHTML = 'إنشاء الحساب';
-                    alert('خطأ في إنشاء الحساب: ' + error.message);
-                }
-            } else {
-                mainActionBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري تسجيل الدخول...';
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-
-                    const snapshot = await get(child(ref(db), 'users/' + user.uid));
-                    if (snapshot.exists()) {
-                        const data = snapshot.val();
-                        // توليد رمز عشوائي فريد للمستخدم إذا لم يكن لديه رمز مخزن مسبقاً وحفظه بقاعدة البيانات
-                        let loginUserId = data.userId;
-                        if (!loginUserId) {
-                            loginUserId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-                            await set(ref(db, 'users/' + user.uid + '/userId'), loginUserId);
-                        }
-                        localStorage.setItem('app_active_user_uid', user.uid);
-                        localStorage.setItem('app_login_completed', 'true');
-                        localStorage.setItem('app_user_balance', data.balance !== undefined ? data.balance : 0);
-                        localStorage.setItem('app_user_points', data.points !== undefined ? data.points : 0);
-                        localStorage.setItem('app_user_banned', data.banned ? 'true' : 'false');
-                        localStorage.setItem('app_ban_reason', data.banReason || '');
-                        localStorage.setItem('app_user_managed_store', data.managedStore || '');
-                        localStorage.setItem('app_user_name', data.name || 'مستخدم شوب العراق');
-                        localStorage.setItem('app_user_id_num', loginUserId);
-                    } else {
-                        // إنشاء سجل جديد مع رمز عشوائي فريد للمستخدم الذي لا يملك بيانات في قاعدة البيانات
-                        const generatedId = '#IQ-' + Math.floor(1000000 + Math.random() * 9000000);
-                        const newUserData = {
-                            uid: user.uid,
-                            name: fullName,
-                            email: email,
-                            userId: generatedId,
-                            balance: 0,
-                            points: 0,
-                            banned: false,
-                            banReason: 'مخالفة الشروط والأحكام العامة للتطبيق.',
-                            managedStore: '',
-                            avatar: 'https://i.postimg.cc/hGZ1SWZs/f13f7bb881cec437b20b52eaac441606.jpg',
-                            createdAt: new Date().toISOString()
-                        };
-                        await set(ref(db, 'users/' + user.uid), newUserData);
-                        localStorage.setItem('app_active_user_uid', user.uid);
-                        localStorage.setItem('app_login_completed', 'true');
-                        localStorage.setItem('app_user_name', newUserData.name);
-                        localStorage.setItem('app_user_id_num', generatedId);
-                    }
-
-                    mainActionBtn.classList.remove('loading');
-                    mainActionBtn.innerHTML = 'تسجيل الدخول';
-                    alert('تم تسجيل الدخول بنجاح! 🎉');
-                    window.location.href = 'home.html';
-                } catch (error) {
-                    mainActionBtn.classList.remove('loading');
-                    mainActionBtn.innerHTML = 'تسجيل الدخول';
-                    alert('خطأ في تسجيل الدخول: ' + error.message);
-                }
-            }
-        };
-
-        window.triggerSocial = async function(name) {
-            if (name === 'Google') {
-                const provider = new GoogleAuthProvider();
-                provider.setCustomParameters({ prompt: 'select_account' });
-                try {
-                    // استخدام التحويل المباشر signInWithRedirect الضامن لمنع انسداد Popups الموبايل
-                    await signInWithRedirect(auth, provider);
-                } catch (error) {
-                    alert('خطأ في تسجيل الدخول بواسطة Google: ' + error.message);
-                }
-            } else {
-                alert('جاري الاتصال بحسابك في ' + name + '...');
-            }
-        };
-    </script>
+  // Logout confirmation
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    console.log('تسجيل الخروج');
+  });
+</script>
 
 </body>
 </html>
