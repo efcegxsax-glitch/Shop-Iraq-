@@ -631,8 +631,8 @@
                         <label class="switch"><input type="checkbox" data-cfg="sections.ticker" aria-label="إظهار الشريط"><span class="track"></span></label>
                     </div>
                     <div class="sw-row">
-                        <div class="sw-text"><strong>التبديل التلقائي بين الأخبار</strong><span>إذا أطفأته يتنقل الطالب بين الأخبار بالأسهم فقط</span></div>
-                        <label class="switch"><input type="checkbox" data-cfg="ticker.autoplay" aria-label="التبديل التلقائي بين الأخبار"><span class="track"></span></label>
+                        <div class="sw-text"><strong>تحريك الشريط تلقائياً</strong><span>إذا أطفأته يظهر الشريط واقفاً، والطالب يشغّله بزر التشغيل</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="ticker.autoplay" aria-label="تحريك الشريط تلقائياً"><span class="track"></span></label>
                     </div>
                     <div class="field-grid field-grid-2 mt-3">
                         <div class="field" style="margin-bottom:0;">
@@ -640,13 +640,13 @@
                             <input type="text" id="cfg_tk_label" placeholder="عاجل" maxlength="14">
                         </div>
                         <div class="field" style="margin-bottom:0;">
-                            <label for="cfg_tk_duration">مدة عرض كل خبر</label>
+                            <label for="cfg_tk_duration">سرعة حركة الشريط</label>
                             <select id="cfg_tk_duration">
-                                <option value="0">تلقائي حسب طول الخبر</option>
-                                <option value="4">4 ثوانٍ</option>
-                                <option value="6">6 ثوانٍ</option>
-                                <option value="8">8 ثوانٍ</option>
-                                <option value="12">12 ثانية</option>
+                                <option value="0">عادية (افتراضي)</option>
+                                <option value="4">سريعة جداً</option>
+                                <option value="6">سريعة</option>
+                                <option value="8">عادية</option>
+                                <option value="12">بطيئة</option>
                             </select>
                         </div>
                     </div>

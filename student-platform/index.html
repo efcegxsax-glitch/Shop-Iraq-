@@ -108,7 +108,7 @@
     </script>
 
     <script>
-        tailwind.config = {
+        if (window.tailwind) tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
@@ -393,38 +393,41 @@
             #mainContent { max-width: 480px; margin-left: auto; margin-right: auto; }
         }
 
-        /* ===== Breaking-news ticker (headline rotator) ===== */
-        .tk { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-card); overflow: hidden; }
-        .tk-head { display: flex; align-items: center; gap: 10px; min-height: 58px; padding-block: 8px; padding-inline: 14px 6px; }
-        .tk-live { flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; padding: 5px 10px 5px 11px; border-radius: 999px; font-size: 12px; font-weight: 700; color: color-mix(in srgb, var(--error) 82%, var(--text)); background: color-mix(in srgb, var(--error) 12%, transparent); }
-        .tk-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: var(--error); }
-        .tk-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--error); animation: tkPulse 1.8s ease-out infinite; }
-        @keyframes tkPulse { from { transform: scale(1); opacity: .7; } to { transform: scale(3); opacity: 0; } }
-        .tk-stage { position: relative; flex: 1; min-width: 0; height: 40px; overflow: hidden; background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--text); text-align: start; cursor: pointer; border-radius: 8px; }
-        .tk-slide { position: absolute; inset: 0; display: flex; align-items: center; }
-        .tk-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 13.5px; line-height: 1.5; font-weight: 500; }
-        .tk-in-next { animation: tkInNext .5s var(--ease-out) both; }
-        .tk-out-next { animation: tkOutNext .5s var(--ease-out) both; }
-        .tk-in-prev { animation: tkInPrev .5s var(--ease-out) both; }
-        .tk-out-prev { animation: tkOutPrev .5s var(--ease-out) both; }
-        @keyframes tkInNext { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
-        @keyframes tkOutNext { from { transform: none; opacity: 1; } to { transform: translateY(-100%); opacity: 0; } }
-        @keyframes tkInPrev { from { transform: translateY(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
-        @keyframes tkOutPrev { from { transform: none; opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
-        .tk-nav { flex-shrink: 0; display: flex; align-items: center; }
-        .tk-btn { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: transparent; border: 0; cursor: pointer; transition: background-color .2s ease, color .2s ease; }
-        .tk-btn:hover { background: var(--input-bg); color: var(--text); }
+        /* ===== Breaking-news ticker (continuous TV-style marquee) =====
+           Headlines glide left→right the way Arabic news channels run them: the first
+           headline enters from the left and is read from its right edge. Hover, press-and-
+           hold, keyboard focus, the open list or the pause button all freeze it in place. */
+        .tk { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-card); overflow: hidden; isolation: isolate; }
+        .tk::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, var(--error), transparent); opacity: .7; }
+        .tk-head { display: flex; align-items: center; gap: 6px; height: 54px; padding-inline: 8px 6px; }
+        .tk-live { position: relative; z-index: 2; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 12px; font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #EF5A5F, #B42328); box-shadow: 0 8px 16px -8px rgba(229, 72, 77, .8); }
+        .tk-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+        .tk-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: tkPulse 1.6s ease-out infinite; }
+        @keyframes tkPulse { from { transform: scale(1); opacity: .8; } to { transform: scale(2.8); opacity: 0; } }
+        .tk-viewport { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; direction: ltr; cursor: pointer; touch-action: pan-y;
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 26px, #000 calc(100% - 26px), transparent);
+            mask-image: linear-gradient(to right, transparent, #000 26px, #000 calc(100% - 26px), transparent); }
+        .tk-track { position: absolute; top: 0; bottom: 0; left: 0; display: flex; align-items: center; width: max-content; will-change: transform; animation: tkMarquee var(--tk-dur, 30s) linear infinite; }
+        .tk.tk-paused .tk-track { animation-play-state: paused; }
+        @keyframes tkMarquee { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
+        .tk-chip { direction: rtl; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text); padding: 6px 4px; border-radius: 10px; transition: background-color .2s ease; }
+        .tk-chip:hover { background: var(--input-bg); }
+        .tk-new { font-size: 10px; font-weight: 700; line-height: 1; color: #fff; background: var(--error); padding: 4px 6px; border-radius: 6px; }
+        .tk-time { font-size: 11px; font-weight: 500; color: var(--text2); }
+        .tk-sep { flex-shrink: 0; width: 6px; height: 6px; margin: 0 18px; border-radius: 1.5px; background: var(--error); transform: rotate(45deg); opacity: .85; }
+        .tk-btn { position: relative; z-index: 2; flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); border: 0; cursor: pointer; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
+        .tk-btn:hover { color: var(--text); }
         .tk-btn:active { transform: scale(.92); }
-        .tk-count { min-width: 30px; text-align: center; font-size: 11px; color: var(--text2); font-variant-numeric: tabular-nums; }
-        .tk-btn:focus-visible, .tk-stage:focus-visible, .tk-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
-        .tk-progress { height: 2px; background: var(--input-bg); }
-        .tk-progress span { display: block; height: 100%; background: var(--error); transform: scaleX(0); transform-origin: right; }
-        [dir="ltr"] .tk-progress span { transform-origin: left; }
-        .tk-progress span.run { animation: tkFill var(--tk-dur, 6s) linear forwards; }
-        .tk.tk-paused .tk-progress span { animation-play-state: paused; }
-        @keyframes tkFill { to { transform: scaleX(1); } }
-        .tk.tk-single .tk-nav, .tk.tk-single .tk-progress { display: none; }
-        .tk.tk-manual .tk-progress { display: none; }
+        .tk.tk-open #tkMore { background: rgb(var(--p) / 0.14); color: rgb(var(--p)); }
+        .tk-btn:focus-visible, .tk-viewport:focus-visible, .tk-item:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+        .tk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+        @media (prefers-reduced-motion: reduce) { #tkToggle { display: none; } }
+
+        /* Fallback for Tailwind's `hidden` (same rule the admin panel has): every screen is
+           switched with this class, so if the Tailwind CDN is blocked or slow all screens
+           used to render on top of each other. !important matches Tailwind, where `hidden`
+           always wins over `flex`/`block` on the same element. */
+        .hidden { display: none !important; }
 
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
@@ -449,6 +452,7 @@
         .tk-item { display: flex; gap: 10px; align-items: flex-start; width: 100%; padding: 10px 8px; background: none; border: 0; border-radius: 12px; text-align: start; font: inherit; color: var(--text); cursor: pointer; }
         .tk-item:hover { background: var(--input-bg); }
         .tk-item-mark { flex-shrink: 0; width: 6px; height: 6px; margin-top: 8px; border-radius: 50%; background: var(--border); }
+        .tk-item.is-current { background: var(--input-bg); }
         .tk-item.is-current .tk-item-mark { background: var(--error); }
         .tk-item-body { flex: 1; min-width: 0; font-size: 13.5px; line-height: 1.6; }
         .tk-item-time { display: block; margin-top: 2px; font-size: 11px; color: var(--text2); }
@@ -894,17 +898,16 @@
             </section>
 
             <section class="px-4 py-2" id="tickerSection">
-                <div id="tickerBar" class="tk theme-transition hidden" role="region" aria-label="الأخبار العاجلة">
+                <div id="tickerBar" class="tk theme-transition hidden" role="region" aria-label="شريط الأخبار العاجلة">
                     <div class="tk-head">
                         <span class="tk-live"><span class="tk-dot" aria-hidden="true"></span><span id="tkLabel">عاجل</span></span>
-                        <button type="button" class="tk-stage" id="tkStage" aria-expanded="false" aria-controls="tkList" aria-live="polite"></button>
-                        <div class="tk-nav">
-                            <button type="button" class="tk-btn" id="tkPrev" aria-label="الخبر السابق"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button>
-                            <span class="tk-count" id="tkCount" dir="ltr"></span>
-                            <button type="button" class="tk-btn" id="tkNext" aria-label="الخبر التالي"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
+                        <div class="tk-viewport" id="tkViewport" tabindex="0" role="button" aria-controls="tkList" aria-expanded="false" aria-label="شريط الأخبار — اضغط لعرض كل الأخبار">
+                            <div class="tk-track" id="tkTrack" aria-hidden="true"></div>
                         </div>
+                        <button type="button" class="tk-btn" id="tkToggle" aria-label="إيقاف الشريط"></button>
+                        <button type="button" class="tk-btn" id="tkMore" aria-controls="tkList" aria-expanded="false" aria-label="كل الأخبار العاجلة"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
                     </div>
-                    <div class="tk-progress" aria-hidden="true"><span id="tkProgress"></span></div>
+                    <span class="tk-sr" id="tkSr" aria-live="polite"></span>
                     <ul class="tk-list" id="tkList" hidden></ul>
                 </div>
             </section>
@@ -3714,30 +3717,53 @@
                     return;
                 }
                 bar.classList.remove('hidden');
-                const key = items.map(t => (t.id || '') + '|' + (t.text || '')).join('\u241E');
-                if (key === tk.key) return; // same headlines: keep the rotation where it is
+                const tcfg = (this.siteConfig && this.siteConfig.ticker) || {};
+                const key = items.map(t => (t.id || '') + '|' + (t.text || '')).join('␞') + '␞' + (Number(tcfg.duration) || 0) + (tcfg.autoplay === false ? 'm' : 'a');
+                if (key === tk.key) return; // same headlines and settings: keep the marquee where it is
+                const autoplayChanged = tk.autoplay !== (tcfg.autoplay !== false);
+                tk.autoplay = tcfg.autoplay !== false;
+                if (autoplayChanged) tk.userPaused = !tk.autoplay; // admin "autoplay off" = starts paused
                 tk.key = key;
                 tk.items = items.slice();
-                if (tk.index >= items.length) tk.index = 0;
-                bar.classList.toggle('tk-single', items.length === 1);
-                bar.classList.toggle('tk-manual', (this.siteConfig && this.siteConfig.ticker && this.siteConfig.ticker.autoplay === false) || false);
+                tk.speed = ({ 4: 90, 6: 70, 8: 55, 12: 38 })[Number(tcfg.duration)] || 55; // px per second
+                const sr = document.getElementById('tkSr');
+                if (sr) sr.textContent = items.length + ' خبر عاجل: ' + items.map(t => t.text).join(' — ');
                 this._tickerRenderList();
-                this._tickerShow(tk.index, null);
+                this._tickerBuild();
+                this._tickerSync();
             },
 
             _tickerInit() {
                 if (this._tk) return;
                 const bar = document.getElementById('tickerBar');
+                const viewport = document.getElementById('tkViewport');
                 const reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
-                const tk = this._tk = { items: [], key: '', index: 0, hover: false, focus: false, open: false, reduced };
-                const sync = () => bar.classList.toggle('tk-paused', tk.hover || tk.focus || tk.open);
+                const tk = this._tk = { items: [], key: '', hover: false, hold: false, focus: false, open: false, userPaused: false, autoplay: true, speed: 55, builtWidth: 0, reduced };
+                const sync = () => {
+                    const paused = tk.hover || tk.hold || tk.focus || tk.open || tk.userPaused;
+                    bar.classList.toggle('tk-paused', paused);
+                    const btn = document.getElementById('tkToggle');
+                    if (btn) {
+                        btn.setAttribute('aria-label', tk.userPaused ? 'تشغيل الشريط' : 'إيقاف الشريط');
+                        btn.innerHTML = tk.userPaused
+                            ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5.5v13a1 1 0 0 1-1.5.86l-11-6.5a1 1 0 0 1 0-1.72l11-6.5A1 1 0 0 1 17 5.5z"/></svg>'
+                            : '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+                    }
+                };
                 this._tickerSync = sync;
-                document.getElementById('tkPrev').addEventListener('click', () => this._tickerStep(-1));
-                document.getElementById('tkNext').addEventListener('click', () => this._tickerStep(1));
-                document.getElementById('tkStage').addEventListener('click', () => this._tickerToggleList());
-                document.getElementById('tkProgress').addEventListener('animationend', () => {
-                    if (!tk.hover && !tk.focus && !tk.open) this._tickerStep(1);
+                document.getElementById('tkToggle').addEventListener('click', () => { tk.userPaused = !tk.userPaused; sync(); });
+                document.getElementById('tkMore').addEventListener('click', () => this._tickerToggleList());
+                // Tap a headline → open the full list with that headline highlighted.
+                viewport.addEventListener('click', (e) => {
+                    const chip = e.target.closest && e.target.closest('.tk-chip');
+                    this._tickerToggleList(true, chip ? Number(chip.dataset.i) : null);
                 });
+                viewport.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); this._tickerToggleList(); }
+                });
+                // Press and hold to read a headline without it running away.
+                viewport.addEventListener('pointerdown', () => { tk.hold = true; sync(); });
+                ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => viewport.addEventListener(ev, () => { if (tk.hold) { tk.hold = false; sync(); } }));
                 bar.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { tk.hover = true; sync(); } });
                 bar.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { tk.hover = false; sync(); } });
                 bar.addEventListener('focusin', (e) => {
@@ -3746,51 +3772,48 @@
                 });
                 bar.addEventListener('focusout', (e) => { if (!bar.contains(e.relatedTarget)) { tk.focus = false; sync(); } });
                 bar.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && tk.open) { this._tickerToggleList(false); document.getElementById('tkStage').focus(); }
+                    if (e.key === 'Escape' && tk.open) { this._tickerToggleList(false); document.getElementById('tkMore').focus(); }
                 });
+                // The track is sized from real pixel widths, which are 0 while the home screen
+                // is hidden — rebuild whenever the visible width changes (rotation, returning home).
+                if ('ResizeObserver' in window) {
+                    new ResizeObserver(() => {
+                        if (tk.items.length && viewport.clientWidth && viewport.clientWidth !== tk.builtWidth) this._tickerBuild();
+                    }).observe(viewport);
+                }
+                if (tk.reduced.matches) tk.userPaused = true;
             },
 
-            _tickerStep(d) {
+            // Builds [sequence × n][sequence × n] so translating by -50% → 0 loops seamlessly.
+            // The row is laid out LTR with the headlines in reverse, so while it moves right
+            // the first headline is the one that enters (and is read) first.
+            _tickerBuild() {
                 const tk = this._tk;
-                const n = tk.items.length;
-                if (n < 2) return;
-                tk.index = (tk.index + d + n) % n;
-                this._tickerShow(tk.index, d > 0 ? 'next' : 'prev');
-            },
-
-            _tickerShow(i, dir) {
-                const tk = this._tk;
-                const t = tk.items[i];
-                const stage = document.getElementById('tkStage');
-                if (!t || !stage) return;
-                const slide = document.createElement('div');
-                slide.className = 'tk-slide';
-                slide.innerHTML = `<span class="tk-text">${escapeHtml(t.text)}</span>`;
-                if (dir) {
-                    stage.querySelectorAll('.tk-slide:not(.tk-leaving)').forEach(old => {
-                        old.classList.add('tk-leaving', 'tk-out-' + dir);
-                        setTimeout(() => old.remove(), 520);
-                    });
-                    slide.classList.add('tk-in-' + dir);
-                } else {
-                    stage.innerHTML = '';
-                }
-                stage.appendChild(slide);
-                stage.setAttribute('aria-label', (t.text || '') + ' — اضغط لعرض كل الأخبار العاجلة');
-                const n = tk.items.length;
-                document.getElementById('tkCount').textContent = `${i + 1}/${n}`;
-                document.querySelectorAll('#tkList .tk-item').forEach((el, k) => el.classList.toggle('is-current', k === i));
-                // restart the progress bar; its end moves to the next headline
-                const prog = document.getElementById('tkProgress');
-                prog.classList.remove('run');
-                const tcfg = (this.siteConfig && this.siteConfig.ticker) || {};
-                if (n > 1 && !tk.reduced.matches && tcfg.autoplay !== false) {
-                    const fixed = Number(tcfg.duration);
-                    const secs = fixed > 0 ? fixed : Math.min(10, Math.max(5, String(t.text || '').length * 0.075));
-                    prog.style.setProperty('--tk-dur', secs + 's');
-                    void prog.offsetWidth;
-                    prog.classList.add('run');
-                }
+                const track = document.getElementById('tkTrack');
+                const viewport = document.getElementById('tkViewport');
+                if (!tk || !track || !viewport) return;
+                const now = Date.now();
+                const chip = (t, k) => {
+                    const ts = Number(t.id);
+                    const isNew = ts > 1e11 && now - ts < 3600000;
+                    const time = ts > 1e11 ? `<span class="tk-time" data-timeago="${jsNum(ts)}">${timeAgo(ts)}</span>` : '';
+                    return `<span class="tk-chip" data-i="${k}">${isNew ? '<span class="tk-new">جديد</span>' : ''}<span>${escapeHtml(t.text)}</span>${time}</span><span class="tk-sep"></span>`;
+                };
+                const seq = tk.items.map((t, k) => chip(t, k)).reverse().join('');
+                track.innerHTML = seq;
+                const seqWidth = track.scrollWidth;
+                const viewWidth = viewport.clientWidth;
+                tk.builtWidth = viewWidth;
+                if (!seqWidth || !viewWidth) return; // hidden right now — ResizeObserver rebuilds later
+                const reps = Math.max(1, Math.ceil(viewWidth / seqWidth));
+                const half = seq.repeat(reps);
+                track.innerHTML = half + half;
+                const secs = Math.max(8, (seqWidth * reps) / (tk.speed || 55));
+                track.style.setProperty('--tk-dur', secs.toFixed(2) + 's');
+                // restart the animation so the new content starts from the beginning
+                track.style.animation = 'none';
+                void track.offsetWidth;
+                track.style.animation = '';
             },
 
             _tickerRenderList() {
@@ -3800,28 +3823,24 @@
                 list.innerHTML = tk.items.map((t, k) => {
                     const ts = Number(t.id);
                     const time = ts > 1e11 ? `<span class="tk-item-time" data-timeago="${jsNum(ts)}">${timeAgo(ts)}</span>` : '';
-                    return `<li><button type="button" class="tk-item${k === tk.index ? ' is-current' : ''}" data-i="${k}">
+                    return `<li><button type="button" class="tk-item" data-i="${k}">
                         <span class="tk-item-mark" aria-hidden="true"></span>
                         <span class="tk-item-body">${escapeHtml(t.text)}${time}</span>
                     </button></li>`;
                 }).join('');
-                list.querySelectorAll('.tk-item').forEach(btn => btn.addEventListener('click', () => {
-                    const k = Number(btn.dataset.i);
-                    const d = k === tk.index ? null : (k > tk.index ? 'next' : 'prev');
-                    tk.index = k;
-                    this._tickerToggleList(false);
-                    if (d) this._tickerShow(k, d);
-                }));
+                list.querySelectorAll('.tk-item').forEach(btn => btn.addEventListener('click', () => this._tickerToggleList(false)));
             },
 
-            _tickerToggleList(force) {
+            _tickerToggleList(force, highlight) {
                 const tk = this._tk;
                 const list = document.getElementById('tkList');
                 const bar = document.getElementById('tickerBar');
                 tk.open = typeof force === 'boolean' ? force : !tk.open;
                 list.hidden = !tk.open;
                 bar.classList.toggle('tk-open', tk.open);
-                document.getElementById('tkStage').setAttribute('aria-expanded', String(tk.open));
+                ['tkMore', 'tkViewport'].forEach(id => document.getElementById(id)?.setAttribute('aria-expanded', String(tk.open)));
+                list.querySelectorAll('.tk-item').forEach((el, k) => el.classList.toggle('is-current', tk.open && k === highlight));
+                if (tk.open && highlight != null) list.querySelector('.tk-item.is-current')?.scrollIntoView({ block: 'nearest' });
                 this._tickerSync();
             },
 
@@ -4854,7 +4873,7 @@
                 // Ticker settings
                 const t = cfg.ticker || {};
                 if ($('tkLabel')) $('tkLabel').textContent = (t.label || '').trim() || 'عاجل';
-                if (this._tk) this._tk.key = ''; // force the rotator to pick up new timing
+                if (this._tk) this._tk.key = ''; // force the marquee to pick up new speed/label settings
                 this.renderNewsTicker();
             },
 
