@@ -33,7 +33,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+        import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
@@ -59,7 +59,16 @@
             // Initialize Firebase
             const app = initializeApp(firebaseConfig);
             window.firebaseDb = getDatabase(app);
-            window.firebaseAuth = getAuth(app);
+            // FIX: getAuth() also wires in the popup/redirect resolver, which loads Google's
+            // apis.google.com iframe script at startup. The app only uses email/password, and
+            // that script is what failed with "t`content", "getContext" and the CORS error on
+            // apis.google.com/_/jserror. initializeAuth without a popupRedirectResolver
+            // keeps sign-in exactly the same but never loads that script.
+            try {
+                window.firebaseAuth = initializeAuth(app, { persistence: [indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence] });
+            } catch (e) {
+                window.firebaseAuth = getAuth(app);
+            }
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
             window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect };
             window.firebaseMessagingHelpers = { getToken };
@@ -82,7 +91,8 @@
             // لتفادي رفض Promise غير مُعالَج (messaging/unsupported-browser) عند فتح الملف مباشرة (file://) أو في متصفح لا يدعمها
             isMessagingSupported().then((supported) => {
                 if (!supported) {
-                    console.warn('Firebase Messaging غير مدعوم في هذا المتصفح/السياق');
+                    // Expected when the page isn't served over https — not an error.
+                    console.info('Firebase Messaging غير مدعوم في هذا المتصفح/السياق');
                     return;
                 }
                 try {
