@@ -510,6 +510,66 @@
         .tip-ic { flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-size: 15px; background: rgba(139, 92, 246, 0.12); }
         .tip-text { font-size: 13px; line-height: 1.65; font-weight: 500; color: var(--text); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: calc(13px * 1.65 * 2); }
 
+        /* ===== Holidays calendar page (تقويم العطل) ===== */
+        .hp-hero { position: relative; overflow: hidden; border-radius: 22px; padding: 16px; color: #fff;
+            background: linear-gradient(135deg, rgb(var(--p)), #0B5E54 55%, #134E4A); box-shadow: 0 18px 36px -18px rgb(var(--p) / 0.9); }
+        .hp-hero::before { content: ""; position: absolute; inset: -40% -20% auto auto; width: 70%; height: 180%; background: radial-gradient(closest-side, rgba(255,255,255,.18), transparent); animation: hpFloat 7s ease-in-out infinite alternate; }
+        .hp-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.12) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 5s ease-in-out infinite; }
+        @keyframes hpFloat { to { transform: translate(-30%, 20%); } }
+        @keyframes hpShine { 0% { background-position: 120% 0; } 60%, 100% { background-position: -120% 0; } }
+        .hp-hero > * { position: relative; z-index: 1; }
+        .hp-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; }
+        .hp-hero-title { font-size: 16px; font-weight: 800; }
+        .hp-hero-sub { font-size: 11.5px; opacity: .85; margin-top: 2px; }
+        .hp-hero-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: rgba(255,255,255,.16); font-size: 22px; animation: hpBob 3s ease-in-out infinite; }
+        @keyframes hpBob { 50% { transform: translateY(-4px) rotate(-6deg); } }
+        .hp-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .hp-stat { background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 9px 6px; text-align: center; }
+        .hp-stat b { display: block; font-size: 22px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+        .hp-stat span { font-size: 10.5px; opacity: .9; }
+        .hp-sec-title { display: flex; align-items: center; justify-content: space-between; margin: 18px 2px 10px; font-size: 14px; font-weight: 800; color: var(--text); }
+        .hp-sec-title small { font-size: 11px; font-weight: 600; color: var(--text2); }
+        .hp-govs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .hp-gov { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 9px 10px; border-radius: 14px; text-align: start;
+            background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); cursor: pointer; color: var(--text);
+            animation: hpPop .45s var(--ease-spring) both; transition: transform .15s ease, border-color .2s ease, background-color .2s ease; }
+        .hp-gov:active { transform: scale(.95); }
+        .hp-gov.all { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; }
+        .hp-gov.sel { border-color: rgb(var(--p)); background: rgb(var(--p) / 0.08); box-shadow: 0 0 0 3px rgb(var(--p) / 0.14); }
+        @keyframes hpPop { from { opacity: 0; transform: scale(.85) translateY(8px); } to { opacity: 1; transform: none; } }
+        .hp-gov-name { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 800; white-space: nowrap; }
+        .hp-gov-meta { font-size: 10.5px; color: var(--text2); }
+        .hp-gov .hl-dot { width: 7px; height: 7px; }
+        .hp-gov.is-now .hl-dot { background: #16A34A; }
+        .hp-gov.is-soon .hl-dot { background: #F59E0B; }
+        .hp-gov.is-later .hl-dot { background: rgb(var(--p)); }
+        .hp-gov.is-none .hl-dot { background: var(--border); }
+        .hp-gov.is-none .hl-dot::after, .hp-gov.is-later .hl-dot::after { animation: none; }
+        .hp-filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+        .hp-filter { flex-shrink: 0; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--text2); border: 1px solid var(--border); cursor: pointer; transition: all .2s ease; }
+        .hp-filter.on { background: rgb(var(--p)); color: #fff; border-color: transparent; box-shadow: 0 8px 16px -10px rgb(var(--p)); }
+        .hp-list { display: flex; flex-direction: column; gap: 10px; }
+        .hp-card { display: flex; gap: 12px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: cardIn .5s var(--ease-out) both; }
+        .hp-date { flex-shrink: 0; width: 54px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 0; color: #fff;
+            background: linear-gradient(160deg, rgb(var(--p)), rgb(var(--p) / 0.75)); }
+        .hp-card.is-now .hp-date { background: linear-gradient(160deg, #22C55E, #15803D); }
+        .hp-card.is-soon .hp-date { background: linear-gradient(160deg, #FBBF24, #D97706); }
+        .hp-date b { font-size: 21px; font-weight: 800; line-height: 1; }
+        .hp-date span { font-size: 10px; font-weight: 700; margin-top: 3px; opacity: .95; }
+        .hp-body { flex: 1; min-width: 0; }
+        .hp-title { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: 14px; font-weight: 800; color: var(--text); }
+        .hp-where { margin-top: 3px; font-size: 12px; font-weight: 700; color: var(--text); }
+        .hp-range { margin-top: 2px; font-size: 11px; color: var(--text2); }
+        .hp-status { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: rgb(var(--p)); }
+        .hp-card.is-now .hp-status { color: #16A34A; }
+        .hp-card.is-soon .hp-status { color: #D97706; }
+        .hp-bar { height: 5px; margin-top: 6px; border-radius: 99px; background: var(--input-bg); overflow: hidden; }
+        .hp-bar i { display: block; height: 100%; width: var(--w, 0%); border-radius: inherit; background: linear-gradient(90deg, #22C55E, #86EFAC); transform-origin: right; animation: hpGrow 1.1s var(--ease-out) both .2s; }
+        @keyframes hpGrow { from { transform: scaleX(0); } }
+        .hp-empty { text-align: center; padding: 36px 16px; color: var(--text2); font-size: 13px; }
+        .hp-empty div { font-size: 38px; margin-bottom: 8px; animation: hpBob 3s ease-in-out infinite; }
+        .hl-all { font-size: 11px; font-weight: 700; color: rgb(var(--p)); background: rgb(var(--p) / 0.1); border: 0; padding: 3px 9px; border-radius: 999px; cursor: pointer; }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -781,37 +841,49 @@
         input, select, textarea { font-size: max(16px, 1em); }
         input.text-sm, textarea.text-sm, select.text-sm { font-size: 15px; }
 
-        /* ---- Bottom navigation: floating glass bar + springy capsule ---- */
+        /* ---- Bottom navigation (v2): floating glass dock, 8 tabs ----
+           A solid gradient capsule glides under the active icon (springy), the active icon
+           turns white and lifts, its label turns bold primary. Sized so 8 tabs fit a 360px
+           phone: 44px min per tab, 21px icons, 9.5px labels. */
         #bottomNav {
-            left: 12px !important; right: 12px !important;
-            height: 68px !important; border-radius: 26px !important;
-            bottom: calc(10px + var(--safe-b)) !important;
-            background-color: rgba(var(--bg-rgb), 0.78) !important;
-            border-color: var(--border) !important;
-            box-shadow: inset 0 1px 0 var(--glass-highlight), 0 18px 40px -14px rgba(0, 0, 0, 0.35), 0 2px 6px rgba(0, 0, 0, 0.05) !important;
+            left: 10px !important; right: 10px !important;
+            height: 66px !important; border-radius: 24px !important;
+            bottom: calc(8px + var(--safe-b)) !important;
+            background-color: rgba(var(--bg-rgb), 0.82) !important;
+            border: 1px solid var(--border) !important;
+            box-shadow: inset 0 1px 0 var(--glass-highlight), 0 20px 40px -16px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+            backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
+            overflow: hidden;
         }
+        /* thin glowing line along the top edge that follows the theme colour */
+        #bottomNav::before { content: ""; position: absolute; top: 0; left: 18%; right: 18%; height: 1px; background: linear-gradient(90deg, transparent, rgb(var(--p) / 0.7), transparent); pointer-events: none; }
         @media (min-width: 480px) { #bottomNav { left: 0 !important; right: 0 !important; width: calc(100% - 24px); max-width: 456px !important; } }
-        #bottomNav .nav-track { position: relative; padding: 0 4px; }
+        #bottomNav .nav-track { position: relative; display: flex; align-items: center; height: 100%; padding: 0 4px; max-width: none; }
         #bottomNav .nav-indicator {
-            position: absolute; left: 0; top: 0; width: 54px; height: 32px; border-radius: 16px;
-            background: rgb(var(--p) / 0.15);
+            position: absolute; left: 0; top: 0; width: 40px; height: 30px; border-radius: 12px;
+            background: linear-gradient(135deg, rgb(var(--p)), rgb(var(--p) / 0.78));
+            box-shadow: 0 8px 18px -8px rgb(var(--p) / 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.25);
             opacity: 0; pointer-events: none;
-            transition: transform .5s var(--ease-spring), opacity .25s ease;
+            transition: transform .55s var(--ease-spring), opacity .25s ease;
             will-change: transform;
         }
         #bottomNav .nav-indicator.is-ready { opacity: 1; }
         #bottomNav .nav-item {
-            height: 60px !important; gap: 3px !important; background: transparent !important; box-shadow: none !important;
-            position: relative; z-index: 1;
+            flex: 1 1 0; min-width: 0; height: 58px !important; padding: 0 1px; gap: 3px !important;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: transparent !important; box-shadow: none !important; border: 0; border-radius: 14px;
+            position: relative; z-index: 1; color: var(--text2);
+            transition: transform .2s ease;
         }
-        #bottomNav .nav-item > svg, #bottomNav .nav-item > div { height: 32px; display: flex; align-items: center; justify-content: center; }
-        #bottomNav .nav-item svg { width: 22px; height: 22px; stroke-width: 1.8; transition: transform .45s var(--ease-spring), color .2s ease; }
-        #bottomNav .nav-item > svg { padding: 5px 0; box-sizing: content-box; }
-        #bottomNav .nav-item.active svg { color: rgb(var(--p)); stroke-width: 2.2; transform: translateY(-1px) scale(1.06); }
+        #bottomNav .nav-ic { position: relative; height: 30px; width: 40px; display: flex; align-items: center; justify-content: center; }
+        #bottomNav .nav-item svg { width: 21px; height: 21px; stroke-width: 1.8; transition: transform .45s var(--ease-spring), color .25s ease; }
+        #bottomNav .nav-item.active svg { color: #fff; stroke-width: 2.2; transform: translateY(-1px) scale(1.04); }
         #bottomNav .nav-item.active { color: rgb(var(--p)) !important; }
-        .nav-label { font-size: 10px; font-weight: 500; line-height: 1; white-space: nowrap; transition: font-weight .2s, color .2s; }
-        #bottomNav .nav-item.active .nav-label { font-weight: 700; }
-        #navStoreCartBadge, #navMessagesBadge { box-shadow: 0 0 0 2px rgba(var(--bg-rgb), 1); top: 0 !important; right: -8px !important; }
+        #bottomNav .nav-item:active { transform: scale(.92); }
+        .nav-label { max-width: 100%; overflow: hidden; text-overflow: clip; font-size: 9.5px; font-weight: 500; line-height: 1.1; white-space: nowrap; letter-spacing: -0.1px; transition: color .2s; }
+        #bottomNav .nav-item.active .nav-label { font-weight: 800; }
+        @media (max-width: 350px) { .nav-label { font-size: 8.5px; } #bottomNav .nav-item svg { width: 19px; height: 19px; } }
+        #navStoreCartBadge, #navMessagesBadge { box-shadow: 0 0 0 2px rgba(var(--bg-rgb), 1); top: -1px !important; right: 0 !important; z-index: 2; }
 
         /* ---- Page transitions (re-triggered on every navigation) ---- */
         .page-enter, .page-slide-rtl { animation: none !important; }
@@ -1007,7 +1079,7 @@
             <section class="px-4 py-2 hidden" id="holidaysSection">
                 <div class="hl-head">
                     <span class="hl-title"><span class="hl-live" aria-hidden="true"></span>العطل الرسمية والمدرسية</span>
-                    <span class="hl-count" id="holidaysCount"></span>
+                    <span class="tip-tools"><span class="hl-count" id="holidaysCount"></span><button class="hl-all btn-press" onclick="app.setTab('holidays')">عرض الكل ›</button></span>
                 </div>
                 <div class="hl-viewport" id="holidaysViewport" role="region" aria-label="العطل الرسمية والمدرسية">
                     <div class="hl-track" id="holidaysList"></div>
@@ -2521,6 +2593,20 @@
             </div>
         </div>
 
+        <!-- ===== HOLIDAYS CALENDAR VIEW (تقويم العطل) ===== -->
+        <div id="holidaysView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">تقويم العطل</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">عطل كل محافظات العراق بمكان واحد</div>
+                </div>
+            </div>
+            <div class="px-4 py-4" id="holidaysPageContent"></div>
+        </div>
+
     </main>
 
     <!-- ==================== WALLET MODAL ==================== -->
@@ -2540,41 +2626,39 @@
     </div>
 
     <!-- ==================== BOTTOM NAVIGATION ==================== -->
-    <nav id="bottomNav" aria-label="التنقل الرئيسي" class="fixed left-3 right-3 border z-50 theme-transition" style="background-color: var(--surface); border-color: var(--border); height: 64px; border-radius: 32px; bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: inset 0 1px 0 var(--glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.04);">
-        <div class="nav-track flex items-center justify-around h-full px-1 max-w-lg mx-auto">
+    <nav id="bottomNav" aria-label="التنقل الرئيسي" class="fixed z-50 theme-transition">
+        <div class="nav-track">
             <span class="nav-indicator" aria-hidden="true"></span>
-            <button onclick="app.setTab('home')" class="nav-item active flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all" data-tab="home">
-                <i data-lucide="home" class="w-5 h-5"></i>
+            <button onclick="app.setTab('home')" class="nav-item active" data-tab="home" aria-label="الرئيسية">
+                <span class="nav-ic"><i data-lucide="home"></i></span>
                 <span class="nav-label">الرئيسية</span>
             </button>
-            <button onclick="app.setTab('resources')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="resources">
-                <i data-lucide="book-open" class="w-5 h-5"></i>
+            <button onclick="app.setTab('resources')" class="nav-item" data-tab="resources" aria-label="الملازم">
+                <span class="nav-ic"><i data-lucide="book-open"></i></span>
                 <span class="nav-label">الملازم</span>
             </button>
-            <button onclick="app.setTab('store')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="store">
-                <div class="relative">
-                    <i data-lucide="store" class="w-5 h-5"></i>
-                    <span id="navStoreCartBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
-                </div>
-                <span class="nav-label">متجر</span>
+            <button onclick="app.setTab('holidays')" class="nav-item" data-tab="holidays" aria-label="العطل">
+                <span class="nav-ic"><i data-lucide="calendar-days"></i></span>
+                <span class="nav-label">العطل</span>
             </button>
-            <button onclick="app.setTab('leaderboard')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="leaderboard">
-                <i data-lucide="trophy" class="w-5 h-5"></i>
+            <button onclick="app.setTab('store')" class="nav-item" data-tab="store" aria-label="المتجر">
+                <span class="nav-ic"><i data-lucide="store"></i><span id="navStoreCartBadge" class="hidden absolute w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span></span>
+                <span class="nav-label">المتجر</span>
+            </button>
+            <button onclick="app.setTab('leaderboard')" class="nav-item" data-tab="leaderboard" aria-label="المتقدمون">
+                <span class="nav-ic"><i data-lucide="trophy"></i></span>
                 <span class="nav-label">المتقدمون</span>
             </button>
-            <button onclick="app.setTab('wallet')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="wallet">
-                <i data-lucide="wallet" class="w-5 h-5"></i>
+            <button onclick="app.setTab('wallet')" class="nav-item" data-tab="wallet" aria-label="رصيدي">
+                <span class="nav-ic"><i data-lucide="wallet"></i></span>
                 <span class="nav-label">رصيدي</span>
             </button>
-            <button onclick="app.setTab('messages')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all relative theme-transition" style="color: var(--text2);" data-tab="messages">
-                <div class="relative">
-                    <i data-lucide="message-circle" class="w-5 h-5"></i>
-                    <span id="navMessagesBadge" class="hidden absolute -top-1.5 -right-1.5 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
-                </div>
+            <button onclick="app.setTab('messages')" class="nav-item" data-tab="messages" aria-label="الرسائل">
+                <span class="nav-ic"><i data-lucide="message-circle"></i><span id="navMessagesBadge" class="hidden absolute w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span></span>
                 <span class="nav-label">الرسائل</span>
             </button>
-            <button onclick="app.setTab('profile')" class="nav-item flex flex-col items-center justify-center gap-1 flex-1 min-w-0 h-14 rounded-xl transition-all theme-transition" style="color: var(--text2);" data-tab="profile">
-                <i data-lucide="user" class="w-5 h-5"></i>
+            <button onclick="app.setTab('profile')" class="nav-item" data-tab="profile" aria-label="حسابي">
+                <span class="nav-ic"><i data-lucide="user"></i></span>
                 <span class="nav-label">حسابي</span>
             </button>
         </div>
@@ -3008,6 +3092,11 @@
             { id: 'biology', label: 'الأحياء' },
             { id: 'other', label: 'أخرى' }
         ];
+
+        // 18 governorates + Halabja. Older records may say "الموصل" — that's Nineveh.
+        const IRAQ_GOVERNORATES = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'دهوك', 'حلبجة', 'كركوك', 'الأنبار', 'صلاح الدين', 'ديالى', 'بابل', 'كربلاء', 'النجف', 'واسط', 'القادسية', 'ذي قار', 'ميسان', 'المثنى'];
+        const GOVERNORATE_ALIASES = { 'الموصل': 'نينوى', 'الديوانية': 'القادسية', 'الناصرية': 'ذي قار', 'العمارة': 'ميسان', 'السماوة': 'المثنى', 'الكوت': 'واسط', 'الرمادي': 'الأنبار', 'الحلة': 'بابل', 'بعقوبة': 'ديالى', 'تكريت': 'صلاح الدين' };
+        const IRAQI_MONTHS = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
 
         const forumThreads = [];
         const forumAnswers = {};
@@ -4947,7 +5036,7 @@
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
                 // Bottom navigation
-                ['resources', 'store', 'leaderboard', 'wallet', 'messages'].forEach(k => {
+                ['resources', 'holidays', 'store', 'leaderboard', 'wallet', 'messages'].forEach(k => {
                     document.querySelector(`#bottomNav .nav-item[data-tab="${k}"]`)?.classList.toggle('cfg-off', !on('nav', k));
                 });
                 window.dispatchEvent(new Event('resize')); // re-seat the nav indicator
@@ -5126,6 +5215,7 @@
                     holidays.length = 0;
                     holidays.push(...list);
                     if (this.currentView === 'homeView') this.renderHolidays();
+                    if (this.currentView === 'holidaysView') this.renderHolidaysPage();
                 });
             },
 
@@ -5191,6 +5281,140 @@
                 this._hlKey = chips;
                 list.innerHTML = chips;
                 this._stripStart('holidays', 'holidaysViewport', 'holidaysList');
+            },
+
+            // ==================== HOLIDAYS CALENDAR PAGE ====================
+            holidayPageFilter: 'all',
+            holidayPageGov: 'all',
+
+            goToHolidays() {
+                this.switchView('holidaysView');
+                this._hpAnimateCounts = true;
+                this.renderHolidaysPage();
+                lucide.createIcons();
+            },
+
+            setHolidayPageFilter(f) { this.holidayPageFilter = f; this.renderHolidaysPage(); },
+            setHolidayPageGov(g) {
+                this.holidayPageGov = this.holidayPageGov === g ? 'all' : g;
+                this.renderHolidaysPage();
+                document.getElementById('hpListTitle')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            },
+
+            renderHolidaysPage() {
+                const box = document.getElementById('holidaysPageContent');
+                if (!box) return;
+                const now = Date.now();
+                const DAY = 86400000;
+                const norm = (g) => { const v = String(g || '').trim(); return GOVERNORATE_ALIASES[v] || v; };
+                const all = holidays
+                    .map((h) => {
+                        const r = this.holidayRange(h);
+                        const ongoing = now >= r.start && now <= r.end;
+                        const daysTo = Math.ceil((r.start - now) / DAY);
+                        return { h, ...r, gov: norm(h.governorate), ongoing, state: ongoing ? 'is-now' : (daysTo <= 7 ? 'is-soon' : 'is-later'), daysTo };
+                    })
+                    .filter((x) => !isNaN(x.end) && x.end >= now)
+                    .sort((a, b) => a.start - b.start);
+                const applies = (x, g) => !x.gov || x.gov === g;
+                const rank = { 'is-now': 3, 'is-soon': 2, 'is-later': 1, 'is-none': 0 };
+                const govInfo = IRAQ_GOVERNORATES.map((g) => {
+                    const mine = all.filter((x) => applies(x, g));
+                    const best = mine.reduce((m, x) => (rank[x.state] > rank[m] ? x.state : m), 'is-none');
+                    return { g, count: mine.length, state: mine.length ? best : 'is-none', ongoing: mine.some((x) => x.ongoing) };
+                });
+                const ongoingCount = all.filter((x) => x.ongoing).length;
+                const upcomingCount = all.length - ongoingCount;
+                const govsOff = govInfo.filter((x) => x.ongoing).length;
+
+                const sel = this.holidayPageGov;
+                let list = sel === 'all' ? all : all.filter((x) => applies(x, sel));
+                const f = this.holidayPageFilter;
+                if (f === 'now') list = list.filter((x) => x.ongoing);
+                else if (f === 'soon') list = list.filter((x) => !x.ongoing);
+                else if (f === 'gov') list = list.filter((x) => x.h.type === 'government');
+                else if (f === 'school') list = list.filter((x) => x.h.type !== 'government');
+
+                const fmt = (t) => { const d = new Date(t); return d.getDate() + ' ' + IRAQI_MONTHS[d.getMonth()]; };
+                const plural = (n, one, two, many) => n === 1 ? one : (n === 2 ? two : n + ' ' + many);
+                const filters = [['all', 'الكل'], ['now', 'جارية الآن'], ['soon', 'قادمة'], ['gov', 'رسمية'], ['school', 'مدرسية']];
+
+                const cards = list.map((x, i) => {
+                    const sd = new Date(x.start);
+                    const isGov = x.h.type === 'government';
+                    const totalDays = Math.max(1, Math.round((x.end - x.start) / DAY));
+                    const sameDay = new Date(x.start).toDateString() === new Date(x.end).toDateString();
+                    let status, bar = '';
+                    if (x.ongoing) {
+                        const left = Math.max(0, Math.ceil((x.end - now) / DAY));
+                        const pct = Math.min(100, Math.max(4, ((now - x.start) / (x.end - x.start)) * 100));
+                        status = '<span class="hl-dot" style="background:#16A34A"></span>' + (left <= 1 ? 'جارية الآن · آخر يوم' : 'جارية الآن · باقي ' + left + ' يوم');
+                        bar = `<div class="hp-bar"><i style="--w:${pct.toFixed(1)}%"></i></div>`;
+                    } else {
+                        status = '⏳ ' + (x.daysTo <= 1 ? 'تبدأ غداً' : 'تبدأ بعد ' + x.daysTo + ' يوم');
+                    }
+                    return `
+                        <div class="hp-card ${x.state}" style="animation-delay:${Math.min(i, 10) * 0.06}s">
+                            <div class="hp-date"><b>${sd.getDate()}</b><span>${IRAQI_MONTHS[sd.getMonth()]}</span></div>
+                            <div class="hp-body">
+                                <div class="hp-title">${escapeHtml(x.h.title)}<span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
+                                <div class="hp-where">📍 ${x.gov ? escapeHtml(x.gov) : 'كل المحافظات'}</div>
+                                <div class="hp-range">${sameDay ? fmt(x.start) + ' · يوم واحد' : 'من ' + fmt(x.start) + ' إلى ' + fmt(x.end) + ' · ' + plural(totalDays, 'يوم واحد', 'يومان', 'أيام')}</div>
+                                <div class="hp-status">${status}</div>
+                                ${bar}
+                            </div>
+                        </div>`;
+                }).join('');
+
+                box.innerHTML = `
+                    <div class="hp-hero">
+                        <div class="hp-hero-top">
+                            <div><div class="hp-hero-title">العطل في العراق</div><div class="hp-hero-sub">اختر محافظتك وشوف عطلها الجارية والقادمة</div></div>
+                            <div class="hp-hero-ic" aria-hidden="true">🗓️</div>
+                        </div>
+                        <div class="hp-stats">
+                            <div class="hp-stat"><b data-count="${ongoingCount}">${ongoingCount}</b><span>جارية الآن</span></div>
+                            <div class="hp-stat"><b data-count="${upcomingCount}">${upcomingCount}</b><span>قادمة</span></div>
+                            <div class="hp-stat"><b data-count="${govsOff}">${govsOff}</b><span>محافظة معطّلة</span></div>
+                        </div>
+                    </div>
+
+                    <div class="hp-sec-title">المحافظات <small>🟢 عطلة الآن · 🟠 خلال أسبوع</small></div>
+                    <div class="hp-govs">
+                        <button class="hp-gov all ${sel === 'all' ? 'sel' : ''}" onclick="app.setHolidayPageGov('all')">
+                            <span class="hp-gov-name">🇮🇶 كل المحافظات</span><span class="hp-gov-meta">${plural(all.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</span>
+                        </button>
+                        ${govInfo.map((x, i) => `
+                            <button class="hp-gov ${x.state} ${sel === x.g ? 'sel' : ''}" style="animation-delay:${(i * 0.025).toFixed(3)}s" onclick="app.setHolidayPageGov(${jsArg(x.g)})">
+                                <span class="hp-gov-name"><span class="hl-dot" aria-hidden="true"></span>${escapeHtml(x.g)}</span>
+                                <span class="hp-gov-meta">${x.count ? plural(x.count, 'عطلة واحدة', 'عطلتان', 'عطل') : 'لا عطل'}</span>
+                            </button>`).join('')}
+                    </div>
+
+                    <div class="hp-sec-title" id="hpListTitle">${sel === 'all' ? 'كل العطل' : '📍 عطل ' + escapeHtml(sel)} <small>${plural(list.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</small></div>
+                    <div class="hp-filters no-scrollbar">
+                        ${filters.map(([k, l]) => `<button class="hp-filter ${f === k ? 'on' : ''}" onclick="app.setHolidayPageFilter(${jsArg(k)})">${l}</button>`).join('')}
+                    </div>
+                    <div class="hp-list mt-3">
+                        ${cards || `<div class="hp-empty"><div>🏖️</div>ما كو عطل ${f === 'all' ? '' : 'بهذا التصنيف '}${sel === 'all' ? 'حالياً' : 'في ' + escapeHtml(sel) + ' حالياً'}</div>`}
+                    </div>`;
+
+                // count-up on the hero numbers when the page is opened
+                if (this._hpAnimateCounts) {
+                    this._hpAnimateCounts = false;
+                    box.querySelectorAll('[data-count]').forEach((el) => {
+                        const target = Number(el.dataset.count) || 0;
+                        if (!target) return;
+                        const t0 = performance.now();
+                        const step = (t) => {
+                            const k = Math.min(1, (t - t0) / 900);
+                            el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+                            if (k < 1) requestAnimationFrame(step);
+                        };
+                        el.textContent = '0';
+                        requestAnimationFrame(step);
+                    });
+                }
             },
 
             // Stop-and-go strip (holidays, exam countdown): every few seconds slide the track by
@@ -10915,7 +11139,7 @@
                     el.classList.add('theme-transition');
                     el.style.color = 'var(--text2)';
                 });
-                const activeBtn = document.querySelector(`[data-tab="${tab}"]`);
+                const activeBtn = document.querySelector(`#bottomNav [data-tab="${tab}"]`);
                 if (activeBtn) {
                     activeBtn.classList.add('active', 'text-primary');
                     activeBtn.classList.remove('theme-transition');
@@ -10930,6 +11154,7 @@
                 else if (tab === 'notifications') this.goToNotifications();
                 else if (tab === 'messages') this.goToMessages();
                 else if (tab === 'profile') this.goToProfile();
+                else if (tab === 'holidays') this.goToHolidays();
                 else if (tab === 'more') this.switchView('moreView');
                 this.viewHistory = [];
             },
@@ -11015,6 +11240,8 @@
                 else if (viewId === 'profileView') this.updateNavActive('profile');
                 else if (viewId === 'moreView') this.updateNavActive('more');
                 else if (viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView') this.updateNavActive('store');
+                else if (viewId === 'holidaysView') this.updateNavActive('holidays');
+                else if (viewId === 'walletView') this.updateNavActive('wallet');
             },
 
             updateNavActive(tab) {
@@ -11023,7 +11250,7 @@
                     el.classList.add('theme-transition');
                     el.style.color = 'var(--text2)';
                 });
-                const activeBtn = document.querySelector(`[data-tab="${tab}"]`);
+                const activeBtn = document.querySelector(`#bottomNav [data-tab="${tab}"]`);
                 if (activeBtn) {
                     activeBtn.classList.add('active', 'text-primary');
                     activeBtn.classList.remove('theme-transition');
@@ -11205,7 +11432,7 @@
 
         // ================= UI/UX 2026: motion + navigation polish =================
         (function () {
-            const TAB_VIEWS = ['homeView', 'resourcesView', 'leaderboardView', 'walletView', 'storeView', 'messagesView', 'profileView'];
+            const TAB_VIEWS = ['homeView', 'resourcesView', 'holidaysView', 'leaderboardView', 'walletView', 'storeView', 'messagesView', 'profileView'];
             const ANIMS = ['view-in-fwd', 'view-in-back', 'view-in-tab'];
 
             // Re-run the entrance animation on every navigation (before, it only played once),
