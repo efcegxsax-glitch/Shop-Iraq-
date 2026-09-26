@@ -757,6 +757,67 @@
         .lb-chg.up { color: #16A34A; background: rgba(22,163,74,.1); } .lb-chg.down { color: #DC2626; background: rgba(220,38,38,.1); } .lb-chg.flat { color: var(--text2); background: var(--input-bg); }
         .lb-reset { display: block; margin: 14px auto 0; padding: 9px 18px; border-radius: 12px; border: 0; font-weight: 800; font-size: 13px; color: #fff; background: rgb(var(--p)); cursor: pointer; }
 
+        /* ===== Wallet v2 ===== */
+        .wl, .wl * { box-sizing: border-box; }
+        .wl { padding: 14px 16px 24px; }
+        .wl-card { position: relative; overflow: hidden; padding: 16px 18px; border-radius: 26px; color: #fff; isolation: isolate;
+            background: linear-gradient(140deg, #0B1322 0%, #10302B 55%, #0B1322 100%); box-shadow: 0 24px 44px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.08); animation: cardIn .55s var(--ease-out) both; }
+        .wl-card::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.09) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 5.5s ease-in-out infinite; }
+        .wl-aura { position: absolute; z-index: -1; border-radius: 50%; filter: blur(8px); animation: hpFloat 7s ease-in-out infinite alternate; }
+        .wl-aura.a1 { width: 190px; height: 190px; top: -80px; left: -60px; background: radial-gradient(closest-side, rgb(var(--p) / .75), transparent); }
+        .wl-aura.a2 { width: 160px; height: 160px; bottom: -80px; right: -40px; background: radial-gradient(closest-side, rgba(245, 158, 11, .45), transparent); animation-duration: 9s; }
+        .wl-card-top { display: flex; align-items: center; justify-content: space-between; }
+        .wl-brand { display: flex; align-items: center; gap: 8px; }
+        .wl-brand img { width: 30px; height: 30px; border-radius: 8px; object-fit: contain; }
+        .wl-brand b { display: block; font-size: 13px; color: #FDE68A; }
+        .wl-brand small { font-size: 9.5px; color: rgba(253,230,138,.6); }
+        .wl-eye { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; border: 0; color: #fff; background: rgba(255,255,255,.12); cursor: pointer; }
+        .wl-eye svg { width: 18px; height: 18px; }
+        .wl-label { margin-top: 18px; font-size: 12px; color: rgba(255,255,255,.7); }
+        .wl-balance { margin-top: 2px; font-size: 36px; font-weight: 800; letter-spacing: -.5px; text-align: right; font-variant-numeric: tabular-nums; }
+        .wl-iqd { font-size: 13px; color: rgba(255,255,255,.75); }
+        .wl-card-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 18px; }
+        .wl-card-foot small { display: block; font-size: 9.5px; color: rgba(255,255,255,.5); }
+        .wl-card-foot b { font-size: 14px; }
+        .wl-num { text-align: left; }
+        .wl-num b { font-variant-numeric: tabular-nums; letter-spacing: 1px; color: #FDE68A; }
+        .wl-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+        .wl-actions button { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 2px 10px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-card); font-size: 11.5px; font-weight: 800; color: var(--text); cursor: pointer; animation: hpPop .5s var(--ease-spring) both; transition: transform .15s ease; }
+        .wl-actions button:nth-child(2) { animation-delay: .05s; } .wl-actions button:nth-child(3) { animation-delay: .1s; } .wl-actions button:nth-child(4) { animation-delay: .15s; }
+        .wl-actions button:active { transform: scale(.94); }
+        .wl-actions span { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--c), color-mix(in srgb, var(--c) 65%, #000)); box-shadow: 0 8px 16px -8px var(--c); }
+        .wl-actions svg { width: 20px; height: 20px; }
+        .wl-points { margin-top: 16px; padding: 14px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: cardIn .5s var(--ease-out) both .15s; }
+        .wl-points-top { display: flex; align-items: center; gap: 12px; }
+        .wl-star { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; font-size: 22px; background: rgba(245,158,11,.14); animation: hpBob 3s ease-in-out infinite; }
+        .wl-points-body { flex: 1; min-width: 0; }
+        .wl-points-body small { display: block; font-size: 11.5px; color: var(--text2); }
+        .wl-points-body b { display: block; font-size: 20px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+        .wl-points-body span { font-size: 11px; color: var(--text2); }
+        .wl-streak { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; border-radius: 14px; font-size: 11px; font-weight: 800; color: #D97706; background: rgba(245,158,11,.12); }
+        .wl-streak.hidden { display: none; }
+        .wl-goal { margin-top: 12px; }
+        .wl-goal-bar { height: 8px; border-radius: 99px; background: var(--input-bg); overflow: hidden; }
+        .wl-goal-bar i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, #F59E0B, #FDE68A); transform-origin: right; animation: hpGrow 1s var(--ease-out) both .3s; }
+        .wl-goal span { display: block; margin-top: 6px; font-size: 11.5px; font-weight: 600; color: var(--text2); }
+        .wl-tx-head { display: flex; align-items: center; justify-content: space-between; margin: 20px 4px 8px; }
+        .wl-tx-head b { font-size: 14px; font-weight: 800; color: var(--text); }
+        .wl-tx-head button { border: 0; background: none; font-size: 12.5px; font-weight: 800; color: rgb(var(--p)); cursor: pointer; }
+        .wl-tx { border-radius: 22px; overflow: hidden; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .wl-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; animation: cardIn .4s var(--ease-out) both; }
+        .wl-row + .wl-row { border-top: 1px solid var(--border); }
+        .wl-row-ic { flex-shrink: 0; width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; }
+        .wl-row-ic svg { width: 19px; height: 19px; }
+        .wl-row.in .wl-row-ic { color: #16A34A; background: rgba(22,163,74,.12); }
+        .wl-row.out .wl-row-ic { color: #DC2626; background: rgba(220,38,38,.1); }
+        .wl-row-body { flex: 1; min-width: 0; }
+        .wl-row-body b { display: block; font-size: 13.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wl-row-body span { font-size: 11px; color: var(--text2); }
+        .wl-amt { flex-shrink: 0; font-size: 14.5px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .wl-row.in .wl-amt { color: #16A34A; } .wl-row.out .wl-amt { color: #DC2626; }
+        .wl-empty { padding: 26px 16px; text-align: center; font-size: 13px; color: var(--text2); }
+        .wl-empty div { font-size: 30px; margin-bottom: 6px; }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -2520,130 +2581,72 @@
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
-                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">رصيدي</span>
-                <button onclick="app.showAllTransactions()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">رصيدي</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">محفظتك ونقاطك ومعاملاتك</div>
+                </div>
+                <button onclick="app.showAllTransactions()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="سجل المعاملات">
                     <i data-lucide="history" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
             </div>
-            <div id="walletContent">
-                <section class="px-4 pt-4">
-                    <div class="rounded-2xl p-5 relative overflow-hidden" style="background: linear-gradient(135deg, #0F172A 0%, #1C1917 55%, #0F172A 100%); border-radius: 20px; box-shadow: 0 20px 40px -12px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.08);">
-                        <div class="absolute -top-10 -left-10 w-40 h-40 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(245,158,11,0.18), transparent 70%);"></div>
-                        <div class="absolute -bottom-14 -right-6 w-44 h-44 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(139,92,246,0.16), transparent 70%);"></div>
-                        <div class="relative flex items-center justify-between mb-6">
-                            <div class="flex items-center gap-2">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="العراق" class="w-8 h-8 object-contain rounded">
-                                <div class="flex flex-col">
-                                    <span class="text-sm font-bold leading-tight" style="color: #FDE68A;">منصة الطالب العراقي</span>
-                                    <span class="text-[10px]" style="color: rgba(253,230,138,0.55);">Iraqi Student Platform</span>
-                                </div>
-                            </div>
-                            <i data-lucide="wifi" class="w-5 h-5 rotate-90" style="color: #FDE68A; opacity: 0.75;"></i>
+            <div id="walletContent" class="wl">
+                <!-- balance card -->
+                <section class="wl-card">
+                    <span class="wl-aura a1" aria-hidden="true"></span><span class="wl-aura a2" aria-hidden="true"></span>
+                    <div class="wl-card-top">
+                        <div class="wl-brand">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="">
+                            <div><b>محفظة الطالب</b><small>Iraqi Student Wallet</small></div>
                         </div>
-                        <!-- FIX (UI/UX): the masked "**** 4521" digits + chip graphic staged this
-                             as a linked bank/credit card, which it never was — the balance here
-                             is points converted to a virtual USD figure, with no card behind it.
-                             That mismatch between what's shown and what's real is the kind of
-                             thing that costs trust fast on a platform that also handles real
-                             money. Kept the same card-style panel (it reads well) but dropped
-                             the parts that specifically claimed to be a physical card. -->
-                        <div class="relative" style="margin-top: 28px;">
-                            <div class="text-[9px] mb-0.5 tracking-wide" style="color: rgba(248,250,252,0.45);">صاحب الحساب</div>
-                            <div class="text-sm font-bold" id="walletCardName" style="color: #F8FAFC;">الطالب</div>
-                        </div>
+                        <button onclick="app.toggleBalanceVisibility()" id="balanceEyeBtn" class="wl-eye" aria-label="إظهار أو إخفاء الرصيد"><i data-lucide="eye"></i></button>
+                    </div>
+                    <div class="wl-label">الرصيد المتاح</div>
+                    <div id="walletBalanceValue" class="wl-balance" dir="ltr">$ 0.00</div>
+                    <div id="walletBalanceIqd" class="wl-iqd">≈ 0 د.ع</div>
+                    <div class="wl-card-foot">
+                        <div><small>صاحب الحساب</small><b id="walletCardName">الطالب</b></div>
+                        <div class="wl-num"><small>رقم الطالب</small><b id="walletCardNumber" dir="ltr">—</b></div>
                     </div>
                 </section>
-                <section class="px-4 pt-5">
-                    <div class="rounded-2xl p-4 theme-transition shadow-elevated" style="background-color: var(--surface); border: 1px solid var(--border);">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">الرصيد المتاح</div>
-                                <div id="walletBalanceValue" class="font-bold theme-transition" style="color: var(--text); font-size: 28px;">$ 42.50</div>
-                                <div id="walletBalanceIqd" class="text-sm mt-1 theme-transition" style="color: var(--text2);">≈ 56,300 د.ع</div>
-                            </div>
-                            <button onclick="app.toggleBalanceVisibility()" id="balanceEyeBtn" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                                <i data-lucide="eye" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                            </button>
-                        </div>
-                    </div>
+
+                <!-- actions -->
+                <section class="wl-actions">
+                    <button onclick="app.openRedeemCodeModal()" style="--c:#F59E0B"><span><i data-lucide="ticket"></i></span>إيداع بكود</button>
+                    <button onclick="app.openTransferModal()" style="--c:#8B5CF6"><span><i data-lucide="send"></i></span>تحويل</button>
+                    <button onclick="app.openWithdrawModal()" style="--c:#10B981"><span><i data-lucide="arrow-up-right"></i></span>سحب</button>
+                    <button onclick="app.goToPointsStore()" style="--c:#EC4899"><span><i data-lucide="gift"></i></span>استبدال نقاط</button>
                 </section>
-                <section class="px-4 pt-4">
-                    <div class="rounded-2xl p-4 flex items-center justify-between theme-transition shadow-card" style="background-color: var(--surface); border: 1px solid var(--border);">
-                        <div>
-                            <div class="text-sm mb-1 theme-transition" style="color: var(--text2);">رصيد النقاط</div>
-                            <div id="walletPointsValue" class="font-bold theme-transition" style="color: var(--text); font-size: 22px;">0 نقطة</div>
-                            <div id="walletPointsIqd" class="text-xs mt-1 theme-transition" style="color: var(--text2);">≈ 0 د.ع (كل 10,000 نقطة = 1,000 د.ع)</div>
-                            <div id="walletStreakInfo" class="hidden text-xs mt-1 font-bold flex items-center gap-1" style="color: var(--warning);"></div>
+
+                <!-- points -->
+                <section class="wl-points">
+                    <div class="wl-points-top">
+                        <span class="wl-star" aria-hidden="true">⭐</span>
+                        <div class="wl-points-body">
+                            <small>رصيد النقاط</small>
+                            <b id="walletPointsValue">0 نقطة</b>
+                            <span id="walletPointsIqd">≈ 0 د.ع</span>
                         </div>
-                        <div class="w-11 h-11 rounded-xl flex items-center justify-center" style="background-color: var(--input-bg);">
-                            <i data-lucide="star" class="w-5 h-5 text-warning"></i>
-                        </div>
+                        <div id="walletStreakInfo" class="hidden wl-streak"></div>
                     </div>
+                    <div class="wl-goal"><div class="wl-goal-bar"><i id="walletGoalBar" style="--w:0%"></i></div><span id="walletGoalText"></span></div>
                 </section>
-                <section class="px-4 pt-5">
-                    <div class="grid grid-cols-4 gap-3">
-                        <button onclick="app.openWithdrawModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #2BB39C, #0B5E54);">
-                                <i data-lucide="arrow-up-right" class="w-6 h-6 text-white"></i>
-                            </div>
-                            <span class="text-xs font-medium theme-transition" style="color: var(--text);">سحب الأموال</span>
-                        </button>
-                        <button onclick="app.openRedeemCodeModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #FDE68A, #D97706);">
-                                <i data-lucide="ticket" class="w-6 h-6 text-white"></i>
-                            </div>
-                            <span class="text-xs font-medium theme-transition" style="color: var(--text);">إيداع رصيد</span>
-                        </button>
-                        <button onclick="app.openTransferModal()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #A78BFA, #7C3AED);">
-                                <i data-lucide="send" class="w-6 h-6 text-white"></i>
-                            </div>
-                            <span class="text-xs font-medium theme-transition" style="color: var(--text);">تحويل</span>
-                        </button>
-                        <!-- FIX (UI/UX): "طلب دفع" used to just pop a toast with no real
-                             action behind it — another dead button. Repointed at the points
-                             store, which is a real, working destination that belongs in this
-                             row of money actions. -->
-                        <button onclick="app.goToPointsStore()" class="btn-press flex flex-col items-center gap-2">
-                            <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #34D399, #059669);">
-                                <i data-lucide="gift" class="w-6 h-6 text-white"></i>
-                            </div>
-                            <span class="text-xs font-medium theme-transition" style="color: var(--text);">استبدال نقاط</span>
-                        </button>
-                    </div>
-                </section>
-                <section class="px-4 py-5">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-base font-bold theme-transition" style="color: var(--text);">آخر المعاملات</h2>
-                        <button onclick="app.showAllTransactions()" class="text-sm font-medium" style="color: rgb(var(--p));">عرض الكل</button>
-                    </div>
-                    <div class="rounded-2xl border overflow-hidden theme-transition shadow-card" style="background-color: var(--surface); border-color: var(--border);">
-                        <div id="walletTransactionsList" class="flex flex-col theme-transition"></div>
-                    </div>
+
+                <!-- transactions -->
+                <div class="wl-tx-head"><b>آخر المعاملات</b><button onclick="app.showAllTransactions()">عرض الكل</button></div>
+                <section class="wl-tx">
+                    <div id="walletTransactionsList"></div>
                 </section>
             </div>
             <div id="walletStates" class="hidden px-4 py-4">
                 <div id="walletLoadingState" class="hidden flex flex-col gap-3">
-                    <div class="skeleton h-24 w-full rounded-xl"></div>
-                    <div class="skeleton h-16 w-full rounded-xl"></div>
-                    <div class="skeleton h-16 w-full rounded-xl"></div>
+                    <div class="skeleton h-44 w-full rounded-3xl"></div>
+                    <div class="skeleton h-16 w-full rounded-2xl"></div>
+                    <div class="skeleton h-16 w-full rounded-2xl"></div>
                 </div>
-                <div id="walletEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
-                        <i data-lucide="wallet" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد معاملات</h3>
-                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">لم تقم بأي معاملة بعد، ستظهر معاملاتك هنا</p>
-                    <button onclick="app.loadWallet()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة المحاولة</button>
-                </div>
-                <div id="walletErrorState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-4">
-                        <i data-lucide="alert-triangle" class="w-10 h-10 text-error"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">تعذر تحميل الرصيد</h3>
-                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى</p>
-                    <button onclick="app.loadWallet()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة المحاولة</button>
-                </div>
+                <div id="walletEmptyState" class="hidden hp-empty"><div>👛</div>لا توجد معاملات بعد
+                    <button onclick="app.loadWallet()" class="lb-reset">إعادة المحاولة</button></div>
+                <div id="walletErrorState" class="hidden hp-empty"><div>📡</div>تعذر تحميل الرصيد
+                    <button onclick="app.loadWallet()" class="lb-reset">إعادة المحاولة</button></div>
             </div>
         </div>
 
@@ -6358,11 +6361,24 @@
                 if (!pointsEl || !iqdEl) return;
                 const points = (this.isLoggedIn && this.currentUser && typeof this.currentUser.points === 'number') ? this.currentUser.points : 0;
                 pointsEl.textContent = points.toLocaleString('en-US') + ' نقطة';
-                iqdEl.textContent = '≈ ' + Math.round(points / 10).toLocaleString('en-US') + ' د.ع (كل 10,000 نقطة = 1,000 د.ع)';
+                iqdEl.textContent = '≈ ' + Math.round(points / 10).toLocaleString('en-US') + ' د.ع · كل 10,000 نقطة = 1,000 د.ع';
+                // progress toward the next points-store offer
+                const goalBar = document.getElementById('walletGoalBar');
+                const goalText = document.getElementById('walletGoalText');
+                if (goalBar && goalText) {
+                    const next = pointsStoreOffers.find(o => o.points > points);
+                    if (next) {
+                        goalBar.style.setProperty('--w', Math.max(3, Math.min(100, (points / next.points) * 100)).toFixed(1) + '%');
+                        goalText.textContent = 'باقي ' + (next.points - points).toLocaleString('en-US') + ' نقطة وتقدر تستبدلها بـ ' + next.iqd.toLocaleString('en-US') + ' د.ع';
+                    } else {
+                        goalBar.style.setProperty('--w', '100%');
+                        goalText.textContent = '🎉 نقاطك تكفي لأكبر عرض بمتجر النقاط — استبدلها الآن';
+                    }
+                }
                 if (streakEl) {
                     const streak = (this.isLoggedIn && this.currentUser && this.currentUser.loginStreak) || 0;
                     if (streak > 0) {
-                        streakEl.innerHTML = '<span class="flame"></span><span>' + streak + ' يوم متتالي</span>';
+                        streakEl.innerHTML = '<span class="flame"></span><span>' + streak + ' يوم</span>';
                         streakEl.classList.remove('hidden');
                     } else {
                         streakEl.classList.add('hidden');
@@ -6404,6 +6420,8 @@
                 if (nameEl && this.isLoggedIn && this.currentUser) {
                     nameEl.textContent = this.currentUser.fullName || 'الطالب';
                 }
+                const numEl = document.getElementById('walletCardNumber');
+                if (numEl) numEl.textContent = (this.isLoggedIn && this.currentUser && this.currentUser.studentNumber) ? '#' + this.currentUser.studentNumber : '—';
                 const balance = (this.isLoggedIn && this.currentUser && typeof this.currentUser.balance === 'number') ? this.currentUser.balance : 0;
                 if (this.walletBalanceVisible) {
                     balanceEl.textContent = '$ ' + balance.toFixed(2);
@@ -6417,26 +6435,30 @@
             toggleBalanceVisibility() {
                 this.walletBalanceVisible = !this.walletBalanceVisible;
                 const btn = document.getElementById('balanceEyeBtn');
-                if (btn) btn.innerHTML = `<i data-lucide="${this.walletBalanceVisible ? 'eye' : 'eye-off'}" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>`;
+                if (btn) btn.innerHTML = `<i data-lucide="${this.walletBalanceVisible ? 'eye' : 'eye-off'}"></i>`;
                 this.renderWalletBalance();
                 lucide.createIcons();
+            },
+
+            // One row style for the wallet list: green = money in, red = money out.
+            walletTxRow(t, i) {
+                const out = !!t.isNegative;
+                const icon = /^[a-z0-9-]+$/.test(String(t.icon || '')) ? t.icon : (out ? 'arrow-up-right' : 'arrow-down-left');
+                return `
+                    <div class="wl-row ${out ? 'out' : 'in'}" style="animation-delay:${Math.min(i, 8) * 0.04}s">
+                        <span class="wl-row-ic"><i data-lucide="${icon}"></i></span>
+                        <div class="wl-row-body"><b>${escapeHtml(t.title)}</b><span>${escapeHtml(t.date)}</span></div>
+                        <span class="wl-amt" dir="ltr">${escapeHtml(t.amount)}</span>
+                    </div>`;
             },
 
             renderWalletTransactions() {
                 const container = document.getElementById('walletTransactionsList');
                 if (!container) return;
-                container.innerHTML = walletTransactions.length === 0 ? '<div class="px-4 py-6 text-center text-sm theme-transition" style="color: var(--text2);">لا توجد معاملات بعد</div>' : walletTransactions.map(t => `
-                    <div class="flex items-center gap-3 px-4 py-3 theme-transition" style="min-height: 72px; background-color: var(--surface);">
-                        <div class="w-10 h-10 rounded-full ${t.iconBg} flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="${t.icon}" class="w-5 h-5 ${t.iconColor}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="font-bold theme-transition" style="color: var(--text); font-size: 16px;">${escapeHtml(t.title)}</div>
-                            <div class="theme-transition" style="color: var(--text2); font-size: 14px;">${escapeHtml(t.date)}</div>
-                        </div>
-                        <div class="font-bold flex-shrink-0" style="color: ${t.isNegative ? '#DC2626' : '#16A34A'}; font-size: 16px;" dir="ltr">${escapeHtml(t.amount)}</div>
-                    </div>
-                `).join('');
+                container.innerHTML = walletTransactions.length === 0
+                    ? '<div class="wl-empty"><div>🧾</div>لا توجد معاملات بعد — أول إيداع أو استبدال نقاط راح يظهر هنا</div>'
+                    : walletTransactions.slice(0, 6).map((t, i) => this.walletTxRow(t, i)).join('');
+                lucide.createIcons();
             },
 
             showAllTransactions() {
@@ -6445,19 +6467,8 @@
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 content.innerHTML = walletTransactions.length === 0
-                    ? '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">لا توجد معاملات بعد</p>'
-                    : '<div class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">' + walletTransactions.map(t => `
-                        <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
-                            <div class="w-10 h-10 rounded-full ${t.iconBg} flex items-center justify-center flex-shrink-0">
-                                <i data-lucide="${t.icon}" class="w-5 h-5 ${t.iconColor}"></i>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="font-bold text-sm theme-transition" style="color: var(--text);">${escapeHtml(t.title)}</div>
-                                <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(t.date)}</div>
-                            </div>
-                            <div class="font-bold text-sm flex-shrink-0" style="color: ${t.isNegative ? '#DC2626' : '#16A34A'};" dir="ltr">${escapeHtml(t.amount)}</div>
-                        </div>
-                    `).join('') + '</div>';
+                    ? '<div class="wl-empty"><div>🧾</div>لا توجد معاملات بعد</div>'
+                    : '<div class="wl-tx" style="max-height:60vh;overflow-y:auto">' + walletTransactions.map((t, i) => this.walletTxRow(t, i)).join('') + '</div>';
                 document.getElementById('walletModal')?.classList.remove('hidden');
                 lucide.createIcons();
             },
