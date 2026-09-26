@@ -687,6 +687,76 @@
         .nd-btn.on svg { fill: currentColor; }
         .nd-rel-title { margin: 24px 2px 12px; font-size: 16px; font-weight: 800; color: var(--text); }
 
+        /* ===== Leaderboard v2 ===== */
+        .lb2, .lb2 * { box-sizing: border-box; }
+        .lb2 { padding: 14px 16px 24px; }
+        .lb-hero { position: relative; overflow: hidden; border-radius: 26px; padding: 12px 12px 0; color: #fff;
+            background: radial-gradient(120% 90% at 50% 0%, rgb(var(--p) / 0.95), #0B3B35 70%, #06231F); box-shadow: 0 22px 44px -22px rgb(var(--p) / 0.95); }
+        .lb-hero::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.1) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 6s ease-in-out infinite; }
+        .lb-spark { position: absolute; left: var(--x); top: var(--y); width: 5px; height: 5px; border-radius: 50%; background: #FDE68A; box-shadow: 0 0 10px 3px rgba(253, 230, 138, .6); animation: lbTwinkle 2.8s ease-in-out infinite var(--d); }
+        @keyframes lbTwinkle { 0%, 100% { opacity: .15; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.2); } }
+        .lb-seg { position: relative; z-index: 1; display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.12); }
+        .lb-seg button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; border: 0; border-radius: 11px; font-size: 13px; font-weight: 800; color: rgba(255,255,255,.85); background: transparent; cursor: pointer; transition: all .25s ease; }
+        .lb-seg button.on { color: #0B3B35; background: #fff; box-shadow: 0 6px 14px -6px rgba(0,0,0,.4); }
+        .lb-count { min-width: 20px; height: 18px; padding: 0 5px; border-radius: 99px; font-size: 10.5px; display: inline-grid; place-items: center; background: rgba(255,255,255,.2); }
+        .lb-seg button.on .lb-count { background: rgb(var(--p) / 0.15); color: rgb(var(--p)); }
+        .lb-podium { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: center; gap: 8px; padding-top: 34px; }
+        .lb-col { flex: 1; max-width: 116px; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+        .lb-ava { position: relative; border-radius: 50%; padding: 3px; background: var(--ring); animation: hpPop .6s var(--ease-spring) both var(--delay); }
+        .lb-ava img { display: block; border-radius: 50%; object-fit: cover; border: 2px solid #0B3B35; background: #0B3B35; }
+        .lb-col.r1 .lb-ava img { width: 74px; height: 74px; }
+        .lb-col.r2 .lb-ava img, .lb-col.r3 .lb-ava img { width: 58px; height: 58px; }
+        .lb-crown { position: absolute; top: -26px; left: 50%; font-size: 24px; transform: translateX(-50%); animation: lbCrown 2.4s ease-in-out infinite; filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); }
+        @keyframes lbCrown { 0%, 100% { transform: translateX(-50%) rotate(-8deg); } 50% { transform: translateX(-50%) translateY(-4px) rotate(8deg); } }
+        .lb-medal { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 900; color: #3b2a00; background: var(--ring); border: 2px solid #0B3B35; }
+        .lb-name { max-width: 100%; margin-top: 10px; font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .lb-pts { margin: 3px 0 8px; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; background: rgba(255,255,255,.14); font-variant-numeric: tabular-nums; }
+        .lb-step { width: 100%; border-radius: 14px 14px 0 0; display: grid; place-items: start center; padding-top: 8px; font-size: 26px; font-weight: 900; color: rgba(255,255,255,.92);
+            background: linear-gradient(180deg, var(--step), color-mix(in srgb, var(--step) 45%, #06231F)); transform-origin: bottom; animation: lbRise .8s var(--ease-out) both var(--delay); }
+        @keyframes lbRise { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+        .lb-col.r1 { --ring: linear-gradient(135deg, #FDE68A, #F59E0B); --step: #D4940F; --delay: .15s; }
+        .lb-col.r2 { --ring: linear-gradient(135deg, #F1F5F9, #94A3B8); --step: #64748B; --delay: .3s; }
+        .lb-col.r3 { --ring: linear-gradient(135deg, #FDBA74, #B45309); --step: #9A5B1E; --delay: .45s; }
+        .lb-col.r1 .lb-step { height: 92px; } .lb-col.r2 .lb-step { height: 66px; } .lb-col.r3 .lb-step { height: 50px; }
+        .lb-col.is-me .lb-name::after { content: " (أنت)"; color: #FDE68A; }
+        .lb-podium-empty { position: relative; z-index: 1; padding: 34px 10px 30px; text-align: center; font-size: 13px; opacity: .9; }
+        .lb-me { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: 20px; background: var(--surface); border: 1px solid rgb(var(--p) / 0.35); box-shadow: 0 10px 24px -16px rgb(var(--p)); animation: cardIn .5s var(--ease-out) both .2s; }
+        .lb-me-rank { flex-shrink: 0; width: 52px; height: 52px; border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg, rgb(var(--p)), rgb(var(--p) / 0.7)); }
+        .lb-me-rank small { font-size: 9.5px; opacity: .9; } .lb-me-rank b { font-size: 19px; font-weight: 900; line-height: 1; }
+        .lb-me-body { flex: 1; min-width: 0; }
+        .lb-me-body b { display: block; font-size: 13.5px; font-weight: 800; color: var(--text); }
+        .lb-me-body span { display: block; margin-top: 2px; font-size: 11.5px; color: var(--text2); }
+        .lb-me-bar { height: 6px; margin-top: 7px; border-radius: 99px; background: var(--input-bg); overflow: hidden; }
+        .lb-me-bar i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, #F59E0B, #FDE68A); animation: hpGrow 1s var(--ease-out) both .4s; transform-origin: right; }
+        .lb-me-cta { flex-shrink: 0; padding: 8px 12px; border-radius: 12px; border: 0; font-size: 12px; font-weight: 800; color: #fff; background: rgb(var(--p)); cursor: pointer; }
+        .lb-tools { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .lb-search { display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); color: var(--text2); }
+        .lb-search svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .lb-search input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: transparent; font: inherit; font-size: 14px; color: var(--text); }
+        .lb-sorts { display: flex; gap: 6px; overflow-x: auto; }
+        .lb-sorts button { flex-shrink: 0; padding: 7px 13px; border-radius: 999px; font-size: 12px; font-weight: 700; background: var(--surface); color: var(--text2); border: 1px solid var(--border); cursor: pointer; transition: all .2s ease; }
+        .lb-sorts button.on { background: rgb(var(--p)); color: #fff; border-color: transparent; }
+        .lb-list-head { display: flex; align-items: center; justify-content: space-between; margin: 16px 4px 8px; font-size: 13px; font-weight: 800; color: var(--text); }
+        .lb-list-head span:last-child { font-size: 11px; font-weight: 600; color: var(--text2); }
+        .lb-list { display: flex; flex-direction: column; gap: 8px; }
+        .lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); cursor: pointer; animation: cardIn .45s var(--ease-out) both; }
+        .lb-row.is-me { border-color: rgb(var(--p) / 0.55); background: linear-gradient(var(--surface), var(--surface)) padding-box, linear-gradient(135deg, rgb(var(--p)), #F59E0B) border-box; border: 1.5px solid transparent; }
+        .lb-rank { flex-shrink: 0; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font-size: 12.5px; font-weight: 900; color: var(--text2); background: var(--input-bg); font-variant-numeric: tabular-nums; }
+        .lb-row.top .lb-rank { color: #fff; background: var(--ring); }
+        .lb-row img { flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; object-fit: cover; }
+        .lb-row-body { flex: 1; min-width: 0; }
+        .lb-row-name { display: flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 800; color: var(--text); white-space: nowrap; }
+        .lb-row-name > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+        .lb-grade { flex-shrink: 0; font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 6px; color: rgb(var(--p)); background: rgb(var(--p) / 0.1); }
+        .lb-row-bar { height: 5px; margin-top: 6px; border-radius: 99px; background: var(--input-bg); overflow: hidden; }
+        .lb-row-bar i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, rgb(var(--p)), rgb(var(--p) / 0.55)); transform-origin: right; animation: hpGrow .9s var(--ease-out) both .15s; }
+        .lb-row-end { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+        .lb-row-pts { font-size: 13.5px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+        .lb-row-pts small { font-size: 10px; font-weight: 600; color: var(--text2); }
+        .lb-chg { font-size: 10.5px; font-weight: 800; padding: 1px 6px; border-radius: 6px; }
+        .lb-chg.up { color: #16A34A; background: rgba(22,163,74,.1); } .lb-chg.down { color: #DC2626; background: rgba(220,38,38,.1); } .lb-chg.flat { color: var(--text2); background: var(--input-bg); }
+        .lb-reset { display: block; margin: 14px auto 0; padding: 9px 18px; border-radius: 12px; border: 0; font-weight: 800; font-size: 13px; color: #fff; background: rgb(var(--p)); cursor: pointer; }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -2583,79 +2653,59 @@
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
-                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الطلاب المتقدمون</span>
-                <button onclick="app.goToHome()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                    <i data-lucide="home" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">المتقدمون</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">أوائل الطلاب بالنقاط — نافس زملاءك</div>
+                </div>
             </div>
 
-            <section class="px-4 py-3 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                <div class="flex gap-2 overflow-x-auto no-scrollbar" id="leaderboardStageTabs">
-                    <button onclick="app.setLeaderboardStage('all')" class="lb-stage-tab active flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2" data-stage="all">
-                        كل الطلاب <span class="lb-count inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-primary text-white mr-1">12</span>
-                    </button>
-                    <button onclick="app.setLeaderboardStage('scientific')" class="lb-stage-tab flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-stage="scientific">
-                        <i data-lucide="flask-conical" class="w-4 h-4"></i>سادس علمي <span class="lb-count inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-primary text-white mr-1">5</span>
-                    </button>
-                    <button onclick="app.setLeaderboardStage('literary')" class="lb-stage-tab flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-stage="literary">
-                        <i data-lucide="book-open" class="w-4 h-4"></i>سادس أدبي <span class="lb-count inline-flex items-center justify-center w-5 h-5 text-xs rounded-full bg-primary text-white mr-1">7</span>
-                    </button>
-                </div>
-            </section>
+            <div class="lb2">
+                <!-- podium hero -->
+                <section class="lb-hero">
+                    <span class="lb-spark" style="--x:12%;--y:22%;--d:0s"></span><span class="lb-spark" style="--x:84%;--y:16%;--d:.8s"></span>
+                    <span class="lb-spark" style="--x:70%;--y:58%;--d:1.6s"></span><span class="lb-spark" style="--x:24%;--y:64%;--d:2.2s"></span>
+                    <div class="lb-seg" id="leaderboardStageTabs" role="tablist">
+                        <button onclick="app.setLeaderboardStage('all')" class="lb-stage-tab" data-stage="all">الكل <span class="lb-count">0</span></button>
+                        <button onclick="app.setLeaderboardStage('scientific')" class="lb-stage-tab" data-stage="scientific">علمي <span class="lb-count">0</span></button>
+                        <button onclick="app.setLeaderboardStage('literary')" class="lb-stage-tab" data-stage="literary">أدبي <span class="lb-count">0</span></button>
+                    </div>
+                    <div id="leaderboardPodium"></div>
+                </section>
 
-            <section class="px-4 py-3 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                <div class="flex items-center justify-between gap-2 mb-3">
-                    <div class="flex gap-2 overflow-x-auto no-scrollbar" id="leaderboardPeriodTabs">
-                        <button onclick="app.setLeaderboardPeriod('month')" class="lb-period-tab active flex-shrink-0 px-4 py-2 rounded-pill text-xs font-medium transition-all" data-period="month">هذا الشهر</button>
-                        <button onclick="app.setLeaderboardPeriod('all')" class="lb-period-tab flex-shrink-0 px-4 py-2 rounded-pill text-xs font-medium transition-all theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-period="all">كل الوقت</button>
-                    </div>
-                    <span class="text-xs whitespace-nowrap theme-transition" style="color: var(--text2);" id="leaderboardCount"></span>
-                </div>
-                <div class="relative mb-3">
-                    <div class="absolute right-4 top-1/2 -translate-y-1/2 theme-transition" style="color: var(--text2);">
-                        <i data-lucide="search" class="w-5 h-5"></i>
-                    </div>
-                    <input type="text" id="leaderboardSearchInput" placeholder="ابحث عن اسم طالب..."
-                        oninput="app.handleLeaderboardSearch(this.value)"
-                        class="w-full h-12 pr-12 pl-4 rounded-[14px] border-none text-sm focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all auth-input">
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-xs font-medium whitespace-nowrap theme-transition" style="color: var(--text2);">ترتيب حسب:</span>
-                    <div class="flex gap-2 overflow-x-auto no-scrollbar" id="leaderboardSortTabs">
-                        <button onclick="app.setLeaderboardSort('points')" class="lb-sort-tab active flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-medium transition-all" data-sort="points">الأعلى نقاطاً</button>
-                        <button onclick="app.setLeaderboardSort('improvement')" class="lb-sort-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-medium transition-all theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-sort="improvement">الأكثر تحسناً</button>
-                        <button onclick="app.setLeaderboardSort('fastest')" class="lb-sort-tab flex-shrink-0 px-3 py-1.5 rounded-pill text-xs font-medium transition-all theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-sort="fastest">أسرع تطور</button>
-                    </div>
-                </div>
-            </section>
+                <!-- my rank -->
+                <div id="lbMe"></div>
 
-            <div id="leaderboardContent">
-                <div id="leaderboardPodium"></div>
-                <div class="px-4 pt-2 pb-4 flex flex-col gap-3" id="leaderboardListState"></div>
-            </div>
+                <!-- search + sort -->
+                <div class="lb-tools">
+                    <label class="lb-search">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="leaderboardSearchInput" placeholder="ابحث عن اسم طالب..." oninput="app.handleLeaderboardSearch(this.value)">
+                    </label>
+                    <div class="lb-sorts" id="leaderboardSortTabs">
+                        <button onclick="app.setLeaderboardSort('points')" class="lb-sort-tab" data-sort="points">⭐ الأعلى نقاطاً</button>
+                        <button onclick="app.setLeaderboardSort('improvement')" class="lb-sort-tab" data-sort="improvement">📈 الأكثر تحسناً هذا الأسبوع</button>
+                    </div>
+                </div>
+                <div class="lb-list-head"><span id="lbListTitle">باقي الترتيب</span><span id="leaderboardCount"></span></div>
 
-            <div id="leaderboardStates" class="hidden px-4 py-4">
-                <div id="leaderboardLoadingState" class="hidden flex flex-col gap-3">
-                    <div class="skeleton h-28 w-full rounded-xl"></div>
-                    <div class="skeleton h-20 w-full rounded-xl"></div>
-                    <div class="skeleton h-20 w-full rounded-xl"></div>
-                    <div class="skeleton h-20 w-full rounded-xl"></div>
+                <div id="leaderboardContent">
+                    <div class="lb-list" id="leaderboardListState"></div>
                 </div>
-                <div id="leaderboardEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
-                        <i data-lucide="search-x" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+
+                <div id="leaderboardStates" class="hidden">
+                    <div id="leaderboardLoadingState" class="hidden lb-list">
+                        <div class="skeleton h-16 w-full rounded-2xl"></div>
+                        <div class="skeleton h-16 w-full rounded-2xl"></div>
+                        <div class="skeleton h-16 w-full rounded-2xl"></div>
                     </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد نتائج</h3>
-                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">جرب كلمات بحث أخرى أو غيّر التصنيف</p>
-                    <button onclick="app.resetLeaderboardSearch()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة تعيين البحث</button>
-                </div>
-                <div id="leaderboardErrorState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-4">
-                        <i data-lucide="alert-triangle" class="w-10 h-10 text-error"></i>
+                    <div id="leaderboardEmptyState" class="hidden hp-empty">
+                        <div>🔍</div>ما لقينا طالب بهذا الاسم
+                        <button onclick="app.resetLeaderboardSearch()" class="lb-reset">مسح البحث</button>
                     </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">تعذر تحميل قائمة المتفوقين</h3>
-                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">حدث خطأ أثناء الاتصال بالخادم، يرجى المحاولة مرة أخرى</p>
-                    <button onclick="app.loadLeaderboard()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة المحاولة</button>
+                    <div id="leaderboardErrorState" class="hidden hp-empty">
+                        <div>📡</div>تعذر تحميل الترتيب، تحقق من اتصالك
+                        <button onclick="app.loadLeaderboard()" class="lb-reset">إعادة المحاولة</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -6722,64 +6772,21 @@
             renderLeaderboard() {
                 this.renderLeaderboardTabs();
                 this.renderLeaderboardPodium();
+                this.renderLeaderboardMe();
                 this.renderLeaderboardList();
             },
 
             renderLeaderboardTabs() {
+                const base = this.getLeaderboardBaseList();
                 document.querySelectorAll('.lb-stage-tab').forEach(tab => {
-                    if (tab.dataset.stage === this.leaderboardStage) {
-                        tab.classList.add('bg-primary', 'text-white');
-                        tab.classList.remove('theme-transition');
-                        tab.style.backgroundColor = '';
-                        tab.style.color = '';
-                    } else {
-                        tab.classList.remove('bg-primary', 'text-white');
-                        tab.classList.add('theme-transition');
-                        tab.style.backgroundColor = 'var(--input-bg)';
-                        tab.style.color = 'var(--text2)';
-                    }
-                });
-                document.querySelectorAll('.lb-period-tab').forEach(tab => {
-                    if (tab.dataset.period === this.leaderboardPeriod) {
-                        tab.classList.add('bg-primary', 'text-white');
-                        tab.classList.remove('theme-transition');
-                        tab.style.backgroundColor = '';
-                        tab.style.color = '';
-                    } else {
-                        tab.classList.remove('bg-primary', 'text-white');
-                        tab.classList.add('theme-transition');
-                        tab.style.backgroundColor = 'var(--input-bg)';
-                        tab.style.color = 'var(--text2)';
-                    }
-                });
-                document.querySelectorAll('.lb-sort-tab').forEach(tab => {
-                    if (tab.dataset.sort === this.leaderboardSort) {
-                        tab.classList.add('bg-primary', 'text-white');
-                        tab.classList.remove('theme-transition');
-                        tab.style.backgroundColor = '';
-                        tab.style.color = '';
-                    } else {
-                        tab.classList.remove('bg-primary', 'text-white');
-                        tab.classList.add('theme-transition');
-                        tab.style.backgroundColor = 'var(--input-bg)';
-                        tab.style.color = 'var(--text2)';
-                    }
-                });
-                document.querySelectorAll('.lb-stage-tab').forEach(tab => {
+                    tab.classList.toggle('on', tab.dataset.stage === this.leaderboardStage);
                     const countEl = tab.querySelector('.lb-count');
-                    if (!countEl) return;
-                    const stage = tab.dataset.stage;
-                    if (stage === 'all') countEl.textContent = this.getLeaderboardBaseList().length;
-                    else countEl.textContent = this.getLeaderboardBaseList().filter(s => s.grade === stage).length;
+                    if (countEl) countEl.textContent = tab.dataset.stage === 'all' ? base.length : base.filter(s => s.grade === tab.dataset.stage).length;
                 });
+                document.querySelectorAll('.lb-sort-tab').forEach(tab => tab.classList.toggle('on', tab.dataset.sort === this.leaderboardSort));
             },
 
-            // FIX: `if (this.currentUser.points)` is falsy for a brand-new account with
-            // exactly 0 points, so the synthetic self-entry below was skipped for them while
-            // their real DB-synced entry from `leaderboardStudents` was filtered out just
-            // above (`!s.isCurrentUser`) — a new user with 0 points literally never appeared
-            // in their own leaderboard. Checking `typeof this.currentUser.points === 'number'`
-            // instead means 0 still counts as "has a score", so the row shows up right away.
+            // Everyone from the live leaderboard + the signed-in student's own (freshest) entry.
             getLeaderboardBaseList() {
                 const list = leaderboardStudents.filter(s => !s.isCurrentUser);
                 if (this.isLoggedIn && this.currentUser && typeof this.currentUser.points === 'number') {
@@ -6787,117 +6794,126 @@
                         id: 'current-user',
                         name: this.currentUser.fullName || 'أنا',
                         grade: this.currentUser.grade || 'scientific',
-                        points: this.currentUser.points,
-                        weeklyChange: this.currentUser.weeklyChange || 0,
+                        points: numOr0(this.currentUser.points),
+                        weeklyChange: numOr0(this.currentUser.weeklyChange),
                         isCurrentUser: true,
-                        avatar: this.currentUser.avatar || ''
+                        avatar: this.currentUser.avatar || '',
+                        studentNumber: this.currentUser.studentNumber || ''
                     });
                 }
                 return list;
             },
 
-            getLeaderboardStudents() {
+            // Ranked by points within the chosen stage (ties keep a stable order).
+            getLeaderboardRanked() {
                 let list = this.getLeaderboardBaseList();
-                if (this.leaderboardStage !== 'all') {
-                    list = list.filter(s => s.grade === this.leaderboardStage);
-                }
-                if (this.leaderboardQuery.trim()) {
-                    list = list.filter(s => String(s.name || '').includes(this.leaderboardQuery.trim()));
-                }
-                const sorted = [...list];
-                if (this.leaderboardSort === 'points') {
-                    sorted.sort((a, b) => b.points - a.points);
-                } else if (this.leaderboardSort === 'improvement') {
-                    sorted.sort((a, b) => b.weeklyChange - a.weeklyChange);
-                } else {
-                    sorted.sort((a, b) => (b.weeklyChange - a.weeklyChange) || (b.points - a.points));
-                }
-                return sorted;
+                if (this.leaderboardStage !== 'all') list = list.filter(s => s.grade === this.leaderboardStage);
+                return list.sort((a, b) => (b.points - a.points) || String(a.name).localeCompare(String(b.name), 'ar'))
+                    .map((s, i) => ({ ...s, rank: i + 1 }));
+            },
+
+            getLeaderboardStudents() {
+                let list = this.getLeaderboardRanked();
+                const q = this.leaderboardQuery.trim();
+                if (q) list = list.filter(s => String(s.name || '').includes(q));
+                if (this.leaderboardSort === 'improvement') list = [...list].sort((a, b) => (b.weeklyChange - a.weeklyChange) || (a.rank - b.rank));
+                return list;
             },
 
             renderLeaderboardPodium() {
                 const podium = document.getElementById('leaderboardPodium');
                 if (!podium) return;
-                if (this.leaderboardQuery.trim()) {
-                    podium.innerHTML = '';
-                    podium.classList.add('hidden');
-                    return;
-                }
-                let list = this.getLeaderboardBaseList();
-                if (this.leaderboardStage !== 'all') {
-                    list = list.filter(s => s.grade === this.leaderboardStage);
-                }
-                const top = [...list].sort((a, b) => b.points - a.points).slice(0, 3);
+                const top = this.getLeaderboardRanked().slice(0, 3);
                 if (top.length === 0) {
-                    podium.innerHTML = '';
-                    podium.classList.add('hidden');
+                    podium.innerHTML = '<div class="lb-podium-empty">🏆 ما كو طلاب بالترتيب بعد — اكسب نقاط وكن الأول!</div>';
                     return;
                 }
-                podium.classList.remove('hidden');
-                const medals = [
-                    { color: '#F59E0B', height: '76px', size: 'w-14 h-14' },
-                    { color: '#94A3B8', height: '52px', size: 'w-12 h-12' },
-                    { color: '#B45309', height: '40px', size: 'w-12 h-12' }
-                ];
-                const ordered = (top.length === 3) ? [top[2], top[0], top[1]] : top;
-                const medalOf = (student) => {
-                    const idx = top.indexOf(student);
-                    return idx >= 0 ? medals[idx] : medals[2];
-                };
-                podium.innerHTML = `
-                    <div class="px-4 pt-6 pb-2 flex items-end justify-center gap-3">
-                        ${ordered.map(student => {
-                            const medal = medalOf(student);
-                            const isFirst = top.indexOf(student) === 0;
-                            return `
-                                <div class="flex flex-col items-center gap-1.5 flex-1 max-w-[110px] cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
-                                    <div class="relative">
-                                        <img src="${safeImage(student.avatar)}" alt="${escapeHtml(student.name)}" class="${medal.size} rounded-full object-cover border-2" style="border-color: ${medal.color};">
-                                        ${isFirst ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2"><i data-lucide="crown" class="w-5 h-5" style="color: #F59E0B;"></i></div>' : ''}
-                                    </div>
-                                    <div class="text-xs font-bold text-center line-clamp-1 w-full theme-transition" style="color: var(--text);">${escapeHtml(student.name)}</div>
-                                    <div class="text-[10px] theme-transition" style="color: var(--text2);">${student.points.toLocaleString('en-US')}</div>
-                                    <div class="w-full rounded-t-xl flex items-start justify-center pt-2 font-bold text-white" style="background-color: ${medal.color}; height: ${medal.height}; font-size: 18px;">${top.indexOf(student) + 1}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
+                const col = (s) => `
+                    <div class="lb-col r${s.rank}${s.isCurrentUser ? ' is-me' : ''}" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(s.id)})">
+                        <div class="lb-ava">
+                            ${s.rank === 1 ? '<span class="lb-crown" aria-hidden="true">👑</span>' : ''}
+                            <img src="${personAvatarSrc(s.avatar, s.name)}" alt="${escapeHtml(s.name)}">
+                            <span class="lb-medal">${s.rank}</span>
+                        </div>
+                        <div class="lb-name">${escapeHtml(s.name)}</div>
+                        <div class="lb-pts">${s.points.toLocaleString('en-US')} نقطة</div>
+                        <div class="lb-step">${s.rank}</div>
+                    </div>`;
+                // visual order: 2nd · 1st · 3rd (RTL puts the first child on the right)
+                const order = [top[1], top[0], top[2]].filter(Boolean);
+                podium.innerHTML = `<div class="lb-podium">${order.map(col).join('')}</div>`;
+            },
+
+            // "Where am I" card: my rank, points and how far the next student is.
+            renderLeaderboardMe() {
+                const box = document.getElementById('lbMe');
+                if (!box) return;
+                if (!this.isLoggedIn || !this.currentUser) {
+                    box.innerHTML = `<div class="lb-me"><div class="lb-me-rank"><small>ترتيبك</small><b>؟</b></div>
+                        <div class="lb-me-body"><b>سجّل دخولك وشوف ترتيبك</b><span>اكسب نقاط من المذاكرة والتحديات اليومية</span></div>
+                        <button class="lb-me-cta" onclick="app.goToAuth('login')">دخول</button></div>`;
+                    return;
+                }
+                const ranked = this.getLeaderboardRanked();
+                const me = ranked.find(s => s.isCurrentUser);
+                if (!me) { box.innerHTML = ''; return; }
+                const ahead = ranked[me.rank - 2];
+                let line, pct;
+                if (!ahead) { line = 'أنت بالمركز الأول 🏆 حافظ على صدارتك'; pct = 100; }
+                else {
+                    const gap = Math.max(1, ahead.points - me.points + 1);
+                    line = `باقي ${gap.toLocaleString('en-US')} نقطة وتتجاوز ${escapeHtml(ahead.name)}`;
+                    pct = ahead.points > 0 ? Math.max(4, Math.min(100, (me.points / ahead.points) * 100)) : 100;
+                }
+                box.innerHTML = `<div class="lb-me">
+                    <div class="lb-me-rank"><small>ترتيبك</small><b>#${me.rank}</b></div>
+                    <div class="lb-me-body"><b>${me.points.toLocaleString('en-US')} نقطة · من ${ranked.length} طالب</b><span>${line}</span>
+                        <div class="lb-me-bar"><i style="--w:${pct.toFixed(1)}%"></i></div></div>
+                </div>`;
             },
 
             renderLeaderboardList() {
                 const container = document.getElementById('leaderboardListState');
                 if (!container) return;
-                const students = this.getLeaderboardStudents();
+                const q = this.leaderboardQuery.trim();
+                let students = this.getLeaderboardStudents();
+                // the podium already shows the top 3 in the default view
+                const hideTop = !q && this.leaderboardSort === 'points';
+                if (hideTop) students = students.filter(s => s.rank > 3);
+                const titleEl = document.getElementById('lbListTitle');
+                if (titleEl) titleEl.textContent = q ? 'نتائج البحث' : (this.leaderboardSort === 'improvement' ? 'الأكثر تحسناً هذا الأسبوع' : 'باقي الترتيب');
                 const countEl = document.getElementById('leaderboardCount');
-                if (countEl) countEl.textContent = students.length + ' طالب';
-                if (students.length === 0) { this.showLeaderboardEmpty(); return; }
+                const total = this.getLeaderboardRanked().length;
+                if (countEl) countEl.textContent = total + ' طالب';
+                if (q && students.length === 0) { this.showLeaderboardEmpty(); return; }
                 this.showLeaderboardList();
-                container.innerHTML = students.map((s, i) => this.createStudentCard(s, i + 1)).join('');
+                if (students.length === 0) {
+                    container.innerHTML = `<div class="hp-empty" style="padding:18px"><div>🌱</div>${total ? 'كل الطلاب ظاهرين بالمنصة فوق' : 'ما كو طلاب بعد'}</div>`;
+                    return;
+                }
+                const leader = Math.max(1, ...this.getLeaderboardRanked().slice(0, 1).map(s => s.points));
+                container.innerHTML = students.slice(0, 100).map((s, i) => this.createStudentCard(s, i, leader)).join('');
             },
 
-            createStudentCard(student, rank) {
-                const medalColors = ['#F59E0B', '#94A3B8', '#B45309'];
-                const rankColor = rank <= 3 ? medalColors[rank - 1] : 'var(--text2)';
-                const changePositive = student.weeklyChange >= 0;
+            createStudentCard(s, i, leader) {
+                const rings = ['linear-gradient(135deg,#FDE68A,#F59E0B)', 'linear-gradient(135deg,#E2E8F0,#94A3B8)', 'linear-gradient(135deg,#FDBA74,#B45309)'];
+                const chg = s.weeklyChange;
+                const chgCls = chg > 0 ? 'up' : (chg < 0 ? 'down' : 'flat');
+                const chgTxt = chg > 0 ? '▲ ' + chg.toLocaleString('en-US') : (chg < 0 ? '▼ ' + Math.abs(chg).toLocaleString('en-US') : '—');
+                const pct = Math.max(3, Math.min(100, (s.points / (leader || 1)) * 100));
                 return `
-                    <div class="file-card rounded-2xl border p-4 flex items-center gap-3 theme-transition ${student.isCurrentUser ? 'ring-2 ring-primary' : ''}" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="w-7 text-center text-sm font-bold flex-shrink-0" style="color: ${rankColor};">${rank}</div>
-                        <img src="${safeImage(student.avatar)}" alt="${escapeHtml(student.name)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 cursor-pointer" style="border-color: ${rank <= 3 ? medalColors[rank - 1] : 'var(--border)'};" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
-                        <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
-                            <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(student.name)}</div>
-                            <div class="text-xs theme-transition" style="color: var(--text2);">${student.points.toLocaleString('en-US')} نقطة • ${student.grade === 'scientific' ? 'سادس علمي' : 'سادس أدبي'}</div>
+                    <div class="lb-row${s.isCurrentUser ? ' is-me' : ''}${s.rank <= 3 ? ' top' : ''}" style="animation-delay:${Math.min(i, 12) * 0.04}s;${s.rank <= 3 ? '--ring:' + rings[s.rank - 1] : ''}" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(s.id)})">
+                        <span class="lb-rank">${s.rank}</span>
+                        <img src="${personAvatarSrc(s.avatar, s.name)}" alt="${escapeHtml(s.name)}" loading="lazy">
+                        <div class="lb-row-body">
+                            <div class="lb-row-name"><span>${escapeHtml(s.name)}${s.isCurrentUser ? ' (أنت)' : ''}</span><span class="lb-grade">${s.grade === 'literary' ? 'أدبي' : 'علمي'}</span></div>
+                            <div class="lb-row-bar"><i style="--w:${pct.toFixed(1)}%"></i></div>
                         </div>
-                        <div class="flex flex-col items-end gap-1 flex-shrink-0">
-                            <span class="flex items-center gap-1 text-xs font-bold" style="color: ${changePositive ? '#16A34A' : '#DC2626'};">
-                                <i data-lucide="${changePositive ? 'trending-up' : 'trending-down'}" class="w-3.5 h-3.5"></i>${changePositive ? '+' : ''}${student.weeklyChange.toLocaleString('en-US')}
-                            </span>
-                            <button onclick="app.showToast('خيارات الطالب')" class="btn-press w-7 h-7 rounded-lg flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                                <i data-lucide="more-vertical" class="w-4 h-4 theme-transition" style="color: var(--text2);"></i>
-                            </button>
+                        <div class="lb-row-end">
+                            <span class="lb-row-pts">${s.points.toLocaleString('en-US')} <small>نقطة</small></span>
+                            <span class="lb-chg ${chgCls}" title="تغيّر هذا الأسبوع">${chgTxt}</span>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             },
 
             setLeaderboardStage(stage) {
