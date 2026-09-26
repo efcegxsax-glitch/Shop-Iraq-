@@ -818,6 +818,55 @@
         .wl-empty { padding: 26px 16px; text-align: center; font-size: 13px; color: var(--text2); }
         .wl-empty div { font-size: 30px; margin-bottom: 6px; }
 
+        /* ===== Resources (الملازم) v2 ===== */
+        .rs, .rs * { box-sizing: border-box; }
+        .rs { padding: 14px 16px 24px; }
+        .rs-hero { position: relative; overflow: hidden; padding: 16px; border-radius: 24px; color: #fff;
+            background: linear-gradient(135deg, #6D28D9, #4338CA 55%, #1E3A8A); box-shadow: 0 20px 40px -20px rgba(79, 70, 229, .9); animation: cardIn .5s var(--ease-out) both; }
+        .rs-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.12) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 5.5s ease-in-out infinite; pointer-events: none; }
+        .rs-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .rs-hero-top b { display: block; font-size: 17px; font-weight: 800; }
+        .rs-hero-top small { font-size: 11.5px; opacity: .85; }
+        .rs-hero-ic { width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; font-size: 24px; background: rgba(255,255,255,.16); animation: hpBob 3s ease-in-out infinite; }
+        .rs-hero-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+        .rs-hero-stats div { text-align: center; padding: 8px 4px; border-radius: 14px; background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.16); }
+        .rs-hero-stats b { display: block; font-size: 20px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+        .rs-hero-stats span { font-size: 10.5px; opacity: .9; }
+        .rs-search { margin-top: 14px; }
+        .rs-stages { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; padding-bottom: 2px; }
+        .rs-stages button { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 14px; border: 1px solid var(--border); font-size: 13px; font-weight: 800; color: var(--text2); background: var(--surface); cursor: pointer; transition: all .25s ease; }
+        .rs-stages button.on { color: #fff; border-color: transparent; background: linear-gradient(135deg, #6D28D9, #4338CA); box-shadow: 0 10px 20px -10px rgba(79,70,229,.9); }
+        .rs-sec { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 18px 4px 10px; }
+        .rs-sec b { font-size: 14.5px; font-weight: 800; color: var(--text); }
+        .rs-sec small { font-size: 11px; color: var(--text2); }
+        .rs-sec-tools { display: inline-flex; align-items: center; gap: 8px; }
+        .rs-sec-tools .hidden { display: none; }
+        .rs-subjects { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .rs-subj { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 4px 10px; border-radius: 18px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-card); cursor: pointer; animation: hpPop .45s var(--ease-spring) both; transition: transform .15s ease, border-color .2s ease; }
+        .rs-subj:active { transform: scale(.95); }
+        .rs-subj-ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); transition: all .25s ease; }
+        .rs-subj-ic svg { width: 22px; height: 22px; }
+        .rs-subj b { font-size: 12px; font-weight: 800; color: var(--text); text-align: center; line-height: 1.35; }
+        .rs-subj small { font-size: 10.5px; color: var(--text2); }
+        .rs-subj.on { border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c) 20%, transparent); }
+        .rs-subj.on .rs-subj-ic { color: #fff; background: var(--c); }
+        .rs-subj .rs-n { position: absolute; top: 6px; left: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; font-size: 10px; font-weight: 800; color: #fff; background: var(--c); }
+        .rs-list { display: flex; flex-direction: column; gap: 10px; }
+        .rs-card { display: flex; gap: 12px; padding: 10px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow-card); cursor: pointer; animation: cardIn .45s var(--ease-out) both; }
+        .rs-cover { position: relative; flex-shrink: 0; width: 70px; height: 94px; border-radius: 12px; overflow: hidden; background: var(--input-bg); box-shadow: 0 8px 16px -10px rgba(0,0,0,.5); }
+        .rs-cover img { width: 100%; height: 100%; object-fit: cover; }
+        .rs-cover .rs-pdf { position: absolute; bottom: 5px; left: 5px; padding: 1px 6px; border-radius: 6px; font-size: 9px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #EF4444, #B91C1C); }
+        .rs-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .rs-info h4 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; font-size: 14.5px; font-weight: 800; line-height: 1.5; color: var(--text); }
+        .rs-info p { margin: 2px 0 0; font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .rs-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: auto; padding-top: 6px; }
+        .rs-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px; border-radius: 7px; font-size: 10.5px; font-weight: 700; color: var(--text2); background: var(--input-bg); }
+        .rs-tag.subj { color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); }
+        .rs-tag.ok { color: #16A34A; background: rgba(22,163,74,.1); }
+        .rs-dl { flex-shrink: 0; align-self: center; width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; border: 0; cursor: pointer; color: #fff; background: linear-gradient(135deg, #6D28D9, #4338CA); box-shadow: 0 8px 16px -8px rgba(79,70,229,.9); }
+        .rs-dl.saved { background: linear-gradient(135deg, #22C55E, #15803D); box-shadow: 0 8px 16px -8px rgba(22,163,74,.9); }
+        .rs-dl svg { width: 18px; height: 18px; }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -1764,84 +1813,58 @@
                 </button>
                 <div class="flex-1">
                     <div class="font-bold theme-transition" style="color: var(--text);">الملازم المجانية</div>
-                    <div class="text-xs theme-transition" style="color: var(--text2);">ملازم رسمية ومعتمدة</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">ملازم رسمية ومعتمدة لكل المراحل</div>
                 </div>
-                <button onclick="app.goToHome()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                    <i data-lucide="home" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                <button onclick="app.toggleResourceFilter()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="ترتيب وفلترة">
+                    <i data-lucide="sliders-horizontal" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
             </div>
-            <div id="resourcesContent">
-                <section class="px-4 pt-4 pb-2 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="flex gap-2">
-                        <div class="relative flex-1">
-                            <div class="absolute right-4 top-1/2 -translate-y-1/2 theme-transition" style="color: var(--text2);">
-                                <i data-lucide="search" class="w-5 h-5"></i>
-                            </div>
-                            <input type="text" id="resourceSearchInput" placeholder="ابحث عن مادة أو عنوان الملزمة..."
-                                oninput="app.handleResourceSearch(this.value)"
-                                class="w-full h-12 pr-12 pl-4 rounded-[14px] border-none text-sm focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all auth-input">
-                        </div>
-                        <button onclick="app.toggleResourceFilter()" class="btn-press w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 theme-transition" style="background-color: var(--input-bg);">
-                            <i data-lucide="sliders-horizontal" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                        </button>
+            <div class="rs">
+                <section class="rs-hero">
+                    <div class="rs-hero-top">
+                        <div><b>مكتبة الملازم</b><small>اختر مرحلتك ومادتك وحمّل ملزمتك مجاناً</small></div>
+                        <span class="rs-hero-ic" aria-hidden="true">📚</span>
+                    </div>
+                    <div class="rs-hero-stats">
+                        <div><b id="rsStatTotal">0</b><span>ملزمة</span></div>
+                        <div><b id="rsStatSubjects">0</b><span>مادة</span></div>
+                        <div><b id="rsStatOffline">0</b><span>محفوظة عندك</span></div>
                     </div>
                 </section>
-                <section class="px-4 py-3 border-b theme-transition sticky top-[116px] z-20" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="flex gap-2 overflow-x-auto no-scrollbar" id="stageTabs">
-                        <button onclick="app.setStage('sixth-science')" class="stage-tab active flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2" data-stage="sixth-science">
-                            <i data-lucide="flask-conical" class="w-4 h-4"></i>سادس علمي
-                        </button>
-                        <button onclick="app.setStage('sixth-literary')" class="stage-tab flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-stage="sixth-literary">
-                            <i data-lucide="book-open" class="w-4 h-4"></i>سادس أدبي
-                        </button>
-                        <button onclick="app.setStage('fifth-science')" class="stage-tab flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-stage="fifth-science">
-                            <i data-lucide="flask-conical" class="w-4 h-4"></i>خامس علمي
-                        </button>
-                        <button onclick="app.setStage('fifth-literary')" class="stage-tab flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap flex items-center gap-2 theme-transition" style="background-color: var(--input-bg); color: var(--text2);" data-stage="fifth-literary">
-                            <i data-lucide="book-open" class="w-4 h-4"></i>خامس أدبي
-                        </button>
+
+                <label class="lb-search rs-search">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="resourceSearchInput" placeholder="ابحث عن مادة أو عنوان ملزمة..." oninput="app.handleResourceSearch(this.value)">
+                </label>
+
+                <div id="resourcesContent">
+                    <div class="rs-stages no-scrollbar" id="stageTabs">
+                        <button onclick="app.setStage('sixth-science')" class="stage-tab" data-stage="sixth-science"><span>🧪</span>سادس علمي</button>
+                        <button onclick="app.setStage('sixth-literary')" class="stage-tab" data-stage="sixth-literary"><span>📜</span>سادس أدبي</button>
+                        <button onclick="app.setStage('fifth-science')" class="stage-tab" data-stage="fifth-science"><span>🔬</span>خامس علمي</button>
+                        <button onclick="app.setStage('fifth-literary')" class="stage-tab" data-stage="fifth-literary"><span>📖</span>خامس أدبي</button>
                     </div>
-                </section>
-                <section class="px-4 py-4 border-b theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="grid grid-cols-3 gap-3" id="subjectsGrid"></div>
-                </section>
-                <section class="px-4 py-4 theme-transition" style="background-color: var(--bg);">
-                    <div class="flex items-center justify-between mb-3">
-                        <h2 class="text-base font-bold theme-transition" style="color: var(--text);">الملفات الأكثر تحميلاً</h2>
-                        <button onclick="app.showAllResources()" class="text-sm text-primary font-medium">عرض الكل</button>
-                    </div>
-                    <div id="resourcesList" class="flex flex-col gap-3"></div>
-                </section>
-            </div>
-            <div id="resourcesStates" class="hidden px-4 py-4">
-                <div id="resourcesLoadingState" class="hidden flex flex-col gap-3">
-                    <div class="skeleton h-24 w-full rounded-xl"></div>
-                    <div class="skeleton h-24 w-full rounded-xl"></div>
-                    <div class="skeleton h-24 w-full rounded-xl"></div>
+
+                    <div class="rs-sec"><b>المواد</b><small id="rsSubjectHint">اضغط على مادة لعرض ملازمها</small></div>
+                    <div class="rs-subjects" id="subjectsGrid"></div>
+
+                    <div class="rs-sec"><b id="rsListTitle">كل الملازم</b><span class="rs-sec-tools"><small id="rsListMeta"></small><button onclick="app.showAllResources()" id="rsShowAll" class="hl-all hidden">عرض الكل</button></span></div>
+                    <div id="resourcesList" class="rs-list"></div>
                 </div>
-                <div id="resourcesEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
-                        <i data-lucide="package-x" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+
+                <div id="resourcesStates" class="hidden">
+                    <div id="resourcesLoadingState" class="hidden rs-list">
+                        <div class="skeleton h-24 w-full rounded-2xl"></div>
+                        <div class="skeleton h-24 w-full rounded-2xl"></div>
                     </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد ملازم حالياً</h3>
-                    <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">لم يتم رفع أي ملازم لهذه المادة بعد، تفقد لاحقاً</p>
-                    <button onclick="app.loadResources()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">استعراض المواد</button>
+                    <div id="resourcesEmptyState" class="hidden hp-empty"><div>📭</div>لا توجد ملازم حالياً
+                        <button onclick="app.loadResources()" class="lb-reset">استعراض المواد</button></div>
+                    <div id="resourcesErrorState" class="hidden hp-empty"><div>📡</div>تعذر تحميل الملازم
+                        <button onclick="app.loadResources()" class="lb-reset">إعادة المحاولة</button></div>
+                    <div id="resourcesOfflineState" class="hidden hp-empty"><div>📶</div>لا يوجد اتصال بالإنترنت
+                        <button onclick="app.loadResources()" class="lb-reset">إعادة المحاولة</button></div>
+                    <div id="resourcesSearchResults" class="hidden rs-list"></div>
                 </div>
-                <div id="resourcesErrorState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 bg-error/10 rounded-full flex items-center justify-center mb-4">
-                        <i data-lucide="alert-triangle" class="w-10 h-10 text-error"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">تعذر تحميل الملازم</h3>
-                    <button onclick="app.loadResources()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة المحاولة</button>
-                </div>
-                <div id="resourcesOfflineState" class="hidden flex flex-col items-center justify-center py-16 text-center">
-                    <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
-                        <i data-lucide="wifi-off" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
-                    </div>
-                    <h3 class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا يوجد اتصال بالإنترنت</h3>
-                    <button onclick="app.loadResources()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إعادة المحاولة</button>
-                </div>
-                <div id="resourcesSearchResults" class="hidden flex flex-col gap-3"></div>
             </div>
         </div>
 
@@ -5982,20 +6005,13 @@
             },
 
             renderStageTabs() {
-                document.querySelectorAll('.stage-tab').forEach(tab => {
-                    const stage = tab.dataset.stage;
-                    if (stage === this.activeStage) {
-                        tab.classList.add('bg-primary', 'text-white');
-                        tab.classList.remove('theme-transition');
-                        tab.style.backgroundColor = '';
-                        tab.style.color = '';
-                    } else {
-                        tab.classList.remove('bg-primary', 'text-white');
-                        tab.classList.add('theme-transition');
-                        tab.style.backgroundColor = 'var(--input-bg)';
-                        tab.style.color = 'var(--text2)';
-                    }
-                });
+                document.querySelectorAll('.stage-tab').forEach(tab => tab.classList.toggle('on', tab.dataset.stage === this.activeStage));
+                // hero numbers for the chosen stage
+                const inStage = resourcesData.filter(r => r.stage === this.activeStage);
+                const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+                set('rsStatTotal', inStage.length);
+                set('rsStatSubjects', (subjectsData[this.activeStage] || []).length);
+                set('rsStatOffline', this.offlineResourceIds.size);
             },
 
             setStage(stage) {
@@ -6012,33 +6028,27 @@
             // needed. Once a subject is selected the grid collapses into a compact horizontal
             // strip of pills (same tap targets, a fraction of the height) — tapping the active
             // pill again (via setSubject's toggle) or picking another still works the same way.
+            // Subject tiles with a live count of notes per subject (admin saves the Arabic name,
+            // older records may hold the id — both count).
+            resourceMatchesSubject(r, subj) {
+                return r.subject === subj.id || r.subject === subj.name;
+            },
+
             renderSubjects() {
                 const subjects = subjectsData[this.activeStage] || [];
                 const container = document.getElementById('subjectsGrid');
                 if (!container) return;
-                if (this.activeSubject) {
-                    container.className = 'flex gap-2 overflow-x-auto no-scrollbar scroll-fade-x pb-1';
-                    container.innerHTML = subjects.map(subj => `
-                        <button onclick="app.setSubject(${jsArg(subj.id)})"
-                            class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-pill border whitespace-nowrap theme-transition"
-                            style="background-color: ${this.activeSubject === subj.id ? 'var(--primary)' : 'var(--surface)'}; border-color: ${this.activeSubject === subj.id ? 'transparent' : 'var(--border)'};">
-                            <i data-lucide="${subj.icon}" class="w-4 h-4" style="color: ${this.activeSubject === subj.id ? '#fff' : subj.iconColor};"></i>
-                            <span class="text-xs font-bold" style="color: ${this.activeSubject === subj.id ? '#fff' : 'var(--text)'};">${subj.name}</span>
-                        </button>
-                    `).join('');
-                } else {
-                    container.className = 'grid grid-cols-3 gap-3';
-                    container.innerHTML = subjects.map(subj => `
-                        <button onclick="app.setSubject(${jsArg(subj.id)})"
-                            class="subject-card flex flex-col items-center justify-center p-4 rounded-2xl border theme-transition"
-                            style="background-color: var(--surface); border-color: var(--border);">
-                            <div class="w-12 h-12 rounded-xl ${subj.color} flex items-center justify-center mb-2">
-                                <i data-lucide="${subj.icon}" class="w-6 h-6 ${subj.textColor}"></i>
-                            </div>
-                            <span class="text-xs font-bold text-center theme-transition" style="color: var(--text);">${subj.name}</span>
-                        </button>
-                    `).join('');
-                }
+                const inStage = resourcesData.filter(r => r.stage === this.activeStage);
+                container.innerHTML = subjects.map((subj, i) => {
+                    const n = inStage.filter(r => this.resourceMatchesSubject(r, subj)).length;
+                    return `
+                        <button onclick="app.setSubject(${jsArg(subj.id)})" class="rs-subj${this.activeSubject === subj.id ? ' on' : ''}" style="--c:${subj.iconColor};animation-delay:${(i * 0.03).toFixed(2)}s">
+                            ${n ? `<span class="rs-n">${n}</span>` : ''}
+                            <span class="rs-subj-ic"><i data-lucide="${subj.icon}"></i></span>
+                            <b>${escapeHtml(subj.name)}</b>
+                            <small>${n ? n + ' ملزمة' : 'قريباً'}</small>
+                        </button>`;
+                }).join('');
             },
 
             setSubject(subjectId) {
@@ -6057,6 +6067,9 @@
                 // regardless of what's currently loaded from Firebase.
                 if (this.resourceFilter === 'offline') {
                     const offlineList = [...this.offlineResourcesMeta].sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+                    const t = document.getElementById('rsListTitle'); if (t) t.textContent = 'المحفوظة بدون نت';
+                    const m = document.getElementById('rsListMeta'); if (m) m.textContent = offlineList.length + ' ملزمة';
+                    document.getElementById('rsShowAll')?.classList.remove('hidden');
                     if (offlineList.length === 0) {
                         container.innerHTML = `
                             <div class="flex flex-col items-center justify-center py-8 text-center">
@@ -6085,52 +6098,48 @@
                 if (this.resourceFilter === 'downloads') filtered = [...filtered].sort((a, b) => (Number(b.downloads) || 0) - (Number(a.downloads) || 0));
                 else filtered = [...filtered].sort((a, b) => (b.id || 0) - (a.id || 0));
 
+                // header above the list: which subject, how many, how it's sorted
+                const subjObj = (subjectsData[this.activeStage] || []).find(s => s.id === this.activeSubject);
+                const sortLabel = { newest: 'الأحدث أولاً', downloads: 'الأكثر تحميلاً', official: 'الرسمية فقط' }[this.resourceFilter] || '';
+                const titleEl = document.getElementById('rsListTitle');
+                if (titleEl) titleEl.textContent = subjObj ? 'ملازم ' + subjObj.name : 'كل الملازم';
+                const metaEl = document.getElementById('rsListMeta');
+                if (metaEl) metaEl.textContent = filtered.length + ' ملزمة · ' + sortLabel;
+                document.getElementById('rsShowAll')?.classList.toggle('hidden', !this.activeSubject && this.resourceFilter === 'newest');
+                const hint = document.getElementById('rsSubjectHint');
+                if (hint) hint.textContent = subjObj ? 'اضغط مرة ثانية لإلغاء الاختيار' : 'اضغط على مادة لعرض ملازمها';
+                this.renderStageTabs();
+
                 if (filtered.length === 0) {
-                    container.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-8 text-center">
-                            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-3 theme-transition" style="background-color: var(--input-bg);">
-                                <i data-lucide="file-x" class="w-8 h-8 theme-transition" style="color: var(--text2);"></i>
-                            </div>
-                            <h3 class="font-bold mb-1 theme-transition" style="color: var(--text);">لا توجد ملازم</h3>
-                            <p class="text-sm theme-transition" style="color: var(--text2);">لم يتم رفع ملازم لهذه المادة بعد</p>
-                        </div>`;
-                    lucide.createIcons();
+                    container.innerHTML = `<div class="hp-empty"><div>📭</div>${subjObj ? 'ما كو ملازم لمادة ' + escapeHtml(subjObj.name) + ' بعد' : 'ما كو ملازم لهذي المرحلة بعد'}<br><small>تابعنا، راح تنضاف قريباً</small></div>`;
                     return;
                 }
-                container.innerHTML = filtered.map(res => this.createResourceCard(res)).join('');
+                container.innerHTML = filtered.map((res, i) => this.createResourceCard(res, i)).join('');
+                lucide.createIcons();
             },
 
-            createResourceCard(res) {
-                const downloads = Number(res.downloads) || 0;
-                const downloadsFormatted = downloads >= 1000 ? (downloads / 1000).toFixed(0) + 'K' : downloads;
+            createResourceCard(res, i) {
+                const downloads = numOr0(res.downloads);
+                const dl = downloads >= 1000 ? (downloads / 1000).toFixed(1).replace(/\.0$/, '') + 'K' : downloads;
+                const subj = (subjectsData[res.stage] || []).find(sb => this.resourceMatchesSubject(res, sb));
+                const saved = this.offlineResourceIds.has(res.id);
+                const id = jsNum(res.id);
                 return `
-                    <div class="file-card rounded-xl border p-3 cursor-pointer theme-transition" style="background-color: var(--surface); border-color: var(--border);" onclick="app.openResource(${jsNum(res.id)})">
-                        <div class="flex gap-3">
-                            <div class="w-16 h-[88px] rounded-lg overflow-hidden flex-shrink-0 relative theme-transition" style="background-color: var(--bg);">
-                                <img src="${safeImage(res.thumbnail)}" alt="${escapeHtml(res.title)}" class="w-full h-full object-cover">
-                                <div class="absolute bottom-1 left-1 pdf-badge text-white text-[8px] font-bold px-1.5 py-0.5 rounded">PDF</div>
+                    <div class="rs-card" style="animation-delay:${Math.min(i || 0, 10) * 0.05}s" onclick="app.openResource(${id})">
+                        <div class="rs-cover"><img src="${safeImage(res.thumbnail)}" alt="${escapeHtml(res.title)}" loading="lazy"><span class="rs-pdf">PDF</span></div>
+                        <div class="rs-info">
+                            <h4>${escapeHtml(res.title)}</h4>
+                            ${res.description ? `<p>${escapeHtml(res.description)}</p>` : ''}
+                            <div class="rs-tags">
+                                ${subj ? `<span class="rs-tag subj" style="--c:${subj.iconColor}">${escapeHtml(subj.name)}</span>` : ''}
+                                <span class="rs-tag">📄 ${escapeHtml(res.fileSize || '—')}</span>
+                                <span class="rs-tag">⬇ ${dl}</span>
+                                ${res.isOfficial ? '<span class="rs-tag ok">✔ رسمي</span>' : ''}
                             </div>
-                            <div class="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                                <div>
-                                    <h4 class="text-sm font-bold line-clamp-2 leading-snug theme-transition" style="color: var(--text);">${escapeHtml(res.title)}</h4>
-                                    <p class="text-xs mt-0.5 theme-transition" style="color: var(--text2);">${escapeHtml(res.description)}</p>
-                                </div>
-                                <div class="flex items-center gap-3 text-xs mt-2 theme-transition" style="color: var(--text2);">
-                                    <span class="flex items-center gap-1"><i data-lucide="file-text" class="w-3 h-3"></i>${escapeHtml(res.fileSize || '—')}</span>
-                                    <span class="flex items-center gap-1"><i data-lucide="download" class="w-3 h-3"></i>${downloadsFormatted}</span>
-                                    ${res.isOfficial ? '<span class="text-success font-medium">رسمي</span>' : ''}
-                                </div>
-                            </div>
-                            ${this.offlineResourceIds.has(res.id) ? `
-                            <button onclick="event.stopPropagation(); app.openOfflineResource(${jsNum(res.id)})" title="محفوظة بدون نت — اضغط للفتح"
-                                    class="btn-press flex-shrink-0 w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center self-center">
-                                <i data-lucide="wifi-off" class="w-4 h-4 text-success"></i>
-                            </button>` : `
-                            <button onclick="event.stopPropagation(); app.downloadResourceOffline(${jsNum(res.id)})" title="حفظ للاستخدام بدون نت"
-                                    class="btn-press flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center self-center">
-                                <i data-lucide="download" class="w-4 h-4 text-primary"></i>
-                            </button>`}
                         </div>
+                        ${saved
+                            ? `<button onclick="event.stopPropagation(); app.openOfflineResource(${id})" class="rs-dl saved" title="محفوظة بدون نت — اضغط للفتح" aria-label="فتح الملزمة المحفوظة"><i data-lucide="book-open-check"></i></button>`
+                            : `<button onclick="event.stopPropagation(); app.downloadResourceOffline(${id})" class="rs-dl" title="حفظ للاستخدام بدون نت" aria-label="تحميل الملزمة"><i data-lucide="download"></i></button>`}
                     </div>
                 `;
             },
@@ -6242,7 +6251,14 @@
                 }
             },
             showResourceMore() { this.showToast('خيارات إضافية'); },
-            showAllResources() { this.showToast('عرض جميع الملازم'); },
+            // FIX: "عرض الكل" used to only show a toast — it now clears the subject and filter.
+            showAllResources() {
+                this.activeSubject = null;
+                this.resourceFilter = 'newest';
+                this.renderSubjects();
+                this.renderResourcesList();
+                lucide.createIcons();
+            },
 
             handleResourceSearch(query) {
                 const val = (query || '').trim();
