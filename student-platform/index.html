@@ -941,7 +941,7 @@
         #searchInput:focus { box-shadow: 0 0 0 4px rgb(var(--p) / 0.14), var(--shadow-card) !important; border-color: rgb(var(--p) / 0.5) !important; }
 
         /* ---- Category chips ---- */
-        #categoryTabs { gap: 8px; }
+        #categoryTabs { gap: 8px; display: flex; overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; scroll-padding-inline: 16px; }
         .cat-tab { padding: 9px 18px !important; font-size: 13.5px; transition: background-color .25s ease, color .25s ease, box-shadow .25s ease, scale .15s ease !important; }
         .cat-tab.bg-primary { box-shadow: 0 8px 18px -8px rgb(var(--p) / 0.7) !important; }
         .cat-tab:not(.bg-primary) { background-color: var(--surface) !important; box-shadow: 0 0 0 1px var(--border) inset !important; color: var(--text2) !important; }
@@ -1135,33 +1135,6 @@
                     <span class="site-announce-ic" aria-hidden="true"></span>
                     <div class="site-announce-text" id="siteAnnounceText"></div>
                     <button type="button" class="site-announce-x" id="siteAnnounceClose" aria-label="إخفاء الإعلان"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-                </div>
-            </section>
-            <section class="px-4 pt-4 pb-2" id="searchSection">
-                <div class="relative">
-                    <div class="absolute right-4 top-1/2 -translate-y-1/2 theme-transition" style="color: var(--text2);">
-                        <i data-lucide="search" class="w-5 h-5"></i>
-                    </div>
-                    <input type="text" id="searchInput" placeholder="ابحث عن خبر أو كلمة مفتاحية..."
-                        oninput="app.handleSearch(this.value)" onfocus="app.showSearchFocus()" onblur="app.hideSearchFocus()" onkeydown="if(event.key==='Enter'){event.preventDefault(); if(this.value.trim()){app.performSearch(this.value.trim());} this.blur();}"
-                        class="w-full h-12 pr-12 pl-4 rounded-[14px] border-none text-sm focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all auth-input">
-                    <div id="searchFocusBtn" class="absolute left-2 top-1/2 -translate-y-1/2 hidden">
-                        <button onclick="app.clearSearch()" class="px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg btn-press">الكل</button>
-                    </div>
-                </div>
-                <div id="searchSuggestions" class="hidden mt-2 bg-surface rounded-xl shadow-elevated border overflow-hidden theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="p-2">
-                        <div class="text-xs font-medium px-3 py-2 theme-transition" style="color: var(--text2);">البحث الأخير</div>
-                        <button onclick="app.setSearch('الامتحانات النهائية')" class="w-full text-right px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 theme-transition" style="color: var(--text);">
-                            <i data-lucide="clock" class="w-4 h-4 theme-transition" style="color: var(--text2);"></i>الامتحانات النهائية
-                        </button>
-                        <button onclick="app.setSearch('القبول المركزي')" class="w-full text-right px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 theme-transition" style="color: var(--text);">
-                            <i data-lucide="clock" class="w-4 h-4 theme-transition" style="color: var(--text2);"></i>القبول المركزي
-                        </button>
-                        <button onclick="app.setSearch('نتائج الامتحانات')" class="w-full text-right px-3 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/5 rounded-lg flex items-center gap-2 theme-transition" style="color: var(--text);">
-                            <i data-lucide="clock" class="w-4 h-4 theme-transition" style="color: var(--text2);"></i>نتائج الامتحانات
-                        </button>
-                    </div>
                 </div>
             </section>
 
@@ -3914,6 +3887,21 @@
             renderCategories() {
                 const container = document.getElementById('categoryTabs');
                 if (!container) return;
+                // FIX: rebuilding the chips on every tap reset the row's scroll back to the
+                // start. Once built, only the active styling is updated and the chosen chip is
+                // scrolled into view.
+                if (container.children.length === categories.length) {
+                    container.querySelectorAll('.cat-tab').forEach((btn) => {
+                        const on = btn.dataset.category === this.activeCategory;
+                        btn.classList.toggle('bg-primary', on);
+                        btn.classList.toggle('text-white', on);
+                        btn.classList.toggle('shadow-lg', on);
+                        btn.classList.toggle('theme-transition', !on);
+                        btn.style.cssText = on ? '' : 'background-color: var(--input-bg); color: var(--text2);';
+                        if (on) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    });
+                    return;
+                }
                 container.innerHTML = categories.map(cat => `
                     <button onclick="app.setCategory(${jsArg(cat.id)})"
                         class="cat-tab flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap ${
@@ -11399,12 +11387,26 @@
                 const main = document.getElementById('mainContent');
                 const indicator = document.getElementById('ptrIndicator');
                 if (!main || !indicator) return;
+                // FIX: any downward movement at the top of the page used to count as a pull —
+                // even 1px of drift during a sideways swipe on the category chips — and
+                // preventDefault() then cancelled the native horizontal scroll, so the chips
+                // stuck and wouldn't scroll back. The gesture is now only claimed once it's
+                // clearly vertical (downward and taller than wide, past a 12px dead zone).
+                let startX = 0, decided = false;
                 main.addEventListener('touchstart', (e) => {
-                    if (window.scrollY === 0) { startY = e.touches[0].clientY; isPulling = true; pullDistance = 0; }
+                    decided = false;
+                    if (window.scrollY === 0 && this.currentView === 'homeView') { startY = e.touches[0].clientY; startX = e.touches[0].clientX; isPulling = true; pullDistance = 0; }
+                    else isPulling = false;
                 }, { passive: true });
                 main.addEventListener('touchmove', (e) => {
                     if (!isPulling) return;
                     pullDistance = e.touches[0].clientY - startY;
+                    if (!decided) {
+                        const dx = Math.abs(e.touches[0].clientX - startX);
+                        if (dx < 12 && Math.abs(pullDistance) < 12) return; // not sure yet
+                        decided = true;
+                        if (dx >= Math.abs(pullDistance) || pullDistance <= 0) { isPulling = false; return; }
+                    }
                     if (pullDistance > 0 && window.scrollY === 0) {
                         if (e.cancelable) e.preventDefault();
                         if (pullDistance < 150) {
