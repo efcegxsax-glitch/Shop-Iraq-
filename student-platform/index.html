@@ -909,6 +909,25 @@
         #messagesView.hidden .ms-fab { display: none; }
         @media (min-width: 480px) { .ms-fab { left: calc(50% - 222px); } }
 
+        /* icons that replaced emojis */
+        .hp-empty div svg, .wl-empty div svg { width: 34px; height: 34px; color: var(--text2); opacity: .7; }
+        .rs-hero-ic svg, .hp-hero-ic svg { width: 24px; height: 24px; color: #fff; }
+        .rs-st-ic { display: inline-grid; } .rs-st-ic svg { width: 16px; height: 16px; }
+        .wl-star svg { width: 22px; height: 22px; color: #F59E0B; fill: #F59E0B; }
+        .tip-ic svg { width: 16px; height: 16px; color: #8B5CF6; }
+        .hl-pin { display: inline-grid; } .hl-pin svg { width: 14px; height: 14px; color: rgb(var(--p)); }
+        .nd-tag svg { width: 13px; height: 13px; }
+        .hp-status svg, .hp-where svg { width: 13px; height: 13px; vertical-align: -2px; margin-inline-end: 3px; }
+        .hp-where { display: flex; align-items: center; }
+        .hp-gov-name svg { width: 15px; height: 15px; color: rgb(var(--p)); }
+        .hp-legend { display: inline-flex; align-items: center; gap: 4px; }
+        .hp-legend i { width: 7px; height: 7px; border-radius: 50%; margin-inline-start: 4px; }
+        .hp-legend i.g { background: #16A34A; } .hp-legend i.o { background: #F59E0B; } .hp-legend i.r { background: #E5484D; }
+        .rs-tag svg { width: 11px; height: 11px; }
+        .lb-crown svg { width: 26px; height: 26px; color: #FBBF24; fill: #FBBF24; }
+        .lb-podium-empty svg { display: block; width: 30px; height: 30px; margin: 0 auto 6px; color: #FDE68A; }
+        .ms-icons svg { width: 13px; height: 13px; color: var(--text2); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -1865,7 +1884,7 @@
                 <section class="rs-hero">
                     <div class="rs-hero-top">
                         <div><b>مكتبة الملازم</b><small>اختر مرحلتك ومادتك وحمّل ملزمتك مجاناً</small></div>
-                        <span class="rs-hero-ic" aria-hidden="true">📚</span>
+                        <span class="rs-hero-ic" aria-hidden="true"><i data-lucide="library"></i></span>
                     </div>
                     <div class="rs-hero-stats">
                         <div><b id="rsStatTotal">0</b><span>ملزمة</span></div>
@@ -1881,10 +1900,10 @@
 
                 <div id="resourcesContent">
                     <div class="rs-stages no-scrollbar" id="stageTabs">
-                        <button onclick="app.setStage('sixth-science')" class="stage-tab" data-stage="sixth-science"><span>🧪</span>سادس علمي</button>
-                        <button onclick="app.setStage('sixth-literary')" class="stage-tab" data-stage="sixth-literary"><span>📜</span>سادس أدبي</button>
-                        <button onclick="app.setStage('fifth-science')" class="stage-tab" data-stage="fifth-science"><span>🔬</span>خامس علمي</button>
-                        <button onclick="app.setStage('fifth-literary')" class="stage-tab" data-stage="fifth-literary"><span>📖</span>خامس أدبي</button>
+                        <button onclick="app.setStage('sixth-science')" class="stage-tab" data-stage="sixth-science"><span class="rs-st-ic"><i data-lucide="flask-conical"></i></span>سادس علمي</button>
+                        <button onclick="app.setStage('sixth-literary')" class="stage-tab" data-stage="sixth-literary"><span class="rs-st-ic"><i data-lucide="scroll-text"></i></span>سادس أدبي</button>
+                        <button onclick="app.setStage('fifth-science')" class="stage-tab" data-stage="fifth-science"><span class="rs-st-ic"><i data-lucide="microscope"></i></span>خامس علمي</button>
+                        <button onclick="app.setStage('fifth-literary')" class="stage-tab" data-stage="fifth-literary"><span class="rs-st-ic"><i data-lucide="book-open"></i></span>خامس أدبي</button>
                     </div>
 
                     <div class="rs-sec"><b>المواد</b><small id="rsSubjectHint">اضغط على مادة لعرض ملازمها</small></div>
@@ -1899,11 +1918,11 @@
                         <div class="skeleton h-24 w-full rounded-2xl"></div>
                         <div class="skeleton h-24 w-full rounded-2xl"></div>
                     </div>
-                    <div id="resourcesEmptyState" class="hidden hp-empty"><div>📭</div>لا توجد ملازم حالياً
+                    <div id="resourcesEmptyState" class="hidden hp-empty"><div><i data-lucide="inbox"></i></div>لا توجد ملازم حالياً
                         <button onclick="app.loadResources()" class="lb-reset">استعراض المواد</button></div>
-                    <div id="resourcesErrorState" class="hidden hp-empty"><div>📡</div>تعذر تحميل الملازم
+                    <div id="resourcesErrorState" class="hidden hp-empty"><div><i data-lucide="wifi-off"></i></div>تعذر تحميل الملازم
                         <button onclick="app.loadResources()" class="lb-reset">إعادة المحاولة</button></div>
-                    <div id="resourcesOfflineState" class="hidden hp-empty"><div>📶</div>لا يوجد اتصال بالإنترنت
+                    <div id="resourcesOfflineState" class="hidden hp-empty"><div><i data-lucide="wifi-off"></i></div>لا يوجد اتصال بالإنترنت
                         <button onclick="app.loadResources()" class="lb-reset">إعادة المحاولة</button></div>
                     <div id="resourcesSearchResults" class="hidden rs-list"></div>
                 </div>
@@ -2369,7 +2388,7 @@
 
                 <div id="chatsList" class="ms-list"></div>
                 <div id="chatsEmptyState" class="hidden hp-empty">
-                    <div>💬</div><b id="chatsEmptyTitle">لا توجد رسائل بعد</b><br><small>ابحث عن زميلك برقمه التعريفي وابدأ محادثة</small>
+                    <div><i data-lucide="messages-square"></i></div><b id="chatsEmptyTitle">لا توجد رسائل بعد</b><br><small>ابحث عن زميلك برقمه التعريفي وابدأ محادثة</small>
                     <button onclick="app.openNewChatModal()" class="lb-reset">رسالة جديدة</button>
                 </div>
             </div>
@@ -2407,7 +2426,7 @@
                         <span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span><span class="voice-rec-bar"></span>
                     </div>
                     <span class="text-sm font-bold flex-shrink-0 theme-transition" id="chatVoiceRecordingTime" style="color: var(--text);">0:00</span>
-                    <span id="chatVoiceCancelHint" class="text-xs font-bold flex-1 text-center theme-transition" style="color: var(--text2);">⬆ اسحب للإلغاء</span>
+                    <span id="chatVoiceCancelHint" class="text-xs font-bold flex-1 text-center theme-transition" style="color: var(--text2);">اسحب للأعلى للإلغاء</span>
                 </div>
                 <button id="chatSendBtn" onclick="app.sendChatMessage()" onmousedown="event.preventDefault()" class="hidden btn-press w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center flex-shrink-0" aria-label="إرسال">
                     <i data-lucide="send" class="w-5 h-5"></i>
@@ -2703,7 +2722,7 @@
                 <!-- points -->
                 <section class="wl-points">
                     <div class="wl-points-top">
-                        <span class="wl-star" aria-hidden="true">⭐</span>
+                        <span class="wl-star" aria-hidden="true"><i data-lucide="star"></i></span>
                         <div class="wl-points-body">
                             <small>رصيد النقاط</small>
                             <b id="walletPointsValue">0 نقطة</b>
@@ -2726,9 +2745,9 @@
                     <div class="skeleton h-16 w-full rounded-2xl"></div>
                     <div class="skeleton h-16 w-full rounded-2xl"></div>
                 </div>
-                <div id="walletEmptyState" class="hidden hp-empty"><div>👛</div>لا توجد معاملات بعد
+                <div id="walletEmptyState" class="hidden hp-empty"><div><i data-lucide="wallet"></i></div>لا توجد معاملات بعد
                     <button onclick="app.loadWallet()" class="lb-reset">إعادة المحاولة</button></div>
-                <div id="walletErrorState" class="hidden hp-empty"><div>📡</div>تعذر تحميل الرصيد
+                <div id="walletErrorState" class="hidden hp-empty"><div><i data-lucide="wifi-off"></i></div>تعذر تحميل الرصيد
                     <button onclick="app.loadWallet()" class="lb-reset">إعادة المحاولة</button></div>
             </div>
         </div>
@@ -2768,8 +2787,8 @@
                         <input type="text" id="leaderboardSearchInput" placeholder="ابحث عن اسم طالب..." oninput="app.handleLeaderboardSearch(this.value)">
                     </label>
                     <div class="lb-sorts" id="leaderboardSortTabs">
-                        <button onclick="app.setLeaderboardSort('points')" class="lb-sort-tab" data-sort="points">⭐ الأعلى نقاطاً</button>
-                        <button onclick="app.setLeaderboardSort('improvement')" class="lb-sort-tab" data-sort="improvement">📈 الأكثر تحسناً هذا الأسبوع</button>
+                        <button onclick="app.setLeaderboardSort('points')" class="lb-sort-tab" data-sort="points">الأعلى نقاطاً</button>
+                        <button onclick="app.setLeaderboardSort('improvement')" class="lb-sort-tab" data-sort="improvement">الأكثر تحسناً هذا الأسبوع</button>
                     </div>
                 </div>
                 <div class="lb-list-head"><span id="lbListTitle">باقي الترتيب</span><span id="leaderboardCount"></span></div>
@@ -2785,11 +2804,11 @@
                         <div class="skeleton h-16 w-full rounded-2xl"></div>
                     </div>
                     <div id="leaderboardEmptyState" class="hidden hp-empty">
-                        <div>🔍</div>ما لقينا طالب بهذا الاسم
+                        <div><i data-lucide="search-x"></i></div>ما لقينا طالب بهذا الاسم
                         <button onclick="app.resetLeaderboardSearch()" class="lb-reset">مسح البحث</button>
                     </div>
                     <div id="leaderboardErrorState" class="hidden hp-empty">
-                        <div>📡</div>تعذر تحميل الترتيب، تحقق من اتصالك
+                        <div><i data-lucide="wifi-off"></i></div>تعذر تحميل الترتيب، تحقق من اتصالك
                         <button onclick="app.loadLeaderboard()" class="lb-reset">إعادة المحاولة</button>
                     </div>
                 </div>
@@ -3361,7 +3380,7 @@
                 // Opened from the phone's file manager (content:// or file://) Firebase sign-in,
                 // notifications and saved data don't work — the page needs to be served over https.
                 if (!/^https?:$/.test(location.protocol)) {
-                    setTimeout(() => this.showToast('⚠️ افتح التطبيق من رابط https وليس كملف من الجهاز — تسجيل الدخول والإشعارات لا تعمل بهذه الطريقة'), 1500);
+                    setTimeout(() => this.showToast('افتح التطبيق من رابط https وليس كملف من الجهاز — تسجيل الدخول والإشعارات لا تعمل بهذه الطريقة'), 1500);
                 }
                 this.loadTheme();
                 this.loadCustomThemeColor();
@@ -4095,11 +4114,12 @@
                 const width = vp.clientWidth || 340;
                 track.innerHTML = dailyTips.map((_, k) => {
                     const i = (start + k) % n;
-                    return `<div class="tip-slide" data-n="${k + 1}" style="width: ${width}px;"><span class="tip-ic" aria-hidden="true">💡</span><div class="tip-text">${escapeHtml(dailyTips[i])}</div></div>`;
+                    return `<div class="tip-slide" data-n="${k + 1}" style="width: ${width}px;"><span class="tip-ic" aria-hidden="true"><i data-lucide="lightbulb"></i></span><div class="tip-text">${escapeHtml(dailyTips[i])}</div></div>`;
                 }).join('');
                 const countEl = document.getElementById('dailyTipCount');
                 const setCount = (slide) => { if (countEl && slide) countEl.textContent = slide.dataset.n + '/' + n; };
                 setCount(track.firstElementChild);
+                lucide.createIcons();
                 this._stripStart('tips', 'dailyTipViewport', 'dailyTipList', setCount);
                 // slides are sized to the card — resize them when the screen width changes
                 if (!this._tipResizeBound && 'ResizeObserver' in window) {
@@ -4397,7 +4417,7 @@
                             <div class="nd-tags">
                                 ${news.isUrgent ? '<span class="nd-tag nd-tag-urgent"><span class="tk-dot" aria-hidden="true"></span>عاجل</span>' : ''}
                                 ${cat ? `<span class="nd-tag">${escapeHtml(cat)}</span>` : ''}
-                                ${news.isPinned ? '<span class="nd-tag">📌 مثبت</span>' : ''}
+                                ${news.isPinned ? '<span class="nd-tag"><i data-lucide="pin"></i>مثبت</span>' : ''}
                             </div>
                         </div>
                         <div class="nd-body">
@@ -4987,7 +5007,7 @@
                 this.addPointsAtomic(bonus).then(() => {
                     this.syncUserToDatabase();
                     this.logDailyActivity({ points: bonus });
-                    this.showToast('🔥 تحدي يومي: يوم ' + newStreak + ' متتالي! +' + bonus + ' نقطة');
+                    this.showToast('تحدي يومي: يوم ' + newStreak + ' متتالي! +' + bonus + ' نقطة');
                     if (this.currentView === 'walletView') this.renderWalletPoints();
                 });
             },
@@ -5397,13 +5417,14 @@
                             <div class="hl-chip ex-chip" data-t="${jsNum(t)}">
                                 <span class="hl-dot" aria-hidden="true"></span>
                                 <div class="hl-body">
-                                    <div class="hl-gov"><span class="hl-pin" aria-hidden="true">📝</span><span>${escapeHtml(ex.subject || 'امتحان')}</span><span class="ex-date">${when}</span></div>
+                                    <div class="hl-gov"><span class="hl-pin" aria-hidden="true"><i data-lucide="notebook-pen"></i></span><span>${escapeHtml(ex.subject || 'امتحان')}</span><span class="ex-date">${when}</span></div>
                                     <div class="ex-clock"></div>
                                 </div>
                             </div>`;
                     }).join('');
                     const countEl = document.getElementById('examCountdownCount');
                     if (countEl) countEl.textContent = upcoming.length === 1 ? 'امتحان واحد' : (upcoming.length === 2 ? 'امتحانان' : upcoming.length + (upcoming.length <= 10 ? ' امتحانات' : ' امتحاناً'));
+                    lucide.createIcons();
                     this._stripStart('exams', 'examCountdownViewport', 'examCountdownList');
                 }
                 const pad = (n) => String(n).padStart(2, '0');
@@ -5488,7 +5509,7 @@
                         <div class="hl-chip ${state}">
                             <span class="hl-dot" aria-hidden="true"></span>
                             <div class="hl-body">
-                                <div class="hl-gov"><span class="hl-pin" aria-hidden="true">📍</span><span>${place}</span><span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
+                                <div class="hl-gov"><span class="hl-pin" aria-hidden="true"><i data-lucide="map-pin"></i></span><span>${place}</span><span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
                                 <div class="hl-name"><span>${escapeHtml(h.title)}</span><span class="hl-meta">· ${status}</span></div>
                             </div>
                         </div>`;
@@ -5500,6 +5521,7 @@
                 if (chips === this._hlKey) return;
                 this._hlKey = chips;
                 list.innerHTML = chips;
+                lucide.createIcons();
                 this._stripStart('holidays', 'holidaysViewport', 'holidaysList');
             },
 
@@ -5571,14 +5593,14 @@
                         status = '<span class="hl-dot" style="background:#16A34A"></span>' + (left <= 1 ? 'جارية الآن · آخر يوم' : 'جارية الآن · باقي ' + left + ' يوم');
                         bar = `<div class="hp-bar"><i style="--w:${pct.toFixed(1)}%"></i></div>`;
                     } else {
-                        status = '⏳ ' + (x.daysTo <= 1 ? 'تبدأ غداً' : 'تبدأ بعد ' + x.daysTo + ' يوم');
+                        status = '<i data-lucide="hourglass"></i>' + (x.daysTo <= 1 ? 'تبدأ غداً' : 'تبدأ بعد ' + x.daysTo + ' يوم');
                     }
                     return `
                         <div class="hp-card ${x.state}" style="animation-delay:${Math.min(i, 10) * 0.06}s">
                             <div class="hp-date"><b>${sd.getDate()}</b><span>${IRAQI_MONTHS[sd.getMonth()]}</span></div>
                             <div class="hp-body">
                                 <div class="hp-title">${escapeHtml(x.h.title)}<span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
-                                <div class="hp-where">📍 ${x.gov ? escapeHtml(x.gov) : 'كل المحافظات'}</div>
+                                <div class="hp-where"><i data-lucide="map-pin"></i>${x.gov ? escapeHtml(x.gov) : 'كل المحافظات'}</div>
                                 <div class="hp-range">${sameDay ? fmt(x.start) + ' · يوم واحد' : 'من ' + fmt(x.start) + ' إلى ' + fmt(x.end) + ' · ' + plural(totalDays, 'يوم واحد', 'يومان', 'أيام')}</div>
                                 <div class="hp-status">${status}</div>
                                 ${bar}
@@ -5590,7 +5612,7 @@
                     <div class="hp-hero">
                         <div class="hp-hero-top">
                             <div><div class="hp-hero-title">العطل في العراق</div><div class="hp-hero-sub">اختر محافظتك وشوف عطلها الجارية والقادمة</div></div>
-                            <div class="hp-hero-ic" aria-hidden="true">🗓️</div>
+                            <div class="hp-hero-ic" aria-hidden="true"><i data-lucide="calendar-days"></i></div>
                         </div>
                         <div class="hp-stats">
                             <div class="hp-stat"><b data-count="${ongoingCount}">${ongoingCount}</b><span>جارية الآن</span></div>
@@ -5599,10 +5621,10 @@
                         </div>
                     </div>
 
-                    <div class="hp-sec-title">المحافظات <small>🟢 عطلة الآن · 🟠 قريبة · 🔴 ماكو</small></div>
+                    <div class="hp-sec-title">المحافظات <small class="hp-legend"><i class="g"></i>عطلة الآن <i class="o"></i>قريبة <i class="r"></i>ماكو</small></div>
                     <div class="hp-govs">
                         <button class="hp-gov all ${sel === 'all' ? 'sel' : ''}" onclick="app.setHolidayPageGov('all')">
-                            <span class="hp-gov-name">🇮🇶 كل المحافظات</span><span class="hp-gov-meta">${plural(all.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</span>
+                            <span class="hp-gov-name"><i data-lucide="map"></i>كل المحافظات</span><span class="hp-gov-meta">${plural(all.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</span>
                         </button>
                         ${govInfo.map((x, i) => `
                             <button class="hp-gov ${x.state} ${sel === x.g ? 'sel' : ''}" style="animation-delay:${(i * 0.025).toFixed(3)}s" onclick="app.setHolidayPageGov(${jsArg(x.g)})">
@@ -5611,14 +5633,15 @@
                             </button>`).join('')}
                     </div>
 
-                    <div class="hp-sec-title" id="hpListTitle">${sel === 'all' ? 'كل العطل' : '📍 عطل ' + escapeHtml(sel)} <small>${plural(list.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</small></div>
+                    <div class="hp-sec-title" id="hpListTitle">${sel === 'all' ? 'كل العطل' : 'عطل ' + escapeHtml(sel)} <small>${plural(list.length, 'عطلة واحدة', 'عطلتان', 'عطل')}</small></div>
                     <div class="hp-filters no-scrollbar">
                         ${filters.map(([k, l]) => `<button class="hp-filter ${f === k ? 'on' : ''}" onclick="app.setHolidayPageFilter(${jsArg(k)})">${l}</button>`).join('')}
                     </div>
                     <div class="hp-list mt-3">
-                        ${cards || `<div class="hp-empty"><div>🏖️</div>ما كو عطل ${f === 'all' ? '' : 'بهذا التصنيف '}${sel === 'all' ? 'حالياً' : 'في ' + escapeHtml(sel) + ' حالياً'}</div>`}
+                        ${cards || `<div class="hp-empty"><div><i data-lucide="calendar-x"></i></div>ما كو عطل ${f === 'all' ? '' : 'بهذا التصنيف '}${sel === 'all' ? 'حالياً' : 'في ' + escapeHtml(sel) + ' حالياً'}</div>`}
                     </div>`;
 
+                lucide.createIcons();
                 // count-up on the hero numbers when the page is opened
                 if (this._hpAnimateCounts) {
                     this._hpAnimateCounts = false;
@@ -5788,7 +5811,7 @@
             copyStudentNumber() {
                 const num = this.currentUser && this.currentUser.studentNumber;
                 if (!num) return;
-                const done = () => this.showToast('📋 تم نسخ رقمك التعريفي: ' + num);
+                const done = () => this.showToast('تم نسخ رقمك التعريفي: ' + num);
                 if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(String(num)).then(done).catch(() => this.showToast('رقمك التعريفي: ' + num));
                 else this.showToast('رقمك التعريفي: ' + num);
             },
@@ -6171,7 +6194,8 @@
                 this.renderStageTabs();
 
                 if (filtered.length === 0) {
-                    container.innerHTML = `<div class="hp-empty"><div>📭</div>${subjObj ? 'ما كو ملازم لمادة ' + escapeHtml(subjObj.name) + ' بعد' : 'ما كو ملازم لهذي المرحلة بعد'}<br><small>تابعنا، راح تنضاف قريباً</small></div>`;
+                    setTimeout(() => lucide.createIcons(), 0);
+                    container.innerHTML = `<div class="hp-empty"><div><i data-lucide="inbox"></i></div>${subjObj ? 'ما كو ملازم لمادة ' + escapeHtml(subjObj.name) + ' بعد' : 'ما كو ملازم لهذي المرحلة بعد'}<br><small>تابعنا، راح تنضاف قريباً</small></div>`;
                     return;
                 }
                 container.innerHTML = filtered.map((res, i) => this.createResourceCard(res, i)).join('');
@@ -6192,9 +6216,9 @@
                             ${res.description ? `<p>${escapeHtml(res.description)}</p>` : ''}
                             <div class="rs-tags">
                                 ${subj ? `<span class="rs-tag subj" style="--c:${subj.iconColor}">${escapeHtml(subj.name)}</span>` : ''}
-                                <span class="rs-tag">📄 ${escapeHtml(res.fileSize || '—')}</span>
-                                <span class="rs-tag">⬇ ${dl}</span>
-                                ${res.isOfficial ? '<span class="rs-tag ok">✔ رسمي</span>' : ''}
+                                <span class="rs-tag"><i data-lucide="file-text"></i>${escapeHtml(res.fileSize || '—')}</span>
+                                <span class="rs-tag"><i data-lucide="download"></i>${dl}</span>
+                                ${res.isOfficial ? '<span class="rs-tag ok"><i data-lucide="badge-check"></i>رسمي</span>' : ''}
                             </div>
                         </div>
                         ${saved
@@ -6261,7 +6285,7 @@
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="theme-transition" style="color: var(--text2);">الحالة</span>
-                                    <span class="font-medium text-success">${this.offlineResourceIds.has(res.id) ? 'محفوظة بدون إنترنت ✓' : 'متاحة للتحميل'}</span>
+                                    <span class="font-medium text-success">${this.offlineResourceIds.has(res.id) ? 'محفوظة بدون إنترنت' : 'متاحة للتحميل'}</span>
                                 </div>
                             </div>
                         </div>
@@ -6448,7 +6472,7 @@
                         goalText.textContent = 'باقي ' + (next.points - points).toLocaleString('en-US') + ' نقطة وتقدر تستبدلها بـ ' + next.iqd.toLocaleString('en-US') + ' د.ع';
                     } else {
                         goalBar.style.setProperty('--w', '100%');
-                        goalText.textContent = '🎉 نقاطك تكفي لأكبر عرض بمتجر النقاط — استبدلها الآن';
+                        goalText.textContent = 'نقاطك تكفي لأكبر عرض بمتجر النقاط — استبدلها الآن';
                     }
                 }
                 if (streakEl) {
@@ -6532,7 +6556,7 @@
                 const container = document.getElementById('walletTransactionsList');
                 if (!container) return;
                 container.innerHTML = walletTransactions.length === 0
-                    ? '<div class="wl-empty"><div>🧾</div>لا توجد معاملات بعد — أول إيداع أو استبدال نقاط راح يظهر هنا</div>'
+                    ? '<div class="wl-empty"><div><i data-lucide="receipt"></i></div>لا توجد معاملات بعد — أول إيداع أو استبدال نقاط راح يظهر هنا</div>'
                     : walletTransactions.slice(0, 6).map((t, i) => this.walletTxRow(t, i)).join('');
                 lucide.createIcons();
             },
@@ -6543,7 +6567,7 @@
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 content.innerHTML = walletTransactions.length === 0
-                    ? '<div class="wl-empty"><div>🧾</div>لا توجد معاملات بعد</div>'
+                    ? '<div class="wl-empty"><div><i data-lucide="receipt"></i></div>لا توجد معاملات بعد</div>'
                     : '<div class="wl-tx" style="max-height:60vh;overflow-y:auto">' + walletTransactions.map((t, i) => this.walletTxRow(t, i)).join('') + '</div>';
                 document.getElementById('walletModal')?.classList.remove('hidden');
                 lucide.createIcons();
@@ -6912,13 +6936,14 @@
                 if (!podium) return;
                 const top = this.getLeaderboardRanked().slice(0, 3);
                 if (top.length === 0) {
-                    podium.innerHTML = '<div class="lb-podium-empty">🏆 ما كو طلاب بالترتيب بعد — اكسب نقاط وكن الأول!</div>';
+                    podium.innerHTML = '<div class="lb-podium-empty"><i data-lucide="trophy"></i>ما كو طلاب بالترتيب بعد — اكسب نقاط وكن الأول!</div>';
+                    lucide.createIcons();
                     return;
                 }
                 const col = (s) => `
                     <div class="lb-col r${s.rank}${s.isCurrentUser ? ' is-me' : ''}" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(s.id)})">
                         <div class="lb-ava">
-                            ${s.rank === 1 ? '<span class="lb-crown" aria-hidden="true">👑</span>' : ''}
+                            ${s.rank === 1 ? '<span class="lb-crown" aria-hidden="true"><i data-lucide="crown"></i></span>' : ''}
                             <img src="${personAvatarSrc(s.avatar, s.name)}" alt="${escapeHtml(s.name)}">
                             <span class="lb-medal">${s.rank}</span>
                         </div>
@@ -6929,6 +6954,7 @@
                 // visual order: 2nd · 1st · 3rd (RTL puts the first child on the right)
                 const order = [top[1], top[0], top[2]].filter(Boolean);
                 podium.innerHTML = `<div class="lb-podium">${order.map(col).join('')}</div>`;
+                lucide.createIcons();
             },
 
             // "Where am I" card: my rank, points and how far the next student is.
@@ -6946,7 +6972,7 @@
                 if (!me) { box.innerHTML = ''; return; }
                 const ahead = ranked[me.rank - 2];
                 let line, pct;
-                if (!ahead) { line = 'أنت بالمركز الأول 🏆 حافظ على صدارتك'; pct = 100; }
+                if (!ahead) { line = 'أنت بالمركز الأول — حافظ على صدارتك'; pct = 100; }
                 else {
                     const gap = Math.max(1, ahead.points - me.points + 1);
                     line = `باقي ${gap.toLocaleString('en-US')} نقطة وتتجاوز ${escapeHtml(ahead.name)}`;
@@ -6975,7 +7001,8 @@
                 if (q && students.length === 0) { this.showLeaderboardEmpty(); return; }
                 this.showLeaderboardList();
                 if (students.length === 0) {
-                    container.innerHTML = `<div class="hp-empty" style="padding:18px"><div>🌱</div>${total ? 'كل الطلاب ظاهرين بالمنصة فوق' : 'ما كو طلاب بعد'}</div>`;
+                    setTimeout(() => lucide.createIcons(), 0);
+                    container.innerHTML = `<div class="hp-empty" style="padding:18px"><div><i data-lucide="users"></i></div>${total ? 'كل الطلاب ظاهرين بالمنصة فوق' : 'ما كو طلاب بعد'}</div>`;
                     return;
                 }
                 const leader = Math.max(1, ...this.getLeaderboardRanked().slice(0, 1).map(s => s.points));
@@ -7359,7 +7386,7 @@
                         </div>
                         ${(likesCount > 0 || commentsCount > 0) ? `
                         <div class="flex items-center justify-between px-3.5 pb-2 text-xs theme-transition" style="color: var(--text2);">
-                            <span>${likesCount > 0 ? '👍 ' + likesCount : ''}</span>
+                            <span class="inline-flex items-center gap-1">${likesCount > 0 ? '<i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>' + likesCount : ''}</span>
                             <span>${commentsCount > 0 ? commentsCount + ' تعليق' : ''}</span>
                         </div>` : ''}
                         <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
@@ -7748,7 +7775,7 @@
                     set(ref(window.firebaseDb, 'friendRequests/' + uid + '/' + this.authUid), payload).then(() => {
                         set(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid), sentPayload).catch(() => {});
                         this.sentFriendRequests[uid] = true;
-                        this.showToast('✅ تم إرسال طلب الصداقة');
+                        this.showToast('تم إرسال طلب الصداقة');
                     }).catch((err) => {
                         console.warn('Send friend request failed:', err);
                         this.showToast('تعذر إرسال الطلب');
@@ -7797,7 +7824,7 @@
                     remove(ref(window.firebaseDb, 'friendRequests/' + this.authUid + '/' + fromUid)),
                     remove(ref(window.firebaseDb, 'sentFriendRequests/' + fromUid + '/' + this.authUid))
                 ]).then(() => {
-                    this.showToast('🎉 صرتوا أصدقاء');
+                    this.showToast('صرتوا أصدقاء');
                     this.closeWalletModal();
                 }).catch((err) => {
                     console.warn('Accept friend request failed:', err);
@@ -7980,7 +8007,7 @@
                     remove(ref(window.firebaseDb, 'sentFriendRequests/' + this.authUid + '/' + uid)),
                     remove(ref(window.firebaseDb, 'sentFriendRequests/' + uid + '/' + this.authUid))
                 ]).then(() => {
-                    this.showToast('🚫 تم حظر المستخدم');
+                    this.showToast('تم حظر المستخدم');
                     this.closeWalletModal();
                 }).catch((err) => {
                     console.warn('Block user failed:', err);
@@ -8835,7 +8862,7 @@
                     if (p.uid !== this.authUid) this.createVoiceOffer(p.uid);
                 });
                 this.renderVoiceRoom();
-                this.showToast('🎙️ أنت تتكلم الآن');
+                this.showToast('أنت تتكلم الآن');
             },
 
             stopSpeaking() {
@@ -9128,7 +9155,7 @@
                 overdue.forEach((t) => this._notifiedOverdueTaskIds.add(t.id));
                 this.playNotifySound();
                 const summary = overdue.length === 1 ? overdue[0].text : (overdue.length + ' مهام متأخرة');
-                this.showToast('⏰ تذكير: ' + summary + ' — لسه ما خلّصتها');
+                this.showToast('تذكير: ' + summary + ' — لسه ما خلّصتها');
                 if ('Notification' in window && Notification.permission === 'granted') {
                     try {
                         new Notification('تذكير بمهامك', { body: summary, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' });
@@ -9373,7 +9400,7 @@
                             const viewingThisChat = this.currentView === 'chatThreadView' && this.currentChatUid === entry.otherUid;
                             if (isNewMessage && !entry.muted && !viewingThisChat && !this.isBlocked(entry.otherUid)) {
                                 this.playNotifySound();
-                                this.showToast('💬 رسالة جديدة من ' + (entry.otherName || 'طالب'));
+                                this.showToast('رسالة جديدة من ' + (entry.otherName || 'طالب'));
                             }
                         });
                     }
@@ -9435,7 +9462,8 @@
                     container.innerHTML = '';
                     container.classList.add('hidden');
                     empty.classList.remove('hidden');
-                    if (emptyTitle) emptyTitle.textContent = q ? 'ما لقينا محادثة مطابقة' : ({ archived: 'لا توجد محادثات مؤرشفة', unread: 'ما عندك رسائل غير مقروءة 👌' }[this.chatFilter] || 'لا توجد رسائل بعد');
+                    if (emptyTitle) emptyTitle.textContent = q ? 'ما لقينا محادثة مطابقة' : ({ archived: 'لا توجد محادثات مؤرشفة', unread: 'ما عندك رسائل غير مقروءة' }[this.chatFilter] || 'لا توجد رسائل بعد');
+                    lucide.createIcons();
                     return;
                 }
                 container.classList.remove('hidden');
@@ -9460,12 +9488,13 @@
                                 <div class="ms-top"><span class="ms-name">${escapeHtml(c.otherName || 'طالب')}</span><span class="ms-time">${clock(c.lastAt)}</span></div>
                                 <div class="ms-bottom">
                                     <span class="ms-last">${escapeHtml(c.lastMessage || '')}</span>
-                                    <span class="ms-icons">${c.pinned ? '📌' : ''}${c.muted ? '🔕' : ''}</span>
+                                    <span class="ms-icons">${c.pinned ? '<i data-lucide="pin"></i>' : ''}${c.muted ? '<i data-lucide="bell-off"></i>' : ''}</span>
                                     ${isUnread ? '<span class="ms-dot" aria-label="رسالة جديدة"></span>' : ''}
                                 </div>
                             </div>
                         </div>`;
                 }).join('');
+                lucide.createIcons();
             },
 
             updateMessagesBadge() {
@@ -9594,7 +9623,7 @@
                         const clearedAt = clearedSnap.exists() ? clearedSnap.val() : 0;
                         const deletedFor = deletedSnap.exists() ? deletedSnap.val() : {};
                         this.blockedByOtherInChat = blockedSnap.exists();
-                        if (this.blockedByOtherInChat) this.showToast('⚠️ هذا المستخدم قيّد التواصل معك');
+                        if (this.blockedByOtherInChat) this.showToast('هذا المستخدم قيّد التواصل معك');
                         const changed = clearedAt !== this.currentChatClearedAt || JSON.stringify(deletedFor) !== JSON.stringify(this.currentChatDeletedFor);
                         this.currentChatClearedAt = clearedAt;
                         this.currentChatDeletedFor = deletedFor;
@@ -9686,7 +9715,7 @@
                             <div class="max-w-[78%] ${m.type === 'image' ? 'p-1' : 'px-4 py-2.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl rounded-ee-md' : 'theme-transition rounded-2xl rounded-es-md'} ${isNew ? 'chat-bubble-in' : ''}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${jsNum(m.id)})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${jsNum(m.id)})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
                                 ${bodyHtml}
                             </div>
-                            ${isMine ? `<div class="text-[10px] mt-0.5 px-1" style="color: ${isRead ? '#60A5FA' : 'var(--text2)'};">${isRead ? '✓✓ تمت القراءة' : '✓ تم الإرسال'}</div>` : ''}
+                            ${isMine ? `<div class="text-[10px] mt-0.5 px-1 inline-flex items-center gap-1" style="color: ${isRead ? '#60A5FA' : 'var(--text2)'};"><i data-lucide="${isRead ? 'check-check' : 'check'}" style="width:12px;height:12px"></i>${isRead ? 'تمت القراءة' : 'تم الإرسال'}</div>` : ''}
                             ${showActions ? `
                             <div class="flex items-center gap-1.5 mt-1 flex-wrap">
                                 ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
@@ -9884,7 +9913,7 @@
                 const newPinned = !(entry && entry.pinned);
                 const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/pinned'), newPinned).then(() => {
-                    this.showToast(newPinned ? '📌 تم تثبيت المحادثة' : 'تم إلغاء التثبيت');
+                    this.showToast(newPinned ? 'تم تثبيت المحادثة' : 'تم إلغاء التثبيت');
                     this.closeWalletModal();
                 }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
             },
@@ -9895,7 +9924,7 @@
                 const newMuted = !(entry && entry.muted);
                 const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/muted'), newMuted).then(() => {
-                    this.showToast(newMuted ? '🔕 تم كتم المحادثة' : '🔔 تم إلغاء الكتم');
+                    this.showToast(newMuted ? 'تم كتم المحادثة' : 'تم إلغاء الكتم');
                     this.closeWalletModal();
                 }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
             },
@@ -9906,7 +9935,7 @@
                 const newArchived = !(entry && entry.archived);
                 const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/archived'), newArchived).then(() => {
-                    this.showToast(newArchived ? '📦 تم أرشفة المحادثة' : 'تم إلغاء الأرشفة');
+                    this.showToast(newArchived ? 'تم أرشفة المحادثة' : 'تم إلغاء الأرشفة');
                     this.closeWalletModal();
                     if (newArchived) this.goBack();
                 }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
@@ -9950,7 +9979,7 @@
                     status: 'open'
                 };
                 set(ref(window.firebaseDb, 'reports/' + id), payload).then(() => {
-                    this.showToast('✅ تم إرسال البلاغ، شكراً لمساعدتك');
+                    this.showToast('تم إرسال البلاغ، شكراً لمساعدتك');
                     this.closeWalletModal();
                 }).catch((err) => {
                     console.warn('Report submit failed:', err);
@@ -9992,7 +10021,7 @@
                     return;
                 }
                 if (this._sendingMessage) return;
-                const previewMap = { image: '📷 صورة', voice: '🎤 رسالة صوتية', file: '📎 ' + (extra.fileName || 'ملف') };
+                const previewMap = { image: 'صورة', voice: 'رسالة صوتية', file: 'ملف: ' + (extra.fileName || 'PDF') };
                 this._writeChatMessage(extra, previewMap[extra.type] || 'مرفق', null);
             },
 
@@ -10110,7 +10139,7 @@
                 this._voiceHoldCancelled = cancelling;
                 const hint = document.getElementById('chatVoiceCancelHint');
                 if (hint) {
-                    hint.textContent = cancelling ? '✕ اترك للإلغاء' : '⬆ اسحب للإلغاء';
+                    hint.textContent = cancelling ? 'اترك للإلغاء' : 'اسحب للأعلى للإلغاء';
                     hint.style.color = cancelling ? 'var(--error)' : 'var(--text2)';
                 }
             },
@@ -10454,7 +10483,7 @@
                 storeCart.push({ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, imageUrl: p.imageUrl, mediaType: p.mediaType || 'image', pricePoints: p.pricePoints, storeName: p.storeName });
                 this.saveStoreCart();
                 this.renderStoreFeed();
-                this.showToast('✅ أُضيف للسلة');
+                this.showToast('أُضيف للسلة');
             },
 
             removeFromCart(productId) {
@@ -10556,7 +10585,7 @@
                         storeCart.length = 0;
                         this.saveStoreCart();
                         this.updateStoreCartBadge();
-                        this.showToast('✅ تم الشراء بنجاح! خُصم ' + total.toLocaleString('en-US') + ' نقطة');
+                        this.showToast('تم الشراء بنجاح! خُصم ' + total.toLocaleString('en-US') + ' نقطة');
                         this.goBack();
                     }).catch((err) => {
                         console.warn('Checkout order write failed:', err);
@@ -10590,7 +10619,7 @@
                     }
                     const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items: [{ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, pricePoints: price }], totalPoints: price, status: 'placed', createdAt: Date.now() };
                     set(ref(window.firebaseDb, 'storeOrders/' + orderId), order).then(() => {
-                        this.showToast('✅ تم شراء "' + p.title + '" بنجاح!');
+                        this.showToast('تم شراء "' + p.title + '" بنجاح!');
                     }).catch((err) => {
                         console.warn('Buy now order write failed:', err);
                         this.addPointsAtomic(price);
@@ -10812,7 +10841,7 @@
                 set(ref(window.firebaseDb, 'stores/' + this.authUid), payload).then(() => {
                     this._pendingStoreLogo = null;
                     this.closeWalletModal();
-                    this.showToast('✅ تم إرسال طلبك، بانتظار موافقة الإدارة');
+                    this.showToast('تم إرسال طلبك، بانتظار موافقة الإدارة');
                 }).catch((err) => {
                     console.warn('Store application failed:', err);
                     this.showToast('تعذر إرسال الطلب — حاول مجدداً');
@@ -10945,7 +10974,7 @@
                 };
                 set(ref(window.firebaseDb, 'storeProducts/' + id), payload).then(() => {
                     this.closeWalletModal();
-                    this.showToast('✅ تم إرسال منتجك للمراجعة');
+                    this.showToast('تم إرسال منتجك للمراجعة');
                 }).catch((err) => {
                     console.warn('Product publish failed:', err);
                     this.showToast('تعذر النشر — حاول مجدداً');
@@ -10964,7 +10993,7 @@
                 // loadUserFromDatabase), so duelInvitesBadge can no longer show a pending-
                 // invite count for a feature that immediately bails out here with nothing to
                 // act on.
-                this.showToast('🚀 تحدي مباشر مع غرفة دردشة صوتية — قريباً');
+                this.showToast('تحدي مباشر مع غرفة دردشة صوتية — قريباً');
                 return;
                 if (!this.isLoggedIn || !this.currentUser) {
                     this.showToast('يجب تسجيل الدخول للتحدي');
@@ -11056,7 +11085,7 @@
                         statusColor = '#F59E0B';
                     }
                     if (d.status === 'finished') {
-                        statusLabel = d.winnerUid === this.authUid ? '🏆 فزت' : (d.winnerUid ? 'خسرت' : 'تعادل');
+                        statusLabel = d.winnerUid === this.authUid ? 'فزت' : (d.winnerUid ? 'خسرت' : 'تعادل');
                         statusColor = d.winnerUid === this.authUid ? '#16A34A' : (d.winnerUid ? '#EF4444' : 'var(--text2)');
                     }
                     const canPlay = d.status === 'active' && !alreadyPlayed;
@@ -11178,7 +11207,7 @@
                     });
                     await set(ref(window.firebaseDb, 'userDuels/' + this.authUid + '/' + duelId), true);
                     await set(ref(window.firebaseDb, 'userDuels/' + otherUid + '/' + duelId), true);
-                    this.showToast('🎯 تم إرسال التحدي، بانتظار قبوله');
+                    this.showToast('تم إرسال التحدي، بانتظار قبوله');
                 } catch (err) {
                     console.warn('Challenge failed:', err);
                     this.showToast('تعذر إرسال التحدي');
@@ -11343,7 +11372,7 @@
                     const bonus = winnerUid === null ? 20 : (winnerUid === this.authUid ? 50 : 10);
                     this.addPointsAtomic(bonus).then(() => {
                         this.logDailyActivity({ points: bonus });
-                        const msg = winnerUid === this.authUid ? '🏆 فزت بالتحدي! +' : (winnerUid === null ? '🤝 تعادل! +' : 'خسرت لكن حصلت على +');
+                        const msg = winnerUid === this.authUid ? 'فزت بالتحدي! +' : (winnerUid === null ? 'تعادل! +' : 'خسرت لكن حصلت على +');
                         this.showToast(msg + bonus + ' نقطة');
                     });
                 }).catch((err) => console.warn('Claim reward failed:', err));
@@ -11360,7 +11389,7 @@
                 const draw = !duel.winnerUid;
                 content.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-8 text-center">
-                        <div class="text-4xl mb-3">${draw ? '🤝' : (won ? '🏆' : '😔')}</div>
+                        <div class="mb-3 flex justify-center"><i data-lucide="${draw ? 'handshake' : (won ? 'trophy' : 'frown')}" class="w-10 h-10 text-primary"></i></div>
                         <h3 class="text-lg font-bold mb-1 theme-transition" style="color: var(--text);">${draw ? 'تعادل!' : (won ? 'فزت بالتحدي!' : 'خسرت هالمرة')}</h3>
                         <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">أنت: ${myScore} • ${escapeHtml(oppName || 'الخصم')}: ${oppScore}</p>
                         <button onclick="app.goToDuels()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رجوع للتحديات</button>
@@ -11630,7 +11659,7 @@
                     if (!this.offlineResourcesMeta.some(r => r.id === id)) {
                         this.offlineResourcesMeta = [...this.offlineResourcesMeta, { ...res, savedAt: Date.now() }];
                     }
-                    this.showToast('✅ تم حفظ الملزمة — متاحة الآن بدون إنترنت');
+                    this.showToast('تم حفظ الملزمة — متاحة الآن بدون إنترنت');
                     if (this.currentView === 'resourceDetailView' && this.currentResourceId === id) this.openResource(id);
                     if (this.currentView === 'resourcesView') this.renderResourcesList();
                     lucide.createIcons();

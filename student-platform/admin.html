@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>لوحة التحكم - منصة الطالب العراقي</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>window.lucide = window.lucide || { createIcons: function () {} };</script>
     <style>
         :root {
             --bg: #0F172A;
@@ -140,6 +142,12 @@
         .tk-preview .pv-pill i { width: 7px; height: 7px; border-radius: 50%; background: #E5484D; }
         .tk-preview .pv-text { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+        /* icons (lucide) that replaced the emojis */
+        .tab-ic { display: inline-grid; } .tab-ic svg { width: 16px; height: 16px; }
+        .card-head .ic svg { width: 18px; height: 18px; color: var(--primary); }
+        .brand-icon svg { width: 20px; height: 20px; color: #fff; }
+        .tone-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+
         /* ---------- Self-contained fallbacks for the handful of Tailwind utility
            classes this page relies on. The Tailwind CDN script generates these at
            runtime — if it's blocked, slow, or offline, every ".hidden" section
@@ -168,7 +176,7 @@
     <header class="topbar">
         <div class="topbar-inner">
             <div class="brand">
-                <div class="brand-icon">🛠️</div>
+                <div class="brand-icon"><i data-lucide="wrench"></i></div>
                 <div>
                     <h1>لوحة تحكم المنصة</h1>
                     <p>نشر الأخبار والملازم والإشعارات وإدارة صور الموقع</p>
@@ -185,28 +193,28 @@
         <!-- Side / top navigation -->
         <nav class="sidenav" id="panel">
             <div class="nav-group-label">الموقع</div>
-            <button class="tab" data-tab="site"><span class="tab-ic">🎛️</span><span>التحكم بالموقع</span></button>
+            <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span></button>
 
             <div class="nav-group-label">الإحصائيات</div>
-            <button class="tab" data-tab="users"><span class="tab-ic">👥</span><span>المستخدمون</span></button>
+            <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="users"></i></span><span>المستخدمون</span></button>
 
             <div class="nav-group-label">المحتوى</div>
-            <button class="tab active" data-tab="news"><span class="tab-ic">📰</span><span>نشر خبر</span></button>
-            <button class="tab" data-tab="res"><span class="tab-ic">📚</span><span>ملازم PDF</span></button>
-            <button class="tab" data-tab="ticker"><span class="tab-ic">📢</span><span>الشريط الإخباري</span></button>
-            <button class="tab" data-tab="exams"><span class="tab-ic">🗓️</span><span>جدول الامتحانات</span></button>
-            <button class="tab" data-tab="holidays"><span class="tab-ic">🎉</span><span>العطل الرسمية</span></button>
+            <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
+            <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
+            <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
+            <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
+            <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
-            <button class="tab" data-tab="notif"><span class="tab-ic">🔔</span><span>إشعارات</span></button>
-            <button class="tab" data-tab="imgs"><span class="tab-ic">🖼️</span><span>صور الموقع</span></button>
+            <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إشعارات</span></button>
+            <button class="tab" data-tab="imgs"><span class="tab-ic"><i data-lucide="image"></i></span><span>صور الموقع</span></button>
 
             <div class="nav-group-label">المالية والمتجر</div>
-            <button class="tab" data-tab="topup"><span class="tab-ic">💳</span><span>أكواد تعبئة</span></button>
-            <button class="tab" data-tab="store"><span class="tab-ic">🏪</span><span>متجر</span></button>
+            <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
+            <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
 
             <div class="nav-group-label">الإدارة</div>
-            <button class="tab" data-tab="ban"><span class="tab-ic">🚫</span><span>حظر طالب</span></button>
+            <button class="tab" data-tab="ban"><span class="tab-ic"><i data-lucide="ban"></i></span><span>حظر طالب</span></button>
         </nav>
 
         <main class="content">
@@ -217,7 +225,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🏠</div>
+                        <div class="ic"><i data-lucide="house"></i></div>
                         <div>
                             <h3>أقسام الواجهة الرئيسية</h3>
                             <p>أطفئ أي قسم حتى يختفي من الصفحة الرئيسية عند الجميع</p>
@@ -255,7 +263,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🧭</div>
+                        <div class="ic"><i data-lucide="compass"></i></div>
                         <div>
                             <h3>شريط التنقل السفلي</h3>
                             <p>الرئيسية وحسابي ثابتان دائماً</p>
@@ -289,7 +297,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">✏️</div>
+                        <div class="ic"><i data-lucide="pencil"></i></div>
                         <div>
                             <h3>اسم المنصة والوصف</h3>
                             <p>يظهران في أعلى التطبيق بجانب الشعار. اتركهما فارغين للرجوع للنص الافتراضي</p>
@@ -308,7 +316,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📣</div>
+                        <div class="ic"><i data-lucide="megaphone"></i></div>
                         <div>
                             <h3>إعلان أعلى الرئيسية</h3>
                             <p>رسالة ثابتة فوق البحث. الطالب يقدر يخفيها، وترجع تظهر إذا غيّرت النص</p>
@@ -325,9 +333,9 @@
                     <div class="field">
                         <label>لون الإعلان</label>
                         <div class="tone-row">
-                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="info" checked> عادي 🟢</label>
-                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="warn"> تنبيه 🟡</label>
-                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="alert"> مهم 🔴</label>
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="info" checked><i class="tone-dot" style="background:#16A34A"></i>عادي</label>
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="warn"><i class="tone-dot" style="background:#F59E0B"></i>تنبيه</label>
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="alert"><i class="tone-dot" style="background:#E5484D"></i>مهم</label>
                         </div>
                     </div>
                     <button class="btn mt-2" id="cfg_save_ann">حفظ الإعلان</button>
@@ -335,7 +343,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🛠️</div>
+                        <div class="ic"><i data-lucide="wrench"></i></div>
                         <div>
                             <h3>وضع الصيانة</h3>
                             <p>يغطي المنصة بالكامل برسالة صيانة لكل الطلاب. لوحة التحكم تبقى تعمل عادي</p>
@@ -361,7 +369,7 @@
             <div id="sec-users" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">👥</div>
+                        <div class="ic"><i data-lucide="users"></i></div>
                         <div>
                             <h3>المستخدمون</h3>
                             <p>عدد المستخدمين المسجّلين، ومين متصل بالتطبيق حالياً أو خلال آخر فترة</p>
@@ -388,14 +396,14 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🟢</div>
+                        <div class="ic"><i data-lucide="radio"></i></div>
                         <div><h3>متصلون الآن</h3></div>
                     </div>
                     <div id="onlineUsersList"></div>
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🕒</div>
+                        <div class="ic"><i data-lucide="clock"></i></div>
                         <div><h3>آخر نشاط</h3></div>
                     </div>
                     <div id="recentUsersList"></div>
@@ -406,7 +414,7 @@
             <div id="sec-news">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📰</div>
+                        <div class="ic"><i data-lucide="newspaper"></i></div>
                         <div>
                             <h3>نشر خبر جديد</h3>
                             <p>يظهر في قسم الأخبار داخل التطبيق، ويمكن إرسال إشعار به لجميع الطلاب فوراً</p>
@@ -440,16 +448,16 @@
                     </div>
 
                     <div class="chk-row">
-                        <label class="chk"><input type="checkbox" id="n_urgent"> عاجل 🔴</label>
-                        <label class="chk"><input type="checkbox" id="n_pinned"> مثبت 📌</label>
-                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب 🔔</label>
+                        <label class="chk"><input type="checkbox" id="n_urgent"> عاجل</label>
+                        <label class="chk"><input type="checkbox" id="n_pinned"> مثبت</label>
+                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب</label>
                     </div>
 
                     <button class="btn mt-4" id="n_publish">نشر الخبر</button>
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>الأخبار المنشورة</h3></div>
                     </div>
                     <div id="newsList"></div>
@@ -460,7 +468,7 @@
             <div id="sec-res" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📚</div>
+                        <div class="ic"><i data-lucide="book-open"></i></div>
                         <div>
                             <h3>نشر ملزمة PDF</h3>
                             <p>تُضاف إلى قسم الملازم المجانية حسب المرحلة والمادة</p>
@@ -510,7 +518,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>الملازم المنشورة</h3></div>
                     </div>
                     <div id="resList"></div>
@@ -521,7 +529,7 @@
             <div id="sec-notif" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🔔</div>
+                        <div class="ic"><i data-lucide="bell"></i></div>
                         <div>
                             <h3>إرسال إشعار عام</h3>
                             <p>يصل فوراً لكل الطلاب المسجّلين في التطبيق</p>
@@ -539,12 +547,12 @@
                     <div class="field">
                         <label>النوع</label>
                         <select id="no_type">
-                            <option value="urgent">عاجل 🔴</option>
-                            <option value="announcement" selected>إعلان رسمي 🔵</option>
-                            <option value="circular">تعميم 🟢</option>
-                            <option value="update">تحديث 🟡</option>
-                            <option value="reminder">تذكير 🟣</option>
-                            <option value="general">أخبار عامة ⚪</option>
+                            <option value="urgent">عاجل</option>
+                            <option value="announcement" selected>إعلان رسمي</option>
+                            <option value="circular">تعميم</option>
+                            <option value="update">تحديث</option>
+                            <option value="reminder">تذكير</option>
+                            <option value="general">أخبار عامة</option>
                         </select>
                     </div>
 
@@ -556,7 +564,7 @@
             <div id="sec-imgs" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🏷️</div>
+                        <div class="ic"><i data-lucide="tag"></i></div>
                         <div>
                             <h3>شعار الموقع (اللوكو)</h3>
                             <p>يظهر فورًا بجانب "منصة الطالب العراقي" عند كل المستخدمين</p>
@@ -570,7 +578,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🎠</div>
+                        <div class="ic"><i data-lucide="images"></i></div>
                         <div>
                             <h3>صور السلايدر</h3>
                             <p>تظهر فوق الشريط الإخباري في الواجهة الرئيسية</p>
@@ -593,7 +601,7 @@
             <div id="sec-ticker" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📢</div>
+                        <div class="ic"><i data-lucide="megaphone"></i></div>
                         <div>
                             <h3>إضافة خبر للشريط</h3>
                             <p>يظهر في الشريط الإخباري أعلى الرئيسية فقط — لا يدخل في الأخبار ولا الإشعارات</p>
@@ -612,7 +620,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div>
                             <h3>أخبار الشريط</h3>
                             <p>رتّبها بالأسهم، أوقف أي خبر مؤقتاً بالمفتاح، أو عدّل نصه مباشرة</p>
@@ -623,7 +631,7 @@
 
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">⚙️</div>
+                        <div class="ic"><i data-lucide="settings"></i></div>
                         <div>
                             <h3>إعدادات الشريط</h3>
                             <p>شكل الشريط وسرعته عند الطلاب</p>
@@ -662,7 +670,7 @@
             <div id="sec-exams" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🗓️</div>
+                        <div class="ic"><i data-lucide="calendar-days"></i></div>
                         <div>
                             <h3>إضافة موعد امتحان</h3>
                             <p>يظهر في جدول الامتحانات القادمة للطلاب</p>
@@ -682,7 +690,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>مواعيد الامتحانات الحالية</h3></div>
                     </div>
                     <div id="examsList"></div>
@@ -693,7 +701,7 @@
             <div id="sec-holidays" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🎉</div>
+                        <div class="ic"><i data-lucide="party-popper"></i></div>
                         <div>
                             <h3>إضافة عطلة للتقويم</h3>
                             <p>تظهر في تقويم العطل داخل التطبيق</p>
@@ -752,14 +760,14 @@
                     </div>
 
                     <div class="chk-row mt-4">
-                        <label class="chk"><input type="checkbox" id="h_notify" checked> إشعار للطلاب 🔔</label>
+                        <label class="chk"><input type="checkbox" id="h_notify" checked> إشعار للطلاب</label>
                     </div>
 
                     <button class="btn mt-4" id="h_publish">إضافة للتقويم</button>
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>العطل الحالية</h3></div>
                     </div>
                     <div id="holidaysList"></div>
@@ -770,7 +778,7 @@
             <div id="sec-topup" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">💳</div>
+                        <div class="ic"><i data-lucide="credit-card"></i></div>
                         <div>
                             <h3>توليد أكواد تعبئة</h3>
                             <p>كل كود يُستخدم مرة واحدة فقط من طالب واحد، ثم يصبح غير صالح تلقائياً</p>
@@ -792,7 +800,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>الأكواد المولّدة</h3></div>
                     </div>
                     <div class="subtabs">
@@ -808,7 +816,7 @@
             <div id="sec-store" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🏪</div>
+                        <div class="ic"><i data-lucide="store"></i></div>
                         <div><h3>طلبات فتح المتاجر</h3></div>
                     </div>
                     <div class="subtabs">
@@ -820,7 +828,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📦</div>
+                        <div class="ic"><i data-lucide="package"></i></div>
                         <div><h3>منتجات المتاجر (ريلز)</h3></div>
                     </div>
                     <div class="subtabs">
@@ -836,7 +844,7 @@
             <div id="sec-ban" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">🚫</div>
+                        <div class="ic"><i data-lucide="ban"></i></div>
                         <div>
                             <h3>حظر طالب</h3>
                             <p>يُسجَّل خروجه تلقائياً ولا يستطيع الدخول للمنصة مرة أخرى حتى يُرفع الحظر</p>
@@ -854,7 +862,7 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic">📋</div>
+                        <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>الطلاب المحظورون</h3></div>
                     </div>
                     <div id="bannedList"></div>
@@ -918,6 +926,7 @@
             setupPreview('r_cover', 'r_preview');
             setupPreview('logoFile', 'logo_preview');
             setupPreview('c_file', 'c_preview');
+            lucide.createIcons();
         })();
     </script>
 
@@ -1030,7 +1039,7 @@
         (function setModeBadge() {
             const badge = document.getElementById('modeBadge');
             if (!badge) return;
-            badge.textContent = 'الرفع: Base64 — Realtime Database ✅ (بدون Storage)';
+            badge.textContent = 'الرفع: Base64 — Realtime Database (بدون Storage)';
             badge.style.background = '#16A34A';
             badge.style.color = '#fff';
         })();
@@ -1068,13 +1077,13 @@
                         type: urgent ? 'urgent' : 'announcement', createdAt: serverTimestamp()
                     });
                 }
-                toast('✅ تم نشر الخبر بنجاح');
+                toast('تم نشر الخبر بنجاح');
                 el('n_title').value = ''; el('n_excerpt').value = '';
                 clearPreview('n_image', 'n_preview');
                 el('n_urgent').checked = false; el('n_pinned').checked = false;
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل النشر: ' + (e.message || e), false);
+                toast('فشل النشر: ' + (e.message || e), false);
             }
             btn.disabled = false;
         };
@@ -1110,12 +1119,12 @@
                     fileUrl: pdfUrl,
                     createdAt: serverTimestamp()
                 });
-                toast('✅ تم نشر الملزمة بنجاح');
+                toast('تم نشر الملزمة بنجاح');
                 el('r_title').value = ''; el('r_desc').value = '';
                 clearPreview('r_cover', 'r_preview'); el('r_pdf').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل النشر: ' + (e.message || e), false);
+                toast('فشل النشر: ' + (e.message || e), false);
             }
             btn.disabled = false;
         };
@@ -1133,11 +1142,11 @@
                     id, title, description: val('no_desc'), time: 'الآن', read: false,
                     type: val('no_type') || 'announcement', createdAt: serverTimestamp()
                 });
-                toast('🔔 تم إرسال الإشعار لجميع الطلاب');
+                toast('تم إرسال الإشعار لجميع الطلاب');
                 el('no_title').value = ''; el('no_desc').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل الإرسال', false);
+                toast('فشل الإرسال', false);
             }
             btn.disabled = false;
         };
@@ -1155,11 +1164,11 @@
                 const item = { id, text, active: true, order: id, createdAt: serverTimestamp() };
                 if (expiresAt) item.expiresAt = expiresAt;
                 await set(ref(db, 'ticker/' + id), item);
-                toast('📢 تم النشر في الشريط');
+                toast('تم النشر في الشريط');
                 el('ti_text').value = ''; el('ti_expires').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل النشر', false);
+                toast('فشل النشر', false);
             }
         };
         el('ti_publish').addEventListener('click', publishTicker);
@@ -1173,11 +1182,11 @@
             try {
                 const id = Date.now();
                 await set(ref(db, 'examSchedule/' + id), { id, subject, date: dateVal, createdAt: serverTimestamp() });
-                toast('🗓️ تمت إضافة الامتحان للجدول');
+                toast('تمت إضافة الامتحان للجدول');
                 el('ex_subject').value = ''; el('ex_date').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشلت الإضافة', false);
+                toast('فشلت الإضافة', false);
             }
         };
         el('ex_publish').addEventListener('click', publishExam);
@@ -1199,15 +1208,15 @@
                 if (notify) {
                     const notifDesc = 'من ' + startDate + ' إلى ' + endDate + (governorate ? ' — محافظة ' + governorate : '');
                     await set(ref(db, 'notifications/' + id), {
-                        id, title: '🎉 ' + title, description: notifDesc, time: 'الآن', read: false,
+                        id, title: title, description: notifDesc, time: 'الآن', read: false,
                         type: 'circular', createdAt: serverTimestamp()
                     });
                 }
-                toast('🎉 تمت إضافة العطلة للتقويم' + (notify ? ' وإرسال إشعار للطلاب' : ''));
+                toast('تمت إضافة العطلة للتقويم' + (notify ? ' وإرسال إشعار للطلاب' : ''));
                 el('h_title').value = ''; el('h_start').value = ''; el('h_end').value = ''; el('h_governorate').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشلت الإضافة', false);
+                toast('فشلت الإضافة', false);
             }
         };
         el('h_publish').addEventListener('click', publishHoliday);
@@ -1238,11 +1247,11 @@
                         code, value, used: false, usedBy: null, usedAt: null, createdAt: serverTimestamp()
                     });
                 }
-                toast('✅ تم توليد ' + count + ' كود بقيمة ' + value.toLocaleString('en-US') + ' د.ع');
+                toast('تم توليد ' + count + ' كود بقيمة ' + value.toLocaleString('en-US') + ' د.ع');
                 el('tc_value').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل التوليد: ' + (e.message || e), false);
+                toast('فشل التوليد: ' + (e.message || e), false);
             }
             btn.disabled = false;
         };
@@ -1266,14 +1275,14 @@
                 <div class="row-item">
                     <div class="flex-1 min-w-0">
                         <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c.code)}</div>
-                        <div class="text-slate-400 text-xs">${Number(c.value).toLocaleString('en-US')} د.ع ${c.used ? '• مستخدم ✅' : '• غير مستخدم'}</div>
+                        <div class="text-slate-400 text-xs">${Number(c.value).toLocaleString('en-US')} د.ع ${c.used ? '• مستخدم' : '• غير مستخدم'}</div>
                     </div>
                     ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode(${jsArg(c.code)})">نسخ</button>`}
                     <button class="del" onclick="deleteItem('topupCodes', ${jsArg(c._key)})">حذف</button>
                 </div>`).join('');
         }
         window.copyTopupCode = (code) => {
-            (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('📋 تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
+            (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
 
         // ---------- Users / Analytics ----------
@@ -1394,16 +1403,16 @@
         window.approveStore = async (uid) => {
             try {
                 await set(ref(db, 'stores/' + uid + '/status'), 'approved');
-                toast('✅ تم قبول المتجر');
-            } catch (e) { console.warn(e); toast('❌ فشل القبول', false); }
+                toast('تم قبول المتجر');
+            } catch (e) { console.warn(e); toast('فشل القبول', false); }
         };
         window.rejectStore = async (uid) => {
             const reason = prompt('سبب الرفض (اختياري):');
             if (reason === null) return; // FIX: pressing "Cancel" used to reject the store anyway
             try {
                 await update(ref(db, 'stores/' + uid), { status: 'rejected', rejectionReason: reason.trim() });
-                toast('🚫 تم رفض المتجر');
-            } catch (e) { console.warn(e); toast('❌ فشل الرفض', false); }
+                toast('تم رفض المتجر');
+            } catch (e) { console.warn(e); toast('فشل الرفض', false); }
         };
 
         let storeProductsData = [];
@@ -1436,14 +1445,14 @@
         window.approveProduct = async (id) => {
             try {
                 await set(ref(db, 'storeProducts/' + id + '/status'), 'approved');
-                toast('✅ تم قبول المنتج');
-            } catch (e) { console.warn(e); toast('❌ فشل القبول', false); }
+                toast('تم قبول المنتج');
+            } catch (e) { console.warn(e); toast('فشل القبول', false); }
         };
         window.rejectProduct = async (id) => {
             try {
                 await set(ref(db, 'storeProducts/' + id + '/status'), 'rejected');
-                toast('🚫 تم رفض المنتج');
-            } catch (e) { console.warn(e); toast('❌ فشل الرفض', false); }
+                toast('تم رفض المنتج');
+            } catch (e) { console.warn(e); toast('فشل الرفض', false); }
         };
 
         // ---------- Ban Student ----------
@@ -1458,16 +1467,16 @@
                     reason: val('ban_reason'),
                     bannedAt: serverTimestamp()
                 });
-                toast('🚫 تم حظر الطالب');
+                toast('تم حظر الطالب');
                 el('ban_number').value = ''; el('ban_reason').value = '';
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل الحظر', false);
+                toast('فشل الحظر', false);
             }
         };
         el('ban_add').addEventListener('click', banStudent);
         window.unbanStudent = (number) => {
-            remove(ref(db, 'bannedStudents/' + number)).then(() => toast('✅ تم رفع الحظر')).catch((e) => toast('❌ فشل رفع الحظر', false));
+            remove(ref(db, 'bannedStudents/' + number)).then(() => toast('تم رفع الحظر')).catch((e) => toast('فشل رفع الحظر', false));
         };
 
         // ---------- Site Images ----------
@@ -1479,11 +1488,11 @@
             try {
                 const url = await uploadFile(file, 'site/');
                 await set(ref(db, 'settings/logo'), { url, updatedAt: serverTimestamp() });
-                toast('🏷️ تم تغيير الشعار — ظهر عند الجميع');
+                toast('تم تغيير الشعار — ظهر عند الجميع');
                 clearPreview('logoFile', 'logo_preview');
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشل تغيير الشعار', false);
+                toast('فشل تغيير الشعار', false);
             }
             btn.disabled = false;
         };
@@ -1498,11 +1507,11 @@
                 const url = await uploadFile(file, 'site/');
                 const id = Date.now();
                 await set(ref(db, 'carousel/' + id), { id, image: url, title: val('c_title'), createdAt: serverTimestamp() });
-                toast('🎠 تمت إضافة الصورة للسلايدر');
+                toast('تمت إضافة الصورة للسلايدر');
                 el('c_title').value = ''; clearPreview('c_file', 'c_preview');
             } catch (e) {
                 console.warn(e);
-                toast('❌ فشلت الإضافة', false);
+                toast('فشلت الإضافة', false);
             }
             btn.disabled = false;
         };
@@ -1518,7 +1527,7 @@
             const payload = { ...patch, updatedAt: serverTimestamp() };
             return update(ref(db, 'siteConfig'), payload)
                 .then(() => okMsg && toast(okMsg))
-                .catch((e) => { console.warn(e); toast('❌ فشل الحفظ — تأكد من صلاحيات قاعدة البيانات لـ siteConfig', false); });
+                .catch((e) => { console.warn(e); toast('فشل الحفظ — تأكد من صلاحيات قاعدة البيانات لـ siteConfig', false); });
         };
         const setFieldIfIdle = (id, v) => { const f = el(id); if (f && document.activeElement !== f) f.value = v == null ? '' : v; };
 
@@ -1547,26 +1556,26 @@
                     inp.checked = false; return;
                 }
                 const name = inp.getAttribute('aria-label') || '';
-                cfgWrite({ [path.replace(/\./g, '/')]: inp.checked }, (inp.checked ? '✅ تم تشغيل: ' : '⏸️ تم إطفاء: ') + name);
+                cfgWrite({ [path.replace(/\./g, '/')]: inp.checked }, (inp.checked ? 'تم تشغيل: ' : 'تم إطفاء: ') + name);
             });
         });
 
         el('cfg_save_brand').addEventListener('click', () => cfgWrite({
             'branding/name': val('cfg_name'), 'branding/tagline': val('cfg_tagline')
-        }, '✏️ تم حفظ الاسم والوصف'));
+        }, 'تم حفظ الاسم والوصف'));
 
         el('cfg_save_ann').addEventListener('click', () => {
             const tone = document.querySelector('input[name="cfg_ann_tone"]:checked')?.value || 'info';
-            cfgWrite({ 'announcement/text': val('cfg_ann_text'), 'announcement/tone': tone }, '📣 تم حفظ الإعلان');
+            cfgWrite({ 'announcement/text': val('cfg_ann_text'), 'announcement/tone': tone }, 'تم حفظ الإعلان');
         });
 
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({
             'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
-        }, '🛠️ تم حفظ رسالة الصيانة'));
+        }, 'تم حفظ رسالة الصيانة'));
 
         el('cfg_save_tk').addEventListener('click', () => cfgWrite({
             'ticker/label': val('cfg_tk_label'), 'ticker/duration': Number(val('cfg_tk_duration')) || 0
-        }, '⚙️ تم حفظ إعدادات الشريط'));
+        }, 'تم حفظ إعدادات الشريط'));
         el('cfg_tk_label').addEventListener('input', renderTickerPreview);
 
         // ---------- Ticker items management ----------
@@ -1594,7 +1603,7 @@
             const list = tkSorted();
             box.innerHTML = list.map((t, i) => {
                 const expired = Number(t.expiresAt) && Number(t.expiresAt) <= Date.now();
-                const meta = expired ? '⌛ انتهت مدته' : (t.active === false ? '⏸️ موقوف' : (t.expiresAt ? '⏳ يختفي ' + escapeHtml(fmtDate(Number(t.expiresAt))) : '🟢 ظاهر'));
+                const meta = expired ? 'انتهت مدته' : (t.active === false ? 'موقوف' : (t.expiresAt ? 'يختفي ' + escapeHtml(fmtDate(Number(t.expiresAt))) : 'ظاهر'));
                 const editing = tickerEditing === t._key;
                 return `
                 <div class="row-item tk-row${t.active === false || expired ? ' is-off' : ''}">
@@ -1624,16 +1633,16 @@
 
         window.toggleTicker = (id, on) => {
             update(ref(db, 'ticker/' + id), { active: on })
-                .then(() => toast(on ? '🟢 الخبر ظاهر بالشريط' : '⏸️ تم إيقاف الخبر'))
-                .catch(() => toast('❌ فشل التحديث', false));
+                .then(() => toast(on ? 'الخبر ظاهر بالشريط' : 'تم إيقاف الخبر'))
+                .catch(() => toast('فشل التحديث', false));
         };
         window.editTicker = (id) => { tickerEditing = id; renderTickerAdmin(); };
         window.saveTicker = (id) => {
             const text = (el('tk_edit_' + id)?.value || '').trim();
             if (!text) { toast('النص فارغ', false); return; }
             update(ref(db, 'ticker/' + id), { text })
-                .then(() => { tickerEditing = null; toast('✏️ تم تعديل الخبر'); })
-                .catch(() => toast('❌ فشل التعديل', false));
+                .then(() => { tickerEditing = null; toast('تم تعديل الخبر'); })
+                .catch(() => toast('فشل التعديل', false));
         };
         window.moveTicker = (id, dir) => {
             const list = tkSorted();
@@ -1644,12 +1653,12 @@
             let oa = tkOrder(a), ob = tkOrder(b);
             if (oa === ob) ob = oa + (dir < 0 ? 1 : -1);
             update(ref(db, 'ticker'), { [a._key + '/order']: ob, [b._key + '/order']: oa })
-                .catch(() => toast('❌ فشل الترتيب', false));
+                .catch(() => toast('فشل الترتيب', false));
         };
 
         // ---------- Lists & Delete ----------
         window.deleteItem = (node, id) => {
-            remove(ref(db, node + '/' + id)).then(() => toast('🗑️ تم الحذف')).catch((e) => toast('❌ فشل الحذف', false));
+            remove(ref(db, node + '/' + id)).then(() => toast('تم الحذف')).catch((e) => toast('فشل الحذف', false));
         };
 
         function loadLists() {
@@ -1670,7 +1679,7 @@
                         <img src="${escapeHtml(n.image || '')}" alt="">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
-                            <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? '🔴 عاجل' : ''}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? 'عاجل' : ''}</div>
                         </div>
                         <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
                     </div>`).join('');
@@ -1733,7 +1742,7 @@
                 box.innerHTML = vals.map(h => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
-                            <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '🏛️' : '🏫'}</div>
+                            <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '' : ''}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}${h.governorate ? ' • ' + escapeHtml(h.governorate) : ' • كل المحافظات'}</div>
                         </div>
                         <button class="del" onclick="deleteItem('holidays', ${jsArg(h._key)})">حذف</button>
@@ -1759,7 +1768,7 @@
                 box.innerHTML = vals.map(b => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
-                            <div class="font-bold truncate">🚫 رقم الطالب: ${escapeHtml(b.studentNumber || '')}</div>
+                            <div class="font-bold truncate">رقم الطالب: ${escapeHtml(b.studentNumber || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(b.reason || 'بدون سبب محدد')}</div>
                         </div>
                         <button class="del" onclick="unbanStudent(${jsArg(b._key)})">رفع الحظر</button>
