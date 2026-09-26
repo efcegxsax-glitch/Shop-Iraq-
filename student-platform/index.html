@@ -397,28 +397,39 @@
            Headlines glide left→right the way Arabic news channels run them: the first
            headline enters from the left and is read from its right edge. Hover, press-and-
            hold, keyboard focus, the open list or the pause button all freeze it in place. */
-        .tk { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-card); overflow: hidden; isolation: isolate; }
-        .tk::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, var(--error), transparent); opacity: .7; }
+        /* Frame with a red light that keeps travelling around the border: a large rotating
+           conic "spotlight" (::before) behind an opaque inner panel (::after) inset by the
+           border width, so only a 2px ring of it shows. Uses transform rotation, which
+           animates in every browser (no @property needed). */
+        .tk { position: relative; background: var(--border); border-radius: 16px; box-shadow: var(--shadow-card); overflow: hidden; isolation: isolate; }
+        .tk::before { content: ""; position: absolute; z-index: 0; top: 50%; left: 50%; width: 150vmax; height: 150vmax; pointer-events: none;
+            background: conic-gradient(from 0deg, transparent 0deg 250deg, rgba(229, 72, 77, .35) 300deg, #E5484D 345deg, #FFE1E2 356deg, transparent 360deg);
+            transform: translate(-50%, -50%) rotate(0deg); animation: tkBorderSpin 4.5s linear infinite; }
+        .tk::after { content: ""; position: absolute; z-index: 1; inset: 2px; border-radius: 14px; pointer-events: none;
+            background: linear-gradient(var(--surface), var(--surface)), var(--bg); }
+        .tk > * { position: relative; z-index: 2; }
+        .tk > .tk-sr { position: absolute; }
+        @keyframes tkBorderSpin { to { transform: translate(-50%, -50%) rotate(360deg); } }
         /* Two rows: label + controls on top, the full card width for the headlines below —
            a single row left the text a narrow strip between the label and the buttons. */
-        .tk-head { display: flex; align-items: center; gap: 6px; padding: 10px 10px 0; }
-        .tk-count { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--text2); }
-        .tk-live { position: relative; z-index: 2; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 12px; font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #EF5A5F, #B42328); box-shadow: 0 8px 16px -8px rgba(229, 72, 77, .8); }
+        .tk-head { display: flex; align-items: center; gap: 6px; padding: 7px 8px 0; }
+        .tk-count { flex: 1; min-width: 0; font-size: 11px; font-weight: 600; color: var(--text2); }
+        .tk-live { position: relative; z-index: 2; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 24px; padding: 0 10px; border-radius: 8px; font-size: 11.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #EF5A5F, #B42328); box-shadow: 0 8px 16px -8px rgba(229, 72, 77, .8); }
         .tk-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
         .tk-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: tkPulse 1.6s ease-out infinite; }
         @keyframes tkPulse { from { transform: scale(1); opacity: .8; } to { transform: scale(2.8); opacity: 0; } }
-        .tk-viewport { position: relative; height: 62px; margin: 6px 0 4px; overflow: hidden; direction: ltr; cursor: pointer; touch-action: pan-y;
+        .tk-viewport { position: relative; height: 38px; margin: 2px 0 3px; overflow: hidden; direction: ltr; cursor: pointer; touch-action: pan-y;
             -webkit-mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent);
             mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent); }
         .tk-track { position: absolute; top: 0; bottom: 0; left: 0; display: flex; align-items: center; width: max-content; will-change: transform; animation: tkMarquee var(--tk-dur, 30s) linear infinite; }
         .tk.tk-paused .tk-track { animation-play-state: paused; }
         @keyframes tkMarquee { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
-        .tk-chip { direction: rtl; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 18px; line-height: 1.5; font-weight: 700; color: var(--text); padding: 8px 6px; border-radius: 12px; transition: background-color .2s ease; }
+        .tk-chip { direction: rtl; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 14.5px; line-height: 1.4; font-weight: 600; color: var(--text); padding: 4px 6px; border-radius: 10px; transition: background-color .2s ease; }
         .tk-chip:hover { background: var(--input-bg); }
-        .tk-new { font-size: 11px; font-weight: 700; line-height: 1; color: #fff; background: var(--error); padding: 4px 6px; border-radius: 6px; }
-        .tk-time { font-size: 12px; font-weight: 500; color: var(--text2); }
-        .tk-sep { flex-shrink: 0; width: 8px; height: 8px; margin: 0 22px; border-radius: 1.5px; background: var(--error); transform: rotate(45deg); opacity: .85; }
-        .tk-btn { position: relative; z-index: 2; flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); border: 0; cursor: pointer; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
+        .tk-new { font-size: 10px; font-weight: 700; line-height: 1; color: #fff; background: var(--error); padding: 4px 6px; border-radius: 6px; }
+        .tk-time { font-size: 11px; font-weight: 500; color: var(--text2); }
+        .tk-sep { flex-shrink: 0; width: 6px; height: 6px; margin: 0 18px; border-radius: 1.5px; background: var(--error); transform: rotate(45deg); opacity: .85; }
+        .tk-btn { position: relative; z-index: 2; flex-shrink: 0; width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); border: 0; cursor: pointer; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
         .tk-btn:hover { color: var(--text); }
         .tk-btn:active { transform: scale(.92); }
         .tk.tk-open #tkMore { background: rgb(var(--p) / 0.14); color: rgb(var(--p)); }
@@ -906,7 +917,7 @@
                         <span class="tk-live"><span class="tk-dot" aria-hidden="true"></span><span id="tkLabel">عاجل</span></span>
                         <span class="tk-count" id="tkCount"></span>
                         <button type="button" class="tk-btn" id="tkToggle" aria-label="إيقاف الشريط"></button>
-                        <button type="button" class="tk-btn" id="tkMore" aria-controls="tkList" aria-expanded="false" aria-label="كل الأخبار العاجلة"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+                        <button type="button" class="tk-btn" id="tkMore" aria-controls="tkList" aria-expanded="false" aria-label="كل الأخبار العاجلة"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
                     </div>
                     <div class="tk-viewport" id="tkViewport" tabindex="0" role="button" aria-controls="tkList" aria-expanded="false" aria-label="شريط الأخبار — اضغط لعرض كل الأخبار">
                         <div class="tk-track" id="tkTrack" aria-hidden="true"></div>
@@ -3752,8 +3763,8 @@
                     if (btn) {
                         btn.setAttribute('aria-label', tk.userPaused ? 'تشغيل الشريط' : 'إيقاف الشريط');
                         btn.innerHTML = tk.userPaused
-                            ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5.5v13a1 1 0 0 1-1.5.86l-11-6.5a1 1 0 0 1 0-1.72l11-6.5A1 1 0 0 1 17 5.5z"/></svg>'
-                            : '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
+                            ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17 5.5v13a1 1 0 0 1-1.5.86l-11-6.5a1 1 0 0 1 0-1.72l11-6.5A1 1 0 0 1 17 5.5z"/></svg>'
+                            : '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>';
                     }
                 };
                 this._tickerSync = sync;
