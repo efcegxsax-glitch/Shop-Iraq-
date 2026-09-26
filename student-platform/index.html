@@ -990,6 +990,68 @@
         .fc-res-btns button { flex: 1; height: 50px; border-radius: 16px; font-size: 14px; font-weight: 800; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
         .fc-res-btns button.pri { border: 0; color: #fff; background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); }
 
+        /* ===== Before the exam (قبل الامتحان) ===== */
+        .cm, .cm * { box-sizing: border-box; }
+        .cm { padding: 14px 16px 28px; }
+        .cm-sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 4px 10px; font-size: 14px; font-weight: 800; color: var(--text); }
+        .cm-sec small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .cm-next { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: cardIn .45s var(--ease-out) both; }
+        .cm-next-ic { flex-shrink: 0; width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #7C3AED; background: rgba(124,58,237,.12); }
+        .cm-next-ic svg { width: 20px; height: 20px; }
+        .cm-next div { flex: 1; min-width: 0; }
+        .cm-next b { display: block; font-size: 14px; font-weight: 800; color: var(--text); }
+        .cm-next span { font-size: 11.5px; color: var(--text2); }
+        .cm-next em { flex-shrink: 0; font-style: normal; font-size: 12px; font-weight: 900; padding: 6px 11px; border-radius: 99px; color: #7C3AED; background: rgba(124,58,237,.1); }
+        .cm-dua { position: relative; overflow: hidden; margin-top: 12px; padding: 22px 18px 16px; border-radius: 26px; text-align: center; color: #fff;
+            background: radial-gradient(120% 90% at 50% 0%, #1E3A5F 0%, #0F172A 55%, #111827 100%); box-shadow: 0 22px 44px -24px #1E3A5F; animation: cardIn .5s var(--ease-out) both; }
+        .cm-dua::before { content: ""; position: absolute; inset: -40% -10% auto; height: 200px; background: radial-gradient(closest-side, rgba(250,204,21,.18), transparent); animation: hpFloat 7s ease-in-out infinite; pointer-events: none; }
+        .cm-dua-lbl { position: relative; display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .3px; color: #FDE68A; background: rgba(250,204,21,.12); padding: 4px 11px; border-radius: 99px; }
+        .cm-dua-lbl svg { width: 13px; height: 13px; }
+        .cm-dua p { position: relative; margin: 16px 0 6px; min-height: 96px; display: flex; align-items: center; justify-content: center; font-size: 19px; line-height: 2; font-weight: 700; animation: cmFade .5s ease both; }
+        .cm-dua small { position: relative; display: block; font-size: 11px; color: rgba(255,255,255,.55); }
+        @keyframes cmFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .cm-dua-nav { position: relative; display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
+        .cm-dua-nav button { width: 34px; height: 34px; border-radius: 12px; border: 0; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.1); cursor: pointer; }
+        .cm-dua-nav button svg { width: 17px; height: 17px; }
+        .cm-dots { display: flex; gap: 5px; }
+        .cm-dots i { width: 6px; height: 6px; border-radius: 99px; background: rgba(255,255,255,.25); transition: all .3s ease; }
+        .cm-dots i.on { width: 18px; background: #FDE68A; }
+        /* breathing */
+        .cm-br { padding: 18px 14px 16px; border-radius: 24px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); text-align: center; }
+        .cm-orb-wrap { position: relative; width: 210px; height: 210px; margin: 4px auto 0; display: grid; place-items: center; }
+        .cm-orb-wrap::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px dashed rgb(var(--p) / .25); animation: tkBorderSpin 40s linear infinite; }
+        .cm-orb { width: 200px; height: 200px; border-radius: 50%; display: grid; place-items: center; transform: scale(.5); transition-property: transform, box-shadow; transition-timing-function: ease-in-out;
+            background: radial-gradient(circle at 35% 30%, #5EEAD4, rgb(var(--p)) 60%, #0B5E54); box-shadow: 0 0 0 10px rgb(var(--p) / .1), 0 18px 40px -16px rgb(var(--p)); }
+        .cm-orb.in { transform: scale(1); box-shadow: 0 0 0 22px rgb(var(--p) / .12), 0 0 0 44px rgb(var(--p) / .06), 0 22px 50px -16px rgb(var(--p)); }
+        .cm-orb.hold { transform: scale(1); }
+        .cm-orb.idle { animation: cmIdle 4s ease-in-out infinite; }
+        @keyframes cmIdle { 0%, 100% { transform: scale(.5); } 50% { transform: scale(.58); } }
+        .cm-orb-txt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; text-align: center; pointer-events: none; text-shadow: 0 1px 6px rgba(0,0,0,.18); }
+        .cm-orb-txt b { display: block; font-size: 20px; font-weight: 900; }
+        .cm-orb-txt small { font-size: 26px; font-weight: 900; font-variant-numeric: tabular-nums; opacity: .9; }
+        .cm-br h4 { margin: 12px 0 4px; font-size: 15px; font-weight: 900; color: var(--text); }
+        .cm-br p { margin: 0; font-size: 12.5px; color: var(--text2); line-height: 1.7; }
+        .cm-bar { height: 6px; margin: 12px 8px 0; border-radius: 99px; background: var(--input-bg); overflow: hidden; }
+        .cm-bar i { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg, #5EEAD4, rgb(var(--p))); transition: width .2s linear; }
+        .cm-btn { margin-top: 14px; width: 100%; height: 50px; border: 0; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 14.5px; font-weight: 900; color: #fff; cursor: pointer;
+            background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); box-shadow: 0 14px 28px -14px rgb(var(--p)); }
+        .cm-btn svg { width: 18px; height: 18px; }
+        .cm-btn.ghost { color: var(--text); background: var(--input-bg); box-shadow: none; }
+        /* checklist */
+        .cm-list { display: flex; flex-direction: column; gap: 8px; }
+        .cm-chk { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; font-weight: 700; text-align: right; cursor: pointer; transition: all .2s ease; animation: cardIn .4s var(--ease-out) both; }
+        .cm-chk-box { flex-shrink: 0; width: 26px; height: 26px; border-radius: 9px; border: 2px solid var(--border); display: grid; place-items: center; color: #fff; transition: all .2s ease; }
+        .cm-chk-box svg { width: 15px; height: 15px; opacity: 0; transform: scale(.5); transition: all .2s var(--ease-spring); }
+        .cm-chk.on { border-color: rgba(22,163,74,.35); background: rgba(22,163,74,.06); }
+        .cm-chk.on .cm-chk-box { border-color: #16A34A; background: #16A34A; }
+        .cm-chk.on .cm-chk-box svg { opacity: 1; transform: none; }
+        .cm-chk.on span:last-child { color: var(--text2); text-decoration: line-through; }
+        .cm-tips { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .cm-tip { padding: 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text); line-height: 1.6; animation: hpPop .45s var(--ease-spring) both; }
+        .cm-tip b { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 12.5px; font-weight: 900; color: var(--c); }
+        .cm-tip b i { width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-size: 11px; color: #fff; background: var(--c); }
+        .cm-quote { margin-top: 18px; padding: 16px; border-radius: 20px; text-align: center; font-size: 14px; font-weight: 800; line-height: 1.8; color: var(--text); background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(124,58,237,.08)); border: 1px solid var(--border); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -1470,7 +1532,7 @@
             <section class="px-4 py-2 hidden" id="examCountdownSection">
                 <div class="hl-head">
                     <span class="hl-title"><span class="hl-live ex-live" aria-hidden="true"></span>عدّاد الامتحانات</span>
-                    <span class="hl-count" id="examCountdownCount"></span>
+                    <span class="tip-tools"><span class="hl-count" id="examCountdownCount"></span><button class="hl-all btn-press" onclick="app.goToCalm()">استعد ›</button></span>
                 </div>
                 <div class="hl-viewport" id="examCountdownViewport" role="region" aria-label="عدّاد الامتحانات">
                     <div class="hl-track" id="examCountdownList"></div>
@@ -2172,6 +2234,17 @@
                     <div class="flex-1">
                         <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز — لا تلمس الهاتف</div>
                         <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بدون ما تطلع من التطبيق واكسب نقاط، وإذا طلعت تنكسر الجلسة</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToCalm()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
+                        <i data-lucide="heart-handshake" class="w-5 h-5 text-purple"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">قبل الامتحان</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">دعاء، تمرين تنفّس دقيقة وحدة، وقائمة تجهيز حتى تدخل هادئ</div>
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
@@ -2900,6 +2973,20 @@
                 </div>
             </div>
             <div id="focusContent" class="fc"></div>
+        </div>
+
+        <!-- ===== BEFORE THE EXAM VIEW (قبل الامتحان) ===== -->
+        <div id="calmView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.calmBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">قبل الامتحان</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">اهدأ... إنت جاهز</div>
+                </div>
+            </div>
+            <div id="calmContent" class="cm"></div>
         </div>
 
         <!-- ===== HOLIDAYS CALENDAR VIEW (تقويم العطل) ===== -->
@@ -5835,6 +5922,207 @@
 
             // A session that was still saved when the app starts means the app was closed
             // (or the page reloaded) mid-session — that counts as broken.
+            // ===== Before the exam (قبل الامتحان) =====
+            // A quiet page: a dua carousel, a guided one-minute breathing exercise
+            // (inhale 4s, hold 2s, exhale 6s, 5 rounds), a same-day readiness checklist
+            // saved on the device, and short in-hall tips.
+            CALM_DUAS: [
+                { t: 'رَبِّ اشْرَحْ لِي صَدْرِي، وَيَسِّرْ لِي أَمْرِي، وَاحْلُلْ عُقْدَةً مِنْ لِسَانِي، يَفْقَهُوا قَوْلِي', s: 'سورة طه' },
+                { t: 'اللَّهُمَّ لا سَهْلَ إِلَّا مَا جَعَلْتَهُ سَهْلًا، وَأَنْتَ تَجْعَلُ الْحَزْنَ إِذَا شِئْتَ سَهْلًا', s: 'دعاء' },
+                { t: 'رَبِّ زِدْنِي عِلْمًا', s: 'سورة طه' },
+                { t: 'حَسْبِيَ اللَّهُ لا إِلَهَ إِلَّا هُوَ، عَلَيْهِ تَوَكَّلْتُ', s: 'سورة التوبة' },
+                { t: 'اللَّهُمَّ إِنِّي أَسْتَوْدِعُكَ مَا قَرَأْتُ وَمَا حَفِظْتُ، فَرُدَّهُ عَلَيَّ عِنْدَ حَاجَتِي إِلَيْهِ', s: 'دعاء' }
+            ],
+            CALM_CHECKS: ['نمت زين البارحة', 'فطرت وشربت ماي', 'القلم والهوية والآلة الحاسبة وياي', 'راجعت الملخص مرة أخيرة بس', 'أطلع من البيت بدري'],
+            CALM_TIPS: [
+                ['اقرأ الأسئلة كلها أول', '#0EA5E9'],
+                ['ابدأ بالسؤال الأسهل', '#16A34A'],
+                ['راقب الوقت كل ربع ساعة', '#F59E0B'],
+                ['لا توكف على سؤال واحد', '#E5484D'],
+                ['اكتب بخط واضح ومرتب', '#7C3AED'],
+                ['راجع ورقتك قبل التسليم', 'rgb(var(--p))']
+            ],
+            CALM_QUOTES: ['تعبك طول السنة ما يروح، إنت أجهز مما تتصور', 'التوتر طبيعي، يعني إنت مهتم، وهذا شي زين', 'سؤال صعب ما يعني امتحان صعب، كمّل وارجعله', 'نفس عميق، وتوكل على الله، وابدأ'],
+            CALM_PHASES: [{ k: 'in', l: 'شهيق', d: 4000 }, { k: 'hold', l: 'احبس', d: 2000 }, { k: 'out', l: 'زفير', d: 6000 }],
+            CALM_ROUNDS: 5,
+            calmDua: 0,
+
+            goToCalm() {
+                this.calmDua = Math.floor(Math.random() * this.CALM_DUAS.length);
+                this._calmQuote = this.CALM_QUOTES[Math.floor(Math.random() * this.CALM_QUOTES.length)];
+                this.renderCalm();
+                this.switchView('calmView');
+            },
+
+            calmBack() {
+                this._stopBreath();
+                this.goBack();
+            },
+
+            _calmChecksKey() {
+                const d = new Date();
+                return 'isp_calm_checks_' + d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+            },
+
+            _calmChecks() {
+                try { const v = JSON.parse(localStorage.getItem(this._calmChecksKey()) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; }
+            },
+
+            toggleCalmCheck(i) {
+                const on = this._calmChecks();
+                const at = on.indexOf(i);
+                if (at === -1) on.push(i); else on.splice(at, 1);
+                try {
+                    Object.keys(localStorage).forEach((k) => { if (k.indexOf('isp_calm_checks_') === 0 && k !== this._calmChecksKey()) localStorage.removeItem(k); });
+                    localStorage.setItem(this._calmChecksKey(), JSON.stringify(on));
+                } catch (e) {}
+                const btn = document.querySelector('.cm-chk[data-i="' + i + '"]');
+                if (btn) btn.classList.toggle('on', at === -1);
+                const cnt = document.getElementById('calmChkCount');
+                if (cnt) cnt.textContent = on.length + ' من ' + this.CALM_CHECKS.length;
+            },
+
+            calmNextDua(step) {
+                const n = this.CALM_DUAS.length;
+                this.calmDua = (this.calmDua + step + n) % n;
+                const d = this.CALM_DUAS[this.calmDua];
+                const p = document.getElementById('calmDuaText');
+                const s = document.getElementById('calmDuaSrc');
+                if (p) { p.textContent = d.t; p.style.animation = 'none'; void p.offsetWidth; p.style.animation = ''; }
+                if (s) s.textContent = d.s;
+                document.querySelectorAll('#calmDuaDots i').forEach((el, i) => el.classList.toggle('on', i === this.calmDua));
+            },
+
+            _calmNextExam() {
+                const now = Date.now();
+                const up = (typeof examSchedule !== 'undefined' ? examSchedule : [])
+                    .map((ex) => ({ ex, t: new Date(ex.date).getTime() }))
+                    .filter((x) => !isNaN(x.t) && x.t > now)
+                    .sort((a, b) => a.t - b.t)[0];
+                if (!up) return '';
+                const diff = up.t - now;
+                const days = Math.floor(diff / 86400000);
+                const hrs = Math.floor(diff / 3600000);
+                const when = days >= 1 ? (days === 1 ? 'باچر' : 'بعد ' + days + ' يوم') : (hrs >= 1 ? 'بعد ' + hrs + ' ساعة' : 'بعد شوية');
+                const d = new Date(up.t);
+                return `
+                    <div class="cm-next">
+                        <span class="cm-next-ic"><i data-lucide="notebook-pen"></i></span>
+                        <div><b>${escapeHtml(up.ex.subject || 'امتحان')}</b><span>امتحانك الجاي — ${d.getDate()}/${d.getMonth() + 1}</span></div>
+                        <em>${when}</em>
+                    </div>`;
+            },
+
+            renderCalm() {
+                const box = document.getElementById('calmContent');
+                if (!box) return;
+                this._stopBreath();
+                const d = this.CALM_DUAS[this.calmDua] || this.CALM_DUAS[0];
+                const on = this._calmChecks();
+                box.innerHTML = `
+                    ${this._calmNextExam()}
+
+                    <section class="cm-dua">
+                        <span class="cm-dua-lbl"><i data-lucide="moon-star"></i>دعاء قبل الامتحان</span>
+                        <p id="calmDuaText">${escapeHtml(d.t)}</p>
+                        <small id="calmDuaSrc">${escapeHtml(d.s)}</small>
+                        <div class="cm-dua-nav">
+                            <button class="btn-press" onclick="app.calmNextDua(-1)" aria-label="السابق"><i data-lucide="chevron-right"></i></button>
+                            <span class="cm-dots" id="calmDuaDots">${this.CALM_DUAS.map((_, i) => `<i class="${i === this.calmDua ? 'on' : ''}"></i>`).join('')}</span>
+                            <button class="btn-press" onclick="app.calmNextDua(1)" aria-label="التالي"><i data-lucide="chevron-left"></i></button>
+                        </div>
+                    </section>
+
+                    <div class="cm-sec">تمرين تنفّس<small>دقيقة وحدة</small></div>
+                    <section class="cm-br" id="calmBreath">
+                        <div class="cm-orb-wrap"><div class="cm-orb idle" id="calmOrb"></div><span class="cm-orb-txt"><b id="calmPhase">جاهز؟</b><small id="calmSec"></small></span></div>
+                        <h4 id="calmBrTitle">هدّي أعصابك بدقيقة</h4>
+                        <p id="calmBrText">اتبع الدائرة: شهيق لما تكبر، احبس لما توكف، وزفير لما تصغر.</p>
+                        <div class="cm-bar"><i id="calmBar"></i></div>
+                        <button class="cm-btn btn-press" id="calmBrBtn" onclick="app.toggleBreath()"><i data-lucide="wind"></i>ابدأ التمرين</button>
+                    </section>
+
+                    <div class="cm-sec">جهّز نفسك<small id="calmChkCount">${on.length} من ${this.CALM_CHECKS.length}</small></div>
+                    <div class="cm-list">
+                        ${this.CALM_CHECKS.map((c, i) => `
+                            <button class="cm-chk${on.indexOf(i) !== -1 ? ' on' : ''}" data-i="${i}" style="animation-delay:${i * 0.04}s" onclick="app.toggleCalmCheck(${jsNum(i)})">
+                                <span class="cm-chk-box"><i data-lucide="check"></i></span><span>${escapeHtml(c)}</span>
+                            </button>`).join('')}
+                    </div>
+
+                    <div class="cm-sec">داخل القاعة</div>
+                    <div class="cm-tips">
+                        ${this.CALM_TIPS.map(([t, c], i) => `<div class="cm-tip" style="--c:${c};animation-delay:${i * 0.05}s"><b><i>${i + 1}</i></b>${escapeHtml(t)}</div>`).join('')}
+                    </div>
+
+                    <div class="cm-quote">${escapeHtml(this._calmQuote || this.CALM_QUOTES[0])}</div>
+                `;
+                lucide.createIcons();
+            },
+
+            toggleBreath() {
+                if (this._breath) { this._stopBreath(); this._breathIdle('وكفت التمرين', 'تكدر تبدي من جديد بأي وقت.'); return; }
+                const cycle = this.CALM_PHASES.reduce((a, p) => a + p.d, 0);
+                this._breath = { start: Date.now(), total: cycle * this.CALM_ROUNDS, cycle, phase: -1 };
+                const btn = document.getElementById('calmBrBtn');
+                if (btn) { btn.classList.add('ghost'); btn.innerHTML = '<i data-lucide="square"></i>إيقاف'; lucide.createIcons(); }
+                const t = document.getElementById('calmBrTitle');
+                if (t) t.textContent = 'تنفّس ويا الدائرة';
+                this._breathTick();
+                this._breath.timer = setInterval(() => this._breathTick(), 100);
+            },
+
+            _breathTick() {
+                const b = this._breath;
+                if (!b) return;
+                if (this.currentView !== 'calmView') { this._stopBreath(); return; }
+                const el = Date.now() - b.start;
+                const bar = document.getElementById('calmBar');
+                if (bar) bar.style.width = Math.min(100, (el / b.total) * 100) + '%';
+                if (el >= b.total) {
+                    this._stopBreath();
+                    this._breathIdle('أحسنت، هسه إنت أهدأ', 'خذ هالهدوء وياك للقاعة. تكدر تعيده قبل ما تدخل.');
+                    if (bar) bar.style.width = '100%';
+                    return;
+                }
+                let inCycle = el % b.cycle, idx = 0;
+                while (inCycle >= this.CALM_PHASES[idx].d) { inCycle -= this.CALM_PHASES[idx].d; idx++; }
+                const ph = this.CALM_PHASES[idx];
+                const orb = document.getElementById('calmOrb');
+                if (idx !== b.phase) {
+                    b.phase = idx;
+                    if (orb) {
+                        orb.classList.remove('idle', 'in', 'hold');
+                        orb.style.transitionDuration = ph.d + 'ms';
+                        if (ph.k === 'in') orb.classList.add('in');
+                        else if (ph.k === 'hold') orb.classList.add('hold');
+                    }
+                    const lbl = document.getElementById('calmPhase');
+                    if (lbl) lbl.textContent = ph.l;
+                    try { if (navigator.vibrate) navigator.vibrate(25); } catch (e) {}
+                    const txt = document.getElementById('calmBrText');
+                    if (txt) txt.textContent = 'الجولة ' + (Math.floor(el / b.cycle) + 1) + ' من ' + this.CALM_ROUNDS;
+                }
+                const sec = document.getElementById('calmSec');
+                if (sec) sec.textContent = Math.ceil((ph.d - inCycle) / 1000);
+            },
+
+            _breathIdle(title, text) {
+                const orb = document.getElementById('calmOrb');
+                if (orb) { orb.classList.remove('in', 'hold'); orb.style.transitionDuration = '1200ms'; orb.classList.add('idle'); }
+                const lbl = document.getElementById('calmPhase'); if (lbl) lbl.textContent = 'جاهز؟';
+                const sec = document.getElementById('calmSec'); if (sec) sec.textContent = '';
+                const t = document.getElementById('calmBrTitle'); if (t) t.textContent = title;
+                const p = document.getElementById('calmBrText'); if (p) p.textContent = text;
+                const btn = document.getElementById('calmBrBtn');
+                if (btn) { btn.classList.remove('ghost'); btn.innerHTML = '<i data-lucide="wind"></i>ابدأ التمرين'; lucide.createIcons(); }
+            },
+
+            _stopBreath() {
+                if (this._breath && this._breath.timer) clearInterval(this._breath.timer);
+                this._breath = null;
+            },
+
             checkInterruptedFocus() {
                 let saved = null;
                 try { saved = JSON.parse(localStorage.getItem(this.FOCUS_KEY) || 'null'); } catch (e) {}
@@ -11808,7 +12096,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
