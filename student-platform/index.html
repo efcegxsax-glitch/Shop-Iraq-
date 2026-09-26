@@ -399,22 +399,25 @@
            hold, keyboard focus, the open list or the pause button all freeze it in place. */
         .tk { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow-card); overflow: hidden; isolation: isolate; }
         .tk::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, transparent, var(--error), transparent); opacity: .7; }
-        .tk-head { display: flex; align-items: center; gap: 6px; height: 54px; padding-inline: 8px 6px; }
+        /* Two rows: label + controls on top, the full card width for the headlines below —
+           a single row left the text a narrow strip between the label and the buttons. */
+        .tk-head { display: flex; align-items: center; gap: 6px; padding: 10px 10px 0; }
+        .tk-count { flex: 1; min-width: 0; font-size: 12px; font-weight: 600; color: var(--text2); }
         .tk-live { position: relative; z-index: 2; flex-shrink: 0; display: inline-flex; align-items: center; gap: 7px; height: 34px; padding: 0 12px; border-radius: 12px; font-size: 12.5px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #EF5A5F, #B42328); box-shadow: 0 8px 16px -8px rgba(229, 72, 77, .8); }
         .tk-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
         .tk-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #fff; animation: tkPulse 1.6s ease-out infinite; }
         @keyframes tkPulse { from { transform: scale(1); opacity: .8; } to { transform: scale(2.8); opacity: 0; } }
-        .tk-viewport { position: relative; flex: 1; min-width: 0; height: 100%; overflow: hidden; direction: ltr; cursor: pointer; touch-action: pan-y;
-            -webkit-mask-image: linear-gradient(to right, transparent, #000 26px, #000 calc(100% - 26px), transparent);
-            mask-image: linear-gradient(to right, transparent, #000 26px, #000 calc(100% - 26px), transparent); }
+        .tk-viewport { position: relative; height: 62px; margin: 6px 0 4px; overflow: hidden; direction: ltr; cursor: pointer; touch-action: pan-y;
+            -webkit-mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent);
+            mask-image: linear-gradient(to right, transparent, #000 18px, #000 calc(100% - 18px), transparent); }
         .tk-track { position: absolute; top: 0; bottom: 0; left: 0; display: flex; align-items: center; width: max-content; will-change: transform; animation: tkMarquee var(--tk-dur, 30s) linear infinite; }
         .tk.tk-paused .tk-track { animation-play-state: paused; }
         @keyframes tkMarquee { from { transform: translate3d(-50%, 0, 0); } to { transform: translate3d(0, 0, 0); } }
-        .tk-chip { direction: rtl; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text); padding: 6px 4px; border-radius: 10px; transition: background-color .2s ease; }
+        .tk-chip { direction: rtl; display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; font-size: 18px; line-height: 1.5; font-weight: 700; color: var(--text); padding: 8px 6px; border-radius: 12px; transition: background-color .2s ease; }
         .tk-chip:hover { background: var(--input-bg); }
-        .tk-new { font-size: 10px; font-weight: 700; line-height: 1; color: #fff; background: var(--error); padding: 4px 6px; border-radius: 6px; }
-        .tk-time { font-size: 11px; font-weight: 500; color: var(--text2); }
-        .tk-sep { flex-shrink: 0; width: 6px; height: 6px; margin: 0 18px; border-radius: 1.5px; background: var(--error); transform: rotate(45deg); opacity: .85; }
+        .tk-new { font-size: 11px; font-weight: 700; line-height: 1; color: #fff; background: var(--error); padding: 4px 6px; border-radius: 6px; }
+        .tk-time { font-size: 12px; font-weight: 500; color: var(--text2); }
+        .tk-sep { flex-shrink: 0; width: 8px; height: 8px; margin: 0 22px; border-radius: 1.5px; background: var(--error); transform: rotate(45deg); opacity: .85; }
         .tk-btn { position: relative; z-index: 2; flex-shrink: 0; width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); border: 0; cursor: pointer; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
         .tk-btn:hover { color: var(--text); }
         .tk-btn:active { transform: scale(.92); }
@@ -901,11 +904,12 @@
                 <div id="tickerBar" class="tk theme-transition hidden" role="region" aria-label="شريط الأخبار العاجلة">
                     <div class="tk-head">
                         <span class="tk-live"><span class="tk-dot" aria-hidden="true"></span><span id="tkLabel">عاجل</span></span>
-                        <div class="tk-viewport" id="tkViewport" tabindex="0" role="button" aria-controls="tkList" aria-expanded="false" aria-label="شريط الأخبار — اضغط لعرض كل الأخبار">
-                            <div class="tk-track" id="tkTrack" aria-hidden="true"></div>
-                        </div>
+                        <span class="tk-count" id="tkCount"></span>
                         <button type="button" class="tk-btn" id="tkToggle" aria-label="إيقاف الشريط"></button>
                         <button type="button" class="tk-btn" id="tkMore" aria-controls="tkList" aria-expanded="false" aria-label="كل الأخبار العاجلة"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></button>
+                    </div>
+                    <div class="tk-viewport" id="tkViewport" tabindex="0" role="button" aria-controls="tkList" aria-expanded="false" aria-label="شريط الأخبار — اضغط لعرض كل الأخبار">
+                        <div class="tk-track" id="tkTrack" aria-hidden="true"></div>
                     </div>
                     <span class="tk-sr" id="tkSr" aria-live="polite"></span>
                     <ul class="tk-list" id="tkList" hidden></ul>
@@ -3725,9 +3729,11 @@
                 if (autoplayChanged) tk.userPaused = !tk.autoplay; // admin "autoplay off" = starts paused
                 tk.key = key;
                 tk.items = items.slice();
-                tk.speed = ({ 4: 90, 6: 70, 8: 55, 12: 38 })[Number(tcfg.duration)] || 55; // px per second
+                tk.speed = ({ 4: 85, 6: 65, 8: 48, 12: 34 })[Number(tcfg.duration)] || 48; // px per second
                 const sr = document.getElementById('tkSr');
                 if (sr) sr.textContent = items.length + ' خبر عاجل: ' + items.map(t => t.text).join(' — ');
+                const countEl = document.getElementById('tkCount');
+                if (countEl) countEl.textContent = items.length === 1 ? 'خبر واحد' : (items.length === 2 ? 'خبران' : items.length + (items.length <= 10 ? ' أخبار' : ' خبراً'));
                 this._tickerRenderList();
                 this._tickerBuild();
                 this._tickerSync();
