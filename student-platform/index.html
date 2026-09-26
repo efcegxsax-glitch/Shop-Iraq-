@@ -972,8 +972,16 @@
             backdrop-filter: blur(22px) saturate(180%); -webkit-backdrop-filter: blur(22px) saturate(180%);
             overflow: hidden;
         }
-        /* thin glowing line along the top edge that follows the theme colour */
-        #bottomNav::before { content: ""; position: absolute; top: 0; left: 18%; right: 18%; height: 1px; background: linear-gradient(90deg, transparent, rgb(var(--p) / 0.7), transparent); pointer-events: none; }
+        /* A light in the theme colour that keeps travelling around the dock's frame (same
+           technique as the news ticker): a big rotating conic spotlight (::before) behind an
+           inner glass panel (::after) inset by 2px, so only a thin ring of it shows. */
+        #bottomNav { position: fixed; z-index: 50; background-color: var(--border) !important; isolation: isolate; }
+        #bottomNav::before { content: ""; position: absolute; z-index: 0; top: 50%; left: 50%; width: 150vmax; height: 150vmax; pointer-events: none;
+            background: conic-gradient(from 0deg, transparent 0deg 250deg, rgb(var(--p) / 0.35) 300deg, rgb(var(--p)) 345deg, #CFFAF1 356deg, transparent 360deg);
+            transform: translate(-50%, -50%) rotate(0deg); animation: tkBorderSpin 5s linear infinite; }
+        #bottomNav::after { content: ""; position: absolute; z-index: 1; inset: 2px; border-radius: 22px; pointer-events: none;
+            background: linear-gradient(rgba(var(--bg-rgb), 0.9), rgba(var(--bg-rgb), 0.9)), var(--bg); }
+        #bottomNav .nav-track { z-index: 2; }
         @media (min-width: 480px) { #bottomNav { left: 0 !important; right: 0 !important; width: calc(100% - 24px); max-width: 456px !important; } }
         #bottomNav .nav-track { position: relative; display: flex; align-items: center; height: 100%; padding: 0 4px; max-width: none; }
         #bottomNav .nav-indicator {
