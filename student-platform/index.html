@@ -635,6 +635,58 @@
         .pf-logout { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px; border-radius: 18px; font-size: 14px; font-weight: 800; color: #E5484D; background: rgba(229, 72, 77, 0.08); border: 1px solid rgba(229, 72, 77, 0.22); cursor: pointer; }
         .pf-logout svg { width: 18px; height: 18px; }
 
+        /* ===== News card v2 ===== */
+        .nw-wrap { border-radius: 22px; }
+        .nw-card { position: relative; display: flex; gap: 12px; padding: 10px; border-radius: 22px; cursor: pointer; touch-action: pan-y;
+            background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface));
+            border: 1px solid var(--border); box-shadow: var(--shadow-card); transition: box-shadow .25s ease; }
+        .nw-card, .nw-card * { box-sizing: border-box; }
+        .nw-img { position: relative; flex-shrink: 0; width: 118px; min-height: 112px; border-radius: 16px; overflow: hidden; background: var(--input-bg); }
+        .nw-img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease-out); }
+        .nw-card:hover .nw-img img { transform: scale(1.05); }
+        .nw-flag { position: absolute; top: 6px; right: 6px; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: 800; color: #fff; background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .nw-flag.nw-urgent { background: #E5484D; }
+        .nw-body { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 2px 2px 0; }
+        .nw-title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; font-size: 16px; line-height: 1.5; font-weight: 800; color: var(--text); }
+        .nw-card:not(.is-unread) .nw-title { color: color-mix(in srgb, var(--text) 82%, var(--text2)); }
+        .nw-dot { display: inline-block; width: 8px; height: 8px; margin-inline-end: 6px; vertical-align: middle; border-radius: 50%; background: rgb(var(--p)); box-shadow: 0 0 0 3px rgb(var(--p) / 0.18); }
+        .nw-pin { display: inline-block; width: 14px; height: 14px; margin-inline-end: 4px; vertical-align: -2px; color: var(--gold); }
+        .nw-excerpt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 4px 0 0; font-size: 13.5px; line-height: 1.65; color: var(--text2); }
+        .nw-foot { display: flex; align-items: center; gap: 10px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+        .nw-excerpt + .nw-foot, .nw-title + .nw-foot { margin-top: 10px; }
+        .nw-meta { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 12px; font-weight: 500; color: var(--text2); white-space: nowrap; }
+        .nw-meta:first-child { overflow: hidden; }
+        .nw-meta:first-child > span { overflow: hidden; text-overflow: ellipsis; }
+        .nw-meta svg { flex-shrink: 0; width: 15px; height: 15px; }
+        .nw-sep { flex-shrink: 0; width: 1px; height: 14px; background: var(--border); }
+        .nw-bm { flex-shrink: 0; margin-inline-start: auto; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; border: 0; color: var(--text2); background: var(--input-bg); cursor: pointer; }
+        .nw-bm svg { width: 15px; height: 15px; }
+        .nw-bm.on { color: rgb(var(--p)); background: rgb(var(--p) / 0.12); }
+        .nw-bm.on svg { fill: currentColor; }
+
+        /* ===== News details v2 ===== */
+        .nd, .nd * { box-sizing: border-box; }
+        .nd-hero { position: relative; height: 250px; overflow: hidden; border-radius: 0 0 28px 28px; background: var(--input-bg); }
+        .nd-hero img { width: 100%; height: 100%; object-fit: cover; animation: ndZoom 1.2s var(--ease-out) both; }
+        @keyframes ndZoom { from { transform: scale(1.08); } }
+        .nd-hero-shade { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.55), transparent 55%); }
+        .nd-tags { position: absolute; bottom: 14px; right: 16px; left: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
+        .nd-tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 10px; font-size: 12px; font-weight: 800; color: #fff; background: rgba(255,255,255,.2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        .nd-tag-urgent { background: #E5484D; }
+        .nd-body { padding: 18px 18px 28px; animation: cardIn .55s var(--ease-out) both .1s; }
+        .nd-title { margin: 0 0 14px; font-size: 23px; line-height: 1.6; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
+        .nd-src { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--input-bg); }
+        .nd-src img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .nd-src b { display: block; font-size: 14px; font-weight: 800; color: var(--text); }
+        .nd-src span { font-size: 12px; color: var(--text2); }
+        .nd-text { margin-top: 18px; font-size: 18px; line-height: 2.05; font-weight: 500; color: var(--text); white-space: pre-line; }
+        .nd-actions { display: flex; gap: 10px; margin: 22px 0 6px; }
+        .nd-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 16px; border: 1px solid var(--border); font-size: 14.5px; font-weight: 800; color: var(--text); background: var(--surface); cursor: pointer; }
+        .nd-btn svg { width: 18px; height: 18px; }
+        .nd-btn.on { color: #fff; background: rgb(var(--p)); border-color: transparent; }
+        .nd-btn.on svg { fill: currentColor; }
+        .nd-rel-title { margin: 24px 2px 12px; font-size: 16px; font-weight: 800; color: var(--text); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -4097,42 +4149,39 @@
                 if (container) container.innerHTML = filtered.map(news => this.createNewsCard(news)).join('');
             },
 
+            // News card v2: photo on the right, bold title, 2-line excerpt, divider, then
+            // source · time and a bookmark. Keeps swipe-to-delete (the red layer must stay the
+            // article's previous sibling).
             createNewsCard(news) {
-                const isUrgent = news.isUrgent;
                 const isRead = news.isRead;
                 const isBookmarked = news.isBookmarked;
+                const id = jsNum(news.id);
+                const cat = (categories.find(c => c.id === news.category) || {}).label || '';
                 return `
-                    <div class="relative overflow-hidden rounded-2xl" style="min-height: 120px;">
-                        <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
-                            <button onclick="event.stopPropagation(); app.deleteNewsCard(${jsNum(news.id)})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الخبر">
+                    <div class="nw-wrap relative overflow-hidden">
+                        <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease; border-radius: 22px;">
+                            <button onclick="event.stopPropagation(); app.deleteNewsCard(${id})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الخبر">
                                 <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                             </button>
                         </div>
-                        <article class="news-card rounded-2xl p-3 border cursor-pointer relative ${!isRead ? 'border-r-4 border-r-primary' : ''} theme-transition"
-                             onclick="app.openNews(${jsNum(news.id)})" ontouchstart="app.swipeStart(event, 'news-${jsNum(news.id)}')" ontouchmove="app.swipeMove(event, 'news-${jsNum(news.id)}')" ontouchend="app.swipeEnd(event, 'news-${jsNum(news.id)}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); touch-action: pan-y;">
-                        <div class="flex gap-3">
-                            <div class="w-24 h-[72px] rounded-xl overflow-hidden flex-shrink-0 theme-transition" style="background-color: var(--bg);">
-                                <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}" class="w-full h-full object-cover" loading="lazy">
+                        <article class="nw-card${!isRead ? ' is-unread' : ''}" onclick="app.openNews(${id})" ontouchstart="app.swipeStart(event, 'news-${id}')" ontouchmove="app.swipeMove(event, 'news-${id}')" ontouchend="app.swipeEnd(event, 'news-${id}')" data-swipe-card data-tx="0">
+                            <div class="nw-img">
+                                <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}" loading="lazy">
+                                ${news.isUrgent ? '<span class="nw-flag nw-urgent">عاجل</span>' : (cat ? `<span class="nw-flag">${escapeHtml(cat)}</span>` : '')}
                             </div>
-                            <div class="flex-1 min-w-0 flex flex-col justify-between">
-                                ${(isUrgent || news.isPinned || !isRead) ? `<div class="news-badges">
-                                    ${isUrgent ? '<span class="nb nb-urgent">عاجل</span>' : ''}
-                                    ${!isRead ? '<span class="nb nb-new">جديد</span>' : ''}
-                                    ${news.isPinned ? '<span class="nb nb-pin"><i data-lucide="pin" class="w-3 h-3"></i>مثبت</span>' : ''}
-                                </div>` : ''}
-                                <h3 class="text-sm font-bold line-clamp-2 leading-relaxed theme-transition" style="color: ${!isRead ? 'var(--text)' : 'var(--text2)'};">${escapeHtml(news.title)}</h3>
-                                <div class="flex items-center gap-2 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                                    <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span></span>
-                                    <span>•</span><span>${escapeHtml(news.source)}</span>
+                            <div class="nw-body">
+                                <h3 class="nw-title">${!isRead ? '<span class="nw-dot" aria-label="جديد"></span>' : ''}${news.isPinned ? '<i data-lucide="pin" class="nw-pin"></i>' : ''}${escapeHtml(news.title)}</h3>
+                                ${news.excerpt ? `<p class="nw-excerpt">${escapeHtml(news.excerpt)}</p>` : ''}
+                                <div class="nw-foot">
+                                    <span class="nw-meta"><i data-lucide="user"></i><span>${escapeHtml(news.source || 'وزارة التربية العراقية')}</span></span>
+                                    <span class="nw-sep" aria-hidden="true"></span>
+                                    <span class="nw-meta"><i data-lucide="clock"></i><span data-timeago="${id}">${timeAgo(news.id)}</span></span>
+                                    <button onclick="event.stopPropagation(); app.toggleBookmark(${id})" class="nw-bm${isBookmarked ? ' on' : ''}" aria-label="${isBookmarked ? 'إزالة من المحفوظات' : 'حفظ الخبر'}">
+                                        <i data-lucide="bookmark"></i>
+                                    </button>
                                 </div>
                             </div>
-                            <button onclick="event.stopPropagation(); app.toggleBookmark(${jsNum(news.id)})"
-                                    class="btn-press flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center self-start ${isBookmarked ? 'bg-primary/10 text-primary' : 'theme-transition'}"
-                                    style="${!isBookmarked ? 'background-color: var(--input-bg); color: var(--text2);' : ''}">
-                                <i data-lucide="bookmark" class="w-4 h-4 ${isBookmarked ? 'fill-primary' : ''}"></i>
-                            </button>
-                        </div>
-                    </article>
+                        </article>
                     </div>
                 `;
             },
@@ -4184,6 +4233,9 @@
                 });
             },
 
+            // News details v2: full-bleed photo with category chips, big bold headline, source
+            // row with date + reading time, the text in a large readable size, action buttons,
+            // then related news using the same cards as the home list.
             openNews(id) {
                 const news = newsData.find(n => n.id === id);
                 if (!news) return;
@@ -4198,45 +4250,43 @@
                 }
                 const content = document.getElementById('detailsContent');
                 if (!content) return;
+                const cat = (categories.find(c => c.id === news.category) || {}).label || '';
+                const text = String(news.excerpt || '');
+                const words = (String(news.title || '') + ' ' + text).trim().split(/\s+/).length;
+                const readMin = Math.max(1, Math.round(words / 180));
+                const d = new Date(Number(news.id));
+                const dateLabel = isNaN(d) ? escapeHtml(news.date || '') : d.getDate() + ' ' + IRAQI_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+                const related = newsData.filter(n => n.id !== id && n.category === news.category).slice(0, 3);
                 content.innerHTML = `
-                    <div class="relative h-56">
-                        <img src="${safeImage(news.image)}" class="w-full h-full object-cover" alt="${escapeHtml(news.title)}">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                        ${news.isUrgent ? '<div class="absolute top-4 left-4"><span class="bg-error text-white text-xs font-bold px-3 py-1.5 rounded-lg">عاجل</span></div>' : ''}
-                    </div>
-                    <div class="p-4">
-                        <div class="flex items-center gap-2 mb-3 text-sm theme-transition" style="color: var(--text2);">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" class="w-5 h-5 rounded-full object-cover">
-                            <span class="font-medium">${escapeHtml(news.source)}</span><span>•</span><span>${escapeHtml(news.date)}</span><span>•</span><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span>
-                        </div>
-                        <h1 class="text-xl font-bold leading-relaxed mb-4 theme-transition" style="color: var(--text);">${escapeHtml(news.title)}</h1>
-                        <div class="prose prose-sm max-w-none leading-relaxed mb-6 theme-transition" style="color: var(--text);">
-                            <p class="text-base">${escapeHtml(news.excerpt)}</p>
-                        </div>
-                        <div class="flex gap-3 mb-8">
-                            <button onclick="app.shareCurrentNews()" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium btn-press text-sm theme-transition" style="background-color: var(--input-bg); color: var(--text);">
-                                <i data-lucide="share-2" class="w-5 h-5"></i>مشاركة
-                            </button>
-                            <button onclick="app.toggleBookmarkDetail()" class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium btn-press text-sm ${news.isBookmarked ? 'bg-primary text-white' : 'theme-transition'}"
-                                style="${!news.isBookmarked ? 'background-color: var(--input-bg); color: var(--text);' : ''}">
-                                <i data-lucide="bookmark" class="w-5 h-5 ${news.isBookmarked ? 'fill-white' : ''}"></i>${news.isBookmarked ? 'محفوظ' : 'حفظ'}
-                            </button>
-                        </div>
-                        <div class="border-t pt-4 theme-transition" style="border-color: var(--border);">
-                            <h3 class="font-bold mb-3 theme-transition" style="color: var(--text);">أخبار ذات صلة</h3>
-                            <div class="flex flex-col gap-3">
-                                ${newsData.filter(n => n.id !== id && n.category === news.category).slice(0, 2).map(n => `
-                                    <div class="flex gap-3 cursor-pointer" onclick="app.openNews(${jsNum(n.id)})">
-                                        <div class="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0"><img src="${safeImage(n.image)}" class="w-full h-full object-cover"></div>
-                                        <div class="flex-1">
-                                            <h4 class="text-sm font-bold line-clamp-2 theme-transition" style="color: var(--text);">${escapeHtml(n.title)}</h4>
-                                            <span class="text-xs theme-transition" data-timeago="${jsNum(n.id)}" style="color: var(--text2);">${timeAgo(n.id)}</span>
-                                        </div>
-                                    </div>
-                                `).join('')}
+                    <article class="nd">
+                        <div class="nd-hero">
+                            <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}">
+                            <div class="nd-hero-shade"></div>
+                            <div class="nd-tags">
+                                ${news.isUrgent ? '<span class="nd-tag nd-tag-urgent"><span class="tk-dot" aria-hidden="true"></span>عاجل</span>' : ''}
+                                ${cat ? `<span class="nd-tag">${escapeHtml(cat)}</span>` : ''}
+                                ${news.isPinned ? '<span class="nd-tag">📌 مثبت</span>' : ''}
                             </div>
                         </div>
-                    </div>
+                        <div class="nd-body">
+                            <h1 class="nd-title">${escapeHtml(news.title)}</h1>
+                            <div class="nd-src">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="">
+                                <div>
+                                    <b>${escapeHtml(news.source || 'وزارة التربية العراقية')}</b>
+                                    <span>${dateLabel} · <span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span> · ${readMin} د قراءة</span>
+                                </div>
+                            </div>
+                            ${text ? `<div class="nd-text">${escapeHtml(text)}</div>` : ''}
+                            <div class="nd-actions">
+                                <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>
+                                <button onclick="app.toggleBookmarkDetail()" class="nd-btn${news.isBookmarked ? ' on' : ''}"><i data-lucide="bookmark"></i>${news.isBookmarked ? 'محفوظ' : 'حفظ الخبر'}</button>
+                            </div>
+                            ${related.length ? `
+                            <h3 class="nd-rel-title">أخبار ذات صلة</h3>
+                            <div class="flex flex-col gap-3">${related.map(n => this.createNewsCard(n)).join('')}</div>` : ''}
+                        </div>
+                    </article>
                 `;
                 this.switchView('detailsView');
                 lucide.createIcons();
