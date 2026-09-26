@@ -1052,6 +1052,114 @@
         .cm-tip b i { width: 20px; height: 20px; border-radius: 7px; display: grid; place-items: center; font-style: normal; font-size: 11px; color: #fff; background: var(--c); }
         .cm-quote { margin-top: 18px; padding: 16px; border-radius: 20px; text-align: center; font-size: 14px; font-weight: 800; line-height: 1.8; color: var(--text); background: linear-gradient(135deg, rgba(245,158,11,.1), rgba(124,58,237,.08)); border: 1px solid var(--border); }
 
+        /* ===== Grades progress (تطور درجاتي) ===== */
+        .gr, .gr * { box-sizing: border-box; }
+        .gr { padding: 14px 16px 28px; }
+        .gr-sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 4px 10px; font-size: 14px; font-weight: 800; color: var(--text); }
+        .gr-sec small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .gr-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .gr-tile { min-width: 0; padding: 12px 10px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: hpPop .45s var(--ease-spring) both; }
+        .gr-tile span { display: flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 700; color: var(--text2); }
+        .gr-tile span svg { width: 13px; height: 13px; color: var(--c); flex-shrink: 0; }
+        .gr-tile b { display: block; margin-top: 4px; font-size: 22px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+        .gr-tile small { display: block; font-size: 11px; font-weight: 700; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 6px; scrollbar-width: none; }
+        .gr-chips::-webkit-scrollbar { display: none; }
+        .gr-chip { flex-shrink: 0; height: 36px; padding: 0 14px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .gr-chip.on { color: #fff; background: rgb(var(--p)); border-color: transparent; }
+        .gr-chip svg { width: 14px; height: 14px; }
+        .gr-add { display: flex; gap: 8px; margin-top: 6px; }
+        .gr-add input { flex: 1; min-width: 0; height: 42px; padding: 0 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font: inherit; font-size: 13px; }
+        .gr-add button { height: 42px; padding: 0 16px; border: 0; border-radius: 14px; font: inherit; font-size: 13px; font-weight: 800; color: #fff; background: rgb(var(--p)); cursor: pointer; }
+        .gr-card { position: relative; margin-top: 8px; padding: 14px 12px 10px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: cardIn .45s var(--ease-out) both; }
+        .gr-card h4 { margin: 0 4px 2px; font-size: 14px; font-weight: 900; color: var(--text); }
+        .gr-trend { margin: 0 4px 6px; font-size: 12px; font-weight: 700; color: var(--text2); display: flex; align-items: center; gap: 5px; }
+        .gr-trend svg { width: 14px; height: 14px; }
+        .gr-trend.up { color: #15803D; } .gr-trend.down { color: #DC2626; }
+        .gr-chart { position: relative; }
+        .gr-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+        .gr-chart .grid { stroke: var(--border); stroke-width: 1; }
+        .gr-chart .pass { stroke: #DC2626; stroke-width: 1; stroke-dasharray: 4 4; opacity: .55; }
+        .gr-chart .ax { fill: var(--text2); font-size: 10px; font-family: inherit; }
+        .gr-chart .ln { fill: none; stroke: rgb(var(--p)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1000; stroke-dashoffset: 1000; animation: grDraw 1.1s var(--ease-out) forwards .15s; }
+        .gr-chart .area { fill: url(#grArea); opacity: 0; animation: hpFade .6s ease forwards .5s; }
+        @keyframes grDraw { to { stroke-dashoffset: 0; } }
+        @keyframes hpFade { to { opacity: 1; } }
+        .gr-chart .pt { fill: rgb(var(--p)); stroke: var(--surface); stroke-width: 2; }
+        .gr-chart .pt.low { fill: #DC2626; }
+        .gr-chart .hit { fill: transparent; cursor: pointer; }
+        .gr-chart .lbl { fill: var(--text); font-size: 11px; font-weight: 800; font-family: inherit; }
+        .gr-tip { position: absolute; top: 0; transform: translate(50%, -100%); pointer-events: none; padding: 6px 10px; border-radius: 10px; background: var(--text); color: var(--surface); font-size: 11.5px; font-weight: 700; white-space: nowrap; box-shadow: 0 8px 18px -8px rgba(0,0,0,.4); }
+        .gr-tip b { font-size: 13px; }
+        .gr-empty { padding: 26px 10px; text-align: center; font-size: 12.5px; color: var(--text2); line-height: 1.8; }
+        .gr-inputs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .gr-in { display: flex; flex-direction: column; gap: 4px; padding: 8px 6px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); }
+        .gr-in label { font-size: 10.5px; font-weight: 700; color: var(--text2); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-in input { width: 100%; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); text-align: center; font: inherit; font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .gr-in input:focus { outline: none; border-color: rgb(var(--p)); box-shadow: 0 0 0 3px rgb(var(--p) / .15); }
+        .gr-in.low input { color: #DC2626; }
+        .gr-bars { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); }
+        .gr-bar { display: grid; grid-template-columns: 74px 1fr 34px; align-items: center; gap: 8px; background: none; border: 0; padding: 2px 0; font: inherit; color: var(--text); cursor: pointer; text-align: right; }
+        .gr-bar > span:first-child { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .gr-bar-track { height: 10px; border-radius: 4px; background: var(--input-bg); overflow: hidden; }
+        .gr-bar-track i { display: block; height: 100%; width: var(--w); border-radius: 4px; background: rgb(var(--p)); transform-origin: right; animation: hpGrow .9s var(--ease-out) both; }
+        .gr-bar.low .gr-bar-track i { background: #DC2626; }
+        .gr-bar b { font-size: 13px; font-weight: 900; font-variant-numeric: tabular-nums; text-align: left; }
+        .gr-bar.on > span:first-child { color: rgb(var(--p)); }
+        .gr-flag { display: flex; align-items: center; gap: 6px; margin-top: 4px; padding: 8px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 700; color: #B91C1C; background: rgba(220,38,38,.08); }
+        .gr-flag svg { width: 14px; height: 14px; flex-shrink: 0; }
+        .gr-acts { display: flex; gap: 8px; margin-top: 16px; }
+        .gr-acts button { flex: 1; height: 48px; border-radius: 16px; font: inherit; font-size: 13.5px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 7px; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+        .gr-acts button.pri { border: 0; color: #fff; background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); }
+        .gr-acts button.del { flex: 0 0 48px; color: #DC2626; }
+        .gr-acts svg { width: 17px; height: 17px; }
+
+        /* ===== Mood of the day (مزاجي اليوم) ===== */
+        .mo, .mo * { box-sizing: border-box; }
+        .mo { position: relative; overflow: hidden; padding: 14px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .mo::before { content: ""; position: absolute; inset: -60% -30% auto auto; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in srgb, var(--mc, rgb(var(--p))) 16%, transparent), transparent); animation: hpFloat 8s ease-in-out infinite; pointer-events: none; }
+        .mo-q { position: relative; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 900; color: var(--text); }
+        .mo-q small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .mo-opts { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+        .mo-opt { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 2px; border-radius: 16px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; transition: transform .2s var(--ease-spring); animation: hpPop .45s var(--ease-spring) both; }
+        .mo-opt:active { transform: scale(.92); }
+        .mo-ic { width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+        .mo-ic svg { width: 21px; height: 21px; }
+        .mo-now { position: relative; display: flex; align-items: center; gap: 12px; }
+        .mo-now .mo-ic { width: 46px; height: 46px; animation: hpBob 3s ease-in-out infinite; }
+        .mo-now div { flex: 1; min-width: 0; }
+        .mo-now b { display: block; font-size: 14px; font-weight: 900; color: var(--text); }
+        .mo-now span { font-size: 12px; color: var(--text2); line-height: 1.6; }
+        .mo-chg { flex-shrink: 0; align-self: flex-start; padding: 4px 10px; border-radius: 99px; border: 1px solid var(--border); background: none; font: inherit; font-size: 11px; font-weight: 700; color: var(--text2); cursor: pointer; }
+        .mo-act { position: relative; width: 100%; height: 42px; margin-top: 12px; border: 0; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 7px; font: inherit; font-size: 13px; font-weight: 800; color: #fff; background: var(--mc); cursor: pointer; }
+        .mo-act svg { width: 16px; height: 16px; }
+        .mo-week { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+        .mo-day { display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; color: var(--text2); }
+        .mo-dot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--c); animation: hpPop .4s var(--ease-spring) both; }
+        .mo-dot svg { width: 15px; height: 15px; }
+        .mo-dot.none { background: none; border: 1.5px dashed var(--border); }
+        .mo-day.today span:first-child { color: var(--text); font-weight: 900; }
+        .mo-st { width: 6px; height: 6px; border-radius: 50%; background: transparent; }
+        .mo-st.on { background: #16A34A; }
+        .mo-legend { position: relative; display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 10.5px; color: var(--text2); }
+        .mo-legend span { display: inline-flex; align-items: center; gap: 5px; }
+        .mo-legend .mo-lg-st { width: 7px; height: 7px; border-radius: 50%; background: #16A34A; }
+        .mo-ins { position: relative; margin-top: 10px; padding: 9px 11px; border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--text); background: var(--input-bg); line-height: 1.6; }
+
+        /* ===== Story share card (بطاقة ستوري) ===== */
+        .sc-modal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-end; justify-content: center; background: rgba(2,6,23,.62); backdrop-filter: blur(4px); animation: hpFade .2s ease forwards; opacity: 0; }
+        .sc-sheet { box-sizing: border-box; width: 100%; max-width: 480px; max-height: 96vh; overflow-y: auto; padding: 14px 16px 20px; border-radius: 26px 26px 0 0; background: var(--surface); animation: cardIn .35s var(--ease-out) both; }
+        .sc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 15px; font-weight: 900; color: var(--text); }
+        .sc-head button { width: 36px; height: 36px; border-radius: 12px; border: 0; display: grid; place-items: center; background: var(--input-bg); color: var(--text); cursor: pointer; }
+        .sc-prev { display: grid; place-items: center; min-height: 200px; border-radius: 18px; background: var(--input-bg); }
+        .sc-prev img { display: block; max-width: 100%; max-height: 58vh; border-radius: 14px; box-shadow: 0 18px 40px -18px rgba(0,0,0,.45); }
+        .sc-prev .sc-wait { font-size: 12.5px; color: var(--text2); }
+        .sc-btns { display: flex; gap: 8px; margin-top: 14px; }
+        .sc-btns button { flex: 1; height: 50px; border-radius: 16px; font: inherit; font-size: 14px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+        .sc-btns button.pri { border: 0; color: #fff; background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); }
+        .sc-btns svg { width: 18px; height: 18px; }
+        .sc-note { margin-top: 10px; text-align: center; font-size: 11.5px; color: var(--text2); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -1562,6 +1670,10 @@
                 </div>
             </section>
 
+            <section class="px-4 py-2" id="moodSection">
+                <div id="moodCard" class="mo"></div>
+            </section>
+
             <div id="contentArea" class="px-4 py-2">
                 <div id="newsListState">
                     <div class="flex items-center justify-between mb-3">
@@ -1928,6 +2040,16 @@
                                 <span class="pf-row-text"><b>الأخبار المحفوظة</b></span>
                                 <span id="profileSavedCount" class="hidden pf-badge">0</span><i data-lucide="chevron-left" class="pf-chev"></i>
                             </button>
+                            <button onclick="app.goToGrades()" class="pf-row">
+                                <span class="pf-row-ic" style="--c:#16A34A"><i data-lucide="chart-line"></i></span>
+                                <span class="pf-row-text"><b>تطور درجاتي</b><small>درجاتك الشهرية برسم بياني</small></span>
+                                <i data-lucide="chevron-left" class="pf-chev"></i>
+                            </button>
+                            <button onclick="app.shareProfileStory()" class="pf-row">
+                                <span class="pf-row-ic" style="--c:#8B5CF6"><i data-lucide="image"></i></span>
+                                <span class="pf-row-text"><b>شارك إنجازاتي كصورة</b><small>بطاقة جاهزة للستوري</small></span>
+                                <i data-lucide="chevron-left" class="pf-chev"></i>
+                            </button>
                             <button onclick="app.goToFriends()" class="pf-row">
                                 <span class="pf-row-ic" style="--c:#EC4899"><i data-lucide="users"></i></span>
                                 <span class="pf-row-text"><b>الأصدقاء</b><small>طلبات الصداقة والمحظورون</small></span>
@@ -2234,6 +2356,17 @@
                     <div class="flex-1">
                         <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز — لا تلمس الهاتف</div>
                         <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بدون ما تطلع من التطبيق واكسب نقاط، وإذا طلعت تنكسر الجلسة</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToGrades()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <i data-lucide="chart-line" class="w-5 h-5 text-primary"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">تطور درجاتي</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">سجّل درجاتك الشهرية وشوف تقدمك بكل مادة برسم بياني</div>
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
@@ -2975,6 +3108,20 @@
             <div id="focusContent" class="fc"></div>
         </div>
 
+        <!-- ===== GRADES PROGRESS VIEW (تطور درجاتي) ===== -->
+        <div id="gradesView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">تطور درجاتي</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">درجاتك محفوظة بحسابك</div>
+                </div>
+            </div>
+            <div id="gradesContent" class="gr"></div>
+        </div>
+
         <!-- ===== BEFORE THE EXAM VIEW (قبل الامتحان) ===== -->
         <div id="calmView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
@@ -3580,6 +3727,7 @@
                 this.renderNotificationsList();
                 this.renderNewsTicker();
                 this.renderDailyTip();
+                this.renderMood();
                 this.loadNewsFromDatabase();
                 this.listenForNews();
                 this.loadResourcesFromDatabase();
@@ -3733,6 +3881,7 @@
                     const v = snap.val();
                     if (typeof v.balance === 'number') this.currentUser.balance = v.balance;
                     if (typeof v.points === 'number') this.currentUser.points = v.points;
+                    this._adoptServerGradesMoods(v);
                     this.saveUserData();
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'pointsStoreView') this.renderPointsStore();
@@ -4607,6 +4756,7 @@
                             ${text ? `<div class="nd-text">${escapeHtml(text)}</div>` : ''}
                             <div class="nd-actions">
                                 <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>
+                                <button onclick="app.shareNewsStory()" class="nd-btn"><i data-lucide="image"></i>ستوري</button>
                                 <button onclick="app.toggleBookmarkDetail()" class="nd-btn${news.isBookmarked ? ' on' : ''}"><i data-lucide="bookmark"></i>${news.isBookmarked ? 'محفوظ' : 'حفظ الخبر'}</button>
                             </div>
                             ${related.length ? `
@@ -5447,7 +5597,7 @@
                 const $ = (id) => document.getElementById(id);
 
                 // Home sections
-                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
+                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection', mood: 'moodSection' };
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
                 // Bottom navigation
@@ -5882,7 +6032,8 @@
                         <h3>أحسنت! كملت الجلسة</h3>
                         <p>ركّزت ${minutes} دقيقة بدون ما تلمس هاتفك</p>
                         ${this.isLoggedIn ? `<span class="fc-pts">+${minutes} نقطة</span>` : '<p>سجّل دخولك المرة الجاية حتى تنحسب نقاطك</p>'}
-                        <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">جلسة ثانية</button><button onclick="app.renderFocusSetup()">رجوع</button></div>
+                        <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">جلسة ثانية</button><button onclick="app.shareFocusStory(${jsNum(minutes)})">شارك إنجازك</button></div>
+                        <button class="fc-quit" style="color:var(--text2);border-color:var(--border);background:none" onclick="app.renderFocusSetup()">رجوع</button>
                     </div>` : `
                     <div class="fc-res bad">
                         <span class="fc-res-ic"><i data-lucide="x"></i></span>
@@ -5922,6 +6073,667 @@
 
             // A session that was still saved when the app starts means the app was closed
             // (or the page reloaded) mid-session — that counts as broken.
+            // ===== Grades progress (تطور درجاتي) =====
+            // Marks (0-100) per subject across the Iraqi school-year periods. Kept on the
+            // device (isp_grades) and mirrored to users/{uid}/grades when signed in.
+            GRADE_PERIODS: [['ش1', 'الشهر الأول'], ['ش2', 'الشهر الثاني'], ['نصف', 'نصف السنة'], ['ش3', 'الشهر الأول ف2'], ['ش4', 'الشهر الثاني ف2'], ['السعي', 'السعي السنوي'], ['النهائي', 'الامتحان النهائي']],
+            GRADE_DEFAULT_SUBJECTS: ['الإسلامية', 'العربي', 'الإنكليزي', 'الرياضيات', 'الفيزياء', 'الكيمياء', 'الأحياء'],
+            gradesSubject: null,
+
+            _gradesLoad() {
+                try {
+                    const g = JSON.parse(localStorage.getItem('isp_grades') || 'null');
+                    if (g && Array.isArray(g.subjects) && g.marks && typeof g.marks === 'object') return g;
+                } catch (e) {}
+                return { subjects: this.GRADE_DEFAULT_SUBJECTS.slice(), marks: {} };
+            },
+
+            _gradesSave(g) {
+                try { localStorage.setItem('isp_grades', JSON.stringify(g)); } catch (e) {}
+                if (!window.firebaseDb || !this.authUid) return;
+                clearTimeout(this._grSaveT);
+                this._grSaveT = setTimeout(() => {
+                    const { ref, update } = window.firebaseDbHelpers;
+                    update(ref(window.firebaseDb, 'users/' + this.authUid), { grades: g }).catch((e) => console.warn('Grades save failed:', e));
+                }, 800);
+            },
+
+            _gradeSeries(g, subj) {
+                const m = (g.marks && g.marks[subj]) || {};
+                return this.GRADE_PERIODS.map((_, i) => {
+                    const v = Number(m['p' + i]);
+                    return m['p' + i] === undefined || m['p' + i] === null || m['p' + i] === '' || isNaN(v) ? null : Math.max(0, Math.min(100, v));
+                });
+            },
+
+            _gradeLast(series) {
+                for (let i = series.length - 1; i >= 0; i--) if (series[i] !== null) return { v: series[i], i };
+                return null;
+            },
+
+            goToGrades() {
+                const g = this._gradesLoad();
+                if (!this.gradesSubject || g.subjects.indexOf(this.gradesSubject) === -1) {
+                    this.gradesSubject = g.subjects.find((s) => this._gradeLast(this._gradeSeries(g, s))) || g.subjects[0] || null;
+                }
+                this._grAdding = false;
+                this.renderGrades();
+                this.switchView('gradesView');
+            },
+
+            renderGrades() {
+                const box = document.getElementById('gradesContent');
+                if (!box) return;
+                const g = this._gradesLoad();
+                const subj = this.gradesSubject;
+                const series = subj ? this._gradeSeries(g, subj) : [];
+                box.innerHTML = `
+                    <div class="gr-tiles" id="grTiles"></div>
+
+                    <div class="gr-sec">المواد<small>${g.subjects.length} مادة</small></div>
+                    <div class="gr-chips">
+                        ${g.subjects.map((s) => `<button class="gr-chip${s === subj ? ' on' : ''}" onclick="app.selectGradeSubject(${jsArg(s)})">${escapeHtml(s)}</button>`).join('')}
+                        <button class="gr-chip" onclick="app.toggleGradeAdd()"><i data-lucide="plus"></i>مادة</button>
+                    </div>
+                    ${this._grAdding ? `
+                    <div class="gr-add">
+                        <input id="grAddInput" maxlength="24" placeholder="اسم المادة، مثلاً الحاسوب" onkeydown="if(event.key==='Enter')app.addGradeSubject()">
+                        <button onclick="app.addGradeSubject()">إضافة</button>
+                    </div>` : ''}
+
+                    ${subj ? `
+                    <div class="gr-card">
+                        <h4>${escapeHtml(subj)} خلال السنة</h4>
+                        <div id="grTrend"></div>
+                        <div class="gr-chart" id="grChart"></div>
+                    </div>
+
+                    <div class="gr-sec">درجات ${escapeHtml(subj)}<small>من 100</small></div>
+                    <div class="gr-inputs">
+                        ${this.GRADE_PERIODS.map(([, full], i) => `
+                            <div class="gr-in${series[i] !== null && series[i] < 50 ? ' low' : ''}" id="grIn${i}">
+                                <label for="grInput${i}">${escapeHtml(full)}</label>
+                                <input id="grInput${i}" type="number" inputmode="numeric" min="0" max="100" placeholder="-" value="${series[i] === null ? '' : jsNum(series[i])}" onchange="app.setGrade(${i}, this.value)">
+                            </div>`).join('')}
+                    </div>
+
+                    <div class="gr-acts">
+                        <button class="pri" onclick="app.shareGradesStory()"><i data-lucide="image"></i>شارك تطوري كصورة</button>
+                        <button class="del" onclick="app.removeGradeSubject()" aria-label="حذف المادة"><i data-lucide="trash-2"></i></button>
+                    </div>` : '<div class="gr-empty">ضيف مادة حتى تبدي تسجّل درجاتك</div>'}
+
+                    <div class="gr-sec">آخر درجة بكل مادة</div>
+                    <div id="grBars"></div>
+                `;
+                this._renderGradesDynamic();
+                if (this._grAdding) setTimeout(() => document.getElementById('grAddInput')?.focus(), 50);
+            },
+
+            // Everything that depends on the marks, redrawn after each input without
+            // touching the inputs themselves (so focus moves normally between them).
+            _renderGradesDynamic() {
+                const g = this._gradesLoad();
+                const subj = this.gradesSubject;
+                const lasts = g.subjects.map((s) => ({ s, last: this._gradeLast(this._gradeSeries(g, s)) })).filter((x) => x.last);
+
+                const tiles = document.getElementById('grTiles');
+                if (tiles) {
+                    const avg = lasts.length ? Math.round(lasts.reduce((a, x) => a + x.last.v, 0) / lasts.length * 10) / 10 : null;
+                    const sorted = lasts.slice().sort((a, b) => b.last.v - a.last.v);
+                    const best = sorted[0], weak = sorted.length > 1 ? sorted[sorted.length - 1] : null;
+                    tiles.innerHTML = `
+                        <div class="gr-tile" style="--c:rgb(var(--p))"><span><i data-lucide="gauge"></i>المعدل</span><b>${avg === null ? '-' : avg}</b><small>${lasts.length} مادة مسجّلة</small></div>
+                        <div class="gr-tile" style="--c:#16A34A;animation-delay:.05s"><span><i data-lucide="trophy"></i>الأقوى</span><b>${best ? best.last.v : '-'}</b><small>${best ? escapeHtml(best.s) : 'ماكو بعد'}</small></div>
+                        <div class="gr-tile" style="--c:#DC2626;animation-delay:.1s"><span><i data-lucide="triangle-alert"></i>تحتاج اهتمام</span><b>${weak ? weak.last.v : '-'}</b><small>${weak ? escapeHtml(weak.s) : 'ماكو بعد'}</small></div>`;
+                }
+
+                const chart = document.getElementById('grChart');
+                const trend = document.getElementById('grTrend');
+                if (chart && subj) {
+                    const series = this._gradeSeries(g, subj);
+                    const pts = series.map((v, i) => (v === null ? null : { v, i })).filter(Boolean);
+                    if (trend) {
+                        if (pts.length >= 2) {
+                            const a = pts[pts.length - 2], b = pts[pts.length - 1], d = Math.round((b.v - a.v) * 10) / 10;
+                            trend.className = 'gr-trend ' + (d > 0 ? 'up' : d < 0 ? 'down' : '');
+                            trend.innerHTML = d === 0 ? `<i data-lucide="minus"></i>نفس درجة ${this.GRADE_PERIODS[a.i][1]}`
+                                : `<i data-lucide="${d > 0 ? 'trending-up' : 'trending-down'}"></i>${d > 0 ? 'ارتفعت' : 'نزلت'} <span dir="ltr">${d > 0 ? '+' : ''}${d}</span> عن ${this.GRADE_PERIODS[a.i][1]}`;
+                        } else {
+                            trend.className = 'gr-trend';
+                            trend.textContent = pts.length ? 'سجّل درجة ثانية حتى يطلع اتجاهك' : 'سجّل درجاتك تحت حتى يطلع الرسم';
+                        }
+                    }
+                    chart.innerHTML = this._gradeChartSvg(series);
+                }
+
+                const bars = document.getElementById('grBars');
+                if (bars) {
+                    const sorted = lasts.slice().sort((a, b) => b.last.v - a.last.v);
+                    const low = sorted.filter((x) => x.last.v < 50);
+                    bars.innerHTML = sorted.length ? `
+                        <div class="gr-bars">
+                            ${sorted.map((x, i) => `
+                                <button class="gr-bar${x.last.v < 50 ? ' low' : ''}${x.s === subj ? ' on' : ''}" onclick="app.selectGradeSubject(${jsArg(x.s)})">
+                                    <span>${escapeHtml(x.s)}</span>
+                                    <span class="gr-bar-track"><i style="--w:${Math.max(2, x.last.v)}%;animation-delay:${i * 0.05}s"></i></span>
+                                    <b>${x.last.v}</b>
+                                </button>`).join('')}
+                            ${low.length ? `<div class="gr-flag"><i data-lucide="triangle-alert"></i>${low.map((x) => escapeHtml(x.s)).join('، ')} تحت درجة النجاح (50)، تحتاج اهتمام أكثر</div>` : ''}
+                        </div>` : '<div class="gr-empty">لحد هسه ما مسجّل ولا درجة</div>';
+                }
+                lucide.createIcons();
+            },
+
+            // Single-series line chart, time flowing right-to-left (RTL), 0-100 scale with a
+            // dashed pass line at 50. Only the latest value is labelled; tapping a point
+            // shows its period and mark.
+            _gradeChartSvg(series) {
+                const W = 340, top = 18, bot = 160, xR = 300, xL = 22;
+                const X = (i) => xR - (i * (xR - xL)) / (this.GRADE_PERIODS.length - 1);
+                const Y = (v) => bot - (v / 100) * (bot - top);
+                const pts = series.map((v, i) => (v === null ? null : { v, i, x: X(i), y: Y(v) })).filter(Boolean);
+                const grid = [0, 50, 100].map((v) => `<line class="${v === 50 ? 'pass' : 'grid'}" x1="${xL - 8}" x2="${xR + 8}" y1="${Y(v)}" y2="${Y(v)}"/><text class="ax" x="${W - 2}" y="${Y(v) + 3}" text-anchor="end">${v}</text>`).join('');
+                const xl = this.GRADE_PERIODS.map(([short], i) => `<text class="ax" x="${X(i)}" y="182" text-anchor="middle">${escapeHtml(short)}</text>`).join('');
+                let body = '';
+                if (pts.length) {
+                    const d = pts.map((p, k) => (k ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+                    const area = pts.length > 1 ? `<path class="area" d="${d} L${pts[pts.length - 1].x.toFixed(1)} ${bot} L${pts[0].x.toFixed(1)} ${bot} Z"/>` : '';
+                    const last = pts[pts.length - 1];
+                    body = `${area}${pts.length > 1 ? `<path class="ln" d="${d}"/>` : ''}
+                        ${pts.map((p) => `<circle class="pt${p.v < 50 ? ' low' : ''}" cx="${p.x}" cy="${p.y}" r="5"/>`).join('')}
+                        <text class="lbl" x="${last.x}" y="${last.y - 11}" text-anchor="middle">${last.v}</text>
+                        ${pts.map((p) => `<circle class="hit" cx="${p.x}" cy="${p.y}" r="16" onclick="app.gradeTip(${p.i})"/>`).join('')}`;
+                }
+                return `<svg viewBox="0 0 ${W} 192" role="img" aria-label="رسم تطور الدرجات">
+                    <defs><linearGradient id="grArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgb(var(--p))" stop-opacity=".22"/><stop offset="1" stop-color="rgb(var(--p))" stop-opacity="0"/></linearGradient></defs>
+                    ${grid}<text class="ax" x="${xL - 8}" y="${Y(50) - 4}" style="fill:#DC2626">نجاح</text>${xl}${body}
+                </svg><div class="gr-tip hidden" id="grTip"></div>`;
+            },
+
+            gradeTip(i) {
+                const tip = document.getElementById('grTip');
+                const g = this._gradesLoad();
+                const v = this._gradeSeries(g, this.gradesSubject)[i];
+                if (!tip || v === null || v === undefined) return;
+                const xR = 300, xL = 22, top = 18, bot = 160;
+                const x = xR - (i * (xR - xL)) / (this.GRADE_PERIODS.length - 1);
+                const y = bot - (v / 100) * (bot - top);
+                tip.innerHTML = `${escapeHtml(this.GRADE_PERIODS[i][1])}: <b>${v}</b>`;
+                tip.style.left = (x / 340 * 100) + '%';
+                tip.style.top = (y / 192 * 100) + '%';
+                tip.style.transform = 'translate(' + (x < 60 ? '-10%' : x > 280 ? '-90%' : '-50%') + ', calc(-100% - 12px))';
+                tip.classList.remove('hidden');
+                clearTimeout(this._grTipT);
+                this._grTipT = setTimeout(() => tip.classList.add('hidden'), 2600);
+            },
+
+            selectGradeSubject(s) { this.gradesSubject = s; this.renderGrades(); },
+
+            toggleGradeAdd() { this._grAdding = !this._grAdding; this.renderGrades(); },
+
+            addGradeSubject() {
+                const inp = document.getElementById('grAddInput');
+                const name = String(inp ? inp.value : '').replace(/[.#$\[\]\/]/g, '').replace(/\s+/g, ' ').trim().slice(0, 24);
+                if (!name) { this.showToast('اكتب اسم المادة'); return; }
+                const g = this._gradesLoad();
+                if (g.subjects.indexOf(name) !== -1) { this.showToast('المادة موجودة'); return; }
+                if (g.subjects.length >= 15) { this.showToast('الحد الأعلى 15 مادة'); return; }
+                g.subjects.push(name);
+                this._gradesSave(g);
+                this.gradesSubject = name;
+                this._grAdding = false;
+                this.renderGrades();
+            },
+
+            removeGradeSubject() {
+                const s = this.gradesSubject;
+                if (!s || !confirm('تحذف مادة ' + s + ' وكل درجاتها؟')) return;
+                const g = this._gradesLoad();
+                g.subjects = g.subjects.filter((x) => x !== s);
+                delete g.marks[s];
+                this._gradesSave(g);
+                this.gradesSubject = g.subjects[0] || null;
+                this.renderGrades();
+            },
+
+            setGrade(i, raw) {
+                const s = this.gradesSubject;
+                if (!s) return;
+                const g = this._gradesLoad();
+                g.marks[s] = g.marks[s] || {};
+                const txt = String(raw).trim();
+                const v = Number(txt);
+                if (txt === '' || isNaN(v)) delete g.marks[s]['p' + i];
+                else g.marks[s]['p' + i] = Math.round(Math.max(0, Math.min(100, v)) * 10) / 10;
+                const inp = document.getElementById('grInput' + i);
+                if (inp && txt !== '' && !isNaN(v)) inp.value = g.marks[s]['p' + i];
+                document.getElementById('grIn' + i)?.classList.toggle('low', g.marks[s]['p' + i] !== undefined && g.marks[s]['p' + i] < 50);
+                this._gradesSave(g);
+                this._renderGradesDynamic();
+            },
+
+            // A fresh device adopts the grades / moods already stored in the account.
+            _adoptServerGradesMoods(v) {
+                try {
+                    if (v.grades && Array.isArray(v.grades.subjects) && !localStorage.getItem('isp_grades')) {
+                        localStorage.setItem('isp_grades', JSON.stringify({ subjects: v.grades.subjects, marks: v.grades.marks || {} }));
+                        if (this.currentView === 'gradesView') this.renderGrades();
+                    }
+                    if (v.moods && typeof v.moods === 'object') {
+                        const local = this._moodsLoad();
+                        let changed = false;
+                        Object.keys(v.moods).forEach((d) => { if (!local[d] && this.MOODS.some((m) => m.k === v.moods[d])) { local[d] = v.moods[d]; changed = true; } });
+                        if (changed) { localStorage.setItem('isp_moods', JSON.stringify(local)); this.renderMood(); }
+                    }
+                } catch (e) {}
+            },
+
+            // ===== Mood of the day (مزاجي اليوم) =====
+            MOODS: [
+                { k: 'happy', l: 'متحمس', ic: 'zap', c: '#F59E0B' },
+                { k: 'ok', l: 'عادي', ic: 'smile', c: '#0EA5E9' },
+                { k: 'tired', l: 'تعبان', ic: 'battery-low', c: '#64748B' },
+                { k: 'stress', l: 'متوتر', ic: 'cloud-lightning', c: '#E5484D' }
+            ],
+            MOOD_TIPS: {
+                happy: ['طاقتك عالية اليوم، استغلها بأصعب مادة عندك', 'وكت ممتاز تحل أسئلة وزارية، الحماس يخلي الحفظ أسرع', 'خلي هالحماس بجلسة تركيز طويلة وشوف شكد تنجز'],
+                ok: ['يوم عادي يعني يوم مناسب للمراجعة الهادئة', 'قسّم مذاكرتك لجلسات قصيرة وراح تمشي بسهولة', 'ابدأ بمادة تحبها حتى تسخن وبعدين انتقل للأصعب'],
+                tired: ['جسمك يحتاج راحة، نام شوية أو اشرب ماي وتمشى', 'لا تضغط على نفسك، جلسة قصيرة 15 دقيقة تكفي اليوم', 'راجع شي خفيف مثل ملخص أو قوانين بدل مادة ثقيلة'],
+                stress: ['التوتر طبيعي، نفس عميق ودقيقة تمرين تفرق وياك', 'اكتب الشي اللي مضايقك بورقة، يخف ثقله', 'جزّء الشغل لخطوات صغيرة، خطوة وحدة هسه تكفي']
+            },
+            MOOD_ACTIONS: { happy: ['ابدأ 45 دقيقة تركيز', 'timer', 45], ok: ['ابدأ 25 دقيقة تركيز', 'timer', 25], tired: ['جلسة خفيفة 15 دقيقة', 'timer', 15], stress: ['تمرين تنفّس دقيقة وحدة', 'wind', 0] },
+
+            _moodsLoad() {
+                try { const v = JSON.parse(localStorage.getItem('isp_moods') || '{}'); return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; } catch (e) { return {}; }
+            },
+
+            setMood(k) {
+                if (!this.MOODS.some((m) => m.k === k)) return;
+                const moods = this._moodsLoad();
+                const today = this.localDateStr();
+                moods[today] = k;
+                const cutoff = this.localDateStr(new Date(Date.now() - 60 * 86400000));
+                Object.keys(moods).forEach((d) => { if (d < cutoff) delete moods[d]; });
+                try { localStorage.setItem('isp_moods', JSON.stringify(moods)); } catch (e) {}
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, update } = window.firebaseDbHelpers;
+                    update(ref(window.firebaseDb, 'users/' + this.authUid + '/moods'), { [today]: k }).catch((e) => console.warn('Mood save failed:', e));
+                }
+                this._moodEditing = false;
+                this.renderMood();
+            },
+
+            editMood() { this._moodEditing = true; this.renderMood(); },
+
+            moodAction(k) {
+                const a = this.MOOD_ACTIONS[k];
+                if (!a) return;
+                if (!a[2]) { this.goToCalm(); return; }
+                if (!this._focus) this.focusMinutes = a[2];
+                this.goToFocus();
+            },
+
+            _moodStudied(dateStr) {
+                const a = monthlyActivity[dateStr];
+                return !!(a && ((a.studySessions || 0) > 0 || (a.points || 0) > 0 || (a.tasksDone || 0) > 0));
+            },
+
+            async _moodLoadActivity() {
+                if (this._moodActLoaded || !window.firebaseDb || !this.authUid) return;
+                this._moodActLoaded = true;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const snap = await get(ref(window.firebaseDb, 'userActivity/' + this.authUid));
+                    if (snap.exists()) { const vals = snap.val(); Object.keys(vals).forEach((d) => { monthlyActivity[d] = vals[d]; }); }
+                    this.renderMood();
+                } catch (e) { console.warn('Mood activity load failed:', e); }
+            },
+
+            renderMood() {
+                const card = document.getElementById('moodCard');
+                if (!card) return;
+                const moods = this._moodsLoad();
+                const today = this.localDateStr();
+                const cur = this.MOODS.find((m) => m.k === moods[today]);
+                this._moodLoadActivity();
+                card.style.setProperty('--mc', cur ? cur.c : 'rgb(var(--p))');
+
+                if (!cur || this._moodEditing) {
+                    card.innerHTML = `
+                        <div class="mo-q">شلونك اليوم؟<small>اختار مزاجك</small></div>
+                        <div class="mo-opts">
+                            ${this.MOODS.map((m, i) => `<button class="mo-opt" style="animation-delay:${i * 0.05}s" onclick="app.setMood('${m.k}')"><span class="mo-ic" style="--c:${m.c}"><i data-lucide="${m.ic}"></i></span>${m.l}</button>`).join('')}
+                        </div>`;
+                    lucide.createIcons();
+                    return;
+                }
+
+                const tips = this.MOOD_TIPS[cur.k];
+                const tip = tips[new Date().getDate() % tips.length];
+                const act = this.MOOD_ACTIONS[cur.k];
+                const names = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+                const days = [];
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(Date.now() - i * 86400000);
+                    const key = this.localDateStr(d);
+                    days.push({ key, name: i === 0 ? 'اليوم' : names[d.getDay()], mood: this.MOODS.find((m) => m.k === moods[key]), studied: this._moodStudied(key) });
+                }
+                // Insight over the last 30 days: the most common mood on study days.
+                const counts = {};
+                let n = 0;
+                for (let i = 0; i < 30; i++) {
+                    const key = this.localDateStr(new Date(Date.now() - i * 86400000));
+                    if (moods[key] && this._moodStudied(key)) { counts[moods[key]] = (counts[moods[key]] || 0) + 1; n++; }
+                }
+                const top = Object.keys(counts).sort((a, b) => counts[b] - counts[a])[0];
+                const topMood = this.MOODS.find((m) => m.k === top);
+                card.innerHTML = `
+                    <div class="mo-now">
+                        <span class="mo-ic" style="--c:${cur.c}"><i data-lucide="${cur.ic}"></i></span>
+                        <div><b>مزاجك اليوم: ${cur.l}</b><span>${escapeHtml(tip)}</span></div>
+                        <button class="mo-chg" onclick="app.editMood()">غيّر</button>
+                    </div>
+                    <button class="mo-act btn-press" onclick="app.moodAction('${cur.k}')"><i data-lucide="${act[1]}"></i>${act[0]}</button>
+                    <div class="mo-week">
+                        ${days.map((d, i) => `
+                            <div class="mo-day${i === 6 ? ' today' : ''}">
+                                <span>${d.name}</span>
+                                ${d.mood ? `<span class="mo-dot" style="--c:${d.mood.c};animation-delay:${i * 0.04}s" title="${d.mood.l}"><i data-lucide="${d.mood.ic}"></i></span>` : '<span class="mo-dot none"></span>'}
+                                <span class="mo-st${d.studied ? ' on' : ''}"></span>
+                            </div>`).join('')}
+                    </div>
+                    <div class="mo-legend">${this.MOODS.map((m) => `<span><span class="mo-dot" style="--c:${m.c};width:16px;height:16px;animation:none"><i data-lucide="${m.ic}" style="width:9px;height:9px"></i></span>${m.l}</span>`).join('')}<span><span class="mo-lg-st"></span>ذاكرت</span></div>
+                    ${n >= 3 && topMood ? `<div class="mo-ins">بالأيام اللي ذاكرت بيها كنت غالباً <b style="color:${topMood.c}">${topMood.l}</b></div>` : ''}
+                `;
+                lucide.createIcons();
+            },
+
+            // ===== Story share card (بطاقة ستوري) =====
+            // Draws a 1080x1920 image on a canvas (news, focus result, profile, grades) and
+            // offers it to the system share sheet, or saves it when sharing files isn't supported.
+            async openStory(opts) {
+                let modal = document.getElementById('storyModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'storyModal';
+                    modal.className = 'sc-modal hidden';
+                    modal.innerHTML = `
+                        <div class="sc-sheet" onclick="event.stopPropagation()">
+                            <div class="sc-head">بطاقة ستوري<button onclick="app.closeStory()" aria-label="إغلاق"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+                            <div class="sc-prev" id="storyPrev"></div>
+                            <div class="sc-btns">
+                                <button class="pri" onclick="app.shareStoryImage()"><i data-lucide="share-2"></i>مشاركة</button>
+                                <button onclick="app.saveStoryImage()"><i data-lucide="download"></i>حفظ الصورة</button>
+                            </div>
+                            <div class="sc-note">بقياس الستوري، جاهزة للإنستغرام والواتساب</div>
+                        </div>`;
+                    modal.addEventListener('click', () => this.closeStory());
+                    document.body.appendChild(modal);
+                }
+                const prev = document.getElementById('storyPrev');
+                prev.innerHTML = '<span class="sc-wait">جاري تجهيز الصورة...</span>';
+                modal.classList.remove('hidden');
+                lucide.createIcons();
+                this._storyBlob = null;
+                this._storyTitle = opts.title || '';
+                try {
+                    const blob = await this._drawStory(opts, true);
+                    this._storyBlob = blob;
+                    if (this._storyUrl) URL.revokeObjectURL(this._storyUrl);
+                    this._storyUrl = URL.createObjectURL(blob);
+                    prev.innerHTML = `<img src="${this._storyUrl}" alt="بطاقة ستوري">`;
+                } catch (e) {
+                    console.warn('Story render failed:', e);
+                    prev.innerHTML = '<span class="sc-wait">تعذر تجهيز الصورة</span>';
+                }
+            },
+
+            closeStory() { document.getElementById('storyModal')?.classList.add('hidden'); },
+
+            async shareStoryImage() {
+                const blob = this._storyBlob;
+                if (!blob) return;
+                const file = new File([blob], 'iraqi-student-story.png', { type: 'image/png' });
+                try {
+                    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: this._storyTitle });
+                        return;
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') return;
+                }
+                this.saveStoryImage();
+                this.showToast('انحفظت الصورة، شاركها من المعرض');
+            },
+
+            saveStoryImage() {
+                if (!this._storyUrl) return;
+                const a = document.createElement('a');
+                a.href = this._storyUrl;
+                a.download = 'iraqi-student-story.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            },
+
+            _loadStoryImg(src) {
+                return new Promise((res) => {
+                    const im = new Image();
+                    im.crossOrigin = 'anonymous';
+                    const t = setTimeout(() => res(null), 4000);
+                    im.onload = () => { clearTimeout(t); res(im); };
+                    im.onerror = () => { clearTimeout(t); res(null); };
+                    im.src = src;
+                });
+            },
+
+            async _drawStory(o, allowImg) {
+                const W = 1080, H = 1920;
+                const cv = document.createElement('canvas');
+                cv.width = W; cv.height = H;
+                let ctx = cv.getContext('2d');
+                try { if (document.fonts) await Promise.race([document.fonts.load('800 60px "Readex Pro"'), new Promise((r) => setTimeout(r, 1500))]); } catch (e) {}
+                const F = (w, sz) => `${w} ${sz}px "Readex Pro", Tahoma, "Segoe UI", sans-serif`;
+                const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); };
+                const wrap = (text, maxW, maxLines) => {
+                    const words = String(text || '').split(/\s+/).filter(Boolean);
+                    const lines = []; let cur = '', k = 0;
+                    for (; k < words.length; k++) {
+                        const t = cur ? cur + ' ' + words[k] : words[k];
+                        if (cur && ctx.measureText(t).width > maxW) { lines.push(cur); cur = words[k]; if (lines.length === maxLines) break; } else cur = t;
+                    }
+                    if (lines.length < maxLines && cur) { lines.push(cur); k = words.length; }
+                    if (k < words.length && lines.length) {
+                        let l = lines[lines.length - 1];
+                        while (l.length > 1 && ctx.measureText(l + '...').width > maxW) l = l.slice(0, -1);
+                        lines[lines.length - 1] = l + '...';
+                    }
+                    return lines;
+                };
+                const glow = (x, y, r, c) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, c); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
+
+                // Background
+                const bg = ctx.createLinearGradient(0, 0, W * 0.4, H);
+                bg.addColorStop(0, '#0F766E'); bg.addColorStop(0.55, '#0B3B3A'); bg.addColorStop(1, '#0F172A');
+                ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+                glow(930, 180, 460, 'rgba(94,234,212,0.32)');
+                glow(120, 1760, 520, 'rgba(245,158,11,0.20)');
+
+                // Brand
+                ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+                const brand = (document.getElementById('appTitle')?.textContent || '').trim() || 'منصة الطالب العراقي';
+                ctx.fillStyle = 'rgba(255,255,255,0.14)'; rr(W - 90 - 110, 105, 110, 110, 32); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = F(800, 58); ctx.fillText('ط', W - 145, 180);
+                ctx.textAlign = 'right'; ctx.font = F(800, 50); ctx.fillText(brand, W - 230, 158);
+                ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = F(500, 32); ctx.fillText(o.tagline || (document.getElementById('appTagline')?.textContent || '').trim() || 'أخبار وزارة التربية أولاً بأول', W - 230, 206);
+
+                // Card content is drawn on its own canvas first, so the white card can be sized
+                // to fit it and centred between the brand row and the footer.
+                const cw = W - 140, pad = 60, inner = cw - pad * 2, R = cw - pad;
+                const cc = document.createElement('canvas');
+                cc.width = cw; cc.height = 1400;
+                const main = ctx;
+                ctx = cc.getContext('2d');
+                ctx.direction = 'rtl'; ctx.textAlign = 'right';
+                let y = pad;
+
+                if (o.image && allowImg) {
+                    const im = await this._loadStoryImg(o.image);
+                    if (im && im.naturalWidth) {
+                        const ih = 520, s = Math.max(cw / im.naturalWidth, ih / im.naturalHeight);
+                        const dw = im.naturalWidth * s, dh = im.naturalHeight * s;
+                        ctx.save(); rr(0, 0, cw, ih + 56, 56); ctx.clip();
+                        ctx.beginPath(); ctx.rect(0, 0, cw, ih); ctx.clip();
+                        ctx.drawImage(im, (cw - dw) / 2, (ih - dh) / 2, dw, dh); ctx.restore();
+                        y = ih + 50;
+                    }
+                }
+
+                // Badge
+                ctx.font = F(800, 32);
+                const bw = ctx.measureText(o.badge || '').width + 56;
+                ctx.fillStyle = o.badgeColor || '#0F766E'; rr(R - bw, y, bw, 64, 32); ctx.fill();
+                ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(o.badge || '', R - bw / 2, y + 44);
+                ctx.textAlign = 'right'; y += 64 + 44;
+
+                // Title
+                ctx.fillStyle = '#0F172A'; ctx.font = F(800, 66);
+                wrap(o.title, inner, o.image ? 3 : 4).forEach((l) => { y += 66; ctx.fillText(l, R, y); y += 24; });
+                y += 10;
+
+                // Subtitle
+                if (o.sub) {
+                    ctx.fillStyle = '#475569'; ctx.font = F(500, 38);
+                    wrap(o.sub, inner, o.image ? 4 : 5).forEach((l) => { y += 40; ctx.fillText(l, R, y); y += 22; });
+                    y += 20;
+                }
+
+                // Line chart (grades), same RTL layout as the in-app chart
+                if (o.series) {
+                    const top = y + 60, bot = y + 480, xR = R - 60, xL = pad + 20, n = o.series.length;
+                    const X = (i) => xR - (i * (xR - xL)) / (n - 1), Y = (v) => bot - (v / 100) * (bot - top);
+                    ctx.lineWidth = 2;
+                    [0, 50, 100].forEach((v) => {
+                        ctx.strokeStyle = v === 50 ? 'rgba(220,38,38,0.6)' : '#E2E8F0';
+                        ctx.setLineDash(v === 50 ? [12, 12] : []);
+                        ctx.beginPath(); ctx.moveTo(xL - 10, Y(v)); ctx.lineTo(xR + 10, Y(v)); ctx.stroke();
+                        ctx.fillStyle = '#94A3B8'; ctx.font = F(600, 26); ctx.textAlign = 'right'; ctx.fillText(String(v), R, Y(v) + 9);
+                    });
+                    ctx.setLineDash([]);
+                    const pts = o.series.map((v, i) => (v === null ? null : { v, x: X(i), y: Y(v) })).filter(Boolean);
+                    if (pts.length > 1) {
+                        const ag = ctx.createLinearGradient(0, top, 0, bot);
+                        ag.addColorStop(0, 'rgba(15,118,110,0.22)'); ag.addColorStop(1, 'rgba(15,118,110,0)');
+                        ctx.fillStyle = ag; ctx.beginPath(); pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+                        ctx.lineTo(pts[pts.length - 1].x, bot); ctx.lineTo(pts[0].x, bot); ctx.closePath(); ctx.fill();
+                        ctx.strokeStyle = '#0F766E'; ctx.lineWidth = 7; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+                        ctx.beginPath(); pts.forEach((p, k) => (k ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y))); ctx.stroke();
+                    }
+                    pts.forEach((p) => {
+                        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 17, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = p.v < 50 ? '#DC2626' : '#0F766E'; ctx.beginPath(); ctx.arc(p.x, p.y, 12, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#0F172A'; ctx.font = F(800, 30); ctx.textAlign = 'center'; ctx.fillText(String(p.v), p.x, p.y - 30);
+                    });
+                    ctx.fillStyle = '#64748B'; ctx.font = F(600, 26); ctx.textAlign = 'center';
+                    (o.labels || []).forEach((l, i) => ctx.fillText(l, X(i), bot + 50));
+                    ctx.textAlign = 'right';
+                    y = bot + 90;
+                }
+
+                // Stats
+                if (o.stats && o.stats.length) {
+                    const n = o.stats.length, gap = 20, sw = (inner - gap * (n - 1)) / n, sh = 200;
+                    const sy = y + 20;
+                    o.stats.forEach(([val, lbl], i) => {
+                        const sx = R - sw - i * (sw + gap);
+                        ctx.fillStyle = '#F1F5F9'; rr(sx, sy, sw, sh, 36); ctx.fill();
+                        ctx.fillStyle = i === 0 ? '#0F766E' : i === 1 ? '#D97706' : '#7C3AED';
+                        ctx.textAlign = 'center'; ctx.direction = 'ltr'; ctx.font = F(900, 76); ctx.fillText(String(val), sx + sw / 2, sy + 108);
+                        ctx.direction = 'rtl'; ctx.fillStyle = '#64748B'; ctx.font = F(600, 30); ctx.fillText(lbl, sx + sw / 2, sy + 160);
+                    });
+                    y = sy + sh;
+                }
+
+                // Place the fitted card
+                ctx = main;
+                const ch = Math.min(cc.height, Math.ceil(y + pad));
+                const areaTop = 290, areaBot = 1680;
+                const cy = Math.max(areaTop, Math.round(areaTop + (areaBot - areaTop - ch) / 2));
+                ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 60; ctx.shadowOffsetY = 24;
+                ctx.fillStyle = '#FFFFFF'; rr(70, cy, cw, ch, 56); ctx.fill(); ctx.restore();
+                ctx.save(); rr(70, cy, cw, ch, 56); ctx.clip();
+                ctx.drawImage(cc, 0, 0, cw, ch, 70, cy, cw, ch); ctx.restore();
+
+                // Footer
+                ctx.textAlign = 'center';
+                ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.font = F(700, 36);
+                ctx.fillText(o.foot || 'تابع دراستك وأخبارك أولاً بأول', W / 2, 1768);
+                const d = new Date();
+                ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = F(500, 28);
+                ctx.fillText(d.getDate() + ' ' + IRAQI_MONTHS[d.getMonth()] + ' ' + d.getFullYear(), W / 2, 1822);
+
+                try {
+                    return await new Promise((res, rej) => cv.toBlob((b) => (b ? res(b) : rej(new Error('empty'))), 'image/png'));
+                } catch (e) {
+                    if (allowImg && o.image) return this._drawStory(o, false); // tainted by the photo: redraw without it
+                    throw e;
+                }
+            },
+
+            shareNewsStory() {
+                const news = newsData.find((n) => n.id === this.currentNewsId);
+                if (!news) return;
+                const cat = (categories.find((c) => c.id === news.category) || {}).label || '';
+                const img = /^https?:\/\//i.test(String(news.image || '')) ? news.image : null;
+                this.openStory({
+                    badge: news.isUrgent ? 'عاجل' : (cat || 'خبر'),
+                    badgeColor: news.isUrgent ? '#DC2626' : '#0F766E',
+                    title: news.title,
+                    sub: news.excerpt,
+                    image: img,
+                    foot: 'المصدر: ' + (news.source || 'وزارة التربية العراقية')
+                });
+            },
+
+            shareFocusStory(minutes) {
+                const st = this.focusStats();
+                this.openStory({
+                    badge: 'وضع التركيز', badgeColor: '#0F766E',
+                    title: 'ركّزت ' + minutes + ' دقيقة بدون ما ألمس هاتفي',
+                    sub: 'كملت جلسة تركيز كاملة، وهاي إنجازاتي لحد هسه',
+                    stats: [[st.done, 'جلسة مكتملة'], [st.minutes, 'دقيقة تركيز'], ['+' + minutes, 'نقطة']]
+                });
+            },
+
+            shareProfileStory() {
+                if (!this.isLoggedIn || !this.currentUser) { this.showToast('سجّل دخولك أول'); return; }
+                const u = this.currentUser;
+                const txt = (id) => (document.getElementById(id)?.textContent || '0').trim();
+                this.openStory({
+                    badge: 'إنجازاتي', badgeColor: '#7C3AED',
+                    title: u.fullName || 'طالب',
+                    sub: 'هاي إنجازاتي على المنصة' + (u.governorate ? ' — ' + u.governorate : ''),
+                    stats: [[numOr0(u.points), 'نقطة'], [txt('profileStreakValue'), 'يوم متتالي'], [txt('profileSessionsValue'), 'جلسة مذاكرة']]
+                });
+            },
+
+            shareGradesStory() {
+                const s = this.gradesSubject;
+                if (!s) return;
+                const series = this._gradeSeries(this._gradesLoad(), s);
+                const pts = series.filter((v) => v !== null);
+                if (!pts.length) { this.showToast('سجّل درجاتك أول'); return; }
+                const last = pts[pts.length - 1];
+                const avg = Math.round(pts.reduce((a, v) => a + v, 0) / pts.length * 10) / 10;
+                const d = pts.length > 1 ? Math.round((last - pts[pts.length - 2]) * 10) / 10 : 0;
+                this.openStory({
+                    badge: 'تطور درجاتي', badgeColor: '#16A34A',
+                    title: 'درجاتي في ' + s,
+                    series, labels: this.GRADE_PERIODS.map((p) => p[0]),
+                    stats: [[last, 'آخر درجة'], [avg, 'المعدل'], [(d > 0 ? '+' : '') + d, 'التغيير']]
+                });
+            },
+
             // ===== Before the exam (قبل الامتحان) =====
             // A quiet page: a dua carousel, a guided one-minute breathing exercise
             // (inhale 4s, hold 2s, exhale 6s, 5 rounds), a same-day readiness checklist
@@ -12096,7 +12908,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
@@ -12110,7 +12922,7 @@
                 document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
+                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); this.renderMood(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
