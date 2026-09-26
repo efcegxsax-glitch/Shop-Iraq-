@@ -727,7 +727,7 @@
                                 <option value="كركوك">كركوك</option>
                                 <option value="ديالى">ديالى</option>
                                 <option value="دهوك">دهوك</option>
-                                <option value="الموصل">الموصل</option>
+                                <option value="حلبجة">حلبجة</option>
                                 <option value="ذي قار">ذي قار</option>
                                 <option value="ميسان">ميسان</option>
                                 <option value="المثنى">المثنى</option>
@@ -920,7 +920,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
-        import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
@@ -934,27 +933,32 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        const storage = getStorage(app);
-
-        const SUBJECTS = {
-            'sixth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
-            'sixth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية','الفلسفة','علم الاجتماع'],
-            'fifth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
-            'fifth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية']
-        };
 
         const el = (id) => document.getElementById(id);
         const val = (id) => (el(id)?.value || '').trim();
 
+        let toastTimer = null;
         function toast(msg, ok = true) {
             const t = el('toast');
             t.textContent = msg;
             t.style.background = ok ? '#16A34A' : '#DC2626';
             t.style.display = 'block';
-            setTimeout(() => { t.style.display = 'none'; }, 3000);
+            // FIX: a second toast used to be hidden early by the first toast's timer.
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
 
-        const sanitize = (str) => String(str).replace(/[.#$\[\]]/g, '_');
+        // Database keys can't contain . # $ [ ] or / (a "/" would silently create a nested path).
+        const sanitize = (str) => String(str).replace(/[.#$\[\]\/]/g, '_');
+
+        // FIX (XSS): values from the database used to be pasted raw into inline
+        // onclick="fn('${value}')" handlers. escapeHtml() alone doesn't help there — the
+        // browser decodes &#39; back to ' before running the handler — so a store/product
+        // record written by a student with a quote in its id could run script inside this
+        // admin panel. jsArg() emits a JSON string literal (quotes/backslashes escaped) and
+        // then HTML-escapes it for the attribute.
+        const jsArg = (v) => escapeHtml(JSON.stringify(v == null ? '' : String(v)));
+        const entriesWithKey = (val) => Object.keys(val || {}).filter(k => val[k] && typeof val[k] === 'object').map(k => ({ ...val[k], _key: k }));
 
         function escapeHtml(value) {
             return String(value == null ? '' : value)
@@ -963,6 +967,19 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        // FIX: toISOString() gives the UTC date — before 03:00 Baghdad time it's yesterday.
+        function localDateStr(d = new Date()) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        }
+
+        // FIX: after publishing, the file input was cleared but the old preview image stayed.
+        function clearPreview(inputId, imgId) {
+            if (el(inputId)) el(inputId).value = '';
+            const img = el(imgId);
+            if (img) { img.classList.add('hidden'); img.removeAttribute('src'); }
         }
 
         function fileToDataURL(file) {
@@ -1006,7 +1023,6 @@
             return dataUrl;
         }
 
-        loadLists();
         (function setModeBadge() {
             const badge = document.getElementById('modeBadge');
             if (!badge) return;
@@ -1033,7 +1049,7 @@
                     excerpt: val('n_excerpt'),
                     image: imageUrl,
                     category: val('n_category'),
-                    date: new Date().toISOString().slice(0, 10),
+                    date: localDateStr(),
                     time: 'الآن',
                     source: 'وزارة التربية العراقية',
                     isUrgent: urgent,
@@ -1049,7 +1065,9 @@
                     });
                 }
                 toast('✅ تم نشر الخبر بنجاح');
-                el('n_title').value = ''; el('n_excerpt').value = ''; el('n_image').value = '';
+                el('n_title').value = ''; el('n_excerpt').value = '';
+                clearPreview('n_image', 'n_preview');
+                el('n_urgent').checked = false; el('n_pinned').checked = false;
             } catch (e) {
                 console.warn(e);
                 toast('❌ فشل النشر: ' + (e.message || e), false);
@@ -1090,7 +1108,7 @@
                 });
                 toast('✅ تم نشر الملزمة بنجاح');
                 el('r_title').value = ''; el('r_desc').value = '';
-                el('r_cover').value = ''; el('r_pdf').value = '';
+                clearPreview('r_cover', 'r_preview'); el('r_pdf').value = '';
             } catch (e) {
                 console.warn(e);
                 toast('❌ فشل النشر: ' + (e.message || e), false);
@@ -1103,6 +1121,8 @@
         window.sendNotification = async () => {
             const title = val('no_title');
             if (!title) { toast('أدخل عنوان الإشعار', false); return; }
+            const btn = el('no_send');
+            btn.disabled = true;
             try {
                 const id = Date.now();
                 await set(ref(db, 'notifications/' + id), {
@@ -1115,6 +1135,7 @@
                 console.warn(e);
                 toast('❌ فشل الإرسال', false);
             }
+            btn.disabled = false;
         };
         el('no_send').addEventListener('click', sendNotification);
 
@@ -1188,10 +1209,14 @@
         el('h_publish').addEventListener('click', publishHoliday);
 
         // ---------- Topup Codes ----------
+        // FIX: codes carry real money, so they now come from crypto.getRandomValues()
+        // instead of the predictable Math.random() (32 chars = 5 bits, so % has no bias).
         function generateCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            const group = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-            return group() + '-' + group() + '-' + group();
+            const bytes = new Uint8Array(12);
+            crypto.getRandomValues(bytes);
+            const s = Array.from(bytes, (b) => chars[b % chars.length]).join('');
+            return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12);
         }
         window.generateTopupCodes = async () => {
             const value = parseInt(val('tc_value'), 10);
@@ -1201,7 +1226,10 @@
             btn.disabled = true;
             try {
                 for (let i = 0; i < count; i++) {
-                    const code = generateCode();
+                    // FIX: set() used to blindly overwrite — a collision with an existing code
+                    // would reset an already-used code back to "unused" (redeemable again).
+                    let code = generateCode();
+                    for (let tries = 0; tries < 5 && (await get(ref(db, 'topupCodes/' + code))).exists(); tries++) code = generateCode();
                     await set(ref(db, 'topupCodes/' + code), {
                         code, value, used: false, usedBy: null, usedAt: null, createdAt: serverTimestamp()
                     });
@@ -1236,8 +1264,8 @@
                         <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c.code)}</div>
                         <div class="text-slate-400 text-xs">${Number(c.value).toLocaleString('en-US')} د.ع ${c.used ? '• مستخدم ✅' : '• غير مستخدم'}</div>
                     </div>
-                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode('${c.code}')">نسخ</button>`}
-                    <button class="del" onclick="deleteItem('topupCodes', '${c.code}')">حذف</button>
+                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode(${jsArg(c.code)})">نسخ</button>`}
+                    <button class="del" onclick="deleteItem('topupCodes', ${jsArg(c._key)})">حذف</button>
                 </div>`).join('');
         }
         window.copyTopupCode = (code) => {
@@ -1353,10 +1381,10 @@
                     </div>
                     ${s.status === 'pending' ? `
                         <div class="flex flex-col gap-1">
-                            <button class="del" style="background:#16A34A;" onclick="approveStore('${escapeHtml(s.ownerUid)}')">قبول</button>
-                            <button class="del" onclick="rejectStore('${escapeHtml(s.ownerUid)}')">رفض</button>
+                            <button class="del" style="background:#16A34A;" onclick="approveStore(${jsArg(s._key)})">قبول</button>
+                            <button class="del" onclick="rejectStore(${jsArg(s._key)})">رفض</button>
                         </div>
-                    ` : `<button class="del" onclick="deleteItem('stores', '${escapeHtml(s.ownerUid)}')">حذف</button>`}
+                    ` : `<button class="del" onclick="deleteItem('stores', ${jsArg(s._key)})">حذف</button>`}
                 </div>`).join('');
         }
         window.approveStore = async (uid) => {
@@ -1366,10 +1394,10 @@
             } catch (e) { console.warn(e); toast('❌ فشل القبول', false); }
         };
         window.rejectStore = async (uid) => {
-            const reason = prompt('سبب الرفض (اختياري):') || '';
+            const reason = prompt('سبب الرفض (اختياري):');
+            if (reason === null) return; // FIX: pressing "Cancel" used to reject the store anyway
             try {
-                await set(ref(db, 'stores/' + uid + '/status'), 'rejected');
-                await set(ref(db, 'stores/' + uid + '/rejectionReason'), reason);
+                await update(ref(db, 'stores/' + uid), { status: 'rejected', rejectionReason: reason.trim() });
                 toast('🚫 تم رفض المتجر');
             } catch (e) { console.warn(e); toast('❌ فشل الرفض', false); }
         };
@@ -1395,10 +1423,10 @@
                     </div>
                     ${p.status === 'pending' ? `
                         <div class="flex flex-col gap-1">
-                            <button class="del" style="background:#16A34A;" onclick="approveProduct(${p.id})">قبول</button>
-                            <button class="del" onclick="rejectProduct(${p.id})">رفض</button>
+                            <button class="del" style="background:#16A34A;" onclick="approveProduct(${jsArg(p._key)})">قبول</button>
+                            <button class="del" onclick="rejectProduct(${jsArg(p._key)})">رفض</button>
                         </div>
-                    ` : `<button class="del" onclick="deleteItem('storeProducts', ${p.id})">حذف</button>`}
+                    ` : `<button class="del" onclick="deleteItem('storeProducts', ${jsArg(p._key)})">حذف</button>`}
                 </div>`).join('');
         }
         window.approveProduct = async (id) => {
@@ -1419,7 +1447,9 @@
             const number = val('ban_number');
             if (!number) { toast('أدخل رقم الطالب', false); return; }
             try {
-                await set(ref(db, 'bannedStudents/' + number), {
+                // FIX: a raw key containing "/" or "." either throws or writes a nested path
+                // the student app never checks, so the ban silently did nothing.
+                await set(ref(db, 'bannedStudents/' + sanitize(number)), {
                     studentNumber: number,
                     reason: val('ban_reason'),
                     bannedAt: serverTimestamp()
@@ -1440,31 +1470,37 @@
         window.changeLogo = async () => {
             const file = el('logoFile').files[0];
             if (!file) { toast('اختر صورة الشعار', false); return; }
+            const btn = el('logoBtn');
+            btn.disabled = true;
             try {
                 const url = await uploadFile(file, 'site/');
                 await set(ref(db, 'settings/logo'), { url, updatedAt: serverTimestamp() });
                 toast('🏷️ تم تغيير الشعار — ظهر عند الجميع');
-                el('logoFile').value = '';
+                clearPreview('logoFile', 'logo_preview');
             } catch (e) {
                 console.warn(e);
                 toast('❌ فشل تغيير الشعار', false);
             }
+            btn.disabled = false;
         };
         el('logoBtn').addEventListener('click', changeLogo);
 
         window.addCarousel = async () => {
             const file = el('c_file').files[0];
             if (!file) { toast('اختر صورة السلايدر', false); return; }
+            const btn = el('c_add');
+            btn.disabled = true;
             try {
                 const url = await uploadFile(file, 'site/');
                 const id = Date.now();
                 await set(ref(db, 'carousel/' + id), { id, image: url, title: val('c_title'), createdAt: serverTimestamp() });
                 toast('🎠 تمت إضافة الصورة للسلايدر');
-                el('c_title').value = ''; el('c_file').value = '';
+                el('c_title').value = ''; clearPreview('c_file', 'c_preview');
             } catch (e) {
                 console.warn(e);
                 toast('❌ فشلت الإضافة', false);
             }
+            btn.disabled = false;
         };
         el('c_add').addEventListener('click', addCarousel);
 
@@ -1555,23 +1591,23 @@
             box.innerHTML = list.map((t, i) => {
                 const expired = Number(t.expiresAt) && Number(t.expiresAt) <= Date.now();
                 const meta = expired ? '⌛ انتهت مدته' : (t.active === false ? '⏸️ موقوف' : (t.expiresAt ? '⏳ يختفي ' + escapeHtml(fmtDate(Number(t.expiresAt))) : '🟢 ظاهر'));
-                const editing = tickerEditing === t.id;
+                const editing = tickerEditing === t._key;
                 return `
                 <div class="row-item tk-row${t.active === false || expired ? ' is-off' : ''}">
-                    <label class="switch" title="إظهار / إيقاف"><input type="checkbox" ${t.active !== false ? 'checked' : ''} onchange="toggleTicker(${t.id}, this.checked)" aria-label="إظهار الخبر"><span class="track"></span></label>
+                    <label class="switch" title="إظهار / إيقاف"><input type="checkbox" ${t.active !== false ? 'checked' : ''} onchange="toggleTicker(${jsArg(t._key)}, this.checked)" aria-label="إظهار الخبر"><span class="track"></span></label>
                     <div class="flex-1 min-w-0">
                         <div class="font-bold truncate tk-row-text">${escapeHtml(t.text || '')}</div>
                         <div class="text-slate-400 text-xs">${meta}</div>
                     </div>
                     <div class="tk-row-actions">
-                        <button class="btn-sm" onclick="moveTicker(${t.id}, -1)" ${i === 0 ? 'disabled' : ''} aria-label="تقديم">▲</button>
-                        <button class="btn-sm" onclick="moveTicker(${t.id}, 1)" ${i === list.length - 1 ? 'disabled' : ''} aria-label="تأخير">▼</button>
-                        <button class="btn-sm" onclick="editTicker(${t.id})">تعديل</button>
-                        <button class="del" style="margin:0" onclick="deleteItem('ticker', ${t.id})">حذف</button>
+                        <button class="btn-sm" onclick="moveTicker(${jsArg(t._key)}, -1)" ${i === 0 ? 'disabled' : ''} aria-label="تقديم">▲</button>
+                        <button class="btn-sm" onclick="moveTicker(${jsArg(t._key)}, 1)" ${i === list.length - 1 ? 'disabled' : ''} aria-label="تأخير">▼</button>
+                        <button class="btn-sm" onclick="editTicker(${jsArg(t._key)})">تعديل</button>
+                        <button class="del" style="margin:0" onclick="deleteItem('ticker', ${jsArg(t._key)})">حذف</button>
                     </div>
                     ${editing ? `<div class="tk-row-edit">
-                        <input type="text" id="tk_edit_${t.id}" value="${escapeHtml(t.text || '')}">
-                        <button class="btn-sm" style="background:var(--primary);border-color:var(--primary)" onclick="saveTicker(${t.id})">حفظ</button>
+                        <input type="text" id="tk_edit_${escapeHtml(t._key)}" value="${escapeHtml(t.text || '')}">
+                        <button class="btn-sm" style="background:var(--primary);border-color:var(--primary)" onclick="saveTicker(${jsArg(t._key)})">حفظ</button>
                         <button class="btn-sm" onclick="editTicker(null)">إلغاء</button>
                     </div>` : ''}
                 </div>`;
@@ -1597,13 +1633,13 @@
         };
         window.moveTicker = (id, dir) => {
             const list = tkSorted();
-            const i = list.findIndex(t => t.id === id);
+            const i = list.findIndex(t => t._key === id);
             const j = i + dir;
             if (i < 0 || j < 0 || j >= list.length) return;
             const a = list[i], b = list[j];
             let oa = tkOrder(a), ob = tkOrder(b);
             if (oa === ob) ob = oa + (dir < 0 ? 1 : -1);
-            update(ref(db, 'ticker'), { [a.id + '/order']: ob, [b.id + '/order']: oa })
+            update(ref(db, 'ticker'), { [a._key + '/order']: ob, [b._key + '/order']: oa })
                 .catch(() => toast('❌ فشل الترتيب', false));
         };
 
@@ -1624,7 +1660,7 @@
             onValue(ref(db, 'news'), (snap) => {
                 const box = el('newsList');
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد أخبار منشورة</p>'; return; }
-                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
                 box.innerHTML = vals.map(n => `
                     <div class="row-item">
                         <img src="${escapeHtml(n.image || '')}" alt="">
@@ -1632,13 +1668,13 @@
                             <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? '🔴 عاجل' : ''}</div>
                         </div>
-                        <button class="del" onclick="deleteItem('news', ${n.id})">حذف</button>
+                        <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
                     </div>`).join('');
             });
             onValue(ref(db, 'resources'), (snap) => {
                 const box = el('resList');
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد ملازم منشورة</p>'; return; }
-                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
                 box.innerHTML = vals.map(r => `
                     <div class="row-item">
                         <img src="${escapeHtml(r.thumbnail || '')}" alt="">
@@ -1646,11 +1682,11 @@
                             <div class="font-bold truncate">${escapeHtml(r.title || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(r.stage || '')} • ${escapeHtml(r.subject || '')}</div>
                         </div>
-                        <button class="del" onclick="deleteItem('resources', ${r.id})">حذف</button>
+                        <button class="del" onclick="deleteItem('resources', ${jsArg(r._key)})">حذف</button>
                     </div>`).join('');
             });
             onValue(ref(db, 'ticker'), (snap) => {
-                tickerData = snap.exists() ? Object.values(snap.val()).filter(t => t && t.id) : [];
+                tickerData = snap.exists() ? entriesWithKey(snap.val()) : [];
                 renderTickerAdmin();
             });
             onValue(ref(db, 'siteConfig'), (snap) => {
@@ -1661,71 +1697,77 @@
             onValue(ref(db, 'carousel'), (snap) => {
                 const box = el('carouselList');
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد صور في السلايدر</p>'; return; }
-                const vals = Object.values(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
                 box.innerHTML = vals.map(c => `
                     <div class="row-item">
                         <img src="${escapeHtml(c.image || '')}" alt="">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(c.title || 'صورة سلايدر')}</div>
                         </div>
-                        <button class="del" onclick="deleteItem('carousel', ${c.id})">حذف</button>
+                        <button class="del" onclick="deleteItem('carousel', ${jsArg(c._key)})">حذف</button>
                     </div>`).join('');
             });
             onValue(ref(db, 'examSchedule'), (snap) => {
                 const box = el('examsList');
                 if (!box) return;
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد مواعيد امتحانات</p>'; return; }
-                const vals = Object.values(snap.val()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const vals = entriesWithKey(snap.val()).sort((a, b) => new Date(a.date) - new Date(b.date));
                 box.innerHTML = vals.map(x => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(x.subject || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(x.date || '')}</div>
                         </div>
-                        <button class="del" onclick="deleteItem('examSchedule', ${x.id})">حذف</button>
+                        <button class="del" onclick="deleteItem('examSchedule', ${jsArg(x._key)})">حذف</button>
                     </div>`).join('');
             });
             onValue(ref(db, 'holidays'), (snap) => {
                 const box = el('holidaysList');
                 if (!box) return;
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد عطل مضافة</p>'; return; }
-                const vals = Object.values(snap.val()).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                const vals = entriesWithKey(snap.val()).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
                 box.innerHTML = vals.map(h => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '🏛️' : '🏫'}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}${h.governorate ? ' • ' + escapeHtml(h.governorate) : ' • كل المحافظات'}</div>
                         </div>
-                        <button class="del" onclick="deleteItem('holidays', ${h.id})">حذف</button>
+                        <button class="del" onclick="deleteItem('holidays', ${jsArg(h._key)})">حذف</button>
                     </div>`).join('');
             });
             onValue(ref(db, 'topupCodes'), (snap) => {
-                topupCodesData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                topupCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
                 renderTopupList();
             });
             onValue(ref(db, 'stores'), (snap) => {
-                storeAppsData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                storeAppsData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
                 renderStoreAppsList();
             });
             onValue(ref(db, 'storeProducts'), (snap) => {
-                storeProductsData = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                storeProductsData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
                 renderStoreProductsAdminList();
             });
             onValue(ref(db, 'bannedStudents'), (snap) => {
                 const box = el('bannedList');
                 if (!box) return;
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا يوجد طلاب محظورون</p>'; return; }
-                const vals = Object.values(snap.val());
+                const vals = entriesWithKey(snap.val());
                 box.innerHTML = vals.map(b => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">🚫 رقم الطالب: ${escapeHtml(b.studentNumber || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(b.reason || 'بدون سبب محدد')}</div>
                         </div>
-                        <button class="del" onclick="unbanStudent('${escapeHtml(b.studentNumber || '')}')">رفع الحظر</button>
+                        <button class="del" onclick="unbanStudent(${jsArg(b._key)})">رفع الحظر</button>
                     </div>`).join('');
             });
         }
+
+        // FIX: loadLists() used to be called near the top of the module, before the
+        // `let tickerData`, `let siteConfig`, ... declarations it writes to. It only worked
+        // because the first snapshot happens to arrive asynchronously; a cached snapshot
+        // would hit the temporal dead zone and throw. Calling it last removes that risk.
+        loadLists();
     </script>
 </body>
 </html>

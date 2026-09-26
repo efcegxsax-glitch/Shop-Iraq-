@@ -24,6 +24,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <!-- FIX: every screen calls lucide.createIcons(); if the icon CDN is blocked or slow,
+         `lucide` is undefined and app.init() threw on its first call — the whole app stayed
+         dead. A no-op fallback keeps the app working (just without icons). -->
+    <script>window.lucide = window.lucide || { createIcons: function () {} };</script>
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
@@ -879,7 +883,7 @@
                 </div>
             </section>
 
-            <section id="categoriesSection" class="px-4 py-3 sticky top-16 z-30 theme-transition" style="background-color: rgba(var(--bg-rgb), 0.95); backdrop-filter: blur-sm;">
+            <section id="categoriesSection" class="px-4 py-3 sticky top-16 z-30 theme-transition" style="background-color: rgba(var(--bg-rgb), 0.95); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
                 <div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 scroll-fade-x" id="categoryTabs"></div>
             </section>
 
@@ -1145,7 +1149,7 @@
                                 <option value="كركوك">كركوك</option>
                                 <option value="ديالى">ديالى</option>
                                 <option value="دهوك">دهوك</option>
-                                <option value="الموصل">الموصل</option>
+                                <option value="حلبجة">حلبجة</option>
                                 <option value="ذي قار">ذي قار</option>
                                 <option value="ميسان">ميسان</option>
                                 <option value="المثنى">المثنى</option>
@@ -1162,8 +1166,8 @@
 
                         <!-- Email (Optional) -->
                         <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">البريد الإلكتروني <span class="text-xs font-normal theme-transition" style="color: var(--text2);">(اختياري)</span></label>
-                            <input type="email" name="email" placeholder="example@email.com"
+                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">البريد الإلكتروني <span class="text-error">*</span></label>
+                            <input type="email" name="email" required placeholder="example@email.com"
                                 class="w-full h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
                         </div>
 
@@ -1212,7 +1216,7 @@
                 <span class="font-bold flex-1 theme-transition" style="color: var(--text);">الملف الشخصي</span>
                 <button onclick="app.goToNotifications()" class="btn-press relative w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="bell" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">1</span>
+                    <span id="profileHeaderNotifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span>
                 </button>
             </div>
             <div id="profileContent" class="pb-4">
@@ -1290,7 +1294,7 @@
                                 <div class="w-10 h-10 mx-auto mb-2 rounded-lg bg-success/10 flex items-center justify-center">
                                     <i data-lucide="building-2" class="w-5 h-5 text-success"></i>
                                 </div>
-                                <div class="text-xs font-bold theme-transition" style="color: var(--text);">الصف/الثلاث</div>
+                                <div class="text-xs font-bold theme-transition" style="color: var(--text);">الصف والفرع</div>
                                 <div class="text-[10px] mt-0.5 theme-transition" id="profileGradeValue" style="color: var(--text2);">ثالث إعدادي</div>
                             </div>
                             <div class="rounded-xl p-3 text-center theme-transition" style="background-color: var(--input-bg);">
@@ -1327,7 +1331,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">الأخبار المحفوظة</div></div>
                                 <div class="flex items-center gap-2">
-                                    <span class="bg-primary text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">12</span>
+                                    <span id="profileSavedCount" class="hidden bg-primary text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
                                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
                             </button>
@@ -1337,7 +1341,7 @@
                                 </div>
                                 <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">الإشعارات</div></div>
                                 <div class="flex items-center gap-2">
-                                    <span class="bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">3</span>
+                                    <span id="profileNotifCount" class="hidden bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
                                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                                 </div>
                             </button>
@@ -2498,6 +2502,31 @@
                 .replace(/'/g, '&#39;');
         }
 
+        // FIX (XSS): database values used to be pasted raw into inline onclick="..."
+        // handlers and element ids (message ids, product ids, user ids...). Anyone who can
+        // write a chat message, forum post, friend request or store product could put a
+        // quote in that value and run script in other students' browsers. jsArg() emits a
+        // JSON string literal and HTML-escapes it for the attribute; jsNum() only lets a
+        // finite number through.
+        function jsArg(value) {
+            return escapeHtml(JSON.stringify(value == null ? '' : String(value)));
+        }
+        function jsNum(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? String(n) : '0';
+        }
+        function numOr0(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : 0;
+        }
+        // Records whose `id` isn't a finite number are dropped and numeric-string ids are
+        // coerced, so every `x.id === id` lookup and every id="...-${x.id}" stays safe.
+        function withNumericIds(list, key) {
+            const k = key || 'id';
+            return list.filter((x) => x && typeof x === 'object' && Number.isFinite(Number(x[k])))
+                .map((x) => (typeof x[k] === 'number' ? x : { ...x, [k]: Number(x[k]) }));
+        }
+
         function isSafeImageUrl(value) {
             try {
                 const str = String(value);
@@ -2537,6 +2566,21 @@
 
         function safeStoreMedia(value, mediaType) {
             return mediaType === 'video' ? safeVideo(value) : safeImage(value);
+        }
+
+        // FIX (XSS): voice/file chat messages used to put m.audioUrl / m.fileUrl straight
+        // into src="..." / href="..." — a crafted message could break out of the attribute
+        // or use a javascript: link. Only base64 data URLs of the expected type or https
+        // links are accepted now.
+        function safeAudioUrl(value) {
+            const str = String(value || '');
+            if (/^data:audio\/[a-z0-9.+-]+(;[a-z0-9=.+-]+)*;base64,/i.test(str)) return str;
+            try { return new URL(str).protocol === 'https:' ? str : ''; } catch (e) { return ''; }
+        }
+        function safeFileUrl(value) {
+            const str = String(value || '');
+            if (/^data:application\/pdf;base64,/i.test(str)) return str;
+            try { return new URL(str).protocol === 'https:' ? str : ''; } catch (e) { return ''; }
         }
 
         function personAvatarSrc(avatar, name) {
@@ -2698,24 +2742,23 @@
         // forum posts, chat messages, store names...). The construction is now wrapped in
         // try/catch with a plain substring-replace fallback so those callers keep working
         // (with slightly less precise word-boundary matching) instead of throwing.
+        // FIX: the old fallback for browsers without lookbehind (Safari < 16.4) matched
+        // plain substrings, so ordinary words were starred out ("هناك" contains "ناك",
+        // "عكس" contains "كس"...). The start boundary is now a captured group, which every
+        // browser supports, so word-boundary matching is the same everywhere.
         function filterBadWords(text) {
             if (!text) return { clean: text || '', filtered: false };
             let result = String(text);
             let filtered = false;
-            const boundary = '[\\u0600-\\u06FF\\u0750-\\u077Fa-zA-Z0-9]';
+            const letter = '\\u0600-\\u06FF\\u0750-\\u077Fa-zA-Z0-9';
             bannedWordsList.forEach((word) => {
                 if (!word) return;
                 const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                let re;
-                try {
-                    re = new RegExp('(?<!' + boundary + ')(?:' + escaped + ')(?!' + boundary + ')', 'gi');
-                } catch (e) {
-                    re = new RegExp(escaped, 'gi');
-                }
-                if (re.test(result)) {
+                const re = new RegExp('(^|[^' + letter + '])(' + escaped + ')(?![' + letter + '])', 'gi');
+                result = result.replace(re, (m, pre, bad) => {
                     filtered = true;
-                    result = result.replace(re, (m) => '*'.repeat(m.length));
-                }
+                    return pre + '*'.repeat(bad.length);
+                });
             });
             return { clean: result, filtered };
         }
@@ -3084,19 +3127,36 @@
             // presence/duels/store all silently stuck on the previous account's data (the
             // guard saw a truthy leftover value and refused to re-subscribe). Resetting every
             // per-user listener flag here lets each one re-arm cleanly for the new account.
+            // FIX: the flags were only set to null — the old account's onValue listeners
+            // stayed attached and kept overwriting friendsList / chats / wallet with the
+            // previous account's data whenever it changed. They're unsubscribed now.
             resetUserScopedListeners() {
-                this._tasksListener = null;
-                this._walletTxListener = null;
-                this._friendsListener = null;
-                this._friendRequestsListener = null;
-                this._sentFriendRequestsListener = null;
-                this._blockedUsersListener = null;
-                this._presenceListener = null;
-                this._userChatsListener = null;
-                this._userDuelsListener = null;
-                this._duelInvitesListener = null;
-                this._myStoreListener = null;
-                this._myStoreProductsListener = null;
+                ['_tasksListener', '_walletTxListener', '_friendsListener', '_friendRequestsListener',
+                    '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
+                    '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
+                    '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub'].forEach((key) => {
+                    if (typeof this[key] === 'function') {
+                        try { this[key](); } catch (e) { /* already detached */ }
+                    }
+                    this[key] = null;
+                });
+            },
+
+            // Keeps balance/points in sync with the database (incoming transfers, other
+            // tabs) and keeps the record in Firebase's local cache so transactions on it
+            // start from the real value.
+            listenForOwnUserRecord() {
+                if (!window.firebaseDb || !this.authUid || this._ownUserListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._ownUserListener = onValue(ref(window.firebaseDb, 'users/' + this.authUid), (snap) => {
+                    if (!snap.exists() || !this.currentUser) return;
+                    const v = snap.val();
+                    if (typeof v.balance === 'number') this.currentUser.balance = v.balance;
+                    if (typeof v.points === 'number') this.currentUser.points = v.points;
+                    this.saveUserData();
+                    if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
+                    if (this.currentView === 'pointsStoreView') this.renderPointsStore();
+                });
             },
 
             watchAuthState() {
@@ -3105,6 +3165,13 @@
                 onAuthStateChanged(window.firebaseAuth, (user) => {
                     if (user) {
                         this.authUid = user.uid;
+                        // FIX: Firebase fires this observer *before* the promise returned by
+                        // signInWithEmailAndPassword/createUserWithEmailAndPassword resolves.
+                        // Both paths used to load the profile: on registration the observer
+                        // could write an empty profile (no name) and a second student number,
+                        // and every per-user listener got attached twice. handleLogin/
+                        // handleRegister now own that flow while it's in progress.
+                        if (this._authFlowInProgress) return;
                         if (this._stateLoadedFor !== user.uid) {
                             this._stateLoadedFor = user.uid;
                             this.resetUserScopedListeners();
@@ -3288,6 +3355,7 @@
                     }
                 }
 
+                this._authFlowInProgress = true;
                 try {
                     const { signInWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await signInWithEmailAndPassword(window.firebaseAuth, loginEmail, password);
@@ -3329,19 +3397,25 @@
                     } else {
                         this.showToast('تعذر تسجيل الدخول، يرجى المحاولة مرة أخرى');
                     }
+                } finally {
+                    this._authFlowInProgress = false;
                 }
             },
 
             async handleRegister(event) {
                 event.preventDefault();
                 const formData = new FormData(event.target);
-                const fullName = formData.get('fullName');
+                const fullName = filterBadWords(String(formData.get('fullName') || '').trim()).clean;
                 const governorate = formData.get('governorate');
-                const phone = formData.get('phone');
-                const email = formData.get('email');
+                const phone = String(formData.get('phone') || '').trim();
+                const email = String(formData.get('email') || '').trim();
                 const password = formData.get('password');
                 const confirmPassword = formData.get('confirmPassword');
 
+                if (!fullName) {
+                    this.showToast('أدخل اسمك الثلاثي');
+                    return;
+                }
                 if (password !== confirmPassword) {
                     this.showToast('كلمتا المرور غير متطابقتين');
                     return;
@@ -3358,6 +3432,7 @@
                     this.showToast('لا يوجد اتصال بخدمة المصادقة');
                     return;
                 }
+                this._authFlowInProgress = true;
                 try {
                     const { createUserWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
@@ -3380,13 +3455,14 @@
                     };
                     this.isLoggedIn = true;
                     this.saveUserData();
-                    const savedToDb = await this.syncUserToDatabase();
+                    const savedToDb = await this.syncUserToDatabase({ includeCounters: true });
                     this.initPushNotifications();
                     if (savedToDb) {
                         this.showToast('تم إنشاء الحساب بنجاح');
                     } else {
                         this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
                     }
+                    this.listenForOwnUserRecord();
                     this.checkDailyStreak();
                     this.listenForUserTasks();
                     this.listenForUserChats();
@@ -3417,6 +3493,8 @@
                     } else {
                         this.showToast('تعذر إنشاء الحساب (' + (code || 'خطأ غير معروف') + ')، يرجى المحاولة مرة أخرى');
                     }
+                } finally {
+                    this._authFlowInProgress = false;
                 }
             },
 
@@ -3437,6 +3515,8 @@
                     userTasks.length = 0;
                     this.userRead = {};
                     this.userBookmarks = {};
+                    this.userDeletedNotifs = {};
+                    if (this._banUnsub) { this._banUnsub(); this._banUnsub = null; }
                     localStorage.removeItem('iraqiStudentUser');
                     if (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuthHelpers) {
                         const { signOut } = window.firebaseAuthHelpers;
@@ -3498,6 +3578,13 @@
                     notLoggedEl.classList.remove('hidden');
                     loggedInEl.classList.add('hidden');
                 }
+                const savedCountEl = document.getElementById('profileSavedCount');
+                if (savedCountEl) {
+                    const savedCount = newsData.filter(n => n.isBookmarked).length;
+                    savedCountEl.classList.toggle('hidden', savedCount === 0);
+                    savedCountEl.textContent = savedCount;
+                }
+                this.updateNotifBadges();
                 this.updateThemeIcon();
             },
 
@@ -3547,7 +3634,7 @@
                 const container = document.getElementById('categoryTabs');
                 if (!container) return;
                 container.innerHTML = categories.map(cat => `
-                    <button onclick="app.setCategory('${cat.id}')"
+                    <button onclick="app.setCategory(${jsArg(cat.id)})"
                         class="cat-tab flex-shrink-0 px-5 py-2.5 rounded-pill text-sm font-medium transition-all whitespace-nowrap ${
                             this.activeCategory === cat.id
                             ? 'bg-primary text-white shadow-lg shadow-primary/25'
@@ -3707,7 +3794,7 @@
                 const tk = this._tk;
                 list.innerHTML = tk.items.map((t, k) => {
                     const ts = Number(t.id);
-                    const time = ts > 1e11 ? `<span class="tk-item-time" data-timeago="${ts}">${timeAgo(ts)}</span>` : '';
+                    const time = ts > 1e11 ? `<span class="tk-item-time" data-timeago="${jsNum(ts)}">${timeAgo(ts)}</span>` : '';
                     return `<li><button type="button" class="tk-item${k === tk.index ? ' is-current' : ''}" data-i="${k}">
                         <span class="tk-item-mark" aria-hidden="true"></span>
                         <span class="tk-item-body">${escapeHtml(t.text)}${time}</span>
@@ -3752,12 +3839,12 @@
                 return `
                     <div class="relative overflow-hidden rounded-2xl" style="min-height: 120px;">
                         <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
-                            <button onclick="event.stopPropagation(); app.deleteNewsCard(${news.id})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الخبر">
+                            <button onclick="event.stopPropagation(); app.deleteNewsCard(${jsNum(news.id)})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الخبر">
                                 <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                             </button>
                         </div>
                         <article class="news-card rounded-2xl p-3 border cursor-pointer relative ${!isRead ? 'border-r-4 border-r-primary' : ''} theme-transition"
-                             onclick="app.openNews(${news.id})" ontouchstart="app.swipeStart(event, 'news-${news.id}')" ontouchmove="app.swipeMove(event, 'news-${news.id}')" ontouchend="app.swipeEnd(event, 'news-${news.id}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); touch-action: pan-y;">
+                             onclick="app.openNews(${jsNum(news.id)})" ontouchstart="app.swipeStart(event, 'news-${jsNum(news.id)}')" ontouchmove="app.swipeMove(event, 'news-${jsNum(news.id)}')" ontouchend="app.swipeEnd(event, 'news-${jsNum(news.id)}')" data-swipe-card data-tx="0" style="min-height: 120px; background-color: var(--bg); background-image: linear-gradient(var(--surface), var(--surface)); border-color: var(--border); touch-action: pan-y;">
                         <div class="flex gap-3">
                             <div class="w-24 h-[72px] rounded-xl overflow-hidden flex-shrink-0 theme-transition" style="background-color: var(--bg);">
                                 <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}" class="w-full h-full object-cover" loading="lazy">
@@ -3770,11 +3857,11 @@
                                 </div>` : ''}
                                 <h3 class="text-sm font-bold line-clamp-2 leading-relaxed theme-transition" style="color: ${!isRead ? 'var(--text)' : 'var(--text2)'};">${escapeHtml(news.title)}</h3>
                                 <div class="flex items-center gap-2 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                                    <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${news.id}">${timeAgo(news.id)}</span></span>
+                                    <span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span></span>
                                     <span>•</span><span>${escapeHtml(news.source)}</span>
                                 </div>
                             </div>
-                            <button onclick="event.stopPropagation(); app.toggleBookmark(${news.id})"
+                            <button onclick="event.stopPropagation(); app.toggleBookmark(${jsNum(news.id)})"
                                     class="btn-press flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center self-start ${isBookmarked ? 'bg-primary/10 text-primary' : 'theme-transition'}"
                                     style="${!isBookmarked ? 'background-color: var(--input-bg); color: var(--text2);' : ''}">
                                 <i data-lucide="bookmark" class="w-4 h-4 ${isBookmarked ? 'fill-primary' : ''}"></i>
@@ -3851,7 +3938,7 @@
                     <div class="p-4">
                         <div class="flex items-center gap-2 mb-3 text-sm theme-transition" style="color: var(--text2);">
                             <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" class="w-5 h-5 rounded-full object-cover">
-                            <span class="font-medium">${escapeHtml(news.source)}</span><span>•</span><span>${news.date}</span><span>•</span><span data-timeago="${news.id}">${timeAgo(news.id)}</span>
+                            <span class="font-medium">${escapeHtml(news.source)}</span><span>•</span><span>${escapeHtml(news.date)}</span><span>•</span><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span>
                         </div>
                         <h1 class="text-xl font-bold leading-relaxed mb-4 theme-transition" style="color: var(--text);">${escapeHtml(news.title)}</h1>
                         <div class="prose prose-sm max-w-none leading-relaxed mb-6 theme-transition" style="color: var(--text);">
@@ -3870,11 +3957,11 @@
                             <h3 class="font-bold mb-3 theme-transition" style="color: var(--text);">أخبار ذات صلة</h3>
                             <div class="flex flex-col gap-3">
                                 ${newsData.filter(n => n.id !== id && n.category === news.category).slice(0, 2).map(n => `
-                                    <div class="flex gap-3 cursor-pointer" onclick="app.openNews(${n.id})">
+                                    <div class="flex gap-3 cursor-pointer" onclick="app.openNews(${jsNum(n.id)})">
                                         <div class="w-20 h-14 rounded-lg overflow-hidden flex-shrink-0"><img src="${safeImage(n.image)}" class="w-full h-full object-cover"></div>
                                         <div class="flex-1">
                                             <h4 class="text-sm font-bold line-clamp-2 theme-transition" style="color: var(--text);">${escapeHtml(n.title)}</h4>
-                                            <span class="text-xs theme-transition" data-timeago="${n.id}" style="color: var(--text2);">${timeAgo(n.id)}</span>
+                                            <span class="text-xs theme-transition" data-timeago="${jsNum(n.id)}" style="color: var(--text2);">${timeAgo(n.id)}</span>
                                         </div>
                                     </div>
                                 `).join('')}
@@ -3955,7 +4042,7 @@
                 this.performSearch(term);
             },
             performSearch(query) {
-                const results = newsData.filter(n => n.title.includes(query) || n.excerpt.includes(query));
+                const results = newsData.filter(n => String(n.title || '').includes(query) || String(n.excerpt || '').includes(query));
                 const container = document.getElementById('searchResults');
                 if (!container) return;
                 if (results.length === 0) {
@@ -4055,11 +4142,11 @@
                     return `
                         <div class="relative overflow-hidden rounded-2xl">
                             <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
-                                <button onclick="event.stopPropagation(); app.deleteNotification(${notif.id})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الإشعار">
+                                <button onclick="event.stopPropagation(); app.deleteNotification(${jsNum(notif.id)})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الإشعار">
                                     <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
                                 </button>
                             </div>
-                            <div class="notif-card border rounded-2xl p-4 cursor-pointer relative overflow-hidden theme-transition shadow-card" onclick="app.openNotification(${notif.id})" ontouchstart="app.swipeStart(event, 'notif-${notif.id}')" ontouchmove="app.swipeMove(event, 'notif-${notif.id}')" ontouchend="app.swipeEnd(event, 'notif-${notif.id}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--surface); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border-color: var(--border); border-right: 4px solid ${hex}; box-shadow: inset 0 1px 0 var(--glass-highlight);">
+                            <div class="notif-card border rounded-2xl p-4 cursor-pointer relative overflow-hidden theme-transition shadow-card" onclick="app.openNotification(${jsNum(notif.id)})" ontouchstart="app.swipeStart(event, 'notif-${jsNum(notif.id)}')" ontouchmove="app.swipeMove(event, 'notif-${jsNum(notif.id)}')" ontouchend="app.swipeEnd(event, 'notif-${jsNum(notif.id)}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--surface); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border-color: var(--border); border-right: 4px solid ${hex}; box-shadow: inset 0 1px 0 var(--glass-highlight);">
                             <div class="absolute inset-x-0 top-0 h-8 pointer-events-none" style="background: linear-gradient(180deg, var(--glass-highlight), transparent); opacity: 0.5;"></div>
                             <div class="flex items-start gap-3 relative">
                                 <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style="background: ${hex}1A;">
@@ -4074,7 +4161,7 @@
                                     <h4 class="text-sm font-bold leading-snug theme-transition" style="color: var(--text);">${escapeHtml(notif.title)}</h4>
                                     <p class="text-xs mt-1 line-clamp-1 theme-transition" style="color: var(--text2);">${escapeHtml(notif.description)}</p>
                                     <div class="flex items-center gap-2 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                                        <i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${notif.id}">${timeAgo(notif.id)}</span>
+                                        <i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${jsNum(notif.id)}">${timeAgo(notif.id)}</span>
                                     </div>
                                 </div>
                                 ${!notif.read ? '<div class="unread-dot w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0 mt-2"></div>' : ''}
@@ -4257,6 +4344,13 @@
                     notifBadge.style.display = unreadCount > 0 ? 'flex' : 'none';
                     notifBadge.textContent = unreadCount;
                 }
+                // FIX: the profile screen showed hard-coded numbers (1, 3, 12) that never changed.
+                ['profileHeaderNotifBadge', 'profileNotifCount'].forEach((badgeId) => {
+                    const el = document.getElementById(badgeId);
+                    if (!el) return;
+                    el.classList.toggle('hidden', unreadCount === 0);
+                    el.textContent = unreadCount;
+                });
                 document.querySelectorAll('.notif-tab').forEach(tab => {
                     const countEl = tab.querySelector('.notif-count');
                     if (!countEl) return;
@@ -4268,9 +4362,16 @@
             },
 
             // ==================== FIREBASE SYNC ====================
-            syncUserToDatabase() {
+            // FIX: this used to set() the whole users/{uid} record from the local cached
+            // copy — including `balance` and `points`. Those two are changed atomically with
+            // runTransaction (and `balance` by *other* students' transfers), so any profile
+            // edit, streak or study-session sync could overwrite a newer balance with a stale
+            // one (lost or duplicated money). Now it's an update() of the profile fields only;
+            // the counters are written just once, when the record is first created.
+            syncUserToDatabase(options) {
                 if (!window.firebaseDb || !this.currentUser) return Promise.resolve(false);
-                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
+                const includeCounters = !!(options && options.includeCounters);
+                const { ref, update, serverTimestamp } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const payload = {
                     fullName: this.currentUser.fullName || '',
@@ -4279,9 +4380,7 @@
                     email: this.currentUser.email || '',
                     avatar: this.currentUser.avatar || '',
                     grade: this.currentUser.grade || 'scientific',
-                    points: this.currentUser.points || 0,
                     weeklyChange: this.currentUser.weeklyChange || 0,
-                    balance: this.currentUser.balance || 0,
                     studentNumber: this.currentUser.studentNumber || '',
                     studySessions: this.currentUser.studySessions || 0,
                     youtubeStudyCooldownUntil: this.currentUser.youtubeStudyCooldownUntil || 0,
@@ -4289,18 +4388,22 @@
                     lastLoginDate: this.currentUser.lastLoginDate || '',
                     updatedAt: serverTimestamp()
                 };
-                const userWrite = set(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
+                if (includeCounters) {
+                    payload.points = numOr0(this.currentUser.points);
+                    payload.balance = numOr0(this.currentUser.balance);
+                }
+                const userWrite = update(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
                     console.log('User synced to Realtime Database');
                     return true;
                 }).catch((err) => {
                     console.warn('Realtime Database sync failed:', err);
                     return false;
                 });
-                set(ref(window.firebaseDb, 'leaderboard/' + uid), {
+                update(ref(window.firebaseDb, 'leaderboard/' + uid), {
                     name: payload.fullName,
                     avatar: payload.avatar,
                     grade: payload.grade,
-                    points: payload.points,
+                    points: numOr0(this.currentUser.points),
                     weeklyChange: payload.weeklyChange
                 }).catch((err) => {
                     console.warn('Leaderboard sync failed:', err);
@@ -4323,12 +4426,13 @@
                         this.isLoggedIn = true;
                         this.saveUserData();
                         if (await this.checkIfBanned(this.currentUser.studentNumber)) return;
+                        this.watchBanStatus(this.currentUser.studentNumber);
                     } else {
                         if (!this.currentUser) this.currentUser = {};
                         if (!this.currentUser.studentNumber) {
                             this.currentUser.studentNumber = await this.generateUniqueStudentNumber();
                         }
-                        this.syncUserToDatabase();
+                        this.syncUserToDatabase({ includeCounters: true });
                     }
                     try {
                         const readSnap = await get(ref(window.firebaseDb, 'userNewsState/' + safeUid + '/readNews'));
@@ -4343,6 +4447,7 @@
                         console.warn('User news state load failed:', stateErr);
                     }
                     this.updateProfileView();
+                    this.listenForOwnUserRecord();
                     this.initPushNotifications();
                     this.checkDailyStreak();
                     this.listenForUserTasks();
@@ -4362,6 +4467,20 @@
                 }
             },
 
+            // FIX: the admin panel promises a banned student is "logged out automatically",
+            // but the ban was only checked once at login — an already-open session kept
+            // working. This listens for the student's ban record while they're signed in.
+            watchBanStatus(studentNumber) {
+                if (!studentNumber || !window.firebaseDb) return;
+                if (this._banUnsub) { this._banUnsub(); this._banUnsub = null; }
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._banUnsub = onValue(ref(window.firebaseDb, 'bannedStudents/' + studentNumber), (snap) => {
+                    if (!snap.exists()) return;
+                    if (this._banUnsub) { this._banUnsub(); this._banUnsub = null; }
+                    this.checkIfBanned(studentNumber);
+                });
+            },
+
             async checkIfBanned(studentNumber) {
                 if (!studentNumber || !window.firebaseDb) return false;
                 try {
@@ -4369,6 +4488,7 @@
                     const snap = await get(ref(window.firebaseDb, 'bannedStudents/' + studentNumber));
                     if (!snap.exists()) return false;
                     const info = snap.val() || {};
+                    this.resetUserScopedListeners();
                     this.isLoggedIn = false;
                     this.currentUser = null;
                     this.authUid = null;
@@ -4508,9 +4628,9 @@
                 const { ref, get } = window.firebaseDbHelpers;
                 get(ref(window.firebaseDb, 'news')).then((snap) => {
                     if (!snap.exists()) return;
-                    const vals = snap.val();
-                    Object.keys(vals).forEach((k) => {
-                        if (!newsData.some(n => n.id === vals[k].id) && !this.getDeletedNewsIds().has(vals[k].id)) newsData.unshift(vals[k]);
+                    const deletedIds = this.getDeletedNewsIds();
+                    withNumericIds(Object.values(snap.val())).forEach((item) => {
+                        if (!newsData.some(n => n.id === item.id) && !deletedIds.has(item.id)) newsData.unshift(item);
                     });
                     cacheNewsData(newsData);
                     this.renderNews();
@@ -4539,12 +4659,8 @@
                 const seenIds = new Set();
                 let isFirstSnapshot = true;
                 this._newsListener = onValue(ref(window.firebaseDb, 'news'), (snap) => {
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
-                    }
+                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    list.sort((a, b) => b.id - a.id);
                     let newItem = null;
                     if (!isFirstSnapshot) {
                         newItem = list.find((item) => !seenIds.has(item.id)) || null;
@@ -4588,12 +4704,8 @@
                 const seenIds = new Set();
                 let isFirstSnapshot = true;
                 this._resListener = onValue(ref(window.firebaseDb, 'resources'), (snap) => {
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
-                    }
+                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    list.sort((a, b) => b.id - a.id);
                     let newItem = null;
                     if (!isFirstSnapshot) {
                         newItem = list.find((item) => !seenIds.has(item.id)) || null;
@@ -4617,16 +4729,25 @@
             // notifications #2 through #5 on startup. An explicit `isFirstBatch` flag (cleared
             // shortly after the listener attaches, once the initial synchronous flush of
             // existing children has had a chance to run) now suppresses all of that.
+            // FIX (again): the setTimeout(0) above never worked — existing children reach
+            // onChildAdded asynchronously from the network, long after a 0ms timer fires, so
+            // every existing notification still toasted + beeped on every app start. The
+            // ids that already exist are now read once with get() before listening; only
+            // ids missing from that snapshot count as new.
             listenForAdminNotifications() {
                 if (!window.firebaseDb || this._adminNotifListener) return;
-                const { ref, onChildAdded } = window.firebaseDbHelpers;
+                this._adminNotifListener = true;
+                const { ref, get, onChildAdded } = window.firebaseDbHelpers;
                 const seenIds = new Set();
-                let isFirstBatch = true;
-                setTimeout(() => { isFirstBatch = false; }, 0);
-                this._adminNotifListener = onChildAdded(ref(window.firebaseDb, 'notifications'), (snap) => {
-                    const val = snap.val();
-                    if (!val) return;
-                    const isNew = (!seenIds.has(val.id) && !isFirstBatch);
+                const notifRef = ref(window.firebaseDb, 'notifications');
+                get(notifRef).then((snap) => {
+                    if (snap.exists()) Object.values(snap.val()).forEach((v) => { if (v) seenIds.add(Number(v.id)); });
+                }).catch(() => {}).then(() => {
+                this._adminNotifListener = onChildAdded(notifRef, (snap) => {
+                    const raw = snap.val();
+                    if (!raw || !Number.isFinite(Number(raw.id))) return;
+                    const val = { ...raw, id: Number(raw.id) };
+                    const isNew = !seenIds.has(val.id);
                     seenIds.add(val.id);
                     if (this.isNotifDeleted(val.id)) return;
                     if (!notifications.some(n => n.id === val.id)) {
@@ -4651,6 +4772,7 @@
                     }
                     if (this.currentView === 'notificationsView') this.renderNotificationsList();
                     lucide.createIcons();
+                });
                 });
             },
 
@@ -4852,6 +4974,19 @@
                 });
             },
 
+            // FIX: new Date('2025-03-21') is UTC midnight (03:00 in Baghdad), and the end
+            // date was compared as the *start* of that day — a holiday disappeared from the
+            // list at 03:00 on its last day and "days left" was off by the UTC offset.
+            // Dates are now read as local days, and the end date covers the whole day.
+            holidayRange(h) {
+                const parse = (str, endOfDay) => {
+                    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(str || ''));
+                    if (!m) return new Date(str).getTime();
+                    return endOfDay ? new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999).getTime() : new Date(+m[1], +m[2] - 1, +m[3]).getTime();
+                };
+                return { start: parse(h.startDate, false), end: parse(h.endDate || h.startDate, true) };
+            },
+
             renderHolidays() {
                 const section = document.getElementById('holidaysSection');
                 const list = document.getElementById('holidaysList');
@@ -4859,10 +4994,10 @@
                 const now = Date.now();
                 const upcoming = holidays
                     .filter((h) => {
-                        const end = new Date(h.endDate || h.startDate).getTime();
+                        const end = this.holidayRange(h).end;
                         return !isNaN(end) && end >= now;
                     })
-                    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
+                    .sort((a, b) => this.holidayRange(a).start - this.holidayRange(b).start);
                 if (upcoming.length === 0) {
                     section.classList.add('hidden');
                     list.innerHTML = '';
@@ -4870,8 +5005,7 @@
                 }
                 section.classList.remove('hidden');
                 list.innerHTML = upcoming.map((h) => {
-                    const start = new Date(h.startDate).getTime();
-                    const end = new Date(h.endDate || h.startDate).getTime();
+                    const { start, end } = this.holidayRange(h);
                     const isOngoing = now >= start && now <= end;
                     const daysLeft = isOngoing
                         ? Math.max(0, Math.ceil((end - now) / 86400000))
@@ -4898,9 +5032,8 @@
                 const { ref, get } = window.firebaseDbHelpers;
                 get(ref(window.firebaseDb, 'resources')).then((snap) => {
                     if (!snap.exists()) return;
-                    const vals = snap.val();
-                    Object.keys(vals).forEach((k) => {
-                        if (!resourcesData.some(r => r.id === vals[k].id)) resourcesData.unshift(vals[k]);
+                    withNumericIds(Object.values(snap.val())).forEach((item) => {
+                        if (!resourcesData.some(r => r.id === item.id)) resourcesData.unshift(item);
                     });
                     if (this.currentView === 'resourcesView') { this.renderResourcesList(); lucide.createIcons(); }
                 }).catch((err) => {
@@ -5029,8 +5162,12 @@
                 if (titleEl) titleEl.textContent = 'تعديل الملف الشخصي';
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
-                const governorates = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'الأنبار', 'بابل', 'كربلاء', 'النجف', 'واسط', 'صلاح الدين', 'كركوك', 'ديالى', 'دهوك', 'الموصل', 'ذي قار', 'ميسان', 'المثنى', 'القادسية'];
+                // FIX: "الموصل" is the capital of نينوى, not a separate governorate, and حلبجة
+                // was missing. A value saved earlier that isn't in the list is kept as an
+                // option so saving the form doesn't silently switch it to بغداد.
+                const governorates = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'الأنبار', 'بابل', 'كربلاء', 'النجف', 'واسط', 'صلاح الدين', 'كركوك', 'ديالى', 'دهوك', 'حلبجة', 'ذي قار', 'ميسان', 'المثنى', 'القادسية'];
                 const currentGov = this.currentUser.governorate || '';
+                if (currentGov && !governorates.includes(currentGov)) governorates.unshift(currentGov);
                 content.innerHTML = `
                     <div class="flex flex-col items-center mb-4">
                         <div class="avatar-container relative w-20 h-20 mb-2 cursor-pointer" onclick="app.triggerAvatarUpload()">
@@ -5056,7 +5193,7 @@
                         <div>
                             <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">المحافظة</label>
                             <select id="editProfileGovernorate" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
-                                ${governorates.map(g => `<option value="${g}" ${g === currentGov ? 'selected' : ''}>${g}</option>`).join('')}
+                                ${governorates.map(g => `<option value="${escapeHtml(g)}" ${g === currentGov ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}
                             </select>
                         </div>
                         <div>
@@ -5300,7 +5437,7 @@
                 if (this.activeSubject) {
                     container.className = 'flex gap-2 overflow-x-auto no-scrollbar scroll-fade-x pb-1';
                     container.innerHTML = subjects.map(subj => `
-                        <button onclick="app.setSubject('${subj.id}')"
+                        <button onclick="app.setSubject(${jsArg(subj.id)})"
                             class="flex-shrink-0 flex items-center gap-2 px-3.5 py-2.5 rounded-pill border whitespace-nowrap theme-transition"
                             style="background-color: ${this.activeSubject === subj.id ? 'var(--primary)' : 'var(--surface)'}; border-color: ${this.activeSubject === subj.id ? 'transparent' : 'var(--border)'};">
                             <i data-lucide="${subj.icon}" class="w-4 h-4" style="color: ${this.activeSubject === subj.id ? '#fff' : subj.iconColor};"></i>
@@ -5310,7 +5447,7 @@
                 } else {
                     container.className = 'grid grid-cols-3 gap-3';
                     container.innerHTML = subjects.map(subj => `
-                        <button onclick="app.setSubject('${subj.id}')"
+                        <button onclick="app.setSubject(${jsArg(subj.id)})"
                             class="subject-card flex flex-col items-center justify-center p-4 rounded-2xl border theme-transition"
                             style="background-color: var(--surface); border-color: var(--border);">
                             <div class="w-12 h-12 rounded-xl ${subj.color} flex items-center justify-center mb-2">
@@ -5355,7 +5492,13 @@
                 }
 
                 let filtered = resourcesData.filter(r => r.stage === this.activeStage);
-                if (this.activeSubject) filtered = filtered.filter(r => r.subject === this.activeSubject);
+                // FIX: the admin panel saves the subject's Arabic *name* ("الكيمياء") while the
+                // subject tabs here use ids ("chemistry"), so picking any subject always showed
+                // "لا توجد ملازم". Both forms are accepted now.
+                if (this.activeSubject) {
+                    const subj = (subjectsData[this.activeStage] || []).find(s => s.id === this.activeSubject);
+                    filtered = filtered.filter(r => r.subject === this.activeSubject || (subj && r.subject === subj.name));
+                }
                 if (this.resourceFilter === 'official') filtered = filtered.filter(r => r.isOfficial);
                 if (this.resourceFilter === 'downloads') filtered = [...filtered].sort((a, b) => (Number(b.downloads) || 0) - (Number(a.downloads) || 0));
                 else filtered = [...filtered].sort((a, b) => (b.id || 0) - (a.id || 0));
@@ -5379,7 +5522,7 @@
                 const downloads = Number(res.downloads) || 0;
                 const downloadsFormatted = downloads >= 1000 ? (downloads / 1000).toFixed(0) + 'K' : downloads;
                 return `
-                    <div class="file-card rounded-xl border p-3 cursor-pointer theme-transition" style="background-color: var(--surface); border-color: var(--border);" onclick="app.openResource(${res.id})">
+                    <div class="file-card rounded-xl border p-3 cursor-pointer theme-transition" style="background-color: var(--surface); border-color: var(--border);" onclick="app.openResource(${jsNum(res.id)})">
                         <div class="flex gap-3">
                             <div class="w-16 h-[88px] rounded-lg overflow-hidden flex-shrink-0 relative theme-transition" style="background-color: var(--bg);">
                                 <img src="${safeImage(res.thumbnail)}" alt="${escapeHtml(res.title)}" class="w-full h-full object-cover">
@@ -5397,11 +5540,11 @@
                                 </div>
                             </div>
                             ${this.offlineResourceIds.has(res.id) ? `
-                            <button onclick="event.stopPropagation(); app.openOfflineResource(${res.id})" title="محفوظة بدون نت — اضغط للفتح"
+                            <button onclick="event.stopPropagation(); app.openOfflineResource(${jsNum(res.id)})" title="محفوظة بدون نت — اضغط للفتح"
                                     class="btn-press flex-shrink-0 w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center self-center">
                                 <i data-lucide="wifi-off" class="w-4 h-4 text-success"></i>
                             </button>` : `
-                            <button onclick="event.stopPropagation(); app.downloadResourceOffline(${res.id})" title="حفظ للاستخدام بدون نت"
+                            <button onclick="event.stopPropagation(); app.downloadResourceOffline(${jsNum(res.id)})" title="حفظ للاستخدام بدون نت"
                                     class="btn-press flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center self-center">
                                 <i data-lucide="download" class="w-4 h-4 text-primary"></i>
                             </button>`}
@@ -5435,13 +5578,13 @@
                         </div>
 
                         ${this.offlineResourceIds.has(res.id) ? `
-                        <button onclick="app.openOfflineResource(${res.id})" id="downloadBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-success text-white rounded-xl font-bold text-sm btn-press mb-2">
+                        <button onclick="app.openOfflineResource(${jsNum(res.id)})" id="downloadBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-success text-white rounded-xl font-bold text-sm btn-press mb-2">
                             <i data-lucide="wifi-off" class="w-5 h-5"></i>فتح الملزمة (محفوظة بدون نت)
                         </button>
-                        <button onclick="app.removeOfflineResource(${res.id})" class="w-full text-center text-xs font-medium mb-4 btn-press" style="color: var(--text2);">
+                        <button onclick="app.removeOfflineResource(${jsNum(res.id)})" class="w-full text-center text-xs font-medium mb-4 btn-press" style="color: var(--text2);">
                             إزالة من التخزين بدون نت
                         </button>` : `
-                        <button onclick="app.downloadResourceOffline(${res.id})" id="downloadBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-white rounded-xl font-bold text-sm btn-press mb-4">
+                        <button onclick="app.downloadResourceOffline(${jsNum(res.id)})" id="downloadBtn" class="w-full flex items-center justify-center gap-2 py-3.5 bg-primary text-white rounded-xl font-bold text-sm btn-press mb-4">
                             <i data-lucide="download" class="w-5 h-5"></i>تحميل للاستخدام بدون نت
                         </button>`}
 
@@ -5522,7 +5665,7 @@
             handleResourceSearch(query) {
                 const val = (query || '').trim();
                 if (!val) { this.showResourcesNormal(); return; }
-                const results = resourcesData.filter(r => r.title.includes(val) || r.description.includes(val));
+                const results = resourcesData.filter(r => String(r.title || '').includes(val) || String(r.description || '').includes(val) || String(r.subject || '').includes(val));
                 const container = document.getElementById('resourcesSearchResults');
                 if (!container) return;
                 if (results.length === 0) {
@@ -5557,7 +5700,7 @@
                     { id: 'offline', label: 'المحفوظة بدون نت', icon: 'wifi-off' }
                 ];
                 content.innerHTML = options.map(opt => `
-                    <button onclick="app.setResourceFilter('${opt.id}')" class="w-full flex items-center gap-3 p-3.5 rounded-2xl border theme-transition text-right btn-press" style="background-color: ${this.resourceFilter === opt.id ? 'var(--primary)' : 'var(--surface)'}; border-color: var(--border); color: ${this.resourceFilter === opt.id ? '#fff' : 'var(--text)'};">
+                    <button onclick="app.setResourceFilter(${jsArg(opt.id)})" class="w-full flex items-center gap-3 p-3.5 rounded-2xl border theme-transition text-right btn-press" style="background-color: ${this.resourceFilter === opt.id ? 'var(--primary)' : 'var(--surface)'}; border-color: var(--border); color: ${this.resourceFilter === opt.id ? '#fff' : 'var(--text)'};">
                         <i data-lucide="${opt.icon}" class="w-5 h-5"></i>
                         <span class="flex-1 font-bold text-sm">${opt.label}</span>
                         ${this.resourceFilter === opt.id ? '<i data-lucide="check" class="w-5 h-5"></i>' : ''}
@@ -5767,8 +5910,18 @@
                     this.showToast('أدخل كود التعبئة');
                     return;
                 }
+                // FIX: characters like "/", "." or "#" made ref() throw before the promise
+                // chain started, leaving the button stuck on "جاري التحقق...".
+                if (!/^[A-Z0-9-]{4,24}$/.test(code)) {
+                    this.showToast('الكود غير صحيح، تأكد من كتابته صح');
+                    return;
+                }
                 if (!window.firebaseDb) {
                     this.showToast('لا يوجد اتصال بقاعدة البيانات');
+                    return;
+                }
+                if (!this.authUid) {
+                    this.showToast('يجب تسجيل الدخول');
                     return;
                 }
                 const btn = document.getElementById('topupRedeemBtn');
@@ -5800,9 +5953,18 @@
                     }
                     update(codeRef, { usedBy: uid, usedAt: Date.now() }).catch(() => {});
                     const usdAmount = codeValueIqd / 1325;
-                    this.currentUser.balance = Math.round(((this.currentUser.balance || 0) + usdAmount) * 100) / 100;
-                    this.saveUserData();
-                    this.syncUserToDatabase();
+                    // FIX: the balance used to be "local balance + amount" written back with a
+                    // full-record set(), racing with transfers/withdrawals. It's atomic now,
+                    // and if crediting fails the code is released instead of being burned.
+                    return this.addBalanceAtomic(usdAmount).then((newBalance) => {
+                        if (newBalance === null) {
+                            update(codeRef, { used: false, usedBy: null, usedAt: null }).catch(() => {});
+                            return Promise.reject(new Error('balance-credit-failed'));
+                        }
+                        return usdAmount;
+                    });
+                }).then((usdAmount) => {
+                    if (usdAmount === undefined) return;
                     this.addWalletTransaction({
                         title: 'إيداع بكود تعبئة',
                         amount: '+$' + usdAmount.toFixed(2),
@@ -5834,7 +5996,7 @@
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 content.innerHTML = withdrawOptions.map(opt => `
-                    <button onclick="app.selectWithdrawOption('${opt.id}')" class="btn-press w-full flex items-center gap-3 p-3 rounded-xl text-right border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <button onclick="app.selectWithdrawOption(${jsArg(opt.id)})" class="btn-press w-full flex items-center gap-3 p-3 rounded-xl text-right border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                         <div class="w-11 h-11 rounded-full ${opt.iconBg} flex items-center justify-center flex-shrink-0">
                             <i data-lucide="${opt.icon}" class="w-5 h-5 ${opt.iconColor}"></i>
                         </div>
@@ -5883,7 +6045,7 @@
                     </div>
                     <p class="text-xs mb-2 theme-transition" style="color: var(--text2);">رصيدك المتاح: $${balance.toFixed(2)}</p>
                     <input type="number" id="withdrawAmountInput" min="1" max="${balance}" step="0.01" placeholder="المبلغ بالدولار $" class="w-full h-12 px-4 rounded-xl auth-input text-sm mb-3" dir="ltr">
-                    <button id="withdrawConfirmBtn" onclick="app.confirmWithdraw('${opt.id}')" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">تأكيد السحب</button>
+                    <button id="withdrawConfirmBtn" onclick="app.confirmWithdraw(${jsArg(opt.id)})" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">تأكيد السحب</button>
                 `;
                 lucide.createIcons();
             },
@@ -5909,20 +6071,14 @@
                 const btn = document.getElementById('withdrawConfirmBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التنفيذ...'; }
                 const content = document.getElementById('walletModalContent');
-                const { ref, runTransaction } = window.firebaseDbHelpers;
-                const round2 = (n) => Math.round(n * 100) / 100;
-                runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/balance'), (current) => {
-                    const cur = (typeof current === 'number') ? current : 0;
-                    if (cur < amount) return;
-                    return round2(cur - amount);
-                }).then((result) => {
-                    if (!result.committed) {
+                // FIX: see addBalanceAtomic() — the old inline transaction aborted on the
+                // first (cached = null) run, so withdrawals always failed as "insufficient".
+                this.addBalanceAtomic(-amount, { reject: true }).then((newBalance) => {
+                    if (newBalance === null) {
                         this.showToast('رصيدك غير كافٍ لسحب هذا المبلغ');
                         if (btn) { btn.disabled = false; btn.textContent = 'تأكيد السحب'; }
                         return;
                     }
-                    this.currentUser.balance = (typeof result.snapshot.val() === 'number') ? result.snapshot.val() : round2(balance - amount);
-                    this.saveUserData();
                     this.addWalletTransaction({
                         title: opt.title,
                         amount: '-$' + amount.toFixed(2),
@@ -6117,7 +6273,7 @@
                     list = list.filter(s => s.grade === this.leaderboardStage);
                 }
                 if (this.leaderboardQuery.trim()) {
-                    list = list.filter(s => s.name.includes(this.leaderboardQuery.trim()));
+                    list = list.filter(s => String(s.name || '').includes(this.leaderboardQuery.trim()));
                 }
                 const sorted = [...list];
                 if (this.leaderboardSort === 'points') {
@@ -6165,7 +6321,7 @@
                             const medal = medalOf(student);
                             const isFirst = top.indexOf(student) === 0;
                             return `
-                                <div class="flex flex-col items-center gap-1.5 flex-1 max-w-[110px] cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard('${student.id}')">
+                                <div class="flex flex-col items-center gap-1.5 flex-1 max-w-[110px] cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
                                     <div class="relative">
                                         <img src="${safeImage(student.avatar)}" alt="${escapeHtml(student.name)}" class="${medal.size} rounded-full object-cover border-2" style="border-color: ${medal.color};">
                                         ${isFirst ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2"><i data-lucide="crown" class="w-5 h-5" style="color: #F59E0B;"></i></div>' : ''}
@@ -6198,8 +6354,8 @@
                 return `
                     <div class="file-card rounded-2xl border p-4 flex items-center gap-3 theme-transition ${student.isCurrentUser ? 'ring-2 ring-primary' : ''}" style="background-color: var(--surface); border-color: var(--border);">
                         <div class="w-7 text-center text-sm font-bold flex-shrink-0" style="color: ${rankColor};">${rank}</div>
-                        <img src="${safeImage(student.avatar)}" alt="${escapeHtml(student.name)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 cursor-pointer" style="border-color: ${rank <= 3 ? medalColors[rank - 1] : 'var(--border)'};" onclick="app.openAuthorProfileFromLeaderboard('${student.id}')">
-                        <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard('${student.id}')">
+                        <img src="${safeImage(student.avatar)}" alt="${escapeHtml(student.name)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0 border-2 cursor-pointer" style="border-color: ${rank <= 3 ? medalColors[rank - 1] : 'var(--border)'};" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
+                        <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(student.id)})">
                             <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(student.name)}</div>
                             <div class="text-xs theme-transition" style="color: var(--text2);">${student.points.toLocaleString('en-US')} نقطة • ${student.grade === 'scientific' ? 'سادس علمي' : 'سادس أدبي'}</div>
                         </div>
@@ -6331,7 +6487,7 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.fullName || 'طالب')}</div>
                                     <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(found.governorate || '—')} • رقم: ${escapeHtml(found.studentNumber || '—')}</div>
-                                    <div class="text-xs theme-transition" style="color: var(--text2);">النقاط: ${(found.points || 0).toLocaleString('en-US')} • الرصيد: $${receiverBalance.toFixed(2)}</div>
+                                    <div class="text-xs theme-transition" style="color: var(--text2);">النقاط: ${numOr0(found.points).toLocaleString('en-US')} • الرصيد: $${receiverBalance.toFixed(2)}</div>
                                 </div>
                             </div>
                         </div>
@@ -6423,19 +6579,24 @@
                 };
 
                 let senderTxResult = null;
+                // FIX: both transactions used to abort when the handler's first (cached)
+                // call got `null` — which is always the case for the receiver's record — so
+                // every transfer failed. Returning `null` for `null` lets Firebase re-run
+                // the handler with the server value; a record that is really missing is
+                // caught by the exists() checks below.
                 runTransaction(ref(window.firebaseDb, 'users/' + senderUid), (current) => {
-                    if (!current) return;
+                    if (current === null) return null;
                     const balance = (typeof current.balance === 'number') ? current.balance : 0;
                     if (balance < amount) return;
                     current.balance = round2(balance - amount);
                     current.updatedAt = serverTimestamp();
                     return current;
                 }).then((result) => {
-                    if (!result.committed) throw new Error('insufficient-balance');
+                    if (!result.committed || !result.snapshot.exists()) throw new Error('insufficient-balance');
                     senderDeducted = true;
                     senderTxResult = result.snapshot.val();
                     return runTransaction(ref(window.firebaseDb, 'users/' + receiver.uid), (current) => {
-                        if (!current) return;
+                        if (current === null) return null;
                         current.balance = round2(((typeof current.balance === 'number') ? current.balance : 0) + amount);
                         current.updatedAt = serverTimestamp();
                         return current;
@@ -6503,12 +6664,8 @@
                 if (!window.firebaseDb || this._forumListener) return;
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._forumListener = onValue(ref(window.firebaseDb, 'forumThreads'), (snap) => {
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
-                    }
+                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    list.sort((a, b) => b.id - a.id);
                     forumThreads.length = 0;
                     forumThreads.push(...list);
                     if (this.currentView === 'forumView') { this.renderForumThreads(); lucide.createIcons(); }
@@ -6519,7 +6676,7 @@
                 const container = document.getElementById('forumSubjectTabs');
                 if (!container) return;
                 container.innerHTML = forumSubjects.map(subj => `
-                    <button onclick="app.setForumSubjectFilter('${subj.id}')"
+                    <button onclick="app.setForumSubjectFilter(${jsArg(subj.id)})"
                         class="flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap ${this.activeForumSubject === subj.id ? 'bg-primary text-white' : 'theme-transition'}"
                         style="${this.activeForumSubject !== subj.id ? 'background-color: var(--input-bg); color: var(--text2);' : ''}">
                         ${subj.label}
@@ -6558,13 +6715,13 @@
                 return `
                     <div class="file-card rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                         <div class="flex items-center gap-2.5 p-3.5 pb-2">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${thread.id})">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${thread.id})">${escapeHtml(thread.authorName || 'طالب')}</div>
-                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${thread.id}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
+                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">${escapeHtml(thread.authorName || 'طالب')}</div>
+                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(thread.id)}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
                         </div>
-                        <div class="cursor-pointer" onclick="app.openForumThread(${thread.id})">
+                        <div class="cursor-pointer" onclick="app.openForumThread(${jsNum(thread.id)})">
                             ${thread.body ? `<div class="px-3.5 pb-3"><p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p></div>` : ''}
                             ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full max-h-80 object-cover" alt="">` : ''}
                         </div>
@@ -6574,10 +6731,10 @@
                             <span>${commentsCount > 0 ? commentsCount + ' تعليق' : ''}</span>
                         </div>` : ''}
                         <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
-                            <button onclick="app.toggleForumLike(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
+                            <button onclick="app.toggleForumLike(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
                                 <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب
                             </button>
-                            <button onclick="app.openForumThread(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
+                            <button onclick="app.openForumThread(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
                                 <i data-lucide="message-circle" class="w-4 h-4"></i>تعليق
                             </button>
                         </div>
@@ -6597,12 +6754,8 @@
                 const { ref, get } = window.firebaseDbHelpers;
                 try {
                     const snap = await get(ref(window.firebaseDb, 'forumAnswers/' + id));
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (a.id || 0) - (b.id || 0));
-                    }
+                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    list.sort((a, b) => a.id - b.id);
                     forumAnswers[id] = list;
                     if (this.currentForumThreadId === id) { this.renderForumThreadDetail(); lucide.createIcons(); }
                 } catch (err) {
@@ -6621,16 +6774,16 @@
                 content.innerHTML = `
                     <div class="px-4 pt-4 pb-1 border-b theme-transition" style="border-color: var(--border);">
                         <div class="flex items-center gap-2.5 mb-3">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${thread.id})">
+                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">
                             <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${thread.id})">${escapeHtml(thread.authorName || 'طالب')}</div>
-                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${thread.id}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
+                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">${escapeHtml(thread.authorName || 'طالب')}</div>
+                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(thread.id)}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
                             </div>
                         </div>
                         ${thread.body ? `<p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p>` : ''}
                         ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full rounded-xl mb-3 max-h-96 object-cover" alt="">` : ''}
                         <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
-                            <button onclick="app.toggleForumLike(${thread.id})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
+                            <button onclick="app.toggleForumLike(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
                                 <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب${likesCount > 0 ? ' (' + likesCount + ')' : ''}
                             </button>
                             <span class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
@@ -6642,13 +6795,13 @@
                         <div class="flex flex-col gap-3">
                             ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد تعليقات بعد، كن أول من يعلّق</p>` : answers.map(a => `
                                 <div class="flex items-start gap-2.5">
-                                    <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromAnswer(${thread.id}, ${a.id})">
+                                    <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromAnswer(${jsNum(thread.id)}, ${jsNum(a.id)})">
                                     <div class="flex-1 min-w-0">
                                         <div class="rounded-2xl px-3.5 py-2.5 theme-transition inline-block max-w-full" style="background-color: var(--input-bg);">
-                                            <div class="text-xs font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromAnswer(${thread.id}, ${a.id})">${escapeHtml(a.authorName || 'طالب')}</div>
+                                            <div class="text-xs font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromAnswer(${jsNum(thread.id)}, ${jsNum(a.id)})">${escapeHtml(a.authorName || 'طالب')}</div>
                                             <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
                                         </div>
-                                        <div class="text-[10px] mt-1 theme-transition" style="color: var(--text2);"><span data-timeago="${a.id}">${timeAgo(a.id)}</span></div>
+                                        <div class="text-[10px] mt-1 theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(a.id)}">${timeAgo(a.id)}</span></div>
                                     </div>
                                 </div>
                             `).join('')}
@@ -6884,14 +7037,14 @@
                 if (isMe) {
                     actionHtml = '';
                 } else if (status === 'blocked') {
-                    actionHtml = `<button onclick="app.unblockUser('${uid}')" class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-error theme-transition btn-press" style="background-color: var(--input-bg);"><i data-lucide="ban" class="w-4 h-4"></i>محظور — رفع الحظر</button>`;
+                    actionHtml = `<button onclick="app.unblockUser(${jsArg(uid)})" class="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-sm font-bold text-error theme-transition btn-press" style="background-color: var(--input-bg);"><i data-lucide="ban" class="w-4 h-4"></i>محظور — رفع الحظر</button>`;
                 } else if (status === 'friends') {
                     actionHtml = `
                         <div class="flex flex-col gap-2">
-                            <button onclick="app.closeWalletModal(); app.openChat('${uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i>دردشة</button>
+                            <button onclick="app.closeWalletModal(); app.openChat(${jsArg(uid)})" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="message-circle" class="w-4 h-4"></i>دردشة</button>
                             <div class="flex gap-2">
-                                <button onclick="app.removeFriend('${uid}')" class="flex-1 h-10 rounded-xl font-bold text-xs theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الصداقة</button>
-                                <button onclick="app.blockUser('${uid}')" class="flex-1 h-10 rounded-xl font-bold text-xs text-error btn-press" style="background-color: var(--input-bg);">حظر</button>
+                                <button onclick="app.removeFriend(${jsArg(uid)})" class="flex-1 h-10 rounded-xl font-bold text-xs theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الصداقة</button>
+                                <button onclick="app.blockUser(${jsArg(uid)})" class="flex-1 h-10 rounded-xl font-bold text-xs text-error btn-press" style="background-color: var(--input-bg);">حظر</button>
                             </div>
                         </div>`;
                 } else if (status === 'sent') {
@@ -6899,11 +7052,11 @@
                 } else if (status === 'incoming') {
                     actionHtml = `
                         <div class="flex gap-2">
-                            <button onclick="app.acceptFriendRequest('${uid}')" class="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">قبول الصداقة</button>
-                            <button onclick="app.rejectFriendRequest('${uid}')" class="flex-1 h-11 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                            <button onclick="app.acceptFriendRequest(${jsArg(uid)})" class="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press">قبول الصداقة</button>
+                            <button onclick="app.rejectFriendRequest(${jsArg(uid)})" class="flex-1 h-11 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
                         </div>`;
                 } else {
-                    actionHtml = `<button onclick="app.sendFriendRequestTo('${uid}')" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i>إضافة صديق</button>`;
+                    actionHtml = `<button onclick="app.sendFriendRequestTo(${jsArg(uid)})" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press flex items-center justify-center gap-2"><i data-lucide="user-plus" class="w-4 h-4"></i>إضافة صديق</button>`;
                 }
                 content.innerHTML = `
                     <div class="flex flex-col items-center text-center py-2">
@@ -7111,10 +7264,10 @@
                     ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات حالياً</p>'
                     : incomingFriendRequests.map(r => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(r.fromAvatar, r.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList('${r.fromUid}')">
-                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList('${r.fromUid}')">${escapeHtml(r.fromName || 'طالب')}</div>
-                            <button onclick="app.acceptFriendRequest('${r.fromUid}')" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
-                            <button onclick="app.rejectFriendRequest('${r.fromUid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                            <img src="${personAvatarSrc(r.fromAvatar, r.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.fromUid)})">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(r.fromUid)})">${escapeHtml(r.fromName || 'طالب')}</div>
+                            <button onclick="app.acceptFriendRequest(${jsArg(r.fromUid)})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
+                            <button onclick="app.rejectFriendRequest(${jsArg(r.fromUid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
                         </div>
                     `).join('');
                 if (sentContainer) {
@@ -7122,9 +7275,9 @@
                         ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات مرسلة</p>'
                         : sentFriendRequestsList.map(r => `
                             <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                                <img src="${personAvatarSrc(r.toAvatar, r.toName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList('${r.uid}')">
-                                <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList('${r.uid}')">${escapeHtml(r.toName || 'طالب')}</div>
-                                <button onclick="app.cancelFriendRequest('${r.uid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
+                                <img src="${personAvatarSrc(r.toAvatar, r.toName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.uid)})">
+                                <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(r.uid)})">${escapeHtml(r.toName || 'طالب')}</div>
+                                <button onclick="app.cancelFriendRequest(${jsArg(r.uid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
                             </div>
                         `).join('');
                 }
@@ -7137,14 +7290,14 @@
                     empty.classList.add('hidden');
                     listContainer.innerHTML = friendsList.map(f => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(f.avatar, f.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList('${f.uid}')">
-                            <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openProfileFromFriendsList('${f.uid}')">
+                            <img src="${personAvatarSrc(f.avatar, f.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(f.uid)})">
+                            <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(f.uid)})">
                                 <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(f.name || 'طالب')}</div>
                                 <div class="text-xs theme-transition" style="color: ${(friendsPresence[f.uid] && friendsPresence[f.uid].online) ? '#16A34A' : 'var(--text2)'};">${this.presenceLabel(f.uid) || (f.studentNumber ? 'رقم: ' + escapeHtml(f.studentNumber) : '')}</div>
                             </div>
-                            <button onclick="app.openChat('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="دردشة"><i data-lucide="message-circle" class="w-4 h-4 text-primary"></i></button>
-                            <button onclick="app.removeFriend('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="إلغاء الصداقة"><i data-lucide="user-minus" class="w-4 h-4" style="color: var(--text2);"></i></button>
-                            <button onclick="app.blockUser('${f.uid}')" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حظر"><i data-lucide="ban" class="w-4 h-4 text-error"></i></button>
+                            <button onclick="app.openChat(${jsArg(f.uid)})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="دردشة"><i data-lucide="message-circle" class="w-4 h-4 text-primary"></i></button>
+                            <button onclick="app.removeFriend(${jsArg(f.uid)})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="إلغاء الصداقة"><i data-lucide="user-minus" class="w-4 h-4" style="color: var(--text2);"></i></button>
+                            <button onclick="app.blockUser(${jsArg(f.uid)})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حظر"><i data-lucide="ban" class="w-4 h-4 text-error"></i></button>
                         </div>
                     `).join('');
                 }
@@ -7154,9 +7307,9 @@
                     blockedSection.classList.toggle('hidden', blockedUsersList.length === 0);
                     blockedList.innerHTML = blockedUsersList.map(b => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(b.avatar, b.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList('${b.uid}')">
-                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList('${b.uid}')">${escapeHtml(b.name || 'طالب')}</div>
-                            <button onclick="app.unblockUser('${b.uid}')" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفع الحظر</button>
+                            <img src="${personAvatarSrc(b.avatar, b.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(b.uid)})">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(b.uid)})">${escapeHtml(b.name || 'طالب')}</div>
+                            <button onclick="app.unblockUser(${jsArg(b.uid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفع الحظر</button>
                         </div>
                     `).join('');
                 }
@@ -7350,10 +7503,10 @@
                 const status = this.isBlocked(found.uid) ? 'blocked' : this.getFriendStatus(found.uid);
                 let actionHtml = '';
                 if (status === 'friends') actionHtml = '<span class="text-xs font-bold text-success flex-shrink-0">أصدقاء</span>';
-                else if (status === 'sent') actionHtml = `<button onclick="app.cancelFriendRequest('${found.uid}')" class="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الطلب</button>`;
-                else if (status === 'incoming') actionHtml = `<button onclick="app.acceptFriendRequest('${found.uid}')" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">قبول</button>`;
+                else if (status === 'sent') actionHtml = `<button onclick="app.cancelFriendRequest(${jsArg(found.uid)})" class="px-3 py-1.5 rounded-lg text-xs font-bold flex-shrink-0" style="background-color: var(--input-bg); color: var(--text2);">إلغاء الطلب</button>`;
+                else if (status === 'incoming') actionHtml = `<button onclick="app.acceptFriendRequest(${jsArg(found.uid)})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">قبول</button>`;
                 else if (status === 'blocked') actionHtml = '<span class="text-xs font-bold text-error flex-shrink-0">محظور</span>';
-                else actionHtml = `<button onclick="app.sendFriendRequestFromSearch(${index})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">إضافة</button>`;
+                else actionHtml = `<button onclick="app.sendFriendRequestFromSearch(${jsNum(index)})" class="px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold flex-shrink-0">إضافة</button>`;
                 return `
                     <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition mb-2" style="background-color: var(--surface); border-color: var(--border);">
                         <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
@@ -7400,16 +7553,25 @@
                     return Promise.resolve(next);
                 }
                 const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                // FIX: Firebase runs the handler first with the locally cached value, which is
+                // `null` when nothing is cached. Returning `undefined` (abort) on that first
+                // call used to reject every purchase/redeem ("نقاطك غير كافية") even with
+                // plenty of points. On `null` we now propose a harmless value so the server
+                // re-runs the handler with the real one, and only treat it as "no points"
+                // when the value on the server really is empty.
+                let lastRunOnNull = false;
                 return runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/points'), (cur) => {
+                    lastRunOnNull = (cur === null);
                     const current = (typeof cur === 'number') ? cur : 0;
                     let next = current + delta;
                     if (next < min) {
-                        if (reject) return;
+                        if (reject) return lastRunOnNull ? 0 : undefined;
                         next = min;
                     }
                     return next;
                 }).then((result) => {
                     if (!result.committed) return null;
+                    if (reject && lastRunOnNull && delta < 0) return null;
                     const newPoints = (typeof result.snapshot.val() === 'number') ? result.snapshot.val() : 0;
                     this.currentUser.points = newPoints;
                     this.saveUserData();
@@ -7417,6 +7579,36 @@
                     return newPoints;
                 }).catch((err) => {
                     console.warn('addPointsAtomic failed:', err);
+                    return null;
+                });
+            },
+
+            // Same idea as addPointsAtomic() for the wallet `balance` (USD, 2 decimals).
+            // Every balance change now goes through a transaction instead of
+            // "local value ± x" followed by a full-record write.
+            addBalanceAtomic(delta, options) {
+                const reject = !!(options && options.reject);
+                const round2 = (n) => Math.round(n * 100) / 100;
+                if (!this.currentUser || !window.firebaseDb || !this.authUid) return Promise.resolve(null);
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                let lastRunOnNull = false;
+                return runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/balance'), (cur) => {
+                    lastRunOnNull = (cur === null);
+                    const next = round2(numOr0(cur) + delta);
+                    if (next < 0) {
+                        if (reject) return lastRunOnNull ? 0 : undefined;
+                        return 0;
+                    }
+                    return next;
+                }).then((result) => {
+                    if (!result.committed) return null;
+                    if (reject && lastRunOnNull && delta < 0) return null;
+                    const newBalance = numOr0(result.snapshot.val());
+                    this.currentUser.balance = newBalance;
+                    this.saveUserData();
+                    return newBalance;
+                }).catch((err) => {
+                    console.warn('addBalanceAtomic failed:', err);
                     return null;
                 });
             },
@@ -7719,7 +7911,7 @@
                 const balanceEl = document.getElementById('pointsStoreBalance');
                 const container = document.getElementById('pointsStoreOffers');
                 if (!balanceEl || !container) return;
-                const points = (this.currentUser && this.currentUser.points) || 0;
+                const points = numOr0(this.currentUser && this.currentUser.points);
                 balanceEl.textContent = points.toLocaleString('en-US') + ' نقطة';
                 container.innerHTML = pointsStoreOffers.map(offer => {
                     const canRedeem = points >= offer.points;
@@ -7729,7 +7921,7 @@
                                 <div class="font-bold theme-transition" style="color: var(--text);">${offer.points.toLocaleString('en-US')} نقطة</div>
                                 <div class="text-xs theme-transition" style="color: var(--text2);">= ${offer.iqd.toLocaleString('en-US')} د.ع رصيد محفظة</div>
                             </div>
-                            <button onclick="app.redeemPointsOffer(${offer.points}, ${offer.iqd})" ${canRedeem ? '' : 'disabled'} class="btn-press px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm ${canRedeem ? '' : 'pointer-events-none'}">استبدال</button>
+                            <button onclick="app.redeemPointsOffer(${jsNum(offer.points)}, ${jsNum(offer.iqd)})" ${canRedeem ? '' : 'disabled'} class="btn-press px-5 py-2.5 bg-primary text-white rounded-xl font-bold text-sm ${canRedeem ? '' : 'pointer-events-none'}">استبدال</button>
                         </div>
                     `;
                 }).join('');
@@ -7752,10 +7944,14 @@
                         return;
                     }
                     const usdAmount = iqd / 1325;
-                    this.currentUser.balance = (this.currentUser.balance || 0) + usdAmount;
-                    this.saveUserData();
-                    this.syncUserToDatabase();
-                    this.addWalletTransaction({
+                    this.addBalanceAtomic(usdAmount).then((newBalance) => {
+                        if (newBalance === null) {
+                            // Couldn't credit the wallet — give the points back.
+                            this.addPointsAtomic(points);
+                            this.showToast('تعذر إضافة الرصيد — تم إرجاع نقاطك، حاول مجدداً');
+                            return;
+                        }
+                        this.addWalletTransaction({
                         title: 'استبدال ' + points.toLocaleString('en-US') + ' نقطة',
                         amount: '+$' + usdAmount.toFixed(2),
                         isNegative: false,
@@ -7763,8 +7959,9 @@
                         iconColor: 'text-warning',
                         iconBg: 'bg-warning/10'
                     });
-                    this.renderPointsStore();
-                    this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
+                        this.renderPointsStore();
+                        this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
+                    });
                 });
             },
 
@@ -8173,7 +8370,7 @@
                         Object.keys(vals).forEach((k) => list.push(vals[k]));
                     }
                     userTasks.length = 0;
-                    userTasks.push(...list);
+                    userTasks.push(...withNumericIds(list));
                     if (this.currentView === 'tasksView') { this.renderTasksList(); lucide.createIcons(); }
                 });
             },
@@ -8197,14 +8394,14 @@
                     const timeLabel = t.dueAt ? new Date(t.dueAt).toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }) : '';
                     return `
                         <div class="rounded-xl border p-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: ${overdue ? '#DC2626' : 'var(--border)'};">
-                            <button onclick="app.toggleTaskDone(${t.id})" class="btn-press w-7 h-7 rounded-lg border-2 flex items-center justify-center flex-shrink-0" style="border-color: ${t.done ? '#16A34A' : 'var(--border)'}; background-color: ${t.done ? '#16A34A' : 'transparent'};">
+                            <button onclick="app.toggleTaskDone(${jsNum(t.id)})" class="btn-press w-7 h-7 rounded-lg border-2 flex items-center justify-center flex-shrink-0" style="border-color: ${t.done ? '#16A34A' : 'var(--border)'}; background-color: ${t.done ? '#16A34A' : 'transparent'};">
                                 ${t.done ? '<i data-lucide="check" class="w-4 h-4 text-white"></i>' : ''}
                             </button>
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm font-bold ${t.done ? 'line-through' : ''} theme-transition" style="color: ${t.done ? 'var(--text2)' : 'var(--text)'};">${escapeHtml(t.text)}</div>
                                 <div class="text-xs mt-0.5" style="color: ${overdue ? '#DC2626' : 'var(--text2)'};">${overdue ? 'متأخرة • ' : ''}الساعة ${escapeHtml(timeLabel)}</div>
                             </div>
-                            <button onclick="app.deleteTask(${t.id})" class="btn-press w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);">
+                            <button onclick="app.deleteTask(${jsNum(t.id)})" class="btn-press w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);">
                                 <i data-lucide="trash-2" class="w-4 h-4" style="color: #DC2626;"></i>
                             </button>
                         </div>
@@ -8396,7 +8593,7 @@
                     if (hasActivity) activeDays++;
                     const isToday = dateStr === todayStr;
                     cells += `
-                        <button onclick="app.openCalendarDay('${dateStr}')" class="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 relative theme-transition ${isToday ? 'border-2 border-primary' : ''}" style="background-color: ${hasActivity ? 'var(--input-bg)' : 'transparent'};">
+                        <button onclick="app.openCalendarDay(${jsArg(dateStr)})" class="aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 relative theme-transition ${isToday ? 'border-2 border-primary' : ''}" style="background-color: ${hasActivity ? 'var(--input-bg)' : 'transparent'};">
                             <span class="text-xs font-bold theme-transition" style="color: ${isToday ? 'var(--text)' : 'var(--text2)'};">${d}</span>
                             ${hasActivity ? '<span class="w-1.5 h-1.5 rounded-full bg-success"></span>' : ''}
                         </button>
@@ -8470,7 +8667,7 @@
                             <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
                                 <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(notificationTypes[type].label)}</div>
                                 <label class="toggle-switch flex-shrink-0">
-                                    <input type="checkbox" ${this.notifPrefs[type] !== false ? 'checked' : ''} onchange="app.toggleNotifPref('${type}')">
+                                    <input type="checkbox" ${this.notifPrefs[type] !== false ? 'checked' : ''} onchange="app.toggleNotifPref(${jsArg(type)})">
                                     <span class="toggle-slider"></span>
                                 </label>
                             </div>
@@ -8573,8 +8770,8 @@
                 container.classList.remove('hidden');
                 empty.classList.add('hidden');
                 container.innerHTML = visible.map(c => `
-                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat('${c.otherUid}')" style="background-color: var(--surface); border-color: var(--border); ${c.pinned ? 'border-color: var(--primary);' : ''}">
-                        <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}" onclick="event.stopPropagation(); app.openProfileFromChatsList('${c.otherUid}')">
+                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat(${jsArg(c.otherUid)})" style="background-color: var(--surface); border-color: var(--border); ${c.pinned ? 'border-color: var(--primary);' : ''}">
+                        <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}" onclick="event.stopPropagation(); app.openProfileFromChatsList(${jsArg(c.otherUid)})">
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold truncate theme-transition flex items-center gap-1.5" style="color: var(--text);">${c.pinned ? '<i data-lucide="pin" class="w-3 h-3 text-primary"></i>' : ''}${escapeHtml(c.otherName || 'طالب')}${c.muted ? '<i data-lucide="bell-off" class="w-3 h-3" style="color: var(--text2);"></i>' : ''}</div>
                             <div class="text-xs truncate theme-transition" style="color: var(--text2);">${escapeHtml(c.lastMessage || '')}</div>
@@ -8745,7 +8942,8 @@
                             const m = vals[k];
                             if (m && (!clearedAt || (m.createdAt || 0) > clearedAt) && !deletedFor[k]) list.push(m);
                         });
-                        list.sort((a, b) => (a.id || 0) - (b.id || 0));
+                        list.splice(0, list.length, ...withNumericIds(list));
+                        list.sort((a, b) => a.id - b.id);
                     }
                     chatMessages.length = 0;
                     chatMessages.push(...list);
@@ -8790,32 +8988,32 @@
                         const mm = Math.floor(totalDuration / 60);
                         const ss = String(totalDuration % 60).padStart(2, '0');
                         bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
-                                <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${m.id})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
+                                <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${jsNum(m.id)})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
                                 <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
                                 <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0" data-total="${totalDuration}">${mm}:${ss}</span>
-                                <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${m.id})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
-                                <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${m.audioUrl}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${m.id})" onpause="app.onVoicePause(${m.id})" onended="app.onVoiceEnded(${m.id})" ontimeupdate="app.onVoiceTimeUpdate(${m.id})"></audio>
+                                <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${jsNum(m.id)})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
+                                <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${escapeHtml(safeAudioUrl(m.audioUrl))}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${jsNum(m.id)})" onpause="app.onVoicePause(${jsNum(m.id)})" onended="app.onVoiceEnded(${jsNum(m.id)})" ontimeupdate="app.onVoiceTimeUpdate(${jsNum(m.id)})"></audio>
                             </div>`;
                     } else if (m.type === 'file') {
-                        bodyHtml = `<a href="${m.fileUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
+                        bodyHtml = `<a href="${escapeHtml(safeFileUrl(m.fileUrl) || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
                                 <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-                                <div class="min-w-0"><div class="text-xs font-bold truncate">${escapeHtml(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${((m.fileSize || 0) / 1024 / 1024).toFixed(1)} MB</div></div>
+                                <div class="min-w-0"><div class="text-xs font-bold truncate">${escapeHtml(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${(numOr0(m.fileSize) / 1024 / 1024).toFixed(1)} MB</div></div>
                             </a>`;
                     } else {
                         bodyHtml = `${escapeHtml(m.text)}${m.edited ? '<span class="text-[10px] opacity-70"> (معدّلة)</span>' : ''}`;
                     }
                     return `
                         <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} ${prevSameSender ? '' : 'mt-1.5'}">
-                            <div class="max-w-[78%] ${m.type === 'image' ? 'p-1' : 'px-4 py-2.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl rounded-ee-md' : 'theme-transition rounded-2xl rounded-es-md'} ${isNew ? 'chat-bubble-in' : ''}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${m.id})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${m.id})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
+                            <div class="max-w-[78%] ${m.type === 'image' ? 'p-1' : 'px-4 py-2.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl rounded-ee-md' : 'theme-transition rounded-2xl rounded-es-md'} ${isNew ? 'chat-bubble-in' : ''}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${jsNum(m.id)})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${jsNum(m.id)})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
                                 ${bodyHtml}
                             </div>
                             ${isMine ? `<div class="text-[10px] mt-0.5 px-1" style="color: ${isRead ? '#60A5FA' : 'var(--text2)'};">${isRead ? '✓✓ تمت القراءة' : '✓ تم الإرسال'}</div>` : ''}
                             ${showActions ? `
                             <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-                                ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
-                                ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
-                                <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
-                                ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal('${m.from}', ${m.id})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
+                                ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
+                                ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
+                                <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
+                                ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
                             </div>` : ''}
                         </div>
                     `;
@@ -8882,8 +9080,8 @@
                 if (!content) return;
                 content.innerHTML = `
                     <div class="flex flex-col gap-2">
-                        <button onclick="app.deleteChatMessage(${msgId}, false)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4" style="background-color: var(--input-bg); color: var(--text);">حذف عندي فقط</button>
-                        ${withinWindow ? `<button onclick="app.deleteChatMessage(${msgId}, true)" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4" style="background-color: var(--input-bg);">حذف لدى الطرفين</button>` : ''}
+                        <button onclick="app.deleteChatMessage(${jsNum(msgId)}, false)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4" style="background-color: var(--input-bg); color: var(--text);">حذف عندي فقط</button>
+                        ${withinWindow ? `<button onclick="app.deleteChatMessage(${jsNum(msgId)}, true)" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4" style="background-color: var(--input-bg);">حذف لدى الطرفين</button>` : ''}
                         <button onclick="app.closeWalletModal()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
                     </div>
                 `;
@@ -8993,7 +9191,7 @@
                         <button onclick="app.togglePinChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="pin" class="w-4 h-4"></i>${isPinned ? 'إلغاء التثبيت' : 'تثبيت المحادثة'}</button>
                         <button onclick="app.toggleMuteChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="${isMuted ? 'bell' : 'bell-off'}" class="w-4 h-4"></i>${isMuted ? 'إلغاء الكتم' : 'كتم المحادثة'}</button>
                         <button onclick="app.toggleArchiveChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="archive" class="w-4 h-4"></i>${isArchived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة'}</button>
-                        <button onclick="app.openReportModal('${this.currentChatUid}', null)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="flag" class="w-4 h-4"></i>الإبلاغ عن المستخدم</button>
+                        <button onclick="app.openReportModal(${jsArg(this.currentChatUid)}, null)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="flag" class="w-4 h-4"></i>الإبلاغ عن المستخدم</button>
                         <button onclick="app.deleteEntireChat()" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg);"><i data-lucide="trash-2" class="w-4 h-4"></i>حذف المحادثة</button>
                     </div>
                 `;
@@ -9403,7 +9601,8 @@
                         list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     }
                     storeProductsList.length = 0;
-                    storeProductsList.push(...list);
+                    storeProductsList.push(...withNumericIds(list));
+                    this._storeProductsLoaded = true;
                     if (this.currentView === 'storeView') this.renderStoreFeed();
                 });
             },
@@ -9478,18 +9677,18 @@
                     ? `<video class="store-card-media" src="${safeVideo(p.imageUrl)}" muted loop playsinline preload="metadata"></video>`
                     : `<img src="${safeImage(p.imageUrl)}" class="store-card-media" alt="${escapeHtml(p.title)}">`;
                 return `
-                    <div class="store-card" data-product-id="${p.id}">
+                    <div class="store-card" data-product-id="${jsNum(p.id)}">
                         ${media}
                         <div class="store-card-gradient"></div>
                         <div class="store-card-actions">
-                            <button class="store-action-btn" onclick="app.openStoreOwnerProfile(${p.id})">
+                            <button class="store-action-btn" onclick="app.openStoreOwnerProfile(${jsNum(p.id)})">
                                 <img src="${personAvatarSrc(p.storeLogo, p.storeName)}" class="w-11 h-11 rounded-full object-cover" style="border: 2px solid #fff;">
                             </button>
-                            <button class="store-action-btn" onclick="app.toggleProductLike(${p.id})">
+                            <button class="store-action-btn" onclick="app.toggleProductLike(${jsNum(p.id)})">
                                 <div class="store-action-circle"><i data-lucide="heart" class="w-6 h-6 ${iLiked ? 'fill-error' : ''}" style="color: ${iLiked ? '#DC2626' : '#fff'};"></i></div>
                                 <span class="text-white text-[11px] font-bold">${likesCount}</span>
                             </button>
-                            <button class="store-action-btn" onclick="app.addToCart(${p.id})">
+                            <button class="store-action-btn" onclick="app.addToCart(${jsNum(p.id)})">
                                 <div class="store-action-circle"><i data-lucide="${inCart ? 'check-circle-2' : 'shopping-cart'}" class="w-6 h-6" style="color: ${inCart ? '#4ADE80' : '#fff'};"></i></div>
                                 <span class="text-white text-[11px] font-bold">${inCart ? 'مضافة' : 'أضف'}</span>
                             </button>
@@ -9500,7 +9699,7 @@
                                 </div>
                                 <span class="text-white text-[11px] font-bold">السلة</span>
                             </button>
-                            <button class="store-action-btn" onclick="app.buyProductNow(${p.id})">
+                            <button class="store-action-btn" onclick="app.buyProductNow(${jsNum(p.id)})">
                                 <div class="w-11 h-11 rounded-full bg-primary flex items-center justify-center"><i data-lucide="zap" class="w-5 h-5 text-white"></i></div>
                                 <span class="text-white text-[11px] font-bold">شراء</span>
                             </button>
@@ -9509,7 +9708,7 @@
                             <div class="text-white font-bold text-sm mb-1">${escapeHtml(p.storeName || 'متجر')}</div>
                             <div class="text-white text-sm mb-1 line-clamp-2">${escapeHtml(p.title)}</div>
                             ${p.description ? `<div class="text-white/80 text-xs mb-2 line-clamp-2">${escapeHtml(p.description)}</div>` : ''}
-                            <div class="inline-flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1 rounded-lg" style="background: rgb(var(--p) / 0.9);"><i data-lucide="star" class="w-3 h-3"></i>${(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                            <div class="inline-flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1 rounded-lg" style="background: rgb(var(--p) / 0.9);"><i data-lucide="star" class="w-3 h-3"></i>${numOr0(p.pricePoints).toLocaleString('en-US')} نقطة</div>
                         </div>
                     </div>
                 `;
@@ -9546,7 +9745,7 @@
                     const raw = localStorage.getItem('iraqiStudentStoreCart');
                     const arr = raw ? JSON.parse(raw) : [];
                     storeCart.length = 0;
-                    if (Array.isArray(arr)) storeCart.push(...arr);
+                    if (Array.isArray(arr)) storeCart.push(...withNumericIds(arr, 'productId'));
                 } catch (e) {}
                 this.updateStoreCartBadge();
             },
@@ -9617,12 +9816,12 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(c.title)}</div>
                             <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(c.storeName || 'متجر')}</div>
-                            <div class="text-xs font-bold mt-1 text-primary">${(c.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                            <div class="text-xs font-bold mt-1 text-primary">${numOr0(c.pricePoints).toLocaleString('en-US')} نقطة</div>
                         </div>
-                        <button onclick="app.removeFromCart(${c.productId})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
+                        <button onclick="app.removeFromCart(${jsNum(c.productId)})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
                     </div>
                 `).join('');
-                const total = storeCart.reduce((sum, c) => sum + (c.pricePoints || 0), 0);
+                const total = storeCart.reduce((sum, c) => sum + numOr0(c.pricePoints), 0);
                 if (totalEl) totalEl.textContent = total.toLocaleString('en-US') + ' نقطة';
                 lucide.createIcons();
             },
@@ -9648,11 +9847,26 @@
                     this.showToast('تمت إزالة منتجاتك الخاصة من السلة — لا يمكنك شراءها');
                     if (storeCart.length === 0) return;
                 }
-                const total = storeCart.reduce((sum, c) => sum + (c.pricePoints || 0), 0);
                 if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
+                // FIX: the cart lives in localStorage, and checkout used to charge whatever
+                // price was stored there — editable by the student, and stale if the seller
+                // changed the price or the product was removed/rejected. Prices now come from
+                // the live approved product list, and unavailable items are dropped.
+                if (!this._storeProductsLoaded) { this.listenForStoreProducts(); this.showToast('جاري تحميل المنتجات، حاول بعد لحظات'); return; }
+                const live = storeCart.map(c => storeProductsList.find(p => p.id === c.productId)).filter(Boolean);
+                if (live.length !== storeCart.length) {
+                    storeCart.splice(0, storeCart.length, ...storeCart.filter(c => live.some(p => p.id === c.productId)));
+                    this.saveStoreCart();
+                    this.updateStoreCartBadge();
+                    this.renderStoreCart();
+                    this.showToast('بعض المنتجات لم تعد متوفرة وتمت إزالتها من السلة — راجع السلة وأكمل الشراء');
+                    return;
+                }
+                const total = live.reduce((sum, p) => sum + numOr0(p.pricePoints), 0);
+                if (total <= 0) { this.showToast('تعذر حساب سعر السلة'); return; }
                 const { ref, set } = window.firebaseDbHelpers;
                 const orderId = Date.now();
-                const items = storeCart.map(c => ({ productId: c.productId, storeId: c.storeId, ownerUid: c.ownerUid, title: c.title, pricePoints: c.pricePoints }));
+                const items = live.map(p => ({ productId: p.id, storeId: p.storeId || '', ownerUid: p.ownerUid || '', title: p.title || '', pricePoints: numOr0(p.pricePoints) }));
                 this.addPointsAtomic(-total, { reject: true }).then((newPoints) => {
                     if (newPoints === null) {
                         this.showToast('نقاطك غير كافية لإتمام الشراء');
@@ -9688,7 +9902,8 @@
                 if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
                 const { ref, set } = window.firebaseDbHelpers;
                 const orderId = Date.now();
-                const price = p.pricePoints || 0;
+                const price = numOr0(p.pricePoints);
+                if (price <= 0) { this.showToast('سعر المنتج غير صالح'); return; }
                 this.addPointsAtomic(-price, { reject: true }).then((newPoints) => {
                     if (newPoints === null) {
                         this.showToast('نقاطك غير كافية لشراء هذا المنتج');
@@ -9741,7 +9956,7 @@
                         list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     }
                     myStoreProducts.length = 0;
-                    myStoreProducts.push(...list);
+                    myStoreProducts.push(...withNumericIds(list));
                     if (this.currentView === 'myStoreView') this.renderMyStoreView();
                 });
             },
@@ -9822,9 +10037,9 @@
                         <div class="flex-1 min-w-0">
                             <div class="text-sm font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(p.title)}</div>
                             <div class="text-xs font-bold mt-0.5" style="color: ${st.color};">${st.label}</div>
-                            <div class="text-xs theme-transition" style="color: var(--text2);">${(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                            <div class="text-xs theme-transition" style="color: var(--text2);">${numOr0(p.pricePoints).toLocaleString('en-US')} نقطة</div>
                         </div>
-                        <button onclick="app.deleteMyStoreProduct(${p.id})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
+                        <button onclick="app.deleteMyStoreProduct(${jsNum(p.id)})" class="btn-press w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background-color: var(--input-bg);" aria-label="حذف"><i data-lucide="trash-2" class="w-4 h-4 text-error"></i></button>
                     </div>
                 `;
             },
@@ -10096,7 +10311,7 @@
                         list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     }
                     duelInvitesList.length = 0;
-                    duelInvitesList.push(...list);
+                    duelInvitesList.push(...withNumericIds(list, 'duelId'));
                     this.updateDuelsBadge();
                     if (this.currentView === 'duelsView') { this.renderDuelInvites(); lucide.createIcons(); }
                 });
@@ -10116,7 +10331,7 @@
                     }
                     list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
                     duelsListData.length = 0;
-                    duelsListData.push(...list);
+                    duelsListData.push(...withNumericIds(list));
                     if (this.currentView === 'duelsView') { this.renderDuelsList(); lucide.createIcons(); }
                 });
             },
@@ -10132,8 +10347,8 @@
                     <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                         <img src="${personAvatarSrc(inv.fromAvatar, inv.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
                         <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(inv.fromName || 'طالب')} تحدّاك!</div>
-                        <button onclick="app.acceptDuel(${inv.duelId})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
-                        <button onclick="app.declineDuel(${inv.duelId})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
+                        <button onclick="app.acceptDuel(${jsNum(inv.duelId)})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
+                        <button onclick="app.declineDuel(${jsNum(inv.duelId)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
                     </div>
                 `).join('');
             },
@@ -10167,7 +10382,7 @@
                     }
                     const canPlay = d.status === 'active' && !alreadyPlayed;
                     return `
-                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition ${canPlay ? 'cursor-pointer' : ''}" ${canPlay ? `onclick="app.startDuelPlay(${d.id})"` : ''} style="background-color: var(--surface); border-color: var(--border);">
+                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition ${canPlay ? 'cursor-pointer' : ''}" ${canPlay ? `onclick="app.startDuelPlay(${jsNum(d.id)})"` : ''} style="background-color: var(--surface); border-color: var(--border);">
                             <img src="${personAvatarSrc(opponentAvatar, opponentName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
                             <div class="flex-1 min-w-0">
                                 <div class="text-sm font-bold truncate theme-transition" style="color: var(--text);">ضد ${escapeHtml(opponentName || 'طالب')}</div>
@@ -10351,7 +10566,7 @@
                     <h3 class="text-lg font-bold mb-5 leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(q.q)}</h3>
                     <div class="flex flex-col gap-3">
                         ${q.options.map((opt, i) => `
-                            <button onclick="app.answerDuelQuestion(${i})" class="w-full text-right p-4 rounded-2xl border theme-transition btn-press" style="background-color: var(--surface); border-color: var(--border); color: var(--text);">
+                            <button onclick="app.answerDuelQuestion(${jsNum(i)})" class="w-full text-right p-4 rounded-2xl border theme-transition btn-press" style="background-color: var(--surface); border-color: var(--border); color: var(--text);">
                                 ${escapeHtml(opt)}
                             </button>
                         `).join('')}
@@ -10531,7 +10746,7 @@
                 container.innerHTML = categories.slice(1).map(cat => {
                     const count = newsData.filter(n => n.category === cat.id).length;
                     return `
-                        <button onclick="app.setCategoryAndGoHome('${cat.id}')" class="p-4 rounded-2xl border hover:shadow-card transition-all text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                        <button onclick="app.setCategoryAndGoHome(${jsArg(cat.id)})" class="p-4 rounded-2xl border hover:shadow-card transition-all text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                             <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
                                 <i data-lucide="${cat.icon}" class="w-6 h-6 text-primary"></i>
                             </div>
@@ -10684,7 +10899,7 @@
             },
 
             hydrateNewsCache() {
-                const cached = loadNewsCache();
+                const cached = Array.isArray(loadNewsCache()) ? withNumericIds(loadNewsCache()) : [];
                 if (cached.length && newsData.length === 0) {
                     newsData.push(...cached);
                 }
@@ -10730,16 +10945,26 @@
             },
 
             async openOfflineResource(id) {
+                // FIX: window.open() after two awaits is no longer tied to the tap, so mobile
+                // browsers blocked it as a pop-up and the saved PDF never opened. The tab is
+                // opened synchronously first and pointed at the file once it's ready.
+                const win = window.open('', '_blank');
                 try {
                     const res = await offlineResourcesDB.get(id);
-                    if (!res || !res.fileUrl) { this.showToast('الملزمة غير محفوظة على هذا الجهاز'); return; }
+                    if (!res || !res.fileUrl) {
+                        if (win) win.close();
+                        this.showToast('الملزمة غير محفوظة على هذا الجهاز');
+                        return;
+                    }
                     // fileUrl is a data: URL; converting to a blob: URL avoids the browsers
                     // that refuse to navigate a top-level tab directly to a data: URL.
                     const blob = await (await fetch(res.fileUrl)).blob();
                     const blobUrl = URL.createObjectURL(blob);
-                    window.open(blobUrl, '_blank');
+                    if (win) win.location.href = blobUrl;
+                    else this.showToast('اسمح للمتصفح بفتح النوافذ حتى تنفتح الملزمة');
                     setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
                 } catch (e) {
+                    if (win) win.close();
                     console.warn('Offline resource open failed:', e);
                     this.showToast('تعذر فتح الملف المحفوظ');
                 }
