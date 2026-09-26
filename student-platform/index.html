@@ -453,6 +453,38 @@
            always wins over `flex`/`block` on the same element. */
         .hidden { display: none !important; }
 
+        /* ===== Holidays strip: compact chips that step along like a ticker =====
+           Small enough for a card per governorate (18+). The strip slides one chip, rests,
+           then slides again ("stop-and-go"); touch, hover or leaving the home screen pause it. */
+        .hl-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .hl-title { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--text); }
+        .hl-live { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--success, #16A34A); }
+        .hl-live::after, .hl-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: tkPulse 1.6s ease-out infinite; }
+        .hl-count { font-size: 11px; font-weight: 600; color: var(--text2); background: var(--input-bg); padding: 3px 8px; border-radius: 999px; }
+        .hl-viewport { position: relative; overflow: hidden; touch-action: pan-y;
+            -webkit-mask-image: linear-gradient(to left, transparent, #000 14px, #000 calc(100% - 22px), transparent);
+            mask-image: linear-gradient(to left, transparent, #000 14px, #000 calc(100% - 22px), transparent); }
+        .hl-track { display: flex; gap: 8px; width: max-content; padding: 2px 2px 4px; will-change: transform; }
+        .hl-track.hl-sliding { transition: transform .7s cubic-bezier(.65, 0, .35, 1); }
+        .hl-chip { flex-shrink: 0; display: flex; align-items: center; gap: 9px; max-width: 210px; padding: 7px 12px 7px 10px; border-radius: 14px;
+            background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: hlIn .5s var(--ease-out) both; }
+        @keyframes hlIn { from { opacity: 0; transform: translateY(6px) scale(.97); } to { opacity: 1; transform: none; } }
+        .hl-dot { position: relative; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+        .hl-chip.is-now .hl-dot { background: #16A34A; }
+        .hl-chip.is-soon .hl-dot { background: #F59E0B; }
+        .hl-chip.is-later .hl-dot { background: var(--text2); }
+        .hl-chip.is-later .hl-dot::after { animation: none; }
+        .hl-body { min-width: 0; line-height: 1.3; }
+        .hl-name { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; color: var(--text); white-space: nowrap; }
+        .hl-name > span:first-child { overflow: hidden; text-overflow: ellipsis; }
+        .hl-tag { flex-shrink: 0; font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+        .hl-tag.gov { color: rgb(var(--p)); background: rgb(var(--p) / 0.12); }
+        .hl-tag.school { color: #16A34A; background: rgba(22, 163, 74, 0.12); }
+        .hl-meta { margin-top: 2px; font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .hl-meta b { font-weight: 700; }
+        .hl-chip.is-now .hl-meta b { color: #16A34A; }
+        .hl-chip.is-soon .hl-meta b { color: #D97706; }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -945,10 +977,13 @@
             </section>
 
             <section class="px-4 py-2 hidden" id="holidaysSection">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-sm font-bold theme-transition" style="color: var(--text);">العطل الرسمية والمدرسية</h2>
+                <div class="hl-head">
+                    <span class="hl-title"><span class="hl-live" aria-hidden="true"></span>العطل الرسمية والمدرسية</span>
+                    <span class="hl-count" id="holidaysCount"></span>
                 </div>
-                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="holidaysList"></div>
+                <div class="hl-viewport" id="holidaysViewport" role="region" aria-label="العطل الرسمية والمدرسية">
+                    <div class="hl-track" id="holidaysList"></div>
+                </div>
             </section>
 
             <section class="px-4 py-2" id="dailyTipSection">
@@ -5048,38 +5083,93 @@
                 if (!section || !list) return;
                 const now = Date.now();
                 const upcoming = holidays
-                    .filter((h) => {
-                        const end = this.holidayRange(h).end;
-                        return !isNaN(end) && end >= now;
-                    })
-                    .sort((a, b) => this.holidayRange(a).start - this.holidayRange(b).start);
+                    .map((h) => ({ h, ...this.holidayRange(h) }))
+                    .filter((x) => !isNaN(x.end) && x.end >= now)
+                    .sort((a, b) => a.start - b.start);
                 if (upcoming.length === 0) {
                     section.classList.add('hidden');
                     list.innerHTML = '';
+                    this._hlKey = '';
+                    this._holidayStripStop();
                     return;
                 }
                 section.classList.remove('hidden');
-                list.innerHTML = upcoming.map((h) => {
-                    const { start, end } = this.holidayRange(h);
-                    const isOngoing = now >= start && now <= end;
-                    const daysLeft = isOngoing
-                        ? Math.max(0, Math.ceil((end - now) / 86400000))
-                        : Math.max(0, Math.ceil((start - now) / 86400000));
+                const DAY = 86400000;
+                const chips = upcoming.map(({ h, start, end }) => {
+                    const ongoing = now >= start && now <= end;
+                    const daysTo = Math.ceil((start - now) / DAY);
+                    const daysLeft = Math.max(0, Math.ceil((end - now) / DAY));
+                    let state, status;
+                    if (ongoing) {
+                        state = 'is-now';
+                        status = daysLeft <= 1 ? '<b>جارية</b> · آخر يوم' : `<b>جارية</b> · باقي ${daysLeft} يوم`;
+                    } else {
+                        state = daysTo <= 7 ? 'is-soon' : 'is-later';
+                        status = daysTo <= 1 ? '<b>غداً</b>' : `<b>بعد ${daysTo} يوم</b>`;
+                    }
                     const isGov = h.type === 'government';
-                    const badgeLabel = isGov ? 'رسمية' : 'مدرسية';
-                    const badgeClass = isGov ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success';
-                    const statusText = isOngoing ? 'جارية الآن' : ('بعد ' + daysLeft + ' يوم');
+                    const place = h.governorate ? escapeHtml(h.governorate) : 'كل المحافظات';
                     return `
-                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 150px; background-color: var(--surface); border-color: var(--border);">
-                            <div class="flex items-center justify-between gap-2 mb-2">
-                                <div class="text-xs font-bold line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(h.title)}</div>
-                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
+                        <div class="hl-chip ${state}">
+                            <span class="hl-dot" aria-hidden="true"></span>
+                            <div class="hl-body">
+                                <div class="hl-name"><span>${escapeHtml(h.title)}</span><span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
+                                <div class="hl-meta">${status} · ${place}</div>
                             </div>
-                            ${h.governorate ? `<div class="text-[10px] mb-1 theme-transition" style="color: var(--text2);">📍 ${escapeHtml(h.governorate)}</div>` : ''}
-                            <div class="text-[11px] font-bold theme-transition" style="color: var(--text2);">${isOngoing ? '🟢' : '⏳'} ${statusText}</div>
-                        </div>
-                    `;
+                        </div>`;
                 }).join('');
+                const countEl = document.getElementById('holidaysCount');
+                if (countEl) countEl.textContent = upcoming.length === 1 ? 'عطلة واحدة' : (upcoming.length === 2 ? 'عطلتان' : upcoming.length + (upcoming.length <= 10 ? ' عطل' : ' عطلة'));
+                // renderHolidays runs every minute — only rebuild (and restart the motion) when
+                // something visible actually changed.
+                if (chips === this._hlKey) return;
+                this._hlKey = chips;
+                list.innerHTML = chips;
+                this._holidayStripStart();
+            },
+
+            // Stop-and-go strip: every few seconds slide the track by the first chip's width,
+            // then move that chip to the end so the loop never runs out. Only runs when the
+            // chips don't all fit on screen.
+            _holidayStripStart() {
+                this._holidayStripStop();
+                const vp = document.getElementById('holidaysViewport');
+                const track = document.getElementById('holidaysList');
+                if (!vp || !track) return;
+                if (!this._hlBound) {
+                    this._hlBound = true;
+                    const hold = (v) => () => { this._hlPaused = v; };
+                    vp.addEventListener('pointerdown', hold(true));
+                    ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => vp.addEventListener(ev, hold(false)));
+                    vp.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') this._hlPaused = true; });
+                }
+                const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                if (reduced) return;
+                this._hlTimer = setInterval(() => {
+                    if (this._hlPaused || document.hidden || this.currentView !== 'homeView' || this._hlBusy) return;
+                    if (track.scrollWidth <= vp.clientWidth + 4) return; // everything fits — stay still
+                    const first = track.firstElementChild;
+                    if (!first) return;
+                    const shift = first.getBoundingClientRect().width + 8; // chip + gap
+                    this._hlBusy = true;
+                    track.classList.add('hl-sliding');
+                    track.style.transform = `translateX(${shift}px)`; // RTL: chips move to the right
+                    setTimeout(() => {
+                        track.classList.remove('hl-sliding');
+                        first.style.animation = 'none';
+                        track.appendChild(first);
+                        track.style.transform = '';
+                        void track.offsetWidth;
+                        this._hlBusy = false;
+                    }, 720);
+                }, 2600);
+            },
+
+            _holidayStripStop() {
+                if (this._hlTimer) { clearInterval(this._hlTimer); this._hlTimer = null; }
+                this._hlBusy = false;
+                const track = document.getElementById('holidaysList');
+                if (track) { track.classList.remove('hl-sliding'); track.style.transform = ''; }
             },
 
             loadResourcesFromDatabase() {
