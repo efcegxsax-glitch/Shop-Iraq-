@@ -1762,7 +1762,7 @@
                 </div>
                 <div id="youtubeStudyPlayer" class="hidden">
                     <div id="youtubeStudyPlayerWrap" class="rounded-2xl overflow-hidden mb-3 relative" style="aspect-ratio: 16/9; background-color: #000;">
-                        <iframe id="youtubeStudyIframe" class="w-full h-full" src="" title="يوتيوب دراسة" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>
+                        <iframe id="youtubeStudyIframe" class="w-full h-full" src="" title="يوتيوب دراسة" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>
                         <button onclick="app.toggleYoutubeFullscreen()" class="btn-press absolute bottom-2 left-2 w-9 h-9 rounded-lg bg-black/60 flex items-center justify-center" aria-label="ملء الشاشة">
                             <i data-lucide="maximize" class="w-4 h-4 text-white"></i>
                         </button>
@@ -2977,6 +2977,11 @@
             _notifiedOverdueTaskIds: null,
 
             init() {
+                // Opened from the phone's file manager (content:// or file://) Firebase sign-in,
+                // notifications and saved data don't work — the page needs to be served over https.
+                if (!/^https?:$/.test(location.protocol)) {
+                    setTimeout(() => this.showToast('⚠️ افتح التطبيق من رابط https وليس كملف من الجهاز — تسجيل الدخول والإشعارات لا تعمل بهذه الطريقة'), 1500);
+                }
                 this.loadTheme();
                 this.loadCustomThemeColor();
                 this.loadUserData();
@@ -3905,12 +3910,16 @@
                 // FIX (UI/UX): Swiper's default transition speed is 300ms, which reads as an
                 // abrupt jump-cut between slides rather than a slide. Slowed it to 700ms with
                 // an eased curve so the motion feels smooth instead of snappy.
+                // FIX: loop/autoplay with a single slide (the default logo slide when the admin
+                // hasn't added carousel images) triggers Swiper's "not enough slides for loop
+                // mode" warning — they're only enabled when there are 2+ slides.
+                const multi = el.querySelectorAll('.swiper-slide').length > 1;
                 this.swiper = new Swiper(el, {
-                    slidesPerView: 1, spaceBetween: 0, loop: true,
+                    slidesPerView: 1, spaceBetween: 0, loop: multi,
                     speed: 700,
                     effect: 'slide',
                     cssMode: false,
-                    autoplay: { delay: 5000, disableOnInteraction: false },
+                    autoplay: multi ? { delay: 5000, disableOnInteraction: false } : false,
                     direction: 'horizontal'
                 });
             },
