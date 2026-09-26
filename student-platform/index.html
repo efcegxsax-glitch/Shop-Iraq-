@@ -499,6 +499,17 @@
         .ex-chip.is-soon .ex-clock { color: #D97706; }
         .ex-clock small { font-size: 10px; font-weight: 600; color: var(--text2); }
 
+        /* Daily tip: same header/dot as the holiday & exam strips; the tips themselves are
+           full-width slides that step along (today's tip first, a long rest to read each). */
+        .tip-live { background: #8B5CF6; }
+        .tip-tools { display: inline-flex; align-items: center; gap: 6px; }
+        .tip-x { width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: #8B5CF6; background: var(--reminder-bg); border: 0; cursor: pointer; }
+        .tip-card { border-radius: 16px; background: var(--reminder-bg); border: 1px solid var(--reminder-border); -webkit-mask-image: none; mask-image: none; }
+        .tip-track { padding: 0; }
+        .tip-slide { box-sizing: border-box; flex: 0 0 auto; display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; }
+        .tip-ic { flex-shrink: 0; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-size: 15px; background: rgba(139, 92, 246, 0.12); }
+        .tip-text { font-size: 13px; line-height: 1.65; font-weight: 500; color: var(--text); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: calc(13px * 1.65 * 2); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -864,7 +875,7 @@
         .skeleton { background: linear-gradient(90deg, var(--input-bg) 25%, rgba(255,255,255,0.35) 50%, var(--input-bg) 75%); background-size: 200% 100%; }
         .dark .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%); background-size: 200% 100%; }
         .menu-item { border-radius: 16px; }
-        #dailyTipSection > div { border-radius: 20px; }
+
         #ptrIndicator { top: calc(64px + var(--safe-t)) !important; }
 
         @media (prefers-reduced-motion: reduce) {
@@ -1004,17 +1015,15 @@
             </section>
 
             <section class="px-4 py-2" id="dailyTipSection">
-                <div class="rounded-2xl p-3.5 flex items-start gap-2.5 theme-transition" style="background-color: var(--reminder-bg); border: 1px solid var(--reminder-border);">
-                    <div class="w-8 h-8 rounded-lg bg-purple/10 flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="lightbulb" class="w-4 h-4 text-purple"></i>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs font-bold mb-0.5" style="color: #8B5CF6;">نصيحة اليوم</div>
-                        <div id="dailyTipText" class="text-sm leading-relaxed theme-transition" style="color: var(--text);"></div>
-                    </div>
-                    <button onclick="app.dismissDailyTip()" class="btn-press flex-shrink-0 w-6 h-6 rounded-lg flex items-center justify-center" style="color: #8B5CF6;" aria-label="إخفاء النصيحة لليوم">
-                        <i data-lucide="x" class="w-4 h-4"></i>
-                    </button>
+                <div class="hl-head">
+                    <span class="hl-title"><span class="hl-live tip-live" aria-hidden="true"></span>نصيحة اليوم</span>
+                    <span class="tip-tools">
+                        <span class="hl-count" id="dailyTipCount" dir="ltr"></span>
+                        <button onclick="app.dismissDailyTip()" class="tip-x btn-press" aria-label="إخفاء النصيحة لليوم"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+                    </span>
+                </div>
+                <div class="hl-viewport tip-card" id="dailyTipViewport" role="region" aria-label="نصيحة اليوم">
+                    <div class="hl-track tip-track" id="dailyTipList"></div>
                 </div>
             </section>
 
@@ -3756,23 +3765,49 @@
 
             renderDailyTip() {
                 const section = document.getElementById('dailyTipSection');
-                const el = document.getElementById('dailyTipText');
-                if (!el) return;
+                const track = document.getElementById('dailyTipList');
+                const vp = document.getElementById('dailyTipViewport');
+                if (!track || !vp) return;
                 const todayStr = this.localDateStr ? this.localDateStr() : new Date().toISOString().slice(0, 10);
-                if (section && localStorage.getItem('isp_tip_dismissed') === todayStr) {
+                let dismissed = '';
+                try { dismissed = localStorage.getItem('isp_tip_dismissed') || ''; } catch (e) {}
+                if (section && dismissed === todayStr) {
                     section.classList.add('hidden');
+                    this._stripStop('tips', 'dailyTipList');
                     return;
                 }
                 if (section) section.classList.remove('hidden');
+                // Today's tip first, then the rest in order — the strip steps through them.
                 const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-                const tip = dailyTips[dayOfYear % dailyTips.length];
-                el.textContent = tip;
+                const n = dailyTips.length;
+                const start = dayOfYear % n;
+                const width = vp.clientWidth || 340;
+                track.innerHTML = dailyTips.map((_, k) => {
+                    const i = (start + k) % n;
+                    return `<div class="tip-slide" data-n="${k + 1}" style="width: ${width}px;"><span class="tip-ic" aria-hidden="true">💡</span><div class="tip-text">${escapeHtml(dailyTips[i])}</div></div>`;
+                }).join('');
+                const countEl = document.getElementById('dailyTipCount');
+                const setCount = (slide) => { if (countEl && slide) countEl.textContent = slide.dataset.n + '/' + n; };
+                setCount(track.firstElementChild);
+                this._stripStart('tips', 'dailyTipViewport', 'dailyTipList', setCount);
+                // slides are sized to the card — resize them when the screen width changes
+                if (!this._tipResizeBound && 'ResizeObserver' in window) {
+                    this._tipResizeBound = true;
+                    let lastW = vp.clientWidth;
+                    new ResizeObserver(() => {
+                        const w = vp.clientWidth;
+                        if (!w || w === lastW) return;
+                        lastW = w;
+                        track.querySelectorAll('.tip-slide').forEach((sl) => { sl.style.width = w + 'px'; });
+                    }).observe(vp);
+                }
             },
 
             dismissDailyTip() {
                 const todayStr = this.localDateStr ? this.localDateStr() : new Date().toISOString().slice(0, 10);
                 try { localStorage.setItem('isp_tip_dismissed', todayStr); } catch (e) {}
                 document.getElementById('dailyTipSection')?.classList.add('hidden');
+                this._stripStop('tips', 'dailyTipList');
             },
 
             renderNewsTicker() {
@@ -5162,7 +5197,7 @@
             // the first chip's width, then move that chip to the end so the loop never runs
             // out. Only moves when the chips don't all fit; press/hover or leaving the home
             // screen pauses it.
-            _stripStart(name, vpId, trackId) {
+            _stripStart(name, vpId, trackId, onStep) {
                 this._stripStop(name, trackId);
                 const vp = document.getElementById(vpId);
                 const track = document.getElementById(trackId);
@@ -5182,7 +5217,8 @@
                     if (track.scrollWidth <= vp.clientWidth + 4) return; // everything fits — stay still
                     const first = track.firstElementChild;
                     if (!first) return;
-                    const shift = first.getBoundingClientRect().width + 8; // chip + gap
+                    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+                    const shift = first.getBoundingClientRect().width + gap; // chip + gap
                     st.busy = true;
                     track.classList.add('hl-sliding');
                     track.style.transform = `translateX(${shift}px)`; // RTL: chips move to the right
@@ -5193,8 +5229,9 @@
                         track.style.transform = '';
                         void track.offsetWidth;
                         st.busy = false;
+                        if (onStep) onStep(track.firstElementChild);
                     }, 720);
-                }, name === 'exams' ? 3100 : 2600);
+                }, ({ exams: 3100, tips: 7000 })[name] || 2600);
             },
 
             _stripStop(name, trackId) {
