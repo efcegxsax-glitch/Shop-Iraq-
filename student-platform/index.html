@@ -487,6 +487,18 @@
         .hl-chip.is-now .hl-meta b { color: #16A34A; }
         .hl-chip.is-soon .hl-meta b { color: #D97706; }
 
+        /* Exam countdown chips reuse the holiday strip (.hl-*). Colour = urgency:
+           red under a day, amber within a week, primary otherwise. */
+        .ex-live { background: #E5484D; }
+        .ex-chip .hl-dot { background: rgb(var(--p)); }
+        .ex-chip.is-urgent .hl-dot { background: #E5484D; }
+        .ex-chip.is-soon .hl-dot { background: #F59E0B; }
+        .ex-date { flex-shrink: 0; font-size: 9.5px; font-weight: 700; padding: 1px 6px; border-radius: 6px; color: var(--text2); background: var(--input-bg); }
+        .ex-clock { display: flex; align-items: baseline; gap: 5px; margin-top: 2px; font-size: 12px; font-weight: 700; color: rgb(var(--p)); white-space: nowrap; font-variant-numeric: tabular-nums; }
+        .ex-chip.is-urgent .ex-clock { color: #E5484D; }
+        .ex-chip.is-soon .ex-clock { color: #D97706; }
+        .ex-clock small { font-size: 10px; font-weight: 600; color: var(--text2); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -972,10 +984,13 @@
             </section>
 
             <section class="px-4 py-2 hidden" id="examCountdownSection">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-sm font-bold theme-transition" style="color: var(--text);">عدّاد الامتحانات</h2>
+                <div class="hl-head">
+                    <span class="hl-title"><span class="hl-live ex-live" aria-hidden="true"></span>عدّاد الامتحانات</span>
+                    <span class="hl-count" id="examCountdownCount"></span>
                 </div>
-                <div class="flex gap-3 overflow-x-auto no-scrollbar pb-1" id="examCountdownList"></div>
+                <div class="hl-viewport" id="examCountdownViewport" role="region" aria-label="عدّاد الامتحانات">
+                    <div class="hl-track" id="examCountdownList"></div>
+                </div>
             </section>
 
             <section class="px-4 py-2 hidden" id="holidaysSection">
@@ -5007,47 +5022,60 @@
                 });
             },
 
+            // Compact chips in the same stop-and-go strip as the holidays. The chips are built
+            // only when the exam list changes; the every-second tick just rewrites the numbers,
+            // so the strip keeps sliding instead of being rebuilt 60 times a minute.
             renderExamCountdown() {
                 const section = document.getElementById('examCountdownSection');
                 const list = document.getElementById('examCountdownList');
                 if (!section || !list) return;
                 const now = Date.now();
                 const upcoming = examSchedule
-                    .filter((ex) => {
-                        const t = new Date(ex.date).getTime();
-                        return !isNaN(t) && t > now;
-                    })
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+                    .map((ex) => ({ ex, t: new Date(ex.date).getTime() }))
+                    .filter((x) => !isNaN(x.t) && x.t > now)
+                    .sort((a, b) => a.t - b.t);
                 if (upcoming.length === 0) {
                     section.classList.add('hidden');
                     list.innerHTML = '';
+                    this._exKey = '';
+                    this._stripStop('exams', 'examCountdownList');
                     return;
                 }
                 section.classList.remove('hidden');
-                list.innerHTML = upcoming.map((ex) => {
-                    const diff = new Date(ex.date).getTime() - now;
-                    const days = Math.floor(diff / 86400000);
-                    const hours = Math.floor((diff % 86400000) / 3600000);
-                    const minutes = Math.floor((diff % 3600000) / 60000);
-                    const seconds = Math.floor((diff % 60000) / 1000);
-                    const unit = (value, label) => `
-                        <div class="rounded-xl py-2 text-center border bg-circular-bg border-circular-border theme-transition">
-                            <div class="font-bold text-success" style="font-size: 18px;">${value}</div>
-                            <div class="text-[10px] theme-transition" style="color: var(--text2);">${label}</div>
-                        </div>
-                    `;
-                    return `
-                        <div class="flex-shrink-0 rounded-2xl border p-3 theme-transition" style="min-width: 220px; background-color: var(--surface); border-color: var(--border);">
-                            <div class="text-xs font-bold mb-2 line-clamp-1 theme-transition" style="color: var(--text);">${escapeHtml(ex.subject)}</div>
-                            <div class="grid grid-cols-4 gap-1.5">
-                                ${unit(seconds, 'ثانية')}
-                                ${unit(minutes, 'دقيقة')}
-                                ${unit(hours, 'ساعة')}
-                                ${unit(days, 'يوم')}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                const key = upcoming.map((x) => x.t + '|' + (x.ex.subject || '')).join('␞');
+                if (key !== this._exKey) {
+                    this._exKey = key;
+                    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                    list.innerHTML = upcoming.map(({ ex, t }) => {
+                        const d = new Date(t);
+                        const when = days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+                        return `
+                            <div class="hl-chip ex-chip" data-t="${jsNum(t)}">
+                                <span class="hl-dot" aria-hidden="true"></span>
+                                <div class="hl-body">
+                                    <div class="hl-gov"><span class="hl-pin" aria-hidden="true">📝</span><span>${escapeHtml(ex.subject || 'امتحان')}</span><span class="ex-date">${when}</span></div>
+                                    <div class="ex-clock"></div>
+                                </div>
+                            </div>`;
+                    }).join('');
+                    const countEl = document.getElementById('examCountdownCount');
+                    if (countEl) countEl.textContent = upcoming.length === 1 ? 'امتحان واحد' : (upcoming.length === 2 ? 'امتحانان' : upcoming.length + (upcoming.length <= 10 ? ' امتحانات' : ' امتحاناً'));
+                    this._stripStart('exams', 'examCountdownViewport', 'examCountdownList');
+                }
+                const pad = (n) => String(n).padStart(2, '0');
+                list.querySelectorAll('.ex-chip').forEach((chip) => {
+                    const diff = Number(chip.dataset.t) - now;
+                    const clock = chip.querySelector('.ex-clock');
+                    if (!clock) return;
+                    if (diff <= 0) { clock.innerHTML = 'بدأ الامتحان'; return; }
+                    const dd = Math.floor(diff / 86400000);
+                    const hh = Math.floor((diff % 86400000) / 3600000);
+                    const mm = Math.floor((diff % 3600000) / 60000);
+                    const ss = Math.floor((diff % 60000) / 1000);
+                    chip.classList.toggle('is-urgent', diff < 86400000);
+                    chip.classList.toggle('is-soon', diff >= 86400000 && diff < 7 * 86400000);
+                    clock.innerHTML = (dd > 0 ? `${dd} <small>يوم</small> ` : '') + `<span dir="ltr">${pad(hh)}:${pad(mm)}:${pad(ss)}</span>`;
+                });
             },
 
             // ==================== HOLIDAYS CALENDAR ====================
@@ -5092,7 +5120,7 @@
                     section.classList.add('hidden');
                     list.innerHTML = '';
                     this._hlKey = '';
-                    this._holidayStripStop();
+                    this._stripStop('holidays', 'holidaysList');
                     return;
                 }
                 section.classList.remove('hidden');
@@ -5127,33 +5155,35 @@
                 if (chips === this._hlKey) return;
                 this._hlKey = chips;
                 list.innerHTML = chips;
-                this._holidayStripStart();
+                this._stripStart('holidays', 'holidaysViewport', 'holidaysList');
             },
 
-            // Stop-and-go strip: every few seconds slide the track by the first chip's width,
-            // then move that chip to the end so the loop never runs out. Only runs when the
-            // chips don't all fit on screen.
-            _holidayStripStart() {
-                this._holidayStripStop();
-                const vp = document.getElementById('holidaysViewport');
-                const track = document.getElementById('holidaysList');
+            // Stop-and-go strip (holidays, exam countdown): every few seconds slide the track by
+            // the first chip's width, then move that chip to the end so the loop never runs
+            // out. Only moves when the chips don't all fit; press/hover or leaving the home
+            // screen pauses it.
+            _stripStart(name, vpId, trackId) {
+                this._stripStop(name, trackId);
+                const vp = document.getElementById(vpId);
+                const track = document.getElementById(trackId);
                 if (!vp || !track) return;
-                if (!this._hlBound) {
-                    this._hlBound = true;
-                    const hold = (v) => () => { this._hlPaused = v; };
+                this._strips = this._strips || {};
+                const st = this._strips[name] = this._strips[name] || { paused: false, busy: false, timer: null, bound: false };
+                if (!st.bound) {
+                    st.bound = true;
+                    const hold = (v) => () => { st.paused = v; };
                     vp.addEventListener('pointerdown', hold(true));
                     ['pointerup', 'pointercancel', 'pointerleave'].forEach((ev) => vp.addEventListener(ev, hold(false)));
-                    vp.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') this._hlPaused = true; });
+                    vp.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') st.paused = true; });
                 }
-                const reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-                if (reduced) return;
-                this._hlTimer = setInterval(() => {
-                    if (this._hlPaused || document.hidden || this.currentView !== 'homeView' || this._hlBusy) return;
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                st.timer = setInterval(() => {
+                    if (st.paused || st.busy || document.hidden || this.currentView !== 'homeView') return;
                     if (track.scrollWidth <= vp.clientWidth + 4) return; // everything fits — stay still
                     const first = track.firstElementChild;
                     if (!first) return;
                     const shift = first.getBoundingClientRect().width + 8; // chip + gap
-                    this._hlBusy = true;
+                    st.busy = true;
                     track.classList.add('hl-sliding');
                     track.style.transform = `translateX(${shift}px)`; // RTL: chips move to the right
                     setTimeout(() => {
@@ -5162,15 +5192,15 @@
                         track.appendChild(first);
                         track.style.transform = '';
                         void track.offsetWidth;
-                        this._hlBusy = false;
+                        st.busy = false;
                     }, 720);
-                }, 2600);
+                }, name === 'exams' ? 3100 : 2600);
             },
 
-            _holidayStripStop() {
-                if (this._hlTimer) { clearInterval(this._hlTimer); this._hlTimer = null; }
-                this._hlBusy = false;
-                const track = document.getElementById('holidaysList');
+            _stripStop(name, trackId) {
+                const st = this._strips && this._strips[name];
+                if (st) { if (st.timer) clearInterval(st.timer); st.timer = null; st.busy = false; }
+                const track = document.getElementById(trackId);
                 if (track) { track.classList.remove('hl-sliding'); track.style.transform = ''; }
             },
 
