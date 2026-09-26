@@ -867,6 +867,48 @@
         .rs-dl.saved { background: linear-gradient(135deg, #22C55E, #15803D); box-shadow: 0 8px 16px -8px rgba(22,163,74,.9); }
         .rs-dl svg { width: 18px; height: 18px; }
 
+        /* ===== Messages v2 ===== */
+        .ms, .ms * { box-sizing: border-box; }
+        .ms { padding: 14px 16px 90px; }
+        .ms-sec { display: flex; align-items: center; justify-content: space-between; margin: 16px 4px 8px; }
+        .ms-sec b { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 800; color: var(--text); }
+        .ms-sec small { font-size: 11px; color: var(--text2); }
+        .ms-online-wrap.hidden { display: none; }
+        .ms-online { display: flex; gap: 12px; overflow-x: auto; padding: 2px 2px 4px; }
+        .ms-on { flex-shrink: 0; width: 62px; display: flex; flex-direction: column; align-items: center; gap: 5px; border: 0; background: none; cursor: pointer; animation: hpPop .45s var(--ease-spring) both; }
+        .ms-on-ava { position: relative; width: 56px; height: 56px; border-radius: 50%; padding: 2.5px; background: conic-gradient(from 0deg, #22C55E, rgb(var(--p)), #22C55E); }
+        .ms-on-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid var(--bg); }
+        .ms-on-ava i { position: absolute; bottom: 1px; left: 1px; width: 14px; height: 14px; border-radius: 50%; background: #22C55E; border: 2.5px solid var(--bg); }
+        .ms-on span { max-width: 100%; font-size: 11px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ms-tabs { display: flex; gap: 4px; margin-top: 16px; padding: 4px; border-radius: 14px; background: var(--input-bg); }
+        .ms-tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 34px; border: 0; border-radius: 11px; font-size: 12.5px; font-weight: 800; color: var(--text2); background: transparent; cursor: pointer; transition: all .25s ease; }
+        .ms-tab.on { color: var(--text); background: var(--surface); box-shadow: 0 4px 12px -6px rgba(0,0,0,.3); }
+        .ms-tab span:not(:empty) { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; display: inline-grid; place-items: center; font-size: 10px; color: #fff; background: rgb(var(--p)); }
+        .ms-tab[data-f="unread"] span:not(:empty) { background: #E5484D; }
+        .ms-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .ms-row { position: relative; display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); cursor: pointer; animation: cardIn .4s var(--ease-out) both; transition: transform .15s ease; }
+        .ms-row:active { transform: scale(.98); }
+        .ms-row.pinned { border-color: rgb(var(--p) / 0.4); }
+        .ms-row.unread { background: linear-gradient(90deg, transparent, rgb(var(--p) / 0.06)), var(--surface); }
+        .ms-ava { position: relative; flex-shrink: 0; width: 52px; height: 52px; }
+        .ms-ava img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .ms-ava i { position: absolute; bottom: 1px; left: 1px; width: 13px; height: 13px; border-radius: 50%; background: #22C55E; border: 2.5px solid var(--surface); }
+        .ms-body { flex: 1; min-width: 0; }
+        .ms-top { display: flex; align-items: center; gap: 6px; }
+        .ms-name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ms-time { flex-shrink: 0; font-size: 11px; color: var(--text2); }
+        .ms-row.unread .ms-time { color: rgb(var(--p)); font-weight: 800; }
+        .ms-bottom { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+        .ms-last { flex: 1; min-width: 0; font-size: 12.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ms-row.unread .ms-last { color: var(--text); font-weight: 700; }
+        .ms-icons { flex-shrink: 0; display: inline-flex; gap: 4px; font-size: 12px; opacity: .8; }
+        .ms-dot { flex-shrink: 0; width: 11px; height: 11px; border-radius: 50%; background: rgb(var(--p)); box-shadow: 0 0 0 4px rgb(var(--p) / 0.15); animation: pulse-dot 2s ease-in-out infinite; }
+        .ms-fab { position: fixed; z-index: 40; left: 18px; bottom: calc(90px + var(--safe-b)); display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 18px; border: 0; border-radius: 18px; color: #fff; font-size: 13.5px; font-weight: 800; cursor: pointer;
+            background: linear-gradient(135deg, rgb(var(--p)), rgb(var(--p) / 0.75)); box-shadow: 0 14px 28px -12px rgb(var(--p)); animation: hpPop .5s var(--ease-spring) both .2s; }
+        .ms-fab svg { width: 19px; height: 19px; }
+        #messagesView.hidden .ms-fab { display: none; }
+        @media (min-width: 480px) { .ms-fab { left: calc(50% - 222px); } }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -2298,23 +2340,41 @@
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
-                <span id="messagesViewTitle" class="font-bold flex-1 theme-transition" style="color: var(--text);">الرسائل الخاصة</span>
-                <button onclick="app.toggleArchivedView()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="الأرشيف">
-                    <i data-lucide="archive" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                </button>
-                <button onclick="app.openNewChatModal()" class="btn-press w-10 h-10 rounded-xl bg-primary flex items-center justify-center" aria-label="رسالة جديدة">
-                    <i data-lucide="plus" class="w-5 h-5 text-white"></i>
-                </button>
-            </div>
-            <div id="chatsList" class="px-4 py-3 flex flex-col gap-2"></div>
-            <div id="chatsEmptyState" class="hidden flex flex-col items-center justify-center py-16 text-center px-4">
-                <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4 theme-transition" style="background-color: var(--input-bg);">
-                    <i data-lucide="mail" class="w-10 h-10 theme-transition" style="color: var(--text2);"></i>
+                <div class="flex-1">
+                    <div id="messagesViewTitle" class="font-bold theme-transition" style="color: var(--text);">الرسائل</div>
+                    <div id="msgSubtitle" class="text-xs theme-transition" style="color: var(--text2);">دردشاتك الخاصة مع زملائك</div>
                 </div>
-                <h3 id="chatsEmptyTitle" class="text-lg font-bold mb-2 theme-transition" style="color: var(--text);">لا توجد رسائل بعد</h3>
-                <p class="text-sm mb-6 max-w-[250px] theme-transition" style="color: var(--text2);">ابحث عن زميلك برقمه التعريفي وابدأ محادثة</p>
-                <button onclick="app.openNewChatModal()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رسالة جديدة</button>
+                <button onclick="app.goToFriends()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="الأصدقاء">
+                    <i data-lucide="users" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
             </div>
+
+            <div class="ms">
+                <label class="lb-search">
+                    <i data-lucide="search"></i>
+                    <input type="text" id="msgSearchInput" placeholder="ابحث بالمحادثات..." oninput="app.setChatSearch(this.value)">
+                </label>
+
+                <!-- online friends strip -->
+                <section id="msOnlineWrap" class="ms-online-wrap hidden">
+                    <div class="ms-sec"><b><span class="hl-live" aria-hidden="true"></span>متصلون الآن</b><small id="msOnlineCount"></small></div>
+                    <div class="ms-online no-scrollbar" id="msOnline"></div>
+                </section>
+
+                <div class="ms-tabs" role="tablist">
+                    <button class="ms-tab on" data-f="all" onclick="app.setChatFilter('all')">الكل <span id="msCountAll"></span></button>
+                    <button class="ms-tab" data-f="unread" onclick="app.setChatFilter('unread')">غير مقروءة <span id="msCountUnread"></span></button>
+                    <button class="ms-tab" data-f="archived" onclick="app.setChatFilter('archived')">المؤرشفة <span id="msCountArchived"></span></button>
+                </div>
+
+                <div id="chatsList" class="ms-list"></div>
+                <div id="chatsEmptyState" class="hidden hp-empty">
+                    <div>💬</div><b id="chatsEmptyTitle">لا توجد رسائل بعد</b><br><small>ابحث عن زميلك برقمه التعريفي وابدأ محادثة</small>
+                    <button onclick="app.openNewChatModal()" class="lb-reset">رسالة جديدة</button>
+                </div>
+            </div>
+
+            <button onclick="app.openNewChatModal()" class="ms-fab btn-press" aria-label="رسالة جديدة"><i data-lucide="pen-square"></i><span>رسالة جديدة</span></button>
         </div>
 
         <!-- ===== CHAT THREAD VIEW ===== -->
@@ -7982,6 +8042,7 @@
                     }
                     if (this.currentView === 'friendsView') this.renderFriendsView();
                     if (this.currentView === 'chatThreadView') this.updateChatHeaderPresence();
+                    if (this.currentView === 'messagesView') this.renderChatsList();
                 });
             },
 
@@ -9325,40 +9386,86 @@
                 });
             },
 
+            chatFilter: 'all',
+            chatSearch: '',
+
+            setChatFilter(f) {
+                this.chatFilter = f;
+                this.showingArchivedChats = f === 'archived';
+                this.renderChatsList();
+            },
+            setChatSearch(q) { this.chatSearch = String(q || '').trim(); this.renderChatsList(); },
+            // kept for older buttons: flips between the inbox and the archive
+            toggleArchivedView() { this.setChatFilter(this.chatFilter === 'archived' ? 'all' : 'archived'); },
+
             renderChatsList() {
                 const container = document.getElementById('chatsList');
                 const empty = document.getElementById('chatsEmptyState');
                 const emptyTitle = document.getElementById('chatsEmptyTitle');
                 if (!container || !empty) return;
-                const showArchived = !!this.showingArchivedChats;
-                const visible = userChatsList.filter(c => !this.isBlocked(c.otherUid) && !!c.archived === showArchived);
-                if (emptyTitle) emptyTitle.textContent = showArchived ? 'لا توجد محادثات مؤرشفة' : 'لا توجد رسائل بعد';
+                const base = userChatsList.filter(c => !this.isBlocked(c.otherUid));
+                const inbox = base.filter(c => !c.archived);
+                const unread = inbox.filter(c => c.unread && !c.muted);
+                const archived = base.filter(c => c.archived);
+                const setCount = (id, n) => { const el = document.getElementById(id); if (el) el.textContent = n ? n : ''; };
+                setCount('msCountAll', 0); setCount('msCountUnread', unread.length); setCount('msCountArchived', archived.length);
+                document.querySelectorAll('.ms-tab').forEach(t => t.classList.toggle('on', t.dataset.f === this.chatFilter));
+                const sub = document.getElementById('msgSubtitle');
+                if (sub) sub.textContent = unread.length ? unread.length + ' محادثة فيها رسائل جديدة' : 'دردشاتك الخاصة مع زملائك';
+
+                // online friends strip
+                const onlineWrap = document.getElementById('msOnlineWrap');
+                const onlineBox = document.getElementById('msOnline');
+                const online = friendsList.filter(f => friendsPresence[f.uid] && friendsPresence[f.uid].online && !this.isBlocked(f.uid));
+                if (onlineWrap && onlineBox) {
+                    onlineWrap.classList.toggle('hidden', online.length === 0);
+                    onlineBox.innerHTML = online.map((f, i) => `
+                        <button class="ms-on" style="animation-delay:${Math.min(i, 8) * 0.04}s" onclick="app.openChat(${jsArg(f.uid)})">
+                            <span class="ms-on-ava"><img src="${personAvatarSrc(f.avatar, f.name)}" alt=""><i></i></span>
+                            <span>${escapeHtml(String(f.name || 'طالب').split(' ')[0])}</span>
+                        </button>`).join('');
+                    const oc = document.getElementById('msOnlineCount');
+                    if (oc) oc.textContent = online.length + ' صديق';
+                }
+
+                let visible = this.chatFilter === 'archived' ? archived : (this.chatFilter === 'unread' ? unread : inbox);
+                const q = this.chatSearch;
+                if (q) visible = visible.filter(c => String(c.otherName || '').includes(q) || String(c.lastMessage || '').includes(q) || String(c.otherStudentNumber || '') === q);
                 if (visible.length === 0) {
                     container.innerHTML = '';
                     container.classList.add('hidden');
                     empty.classList.remove('hidden');
+                    if (emptyTitle) emptyTitle.textContent = q ? 'ما لقينا محادثة مطابقة' : ({ archived: 'لا توجد محادثات مؤرشفة', unread: 'ما عندك رسائل غير مقروءة 👌' }[this.chatFilter] || 'لا توجد رسائل بعد');
                     return;
                 }
                 container.classList.remove('hidden');
                 empty.classList.add('hidden');
-                container.innerHTML = visible.map(c => `
-                    <div class="flex items-center gap-3 p-3 rounded-2xl border cursor-pointer theme-transition" onclick="app.openChat(${jsArg(c.otherUid)})" style="background-color: var(--surface); border-color: var(--border); ${c.pinned ? 'border-color: var(--primary);' : ''}">
-                        <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0" alt="${escapeHtml(c.otherName || '')}" onclick="event.stopPropagation(); app.openProfileFromChatsList(${jsArg(c.otherUid)})">
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-bold truncate theme-transition flex items-center gap-1.5" style="color: var(--text);">${c.pinned ? '<i data-lucide="pin" class="w-3 h-3 text-primary"></i>' : ''}${escapeHtml(c.otherName || 'طالب')}${c.muted ? '<i data-lucide="bell-off" class="w-3 h-3" style="color: var(--text2);"></i>' : ''}</div>
-                            <div class="text-xs truncate theme-transition" style="color: var(--text2);">${escapeHtml(c.lastMessage || '')}</div>
-                        </div>
-                        ${c.unread && !c.muted ? '<span class="w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0"></span>' : ''}
-                    </div>
-                `).join('');
-            },
-
-            toggleArchivedView() {
-                this.showingArchivedChats = !this.showingArchivedChats;
-                const label = document.getElementById('messagesViewTitle');
-                if (label) label.textContent = this.showingArchivedChats ? 'الأرشيف' : 'الرسائل الخاصة';
-                this.renderChatsList();
-                lucide.createIcons();
+                const clock = (ts) => {
+                    if (!ts) return '';
+                    const d = new Date(ts), now = new Date();
+                    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('ar-IQ', { hour: 'numeric', minute: '2-digit' });
+                    const y = new Date(now); y.setDate(now.getDate() - 1);
+                    if (d.toDateString() === y.toDateString()) return 'أمس';
+                    return d.getDate() + ' ' + IRAQI_MONTHS[d.getMonth()];
+                };
+                container.innerHTML = visible.map((c, i) => {
+                    const isUnread = c.unread && !c.muted;
+                    const isOnline = friendsPresence[c.otherUid] && friendsPresence[c.otherUid].online;
+                    return `
+                        <div class="ms-row${isUnread ? ' unread' : ''}${c.pinned ? ' pinned' : ''}" style="animation-delay:${Math.min(i, 10) * 0.04}s" onclick="app.openChat(${jsArg(c.otherUid)})">
+                            <span class="ms-ava" onclick="event.stopPropagation(); app.openProfileFromChatsList(${jsArg(c.otherUid)})">
+                                <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" alt="${escapeHtml(c.otherName || '')}">${isOnline ? '<i title="متصل الآن"></i>' : ''}
+                            </span>
+                            <div class="ms-body">
+                                <div class="ms-top"><span class="ms-name">${escapeHtml(c.otherName || 'طالب')}</span><span class="ms-time">${clock(c.lastAt)}</span></div>
+                                <div class="ms-bottom">
+                                    <span class="ms-last">${escapeHtml(c.lastMessage || '')}</span>
+                                    <span class="ms-icons">${c.pinned ? '📌' : ''}${c.muted ? '🔕' : ''}</span>
+                                    ${isUnread ? '<span class="ms-dot" aria-label="رسالة جديدة"></span>' : ''}
+                                </div>
+                            </div>
+                        </div>`;
+                }).join('');
             },
 
             updateMessagesBadge() {
