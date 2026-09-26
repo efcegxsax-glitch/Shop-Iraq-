@@ -928,6 +928,68 @@
         .lb-podium-empty svg { display: block; width: 30px; height: 30px; margin: 0 auto 6px; color: #FDE68A; }
         .ms-icons svg { width: 13px; height: 13px; color: var(--text2); }
 
+        /* ===== Focus mode (وضع التركيز) ===== */
+        .fc, .fc * { box-sizing: border-box; }
+        .fc { padding: 14px 16px 28px; }
+        body.focus-mode #bottomNav, body.focus-mode #appHeaderBar { display: none !important; }
+        body.focus-mode #mainContent { padding-bottom: 0 !important; }
+        .fc-hero { position: relative; overflow: hidden; display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 24px; color: #fff;
+            background: linear-gradient(135deg, #0F172A, #134E4A 60%, rgb(var(--p))); box-shadow: 0 20px 40px -22px rgb(var(--p)); animation: cardIn .5s var(--ease-out) both; }
+        .fc-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.1) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 6s ease-in-out infinite; pointer-events: none; }
+        .fc-hero-ic { flex-shrink: 0; width: 52px; height: 52px; border-radius: 17px; display: grid; place-items: center; background: rgba(255,255,255,.14); animation: hpBob 3s ease-in-out infinite; }
+        .fc-hero-ic svg { width: 26px; height: 26px; }
+        .fc-hero b { display: block; font-size: 16px; font-weight: 800; }
+        .fc-hero small { font-size: 12px; opacity: .85; line-height: 1.6; }
+        .fc-sec { margin: 18px 4px 10px; font-size: 14px; font-weight: 800; color: var(--text); }
+        .fc-durs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+        .fc-dur { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px; border-radius: 18px; border: 1.5px solid var(--border); background: var(--surface); box-shadow: var(--shadow-card); cursor: pointer; color: var(--text); transition: all .2s ease; animation: hpPop .45s var(--ease-spring) both; }
+        .fc-dur b { font-size: 22px; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; }
+        .fc-dur span { font-size: 11px; color: var(--text2); font-weight: 600; }
+        .fc-dur em { margin-top: 4px; font-style: normal; font-size: 10.5px; font-weight: 800; color: #D97706; background: rgba(245,158,11,.12); padding: 1px 7px; border-radius: 99px; }
+        .fc-dur.on { border-color: rgb(var(--p)); background: rgb(var(--p) / 0.07); box-shadow: 0 0 0 3px rgb(var(--p) / 0.15); }
+        .fc-rules { display: flex; flex-direction: column; gap: 8px; }
+        .fc-rule { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; color: var(--text); line-height: 1.6; }
+        .fc-rule span { flex-shrink: 0; width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+        .fc-rule svg { width: 17px; height: 17px; }
+        .fc-start { width: 100%; height: 56px; margin-top: 18px; border: 0; border-radius: 18px; display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; font-weight: 900; color: #fff; cursor: pointer;
+            background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); box-shadow: 0 16px 30px -14px rgb(var(--p)); }
+        .fc-start svg { width: 20px; height: 20px; }
+        .fc-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .fc-stat { text-align: center; padding: 11px 4px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .fc-stat b { display: block; font-size: 19px; font-weight: 900; color: var(--c); font-variant-numeric: tabular-nums; }
+        .fc-stat span { font-size: 10.5px; color: var(--text2); font-weight: 600; }
+        .fc-rate { margin-top: 10px; padding: 11px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+        .fc-rate div { height: 7px; margin-top: 7px; border-radius: 99px; background: rgba(229,72,77,.18); overflow: hidden; }
+        .fc-rate i { display: block; height: 100%; width: var(--w); border-radius: inherit; background: linear-gradient(90deg, #16A34A, #4ADE80); transform-origin: right; animation: hpGrow 1s var(--ease-out) both .2s; }
+        /* running */
+        .fc-run { display: flex; flex-direction: column; align-items: center; padding-top: 10px; text-align: center; }
+        .fc-ring { position: relative; width: 260px; height: 260px; margin: 8px auto 0; }
+        .fc-ring::before { content: ""; position: absolute; inset: 18px; border-radius: 50%; background: radial-gradient(closest-side, rgb(var(--p) / .28), transparent); animation: fcBreathe 4s ease-in-out infinite; }
+        @keyframes fcBreathe { 0%, 100% { transform: scale(.88); opacity: .6; } 50% { transform: scale(1.05); opacity: 1; } }
+        .fc-ring svg { position: relative; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .fc-ring .bg { stroke: var(--input-bg); }
+        .fc-ring .fg { stroke: url(#fcGrad); stroke-linecap: round; transition: stroke-dashoffset .9s linear; }
+        .fc-time { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .fc-time b { font-size: 50px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+        .fc-time span { font-size: 12px; color: var(--text2); font-weight: 600; }
+        .fc-run h3 { margin: 18px 0 4px; font-size: 17px; font-weight: 900; color: var(--text); }
+        .fc-run p { margin: 0 16px; font-size: 13px; color: var(--text2); line-height: 1.7; }
+        .fc-warn { display: inline-flex; align-items: center; gap: 8px; margin-top: 14px; padding: 9px 14px; border-radius: 14px; font-size: 12.5px; font-weight: 700; color: #B45309; background: rgba(245,158,11,.12); }
+        .fc-warn svg { width: 16px; height: 16px; }
+        .fc-quit { margin-top: 22px; padding: 11px 22px; border-radius: 14px; border: 1px solid rgba(229,72,77,.3); font-size: 13px; font-weight: 800; color: #E5484D; background: rgba(229,72,77,.06); cursor: pointer; }
+        /* result */
+        .fc-res { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 26px 8px 8px; animation: cardIn .5s var(--ease-out) both; }
+        .fc-res-ic { width: 110px; height: 110px; border-radius: 50%; display: grid; place-items: center; color: #fff; animation: hpPop .6s var(--ease-spring) both; }
+        .fc-res-ic svg { width: 52px; height: 52px; }
+        .fc-res.ok .fc-res-ic { background: linear-gradient(135deg, #22C55E, #15803D); box-shadow: 0 0 0 12px rgba(34,197,94,.15), 0 20px 40px -16px #16A34A; }
+        .fc-res.bad .fc-res-ic { background: linear-gradient(135deg, #F87171, #B91C1C); box-shadow: 0 0 0 12px rgba(239,68,68,.14), 0 20px 40px -16px #DC2626; }
+        .fc-res h3 { margin: 24px 0 6px; font-size: 21px; font-weight: 900; color: var(--text); }
+        .fc-res p { margin: 0; font-size: 13.5px; color: var(--text2); line-height: 1.8; }
+        .fc-pts { margin-top: 14px; padding: 8px 18px; border-radius: 99px; font-size: 18px; font-weight: 900; color: #D97706; background: rgba(245,158,11,.14); }
+        .fc-res-btns { display: flex; gap: 10px; width: 100%; margin-top: 26px; }
+        .fc-res-btns button { flex: 1; height: 50px; border-radius: 16px; font-size: 14px; font-weight: 800; cursor: pointer; border: 1px solid var(--border); color: var(--text); background: var(--surface); }
+        .fc-res-btns button.pri { border: 0; color: #fff; background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -2103,6 +2165,17 @@
                 <span class="font-bold flex-1 theme-transition" style="color: var(--text);">المزيد</span>
             </div>
             <div class="p-4 space-y-2">
+                <button onclick="app.goToFocus()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <i data-lucide="smartphone" class="w-5 h-5 text-primary"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز — لا تلمس الهاتف</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بدون ما تطلع من التطبيق واكسب نقاط، وإذا طلعت تنكسر الجلسة</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.goToStudyTimer()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
                         <i data-lucide="timer" class="w-5 h-5 text-purple"></i>
@@ -2815,6 +2888,20 @@
             </div>
         </div>
 
+        <!-- ===== FOCUS MODE VIEW (وضع التركيز) ===== -->
+        <div id="focusView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.focusBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">لا تلمس الهاتف لحد ما تخلص الجلسة</div>
+                </div>
+            </div>
+            <div id="focusContent" class="fc"></div>
+        </div>
+
         <!-- ===== HOLIDAYS CALENDAR VIEW (تقويم العطل) ===== -->
         <div id="holidaysView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
@@ -3385,6 +3472,7 @@
                 this.loadTheme();
                 this.loadCustomThemeColor();
                 this.loadUserData();
+                this.checkInterruptedFocus();
                 this.loadNotifPrefs();
                 this.watchAuthState();
                 this.hydrateNewsCache();
@@ -5523,6 +5611,239 @@
                 list.innerHTML = chips;
                 lucide.createIcons();
                 this._stripStart('holidays', 'holidaysViewport', 'holidaysList');
+            },
+
+            // ==================== FOCUS MODE (وضع التركيز) ====================
+            // Leaving the app (another app, home screen, locking the phone) for more than a
+            // short grace period breaks the session and its points are lost. Timing is based
+            // on the wall clock, so background throttling can't stretch or shrink a session.
+            // The screen is kept awake (Wake Lock API) so it doesn't auto-lock mid-session.
+            focusDurations: [15, 25, 45, 60],
+            focusMinutes: 25,
+            FOCUS_KEY: 'isp_focus_session',
+            FOCUS_GRACE_MS: 5000,
+
+            goToFocus() {
+                this._bindFocusEvents();
+                if (this._focus) this.renderFocusRunning(); else this.renderFocusSetup();
+                this.switchView('focusView');
+                lucide.createIcons();
+            },
+
+            focusBack() {
+                if (this._focus) { this.giveUpFocus(); return; }
+                this.goBack();
+            },
+
+            focusStats() {
+                const u = this.currentUser || {};
+                return { done: numOr0(u.focusDone), broken: numOr0(u.focusBroken), minutes: numOr0(u.focusMinutes) };
+            },
+
+            saveFocusStats(patch) {
+                if (!this.currentUser) return;
+                Object.assign(this.currentUser, patch);
+                this.saveUserData();
+                if (window.firebaseDb && this.authUid) {
+                    const { ref, update } = window.firebaseDbHelpers;
+                    update(ref(window.firebaseDb, 'users/' + this.authUid), patch).catch((e) => console.warn('Focus stats save failed:', e));
+                }
+            },
+
+            setFocusMinutes(m) { this.focusMinutes = m; this.renderFocusSetup(); },
+
+            renderFocusSetup() {
+                const box = document.getElementById('focusContent');
+                if (!box) return;
+                const st = this.focusStats();
+                const total = st.done + st.broken;
+                const rate = total ? Math.round((st.done / total) * 100) : 0;
+                box.innerHTML = `
+                    <section class="fc-hero">
+                        <span class="fc-hero-ic"><i data-lucide="smartphone"></i></span>
+                        <div><b>لا تلمس الهاتف</b><small>اختر مدة، ابدأ، وخلي الهاتف على جنب. إذا كملت الجلسة تكسب نقاط، وإذا طلعت من التطبيق تنكسر وتخسرها.</small></div>
+                    </section>
+
+                    <div class="fc-sec">مدة الجلسة</div>
+                    <div class="fc-durs">
+                        ${this.focusDurations.map((m, i) => `
+                            <button class="fc-dur${m === this.focusMinutes ? ' on' : ''}" style="animation-delay:${i * 0.05}s" onclick="app.setFocusMinutes(${jsNum(m)})">
+                                <b>${m}</b><span>دقيقة</span><em>+${m} نقطة</em>
+                            </button>`).join('')}
+                    </div>
+
+                    <div class="fc-sec">القواعد</div>
+                    <div class="fc-rules">
+                        <div class="fc-rule"><span style="--c:#E5484D"><i data-lucide="log-out"></i></span>إذا طلعت من التطبيق أكثر من 5 ثواني تنكسر الجلسة</div>
+                        <div class="fc-rule"><span style="--c:#F59E0B"><i data-lucide="lock"></i></span>قفل الشاشة يكسر الجلسة — الشاشة تبقى شغالة وحدها طول الجلسة</div>
+                        <div class="fc-rule"><span style="--c:#16A34A"><i data-lucide="users"></i></span>تظهر بغرفة المذاكرة الجماعية حتى يشوفك زملاءك تركّز</div>
+                    </div>
+
+                    <button class="fc-start btn-press" onclick="app.startFocus()"><i data-lucide="play"></i>ابدأ ${this.focusMinutes} دقيقة تركيز</button>
+
+                    <div class="fc-sec">إنجازاتك</div>
+                    <div class="fc-stats">
+                        <div class="fc-stat" style="--c:#16A34A"><b>${st.done}</b><span>جلسة مكتملة</span></div>
+                        <div class="fc-stat" style="--c:#E5484D"><b>${st.broken}</b><span>جلسة منكسرة</span></div>
+                        <div class="fc-stat" style="--c:rgb(var(--p))"><b>${st.minutes}</b><span>دقيقة تركيز</span></div>
+                    </div>
+                    ${total ? `<div class="fc-rate">نسبة نجاحك ${rate}% من ${total} جلسة<div><i style="--w:${Math.max(3, rate)}%"></i></div></div>` : ''}
+                    ${!this.isLoggedIn ? '<div class="fc-rate">سجّل دخولك حتى تنحسب نقاطك وإنجازاتك</div>' : ''}
+                `;
+                lucide.createIcons();
+            },
+
+            startFocus() {
+                if (this._focus) return;
+                const minutes = this.focusMinutes;
+                this._focus = { start: Date.now(), dur: minutes * 60000, minutes };
+                try { localStorage.setItem(this.FOCUS_KEY, JSON.stringify(this._focus)); } catch (e) {}
+                document.body.classList.add('focus-mode');
+                this._requestWakeLock();
+                this.joinStudyRoom('focus');
+                this.renderFocusRunning();
+                clearInterval(this._focusTimer);
+                this._focusTimer = setInterval(() => this._focusTick(), 500);
+                this._focusTick();
+            },
+
+            renderFocusRunning() {
+                const box = document.getElementById('focusContent');
+                if (!box || !this._focus) return;
+                const C = 2 * Math.PI * 116;
+                box.innerHTML = `
+                    <div class="fc-run">
+                        <div class="fc-ring">
+                            <svg viewBox="0 0 260 260" aria-hidden="true">
+                                <defs><linearGradient id="fcGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="rgb(var(--p))"/><stop offset="1" stop-color="#F59E0B"/></linearGradient></defs>
+                                <circle class="bg" cx="130" cy="130" r="116" fill="none" stroke-width="14"/>
+                                <circle class="fg" id="fcArc" cx="130" cy="130" r="116" fill="none" stroke-width="14" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"/>
+                            </svg>
+                            <div class="fc-time"><b id="fcClock" dir="ltr">--:--</b><span>متبقي من ${this._focus.minutes} دقيقة</span></div>
+                        </div>
+                        <h3>ركّز… الهاتف على جنب</h3>
+                        <p>كمّل الجلسة وتكسب <b>${this._focus.minutes} نقطة</b>. التطبيق مفتوح لحد ما يخلص الوقت.</p>
+                        <div class="fc-warn"><i data-lucide="alert-triangle"></i>إذا طلعت من التطبيق تنكسر الجلسة</div>
+                        <button class="fc-quit btn-press" onclick="app.giveUpFocus()">إنهاء الجلسة الآن</button>
+                    </div>`;
+                lucide.createIcons();
+                this._focusTick();
+            },
+
+            _focusTick() {
+                const f = this._focus;
+                if (!f) return;
+                const left = f.start + f.dur - Date.now();
+                if (left <= 0) { this.completeFocus(); return; }
+                const secs = Math.ceil(left / 1000);
+                const clock = document.getElementById('fcClock');
+                if (clock) clock.textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+                const arc = document.getElementById('fcArc');
+                if (arc) {
+                    const C = 2 * Math.PI * 116;
+                    arc.setAttribute('stroke-dashoffset', (C * (1 - left / f.dur)).toFixed(1));
+                }
+            },
+
+            _stopFocus() {
+                clearInterval(this._focusTimer);
+                this._focusTimer = null;
+                try { localStorage.removeItem(this.FOCUS_KEY); } catch (e) {}
+                document.body.classList.remove('focus-mode');
+                if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
+                this.leaveStudyRoom();
+                const f = this._focus;
+                this._focus = null;
+                return f;
+            },
+
+            completeFocus() {
+                const f = this._stopFocus();
+                if (!f) return;
+                const st = this.focusStats();
+                this.saveFocusStats({ focusDone: st.done + 1, focusMinutes: st.minutes + f.minutes });
+                this.playNotifySound();
+                if (this.isLoggedIn && this.currentUser) {
+                    this.addPointsAtomic(f.minutes).then(() => {
+                        this.logDailyActivity({ points: f.minutes, studySessions: 1 });
+                    });
+                }
+                this.renderFocusResult(true, f.minutes, f.minutes);
+            },
+
+            breakFocus(reason) {
+                const f = this._stopFocus();
+                if (!f) return;
+                const done = Math.max(0, Math.floor((Date.now() - f.start) / 60000));
+                const st = this.focusStats();
+                this.saveFocusStats({ focusBroken: st.broken + 1 });
+                this.renderFocusResult(false, f.minutes, done, reason);
+            },
+
+            giveUpFocus() {
+                if (!this._focus) return;
+                if (!confirm('إذا أنهيت الجلسة الآن تنكسر وما تاخذ نقاطها. متأكد؟')) return;
+                this.breakFocus('أنهيت الجلسة قبل وقتها');
+            },
+
+            renderFocusResult(ok, minutes, done, reason) {
+                const box = document.getElementById('focusContent');
+                if (!box) return;
+                box.innerHTML = ok ? `
+                    <div class="fc-res ok">
+                        <span class="fc-res-ic"><i data-lucide="check"></i></span>
+                        <h3>أحسنت! كملت الجلسة</h3>
+                        <p>ركّزت ${minutes} دقيقة بدون ما تلمس هاتفك</p>
+                        ${this.isLoggedIn ? `<span class="fc-pts">+${minutes} نقطة</span>` : '<p>سجّل دخولك المرة الجاية حتى تنحسب نقاطك</p>'}
+                        <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">جلسة ثانية</button><button onclick="app.renderFocusSetup()">رجوع</button></div>
+                    </div>` : `
+                    <div class="fc-res bad">
+                        <span class="fc-res-ic"><i data-lucide="x"></i></span>
+                        <h3>انكسرت الجلسة</h3>
+                        <p>${escapeHtml(reason || 'طلعت من التطبيق')}${done ? ' — ركّزت ' + done + ' دقيقة من ' + minutes : ''}</p>
+                        <p>ما تنحسب نقاط الجلسة. جرّب مرة ثانية وخلي الهاتف على جنب.</p>
+                        <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">حاول مرة ثانية</button><button onclick="app.renderFocusSetup()">رجوع</button></div>
+                    </div>`;
+                lucide.createIcons();
+            },
+
+            async _requestWakeLock() {
+                try {
+                    if ('wakeLock' in navigator && !this._wakeLock) {
+                        this._wakeLock = await navigator.wakeLock.request('screen');
+                        this._wakeLock.addEventListener('release', () => { this._wakeLock = null; });
+                    }
+                } catch (e) { /* not supported / not allowed — session still works */ }
+            },
+
+            _bindFocusEvents() {
+                if (this._focusBound) return;
+                this._focusBound = true;
+                document.addEventListener('visibilitychange', () => {
+                    const f = this._focus;
+                    if (!f) return;
+                    if (document.hidden) {
+                        f.hiddenAt = Date.now();
+                    } else if (f.hiddenAt) {
+                        const away = Date.now() - f.hiddenAt;
+                        delete f.hiddenAt;
+                        if (away > this.FOCUS_GRACE_MS) this.breakFocus('طلعت من التطبيق أثناء الجلسة');
+                        else { this._requestWakeLock(); this._focusTick(); }
+                    }
+                });
+            },
+
+            // A session that was still saved when the app starts means the app was closed
+            // (or the page reloaded) mid-session — that counts as broken.
+            checkInterruptedFocus() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(this.FOCUS_KEY) || 'null'); } catch (e) {}
+                if (!saved) return;
+                try { localStorage.removeItem(this.FOCUS_KEY); } catch (e) {}
+                const finished = Date.now() >= saved.start + saved.dur;
+                const st = this.focusStats();
+                this.saveFocusStats({ focusBroken: st.broken + 1 });
+                setTimeout(() => this.showToast(finished ? 'جلسة التركيز السابقة انكسرت لأن التطبيق انسد قبل ما تخلص' : 'انكسرت جلسة التركيز لأنك طلعت من التطبيق'), 1200);
             },
 
             // ==================== HOLIDAYS CALENDAR PAGE ====================
@@ -8673,8 +8994,8 @@
                 listEl.classList.remove('hidden');
                 emptyEl.classList.add('hidden');
                 listEl.innerHTML = studyRoomStudents.map((s) => {
-                    const activityLabel = s.activity === 'youtube' ? 'يوتيوب دراسة' : 'مؤقت المذاكرة';
-                    const activityIcon = s.activity === 'youtube' ? 'video' : 'timer';
+                    const activityLabel = s.activity === 'youtube' ? 'يوتيوب دراسة' : (s.activity === 'focus' ? 'وضع التركيز' : 'مؤقت المذاكرة');
+                    const activityIcon = s.activity === 'youtube' ? 'video' : (s.activity === 'focus' ? 'smartphone' : 'timer');
                     const minutes = s.startedAt ? Math.max(0, Math.round((Date.now() - s.startedAt) / 60000)) : 0;
                     return `
                         <div class="rounded-2xl border p-3 flex flex-col items-center justify-center text-center relative theme-transition" style="background-color: var(--surface); border-color: var(--border); aspect-ratio: 1;">
