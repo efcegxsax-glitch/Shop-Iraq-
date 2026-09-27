@@ -1670,10 +1670,6 @@
                 </div>
             </section>
 
-            <section class="px-4 py-2" id="moodSection">
-                <div id="moodCard" class="mo"></div>
-            </section>
-
             <div id="contentArea" class="px-4 py-2">
                 <div id="newsListState">
                     <div class="flex items-center justify-between mb-3">
@@ -2377,7 +2373,7 @@
                     </div>
                     <div class="flex-1">
                         <div class="font-bold theme-transition" style="color: var(--text);">قبل الامتحان</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">دعاء، تمرين تنفّس دقيقة وحدة، وقائمة تجهيز حتى تدخل هادئ</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">مزاجك اليوم، دعاء، تمرين تنفّس وقائمة تجهيز حتى تدخل هادئ</div>
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
@@ -3727,7 +3723,6 @@
                 this.renderNotificationsList();
                 this.renderNewsTicker();
                 this.renderDailyTip();
-                this.renderMood();
                 this.loadNewsFromDatabase();
                 this.listenForNews();
                 this.loadResourcesFromDatabase();
@@ -5597,7 +5592,7 @@
                 const $ = (id) => document.getElementById(id);
 
                 // Home sections
-                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection', mood: 'moodSection' };
+                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
                 // Bottom navigation
@@ -6368,7 +6363,12 @@
             moodAction(k) {
                 const a = this.MOOD_ACTIONS[k];
                 if (!a) return;
-                if (!a[2]) { this.goToCalm(); return; }
+                if (!a[2]) {
+                    if (this.currentView !== 'calmView') this.goToCalm();
+                    document.getElementById('calmBreath')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    if (!this._breath) setTimeout(() => this.toggleBreath(), 400);
+                    return;
+                }
                 if (!this._focus) this.focusMinutes = a[2];
                 this.goToFocus();
             },
@@ -6834,6 +6834,8 @@
                 box.innerHTML = `
                     ${this._calmNextExam()}
 
+                    <div class="mo" id="moodCard" style="margin-top:12px"></div>
+
                     <section class="cm-dua">
                         <span class="cm-dua-lbl"><i data-lucide="moon-star"></i>دعاء قبل الامتحان</span>
                         <p id="calmDuaText">${escapeHtml(d.t)}</p>
@@ -6869,6 +6871,7 @@
 
                     <div class="cm-quote">${escapeHtml(this._calmQuote || this.CALM_QUOTES[0])}</div>
                 `;
+                this.renderMood();
                 lucide.createIcons();
             },
 
@@ -12922,7 +12925,7 @@
                 document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); this.renderMood(); }
+                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');
