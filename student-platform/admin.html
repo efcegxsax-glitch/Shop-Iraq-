@@ -176,6 +176,12 @@
         .ds-all { font-weight: 700; }
         .ds-chk input[type=checkbox] { width: 18px !important; min-width: 18px; height: 18px; margin: 0; padding: 0; flex-shrink: 0; }
         .ds-chk span { white-space: nowrap; }
+        .ds-help { margin-top: 14px; padding: 12px; border-radius: 14px; border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.08); font-size: 13px; line-height: 1.8; }
+        .ds-help b { display: block; margin-bottom: 6px; }
+        .ds-help .cp { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        .ds-help .cp span { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: rtl; word-break: break-word; }
+        .ds-help .cp code { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: ltr; text-align: left; word-break: break-all; }
+        .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
         .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
     </style>
 </head>
@@ -741,6 +747,7 @@
                     </div>
                     <label class="ds-chk" style="margin-top:4px;"><input type="checkbox" id="ds_notify" checked><span>أرسل إشعار للطلاب بهاي المحافظات</span></label>
                     <button class="btn mt-4" id="ds_publish">نشر الإعلان</button>
+                    <div id="dsPushHelp"></div>
                     <div id="dsList" style="margin-top:14px;"></div>
                 </div>
                 <div class="card">
@@ -1873,6 +1880,27 @@
         // ---------- Tomorrow: school or holiday? (quick announcement) ----------
         // Writes dayStatus/{date}/{governorate | all} = { s: off | pending | on, reason, at }.
         // The student app reads it before the holidays calendar, so it also overrides it.
+        // Same codes the student app registers with OneSignal (tag "gov") and Firebase (topic "gov_<code>")
+        const GOV_CODES = { 'بغداد': 'baghdad', 'البصرة': 'basra', 'نينوى': 'nineveh', 'أربيل': 'erbil', 'السليمانية': 'sulaymaniyah', 'دهوك': 'duhok', 'حلبجة': 'halabja', 'كركوك': 'kirkuk', 'الأنبار': 'anbar', 'صلاح الدين': 'salahaddin', 'ديالى': 'diyala', 'بابل': 'babil', 'كربلاء': 'karbala', 'النجف': 'najaf', 'واسط': 'wasit', 'القادسية': 'qadisiyah', 'ذي قار': 'dhiqar', 'ميسان': 'maysan', 'المثنى': 'muthanna' };
+        window.dsCopy = (btn) => {
+            const t = btn.previousElementSibling ? btn.previousElementSibling.textContent : '';
+            (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { btn.textContent = 'انتسخ'; setTimeout(() => { btn.textContent = 'نسخ'; }, 1500); }).catch(() => toast('انسخه يدوياً', false));
+        };
+        // After an announcement: the text and the governorate codes ready to paste into OneSignal /
+        // Firebase, which deliver it to phones where the app is closed.
+        function showPushHelp(title, body, allIraq, govs) {
+            const codes = allIraq ? [] : govs.map((g) => GOV_CODES[g]).filter(Boolean);
+            const row = (label, text, ltr) => `<div>${label}</div><div class="cp">${ltr ? `<code>${escapeHtml(text)}</code>` : `<span>${escapeHtml(text)}</span>`}<button type="button" onclick="dsCopy(this)">نسخ</button></div>`;
+            el('dsPushHelp').innerHTML = `
+                <div class="ds-help">
+                    <b>حتى يوصل للهواتف المسدودة، أرسله من OneSignal:</b>
+                    ${row('العنوان', title)}
+                    ${body ? row('النص', body) : ''}
+                    ${allIraq ? '<div>الجمهور: كل المشتركين (Subscribed Users)</div>' : row('الفلتر: User Tag باسم gov يساوي وحدة من هاي', codes.join(' , '), true)}
+                    <div class="cp" style="margin-top:10px;"><a href="https://dashboard.onesignal.com" target="_blank" rel="noopener">فتح OneSignal</a></div>
+                    <div style="margin-top:8px;font-size:12px;opacity:.8;">إذا تستخدم Firebase بدل OneSignal: Messaging ثم Topic: ${allIraq ? '<code>all</code>' : codes.map((c) => '<code>gov_' + c + '</code>').join(' ')}</div>
+                </div>`;
+        }
         const DS_LABEL = { off: ['عطلة', '#DC2626'], pending: ['بانتظار القرار', '#D97706'], on: ['دوام رسمي', '#059669'] };
         const dsDayName = (dateStr) => {
             const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
@@ -1940,6 +1968,12 @@
                     const notif = { id, title, description: reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), time: 'الآن', read: false, type: 'urgent', createdAt: serverTimestamp() };
                     if (!allIraq) notif.govs = govs;
                     await set(ref(db, 'notifications/' + id), notif);
+                }
+                {
+                    const where = allIraq ? 'كل محافظات العراق' : (govs.length <= 3 ? govs.join('، ') : govs.length + ' محافظات');
+                    const day = dsDayName(date);
+                    const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
+                    showPushHelp(title, reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), allIraq, govs);
                 }
                 toast('انتشر الإعلان' + (el('ds_notify').checked ? ' ووصل الإشعار' : ''));
                 el('ds_reason').value = '';

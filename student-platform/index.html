@@ -4602,7 +4602,7 @@
                 this.listenForExamSchedule();
                 this.listenForHolidays();
                 this.listenForDayStatus();
-                setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); }, 4000);
+                setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
                 this.listenForForumThreads();
                 this.listenForLeaderboard();
                 this.listenForStudyRoom();
@@ -5058,6 +5058,7 @@
                     this.saveUserData();
                     const savedToDb = await this.syncUserToDatabase({ includeCounters: true });
                     this.initPushNotifications();
+                    this.syncNativePush();
                     if (savedToDb) {
                         this.showToast('تم إنشاء الحساب بنجاح');
                     } else {
@@ -6117,6 +6118,7 @@
                     this.updateProfileView();
                     this.listenForOwnUserRecord();
                     this.initPushNotifications();
+                    this.syncNativePush();
                     this.checkDailyStreak();
                     this.listenForUserTasks();
                     this.listenForUserChats();
@@ -6711,6 +6713,7 @@
                 else {
                     try { localStorage.setItem('isp_day_gov', g); } catch (e) {}
                     if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications();
+                    this.syncNativePush();
                 }
                 this._dsPickerOpen = false;
                 this.renderDayStatus();
@@ -6765,6 +6768,54 @@
                     ${more}
                     ${this._dsPickerOpen ? picker : ''}`;
                 lucide.createIcons();
+            },
+
+            // ===== Push in the native app (WebToNative) =====
+            // Inside the Android / iPhone app built with WebToNative, web push doesn't exist; the
+            // app's own OneSignal or Firebase does it. This tells whichever one is enabled who the
+            // student is and their governorate:
+            //   OneSignal: external user id = uid, tags gov=<code> and gov_name=<Arabic name>
+            //   Firebase:  topics "all" and "gov_<code>"
+            // so a notification can be sent to one governorate from the OneSignal / Firebase
+            // dashboard. Outside the app (a normal browser) this does nothing.
+            GOV_CODES: { 'بغداد': 'baghdad', 'البصرة': 'basra', 'نينوى': 'nineveh', 'أربيل': 'erbil', 'السليمانية': 'sulaymaniyah', 'دهوك': 'duhok', 'حلبجة': 'halabja', 'كركوك': 'kirkuk', 'الأنبار': 'anbar', 'صلاح الدين': 'salahaddin', 'ديالى': 'diyala', 'بابل': 'babil', 'كربلاء': 'karbala', 'النجف': 'najaf', 'واسط': 'wasit', 'القادسية': 'qadisiyah', 'ذي قار': 'dhiqar', 'ميسان': 'maysan', 'المثنى': 'muthanna' },
+
+            _wtn() {
+                const a = window.WebToNativeInterface;
+                if (a && typeof a.getAndroidVersion === 'function') return { os: 'android', a };
+                const i = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.webToNativeInterface;
+                return i ? { os: 'ios', i } : null;
+            },
+
+            syncNativePush() {
+                const w = this._wtn();
+                if (!w) return;
+                const gov = this._myGov() || this._dsGov();
+                const code = this.GOV_CODES[gov] || '';
+                let prev = '';
+                try { prev = localStorage.getItem('isp_native_gov') || ''; } catch (e) {}
+                const uid = this.isLoggedIn && this.authUid ? String(this.authUid) : '';
+                const tags = { gov: code, gov_name: gov || '', member: uid ? '1' : '0' };
+                // Each call on its own: a method the enabled provider doesn't have must not stop the rest.
+                const call = (fn) => { try { fn(); } catch (e) { console.warn('Native push call failed:', e); } };
+                if (w.os === 'android') {
+                    const a = w.a;
+                    if (uid && typeof a.setExternalUserId === 'function') call(() => a.setExternalUserId(uid));
+                    if (typeof a.setUserTags === 'function') call(() => a.setUserTags(JSON.stringify(tags)));
+                    if (typeof a.subscribeToTopic === 'function') {
+                        call(() => a.subscribeToTopic('all'));
+                        if (code) call(() => a.subscribeToTopic('gov_' + code));
+                    }
+                    if (prev && prev !== code && typeof a.unsubscribeFromTopic === 'function') call(() => a.unsubscribeFromTopic('gov_' + prev));
+                } else {
+                    const post = (m) => call(() => w.i.postMessage(m));
+                    if (uid) post({ action: 'setExternalUserId', userId: uid });
+                    post({ action: 'setUserTags', tags });
+                    post({ action: 'firebaseSubscribeToTopic', topic: 'all' });
+                    if (code) post({ action: 'firebaseSubscribeToTopic', topic: 'gov_' + code });
+                    if (prev && prev !== code) post({ action: 'firebaseUnsubscribeFromTopic', topic: 'gov_' + prev });
+                }
+                try { localStorage.setItem('isp_native_gov', code); } catch (e) {}
             },
 
             // Push notifications need https, a supported browser and the VAPID key in the config.
@@ -9296,6 +9347,7 @@
                 this.closeWalletModal();
                 this.showToast('تم تحديث الملف الشخصي');
                 if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications();
+                this.syncNativePush();
             },
 
             applyAvatarUrlPreview() {
