@@ -1562,6 +1562,27 @@
         .fr-wx .ic svg { width: 18px; height: 18px; }
         .fr-wx b { display: block; font-size: 12.5px; font-weight: 900; color: #F1F5F9; }
         .fr-wx small { display: block; font-size: 9.5px; font-weight: 700; color: rgba(236,253,245,.6); white-space: nowrap; }
+        .fr .gw3d-labels .gw3d-lb { pointer-events: none !important; }
+        .fr .fr-map canvas { touch-action: none; cursor: grab; }
+        .fr .fr-map canvas:active { cursor: grabbing; }
+        .fr-ctl { position: absolute; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sh, 0px) + 22px); z-index: 6; display: flex; flex-direction: column; gap: 8px; transition: bottom .4s ease; }
+        .fr-ctl button { width: 42px; height: 42px; border-radius: 14px; border: 1px solid rgba(255,255,255,.16); background: rgba(2,14,10,.66); color: #ECFDF5; display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 8px 20px -10px rgba(0,0,0,.7); transition: transform .15s; }
+        .fr-ctl button:active { transform: scale(.92); }
+        .fr-ctl button svg { width: 19px; height: 19px; }
+        .fr-compass span { position: relative; width: 26px; height: 26px; display: block; transition: transform .1s linear; }
+        .fr-compass span i { position: absolute; left: 50%; top: 2px; width: 6px; height: 22px; margin-left: -3px; background: linear-gradient(180deg, #F87171 0 50%, #E2E8F0 50% 100%); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+        .fr-compass span b { position: absolute; left: 50%; top: -9px; transform: translateX(-50%); font-size: 8px; font-weight: 900; color: #FCA5A5; }
+        .fr-grab { display: block; width: 60px; height: 18px; margin: -10px auto 4px; border: 0; background: none; cursor: pointer; padding: 6px 0; }
+        .fr-grab i { display: block; width: 38px; height: 4px; margin: 0 auto; border-radius: 4px; background: rgba(255,255,255,.28); }
+        .fr-minibar { display: none; width: 100%; align-items: center; gap: 9px; border: 0; background: none; color: #ECFDF5; font: inherit; cursor: pointer; padding: 0; text-align: right; }
+        .fr-minibar > svg { width: 20px; height: 20px; color: #6EE7B7; flex-shrink: 0; }
+        .fr-minibar b { flex: 1; font-size: 14px; font-weight: 900; }
+        .fr-minibar span { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; background: linear-gradient(135deg, #34D399, #059669); color: #052E1B; }
+        .fr-minibar span svg { width: 18px; height: 18px; }
+        .fr-sheet.mini { padding-top: 12px; padding-bottom: 12px; }
+        .fr-sheet.mini .fr-full { display: none; }
+        .fr-sheet.mini .fr-minibar { display: flex; }
+        .fr-sheet.mini .fr-grab { margin-bottom: 6px; }
         .fr-credit { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sh, 0px) + 4px); z-index: 5; font-size: 8px; color: rgba(255,255,255,.35); text-align: center; pointer-events: none; direction: ltr; }
         .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 168px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
         .fr-ticker span { overflow: hidden; text-overflow: ellipsis; }
@@ -3796,6 +3817,13 @@
                 <div class="fr-flash" id="frFlash"></div>
                 <div class="fr-wx" id="frWx"><span class="ic"></span><div><b>صحو</b><small></small></div></div>
                 <div class="fr-wind" id="frWind"><span class="fr-wind-ar"><i></i></span><div><small>رياح شمالية غربية</small><b><span id="frWindKm">14</span> كم/س</b></div></div>
+                <div class="fr-ctl" id="frCtl">
+                    <button onclick="app.mapCtl('in')" aria-label="تقريب"><i data-lucide="plus"></i></button>
+                    <button onclick="app.mapCtl('out')" aria-label="تبعيد"><i data-lucide="minus"></i></button>
+                    <button onclick="app.mapCtl('north')" aria-label="الشمال للأعلى" class="fr-compass"><span id="frCompass"><i></i><b>ش</b></span></button>
+                    <button onclick="app.mapCtl('home')" aria-label="كل العراق"><i data-lucide="maximize"></i></button>
+                    <button onclick="app.mapCtl('mine')" aria-label="محافظتي"><i data-lucide="locate-fixed"></i></button>
+                </div>
                 <div class="fr-credit">Imagery: Copernicus Sentinel-2 2021 (ESA WorldCover) · Terrain: AWS Terrain Tiles</div>
                 <div class="fr-ticker" id="frTicker"></div>
                 <div class="fr-gov hidden" id="frGov"></div>
@@ -5385,7 +5413,7 @@
                 const dpr = Math.min(this.maxDpr || 2, window.devicePixelRatio || 1), w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
                 if (!w || !h) return;
                 if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-                const idle = performance.now() - (this.lastTouch || 0) > 2500;
+                const idle = !this.noIdle && performance.now() - (this.lastTouch || 0) > 2500;
                 this.yawNow = this.yaw + (idle ? 0.16 * Math.sin(now * 0.12) : 0);
                 if (idle) this.yaw += ((this.yawHome || 0) - this.yaw) * 0.005;
                 this._camera(now);
@@ -5501,7 +5529,7 @@
                 this.camT = this.home.slice(); this.homeZ = 1; this.camZ = 1; this.zoom = 1;
                 this.govs = {}; this.live = {}; this.shown = {}; this.anims = []; this.fx = [];
                 this.sel = ''; this.selAt = 0; this.sess = null; this.outl = {};
-                this.leaves = []; this.streaks = [];
+                this.leaves = []; this.streaks = []; this.noIdle = true;
                 this._riverField();
                 this.slots = {};
                 Object.keys(IRAQ_GEO.g).forEach((g) => { this.slots[g] = this._makeSlots(g); });
@@ -6351,6 +6379,7 @@
                 this._wxStep(ts / 1000);
                 super.frame(ts);
                 if (this.flashEl) this.flashEl.style.opacity = (this.flash || 0) * 0.22;
+                if (this.compassEl) this.compassEl.style.transform = 'rotate(' + this.yaw.toFixed(3) + 'rad)';
                 if (this.windEl && ts - (this._wAt || 0) > 200) { this._wAt = ts; this._windHud(ts / 1000); }
             }
             // Wind gauge: the arrow follows the shamal's direction on screen, the speed rises in a gust.
@@ -6417,10 +6446,149 @@
             // Camera ----------------------------------------------------------------------------
             _camera() {
                 const k = 0.06;
+                // glide after a quick drag
+                if (this.vel && !this._drag) {
+                    if (Math.hypot(this.vel[0], this.vel[1]) < 0.0004) this.vel = null;
+                    else { this._pan(this.vel[0], this.vel[1]); this.vel[0] *= 0.9; this.vel[1] *= 0.9; }
+                }
                 for (let i = 0; i < 3; i++) this.target[i] += (this.camT[i] - this.target[i]) * k;
                 this.zoom += (this.camZ - this.zoom) * k;
+                if (this.yawT != null) { this.yaw += (this.yawT - this.yaw) * 0.08; if (Math.abs(this.yawT - this.yaw) < 0.002) { this.yaw = this.yawT; this.yawT = null; } }
+                if (this.pitchT != null) { this.pitch += (this.pitchT - this.pitch) * 0.08; if (Math.abs(this.pitchT - this.pitch) < 0.002) { this.pitch = this.pitchT; this.pitchT = null; } }
                 this.offY = (this.offY || 0) + ((this.offT || 0) - (this.offY || 0)) * k;
             }
+
+            // Free exploring: one finger drags the map (the point under the finger stays under
+            // it), two fingers pinch to zoom, twist to turn and slide up/down to tilt; double tap
+            // zooms in there; mouse wheel zooms, right button / shift + drag turns and tilts.
+            _bindInput() {
+                const cv = this.canvas, pts = new Map();
+                let mode = '', g0 = null, last = null, tap = null, lastTap = 0;
+                const pos = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+                const two = () => { const a = [...pts.values()]; return { c: [(a[0][0] + a[1][0]) / 2, (a[0][1] + a[1][1]) / 2], d: Math.max(1, Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1])), an: Math.atan2(a[1][1] - a[0][1], a[1][0] - a[0][0]) }; };
+                const clP = (v) => Math.max(0.42, Math.min(1.45, v));
+                const user = () => { this.lastTouch = performance.now(); this.camT = this.target.slice(); this.camZ = this.zoom; this.userMoved = true; this.vel = null; this.yawT = null; this.pitchT = null; };
+                const start1 = (p, rot) => { mode = rot ? 'rot' : 'pan'; g0 = this._groundAt(p[0], p[1]); last = p; };
+                cv.addEventListener('pointerdown', (e) => {
+                    try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+                    const p = pos(e);
+                    pts.set(e.pointerId, p);
+                    user(); this._drag = true;
+                    if (pts.size === 1) { start1(p, e.button === 2 || e.shiftKey); tap = { p, t: performance.now() }; }
+                    else if (pts.size === 2) { mode = 'pinch'; last = two(); tap = null; }
+                });
+                cv.addEventListener('pointermove', (e) => {
+                    if (!pts.has(e.pointerId)) return;
+                    const p = pos(e);
+                    pts.set(e.pointerId, p);
+                    this.lastTouch = performance.now();
+                    if (tap && Math.hypot(p[0] - tap.p[0], p[1] - tap.p[1]) > 9) { tap = null; if (this.onUserMove) this.onUserMove(); }
+                    if (pts.size === 1 && mode === 'pan') {
+                        const g = g0 && this._groundAt(p[0], p[1], g0[1]);
+                        if (g && g0) { const dx = g0[0] - g[0], dz = g0[2] - g[2]; this._pan(dx, dz); this.vel = [dx * 0.6, dz * 0.6]; }
+                        last = p;
+                    } else if (pts.size === 1 && mode === 'rot') {
+                        this.yaw += (p[0] - last[0]) * 0.006; this.pitch = clP(this.pitch + (p[1] - last[1]) * 0.004); last = p;
+                    } else if (pts.size === 2 && mode === 'pinch') {
+                        const t = two();
+                        const g1 = this._groundAt(t.c[0], t.c[1]);
+                        this.zoom = this.camZ = Math.max(0.7, Math.min(9, this.zoom * t.d / last.d));
+                        let da = t.an - last.an;
+                        if (da > Math.PI) da -= 2 * Math.PI; if (da < -Math.PI) da += 2 * Math.PI;
+                        this.yaw += da;
+                        this.pitch = clP(this.pitch + (t.c[1] - last.c[1]) * 0.0035);
+                        const g2 = this._groundAt(t.c[0], t.c[1]);
+                        if (g1 && g2) this._pan(g1[0] - g2[0], g1[2] - g2[2]);
+                        last = t;
+                    }
+                });
+                const up = (e) => {
+                    if (!pts.has(e.pointerId)) return;
+                    pts.delete(e.pointerId);
+                    if (tap && !pts.size && performance.now() - tap.t < 380) {
+                        const now = performance.now();
+                        if (now - lastTap < 320 && Math.hypot(tap.p[0] - this._lastTapP[0], tap.p[1] - this._lastTapP[1]) < 40) { this._zoomAt(tap.p, 1.9, true); lastTap = 0; }
+                        else { lastTap = now; this._lastTapP = tap.p; this.vel = null; this._tapPick(tap.p); }
+                    }
+                    tap = null;
+                    if (pts.size === 1) { const p = [...pts.values()][0]; start1(p, false); }
+                    if (!pts.size) { mode = ''; this._drag = false; if (this.vel && Math.hypot(this.vel[0], this.vel[1]) < 0.002) this.vel = null; }
+                };
+                cv.addEventListener('pointerup', up);
+                cv.addEventListener('pointercancel', up);
+                cv.addEventListener('wheel', (e) => { e.preventDefault(); user(); this._zoomAt(pos(e), Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+                cv.addEventListener('contextmenu', (e) => e.preventDefault());
+            }
+
+            // The camera matrix for the current state (between frames).
+            _curMat() {
+                const cv = this.canvas, aspect = (cv.clientWidth || 1) / (cv.clientHeight || 1), tY = Math.tan((40 * Math.PI / 180) / 2);
+                const bw = (this.box[1] - this.box[0]) * 1.06, bd = (this.box[3] - this.box[2]) * 1.02;
+                this.dist = Math.max(bw / 2 / (tY * aspect), (bd / 2) * Math.sin(this.pitch) / tY + 1.2, 8) / (this.zoom || 1);
+                this.yawNow = this.yaw;
+                return this._mat(aspect);
+            }
+            // Where a screen point hits the ground (the plane at the camera target's height).
+            _groundAt(sx, sy, py) {
+                const M = this._curMat(), I = new Float32Array(16);
+                const m = M, inv = I;
+                inv[0] = m[5] * m[10] * m[15] - m[5] * m[11] * m[14] - m[9] * m[6] * m[15] + m[9] * m[7] * m[14] + m[13] * m[6] * m[11] - m[13] * m[7] * m[10];
+                inv[4] = -m[4] * m[10] * m[15] + m[4] * m[11] * m[14] + m[8] * m[6] * m[15] - m[8] * m[7] * m[14] - m[12] * m[6] * m[11] + m[12] * m[7] * m[10];
+                inv[8] = m[4] * m[9] * m[15] - m[4] * m[11] * m[13] - m[8] * m[5] * m[15] + m[8] * m[7] * m[13] + m[12] * m[5] * m[11] - m[12] * m[7] * m[9];
+                inv[12] = -m[4] * m[9] * m[14] + m[4] * m[10] * m[13] + m[8] * m[5] * m[14] - m[8] * m[6] * m[13] - m[12] * m[5] * m[10] + m[12] * m[6] * m[9];
+                inv[1] = -m[1] * m[10] * m[15] + m[1] * m[11] * m[14] + m[9] * m[2] * m[15] - m[9] * m[3] * m[14] - m[13] * m[2] * m[11] + m[13] * m[3] * m[10];
+                inv[5] = m[0] * m[10] * m[15] - m[0] * m[11] * m[14] - m[8] * m[2] * m[15] + m[8] * m[3] * m[14] + m[12] * m[2] * m[11] - m[12] * m[3] * m[10];
+                inv[9] = -m[0] * m[9] * m[15] + m[0] * m[11] * m[13] + m[8] * m[1] * m[15] - m[8] * m[3] * m[13] - m[12] * m[1] * m[11] + m[12] * m[3] * m[9];
+                inv[13] = m[0] * m[9] * m[14] - m[0] * m[10] * m[13] - m[8] * m[1] * m[14] + m[8] * m[2] * m[13] + m[12] * m[1] * m[10] - m[12] * m[2] * m[9];
+                inv[2] = m[1] * m[6] * m[15] - m[1] * m[7] * m[14] - m[5] * m[2] * m[15] + m[5] * m[3] * m[14] + m[13] * m[2] * m[7] - m[13] * m[3] * m[6];
+                inv[6] = -m[0] * m[6] * m[15] + m[0] * m[7] * m[14] + m[4] * m[2] * m[15] - m[4] * m[3] * m[14] - m[12] * m[2] * m[7] + m[12] * m[3] * m[6];
+                inv[10] = m[0] * m[5] * m[15] - m[0] * m[7] * m[13] - m[4] * m[1] * m[15] + m[4] * m[3] * m[13] + m[12] * m[1] * m[7] - m[12] * m[3] * m[5];
+                inv[14] = -m[0] * m[5] * m[14] + m[0] * m[6] * m[13] + m[4] * m[1] * m[14] - m[4] * m[2] * m[13] - m[12] * m[1] * m[6] + m[12] * m[2] * m[5];
+                inv[3] = -m[1] * m[6] * m[11] + m[1] * m[7] * m[10] + m[5] * m[2] * m[11] - m[5] * m[3] * m[10] - m[9] * m[2] * m[7] + m[9] * m[3] * m[6];
+                inv[7] = m[0] * m[6] * m[11] - m[0] * m[7] * m[10] - m[4] * m[2] * m[11] + m[4] * m[3] * m[10] + m[8] * m[2] * m[7] - m[8] * m[3] * m[6];
+                inv[11] = -m[0] * m[5] * m[11] + m[0] * m[7] * m[9] + m[4] * m[1] * m[11] - m[4] * m[3] * m[9] - m[8] * m[1] * m[7] + m[8] * m[3] * m[5];
+                inv[15] = m[0] * m[5] * m[10] - m[0] * m[6] * m[9] - m[4] * m[1] * m[10] + m[4] * m[2] * m[9] + m[8] * m[1] * m[6] - m[8] * m[2] * m[5];
+                const det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+                if (!det) return null;
+                const w = this.canvas.clientWidth || 1, h = this.canvas.clientHeight || 1, nx = (sx / w) * 2 - 1, ny = 1 - (sy / h) * 2;
+                const un = (z) => {
+                    const x = I[0] * nx + I[4] * ny + I[8] * z + I[12], y = I[1] * nx + I[5] * ny + I[9] * z + I[13], zz = I[2] * nx + I[6] * ny + I[10] * z + I[14], ww = I[3] * nx + I[7] * ny + I[11] * z + I[15];
+                    return [x / ww, y / ww, zz / ww];
+                };
+                const a = un(-1), b = un(1), gy = py === undefined ? this.target[1] : py, dy = b[1] - a[1];
+                if (Math.abs(dy) < 1e-7) return null;
+                const t = (gy - a[1]) / dy;
+                if (t < 0) return null;
+                const g = [a[0] + (b[0] - a[0]) * t, gy, a[2] + (b[2] - a[2]) * t];
+                return Math.hypot(g[0] - this.target[0], g[2] - this.target[2]) > 40 ? null : g;
+            }
+            _pan(dx, dz) {
+                const bx = this.box, t = this.target;
+                t[0] = Math.max(bx[0] - 1.2, Math.min(bx[1] + 1.2, t[0] + dx));
+                t[2] = Math.max(bx[2] - 1.2, Math.min(bx[3] + 1.2, t[2] + dz));
+                if (!this._drag) t[1] = Math.max(0.05, this._hAt(t[0], t[2]) + 0.05);
+                this.camT = t.slice();
+            }
+            // Zoom keeping the point under the finger / cursor in place.
+            _zoomAt(p, f, smooth) {
+                const g1 = this._groundAt(p[0], p[1]), nz = Math.max(0.7, Math.min(9, this.zoom * f));
+                if (smooth && g1) { this.camT = [g1[0], this.target[1], g1[2]]; this.camZ = nz; return; }
+                this.zoom = this.camZ = nz;
+                const g2 = this._groundAt(p[0], p[1]);
+                if (g1 && g2) this._pan(g1[0] - g2[0], g1[2] - g2[2]);
+            }
+            _tapPick(p) {
+                let best = null, bd = 60;
+                Object.keys(this.anchors).forEach((g) => {
+                    const a = this.anchors[g], q = this._scr(a[0], a[1] + 0.08, a[2]);
+                    if (!q) return;
+                    const dd = Math.hypot(q[0] - p[0], q[1] - p[1]);
+                    if (dd < bd) { bd = dd; best = g; }
+                });
+                this.onPick(best);
+            }
+            // The compass turns with the map; north up / all of Iraq bring the view back.
+            northUp() { this.yawT = Math.round(this.yaw / (2 * Math.PI)) * 2 * Math.PI; this.pitchT = this.pitchHome; }
             // Shifts the picture up so the map sits in the space above the bottom panel.
             _mat(aspect) {
                 const o = super._mat(aspect), k = this.offY || 0;
@@ -6429,8 +6597,12 @@
             }
             flyTo(g, z) {
                 const a = g && this.anchors[g];
+                this.vel = null;
                 if (a) { this.camT = [a[0], a[1] + 0.05, a[2]]; this.camZ = z || 2.6; }
-                else { this.camT = this.home.slice(); this.camZ = this.homeZ; }
+                else {
+                    this.camT = this.home.slice(); this.camZ = this.homeZ;
+                    this.yawT = this.yawHome + Math.round((this.yaw - this.yawHome) / (2 * Math.PI)) * 2 * Math.PI; this.pitchT = this.pitchHome;
+                }
             }
             select(g) {
                 const now = performance.now() / 1000;
@@ -6449,23 +6621,7 @@
                 return [((cx / cw) * 0.5 + 0.5) * this.canvas.clientWidth, (0.5 - (cy / cw) * 0.5) * this.canvas.clientHeight];
             }
 
-            _bindTap() {
-                let d = null;
-                this.canvas.addEventListener('pointerdown', (e) => { d = [e.clientX, e.clientY, performance.now()]; });
-                this.canvas.addEventListener('pointerup', (e) => {
-                    if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 10 || performance.now() - d[2] > 450) { d = null; return; }
-                    d = null;
-                    const r = this.canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-                    let best = null, bd = 60;
-                    Object.keys(this.anchors).forEach((g) => {
-                        const p = this.anchors[g], q = this._scr(p[0], p[1] + 0.08, p[2]);
-                        if (!q) return;
-                        const dd = Math.hypot(q[0] - x, q[1] - y);
-                        if (dd < bd) { bd = dd; best = g; }
-                    });
-                    this.onPick(best);
-                });
-            }
+            _bindTap() { /* taps are handled in _bindInput */ }
 
             // Session sapling -------------------------------------------------------------------
             plant(g, minutes) {
@@ -6473,7 +6629,7 @@
                 this.sess = { g, idx: Math.min(this.shown[g] || 0, this.slots[g].length - 1), p: 0, state: 'grow', t: performance.now() / 1000 };
                 const now = performance.now() / 1000;
                 this.fx.push({ k: 'seed', q: this.slots[g][this.sess.idx].w, t0: now + 0.4 });
-                this.sel = ''; this.flyTo(g, 3.8);
+                this.sel = ''; this.userMoved = false; this.flyTo(g, 3.8);
             }
             grow(p) { if (this.sess && this.sess.state === 'grow') this.sess.p = Math.max(0, Math.min(1, p)); }
             finish(ok) {
@@ -6483,7 +6639,7 @@
                 S.state = ok ? 'done' : 'fail'; S.t = now;
                 if (ok) { S.p = 1; this.fx.push({ k: 'glory', q, t0: now }); this.fx.push({ k: 'burst', q: [q[0], q[1] + 0.12, q[2]], t0: now, c: [1, 0.85, 0.3], n: 60 }); }
                 else this.fx.push({ k: 'ash', q, t0: now + 0.6 });
-                setTimeout(() => { if (!this.sel) this.flyTo(''); }, ok ? 4200 : 3000);
+                setTimeout(() => { if (!this.sel && !this.userMoved) this.flyTo(''); }, ok ? 4200 : 3000);
             }
 
             // Glow effects ------------------------------------------------------------------------
@@ -8993,6 +9149,8 @@
                         this._f3d.wxEl = document.getElementById('frWx');
                         this._f3d.dimEl = document.getElementById('frDim');
                         this._f3d.flashEl = document.getElementById('frFlash');
+                        this._f3d.compassEl = document.getElementById('frCompass');
+                        this._f3d.onUserMove = () => { if (!this._forest && !this._frResult && !this._frMini) this.frSheetToggle(false); };
                         this._f3d.wxMode = this._frWxMode || 'real';
                         if (this._wxData) this._f3d.setRealWeather(this._wxData);
                     } catch (e) {
@@ -9017,6 +9175,22 @@
                     if (this._frPick) this._frGovCard(this._frPick);
                 }).catch((e) => console.warn('Weather unavailable:', e)).finally(() => { this._wxLoading = false; });
                 if (!this._wxTimer) this._wxTimer = setInterval(() => { if (this.currentView === 'forestView') this._frLoadWx(); }, 60000);
+            },
+
+            // Map buttons: zoom, north up, all of Iraq, my governorate.
+            mapCtl(k) {
+                const f = this._f3d;
+                if (!f) return;
+                f.lastTouch = performance.now(); f.userMoved = true; f.vel = null;
+                if (k === 'in') f.camZ = Math.min(9, f.camZ * 1.6);
+                else if (k === 'out') f.camZ = Math.max(0.7, f.camZ / 1.6);
+                else if (k === 'north') f.northUp();
+                else if (k === 'home') { this.pickForestGov(null); f.flyTo(''); }
+                else if (k === 'mine') {
+                    const g = this._myGov();
+                    if (!g) { this.showToast('حدد محافظتك من حسابك'); return; }
+                    if (this._frPick !== g) this.pickForestGov(g); else f.flyTo(g, 2.6);
+                }
             },
 
             // Keeps the map centred in the space between the top bar and the bottom panel.
@@ -9117,10 +9291,23 @@
                             <span><i data-lucide="hand"></i>كل شوية يسألك "لسه تدرس؟" وعندك دقيقة ترد</span>
                         </div>`;
                 }
-                box.className = 'fr-sheet';
-                box.innerHTML = body;
+                const title = !this.isLoggedIn || !this.currentUser ? 'سجّل دخولك حتى تزرع' : !gov ? 'حدد محافظتك حتى تزرع' : 'ازرع شجرة ب' + gov;
+                box.className = 'fr-sheet' + (this._frMini ? ' mini' : '');
+                box.innerHTML = `<button class="fr-grab" onclick="app.frSheetToggle()" aria-label="تصغير وتكبير"><i></i></button>
+                    <button class="fr-minibar" onclick="app.frSheetToggle(false)"><i data-lucide="sprout"></i><b>${escapeHtml(title)}</b><span><i data-lucide="chevron-up"></i></span></button>
+                    <div class="fr-full">${body}</div>`;
                 this._frFit();
                 lucide.createIcons();
+            },
+
+            // The bottom panel folds into a thin bar so the whole map is free to explore.
+            frSheetToggle(open) {
+                const box = document.getElementById('frSheet');
+                if (!box || !box.querySelector('.fr-full')) return;
+                this._frMini = open === undefined ? !box.classList.contains('mini') : !open;
+                box.classList.toggle('mini', this._frMini);
+                this._frFit();
+                setTimeout(() => this._frFit(), 320);
             },
 
             startForest() {
