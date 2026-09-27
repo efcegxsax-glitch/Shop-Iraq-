@@ -169,6 +169,14 @@
         .mt-2 { margin-top: 8px; }
         .mt-3 { margin-top: 12px; }
         .mt-4 { margin-top: 16px; }
+        .ds-chks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ds-chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+        .ds-chks .ds-chk { padding: 6px 10px; border-radius: 99px; border: 1px solid rgba(148,163,184,.35); }
+        .ds-chks .ds-chk:has(input:checked) { border-color: #0F766E; background: rgba(15,118,110,.12); }
+        .ds-all { font-weight: 700; }
+        .ds-chk input[type=checkbox] { width: 18px !important; min-width: 18px; height: 18px; margin: 0; padding: 0; flex-shrink: 0; }
+        .ds-chk span { white-space: nowrap; }
+        .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
     </style>
 </head>
 <body>
@@ -700,6 +708,41 @@
 
             <!-- Holidays -->
             <div id="sec-holidays" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="siren"></i></div>
+                        <div>
+                            <h3>باچر دوام لو عطلة؟ (إعلان سريع)</h3>
+                            <p>للعطل المفاجئة. يتغير الجواب فوراً بصفحة العطل عند طلاب المحافظات اللي تختارها، ويوصلهم إشعار</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>اليوم *</label>
+                            <input type="date" id="ds_date">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>الحالة *</label>
+                            <select id="ds_state">
+                                <option value="off">عطلة</option>
+                                <option value="pending">بانتظار القرار</option>
+                                <option value="on">دوام رسمي (نفي إشاعة العطلة)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:16px;">
+                        <label>المحافظات *</label>
+                        <label class="ds-chk ds-all"><input type="checkbox" id="ds_all"><span>كل محافظات العراق</span></label>
+                        <div class="ds-chks" id="ds_govs"><label class="ds-chk"><input type="checkbox" name="ds_gov" value="بغداد"><span>بغداد</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="البصرة"><span>البصرة</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="نينوى"><span>نينوى</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="أربيل"><span>أربيل</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="السليمانية"><span>السليمانية</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="دهوك"><span>دهوك</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="حلبجة"><span>حلبجة</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="كركوك"><span>كركوك</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="الأنبار"><span>الأنبار</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="صلاح الدين"><span>صلاح الدين</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ديالى"><span>ديالى</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="بابل"><span>بابل</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="كربلاء"><span>كربلاء</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="النجف"><span>النجف</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="واسط"><span>واسط</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="القادسية"><span>القادسية</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ذي قار"><span>ذي قار</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ميسان"><span>ميسان</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="المثنى"><span>المثنى</span></label></div>
+                    </div>
+                    <div class="field">
+                        <label>السبب (اختياري)</label>
+                        <input type="text" id="ds_reason" maxlength="120" placeholder="مثال: بسبب الأمطار الغزيرة">
+                    </div>
+                    <label class="ds-chk" style="margin-top:4px;"><input type="checkbox" id="ds_notify" checked><span>أرسل إشعار للطلاب بهاي المحافظات</span></label>
+                    <button class="btn mt-4" id="ds_publish">نشر الإعلان</button>
+                    <div id="dsList" style="margin-top:14px;"></div>
+                </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="party-popper"></i></div>
@@ -1827,6 +1870,91 @@
         }
 
 
+        // ---------- Tomorrow: school or holiday? (quick announcement) ----------
+        // Writes dayStatus/{date}/{governorate | all} = { s: off | pending | on, reason, at }.
+        // The student app reads it before the holidays calendar, so it also overrides it.
+        const DS_LABEL = { off: ['عطلة', '#DC2626'], pending: ['بانتظار القرار', '#D97706'], on: ['دوام رسمي', '#059669'] };
+        const dsDayName = (dateStr) => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+            if (!m) return dateStr;
+            const d = new Date(+m[1], +m[2] - 1, +m[3]), t = new Date(); t.setHours(0, 0, 0, 0);
+            const diff = Math.round((d - t) / 86400000);
+            const day = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][d.getDay()];
+            return (diff === 0 ? 'اليوم ' : diff === 1 ? 'باچر ' : '') + day + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+        };
+        function loadDayStatus() {
+            const f = el('ds_date');
+            if (f && !f.value) {
+                const d = new Date(); d.setDate(d.getDate() + 1);
+                f.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            el('ds_all').addEventListener('change', () => {
+                el('ds_govs').style.opacity = el('ds_all').checked ? '.4' : '1';
+                document.querySelectorAll('input[name="ds_gov"]').forEach((c) => { c.disabled = el('ds_all').checked; });
+            });
+            el('ds_publish').addEventListener('click', publishDayStatus);
+            onValue(ref(db, 'dayStatus'), (snap) => {
+                const box = el('dsList');
+                if (!box) return;
+                const all = snap.val() || {};
+                const t = new Date(); t.setHours(0, 0, 0, 0);
+                const today = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+                const old = Object.keys(all).filter((d) => d < today);
+                const weekAgo = new Date(t.getTime() - 7 * 86400000);
+                const cut = weekAgo.getFullYear() + '-' + String(weekAgo.getMonth() + 1).padStart(2, '0') + '-' + String(weekAgo.getDate()).padStart(2, '0');
+                old.filter((d) => d < cut).forEach((d) => remove(ref(db, 'dayStatus/' + d)).catch(() => {}));
+                const rows = [];
+                Object.keys(all).filter((d) => d >= today).sort().forEach((d) => Object.keys(all[d] || {}).forEach((k) => rows.push({ d, k, v: all[d][k] || {} })));
+                box.innerHTML = rows.length ? '<div class="font-bold" style="margin-bottom:6px;">الإعلانات المنشورة</div>' + rows.map((r) => {
+                    const lb = DS_LABEL[r.v.s] || ['-', '#64748B'];
+                    return `<div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(dsDayName(r.d))} · ${r.k === 'all' ? 'كل العراق' : escapeHtml(r.k)} <span class="ds-state" style="background:${lb[1]}">${lb[0]}</span></div>
+                            ${r.v.reason ? `<div class="text-slate-400 text-xs">${escapeHtml(r.v.reason)}</div>` : ''}
+                        </div>
+                        <button class="del" onclick="removeDayStatus(${jsArg(r.d)}, ${jsArg(r.k)})">حذف</button>
+                    </div>`;
+                }).join('') : '<p class="list-empty">ماكو إعلانات قادمة. بدونها الجواب يطلع تلقائياً من تقويم العطل</p>';
+            });
+        }
+
+        async function publishDayStatus() {
+            const date = val('ds_date'), s = val('ds_state'), reason = val('ds_reason');
+            const allIraq = el('ds_all').checked;
+            const govs = allIraq ? [] : Array.from(document.querySelectorAll('input[name="ds_gov"]:checked')).map((c) => c.value);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast('اختار اليوم', false); return; }
+            if (!allIraq && !govs.length) { toast('اختار محافظة وحدة على الأقل', false); return; }
+            if (!DS_LABEL[s]) return;
+            const keys = allIraq ? ['all'] : govs;
+            const btn = el('ds_publish');
+            btn.disabled = true;
+            try {
+                const upd = {};
+                keys.forEach((k) => { upd['dayStatus/' + date + '/' + k] = { s, reason, at: Date.now() }; });
+                await update(ref(db), upd);
+                if (el('ds_notify').checked) {
+                    const where = allIraq ? 'كل محافظات العراق' : (govs.length <= 3 ? govs.join('، ') : govs.length + ' محافظات');
+                    const day = dsDayName(date);
+                    const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
+                    const id = Date.now();
+                    const notif = { id, title, description: reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), time: 'الآن', read: false, type: 'urgent', createdAt: serverTimestamp() };
+                    if (!allIraq) notif.govs = govs;
+                    await set(ref(db, 'notifications/' + id), notif);
+                }
+                toast('انتشر الإعلان' + (el('ds_notify').checked ? ' ووصل الإشعار' : ''));
+                el('ds_reason').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر', false);
+            }
+            btn.disabled = false;
+        }
+
+        window.removeDayStatus = (d, k) => {
+            if (!confirm('تحذف هذا الإعلان؟ الجواب يرجع يطلع من تقويم العطل.')) return;
+            remove(ref(db, 'dayStatus/' + d + '/' + k)).then(() => toast('انحذف الإعلان')).catch(() => toast('فشل الحذف', false));
+        };
+
         // ---------- Points auction ----------
         // auction/current is what students see; auctionBids/{id}/top is the highest bid (its
         // points are already held from that student). Ending keeps the winner in auctionHistory;
@@ -1955,6 +2083,7 @@
         // would hit the temporal dead zone and throw. Calling it last removes that risk.
         loadLists();
         loadAuction();
+        loadDayStatus();
     </script>
 </body>
 </html>
