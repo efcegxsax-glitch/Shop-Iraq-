@@ -1487,6 +1487,123 @@
         .pl-res.me span { color: #6D28D9; }
         .pl-res b { font-size: 12.5px; font-variant-numeric: tabular-nums; }
         .pl-all { display: block; margin: 8px auto 0; border: 0; background: none; font: inherit; font-size: 11.5px; font-weight: 700; color: var(--text2); cursor: pointer; }
+        /* ===== غابة العراق ===== */
+        #forestView { animation: none !important; }
+        body.forest-on #bottomNav, body.forest-on #appHeaderBar { display: none !important; }
+        .fr { position: fixed; inset: 0; z-index: 45; overflow: hidden; color: #fff; background: radial-gradient(120% 80% at 50% 30%, #0E2A22 0%, #06150F 55%, #020806 100%); }
+        .fr, .fr * { box-sizing: border-box; }
+        .fr .fr-map { position: absolute; inset: 0; height: auto; margin: 0; touch-action: none; background: transparent; }
+        .fr .fr-map::after { background: radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.6) 100%); }
+        .fr .gw3d-load { background: rgba(2,10,6,.6); color: #A7F3D0; }
+        .fr .gw3d-radar { border-color: rgba(110,231,183,.5); background: repeating-radial-gradient(circle, transparent 0 14px, rgba(110,231,183,.16) 14px 15px); }
+        .fr .gw3d-radar::after { background: conic-gradient(from 0deg, rgba(110,231,183,.55), transparent 25%); }
+        .fr-lb { background: rgba(4,20,12,.72); border-color: rgba(167,243,208,.25); color: #ECFDF5; font-size: 10.5px; font-weight: 800; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+        .fr-lb small { color: #86EFAC; }
+        .fr-lb em { font-style: normal; font-size: 9px; font-weight: 900; color: #3B1D02; background: #FBBF24; border-radius: 99px; padding: 0 5px; box-shadow: 0 0 8px rgba(251,191,36,.7); }
+        .fr-lb.lead { border-color: #86EFAC; box-shadow: 0 0 14px rgba(134,239,172,.45); }
+        .fr-lb.lead i { background: #86EFAC; box-shadow: 0 0 6px #86EFAC; }
+        .fr-lb.me { border-color: #FBBF24; }
+        .fr-lb.sel { background: rgba(16,185,129,.85); border-color: #D1FAE5; color: #fff; }
+        .fr-lb.sel small { color: #fff; }
+        .fr-top { position: absolute; top: 0; left: 0; right: 0; z-index: 6; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 26px; background: linear-gradient(180deg, rgba(2,10,6,.85), rgba(2,10,6,.4) 70%, transparent); pointer-events: none; }
+        .fr-top > * { pointer-events: auto; }
+        .fr-ic { width: 40px; height: 40px; border-radius: 13px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff; display: grid; place-items: center; cursor: pointer; flex-shrink: 0; }
+        .fr-ic svg { width: 20px; height: 20px; }
+        .fr-title { flex: 1; min-width: 0; }
+        .fr-title b { display: block; font-size: 19px; font-weight: 900; background: linear-gradient(90deg, #BBF7D0, #FDE68A); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .fr-title small { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: rgba(236,253,245,.75); }
+        .fr-title .dot { width: 3px; height: 3px; border-radius: 50%; background: currentColor; opacity: .6; }
+        .fr-title .live { display: inline-flex; align-items: center; gap: 5px; color: #FCD34D; }
+        .fr-title .live i { width: 7px; height: 7px; border-radius: 50%; background: #F59E0B; box-shadow: 0 0 8px #F59E0B; animation: frFlick 1.4s ease-in-out infinite; }
+        @keyframes frFlick { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } }
+        .fr-mine { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 11px; border-radius: 12px; border: 1px solid rgba(134,239,172,.35); background: rgba(16,185,129,.14); font-size: 13px; font-weight: 900; color: #BBF7D0; flex-shrink: 0; }
+        .fr-mine svg { width: 17px; height: 17px; }
+        .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 66px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .fr-ticker span { overflow: hidden; text-overflow: ellipsis; }
+        .fr-ticker svg { width: 15px; height: 15px; color: #86EFAC; flex-shrink: 0; }
+        .fr-ticker.on { opacity: 1; transform: translate(-50%, 0); }
+        .fr-gov { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 66px); left: 14px; right: 14px; z-index: 7; padding: 12px 14px 14px; border-radius: 20px; background: linear-gradient(160deg, rgba(6,40,28,.92), rgba(3,18,12,.92)); border: 1px solid rgba(134,239,172,.3); box-shadow: 0 18px 40px -16px rgba(0,0,0,.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+        .fr-gov.in { animation: frDrop .55s cubic-bezier(.2,1.3,.4,1); }
+        @keyframes frDrop { from { opacity: 0; transform: translateY(-16px) scale(.96); } to { opacity: 1; transform: none; } }
+        .fr-gov-h { display: flex; align-items: center; gap: 10px; }
+        .fr-gov-h > div { flex: 1; min-width: 0; }
+        .fr-gov-h small { display: block; font-size: 10.5px; font-weight: 700; color: #86EFAC; }
+        .fr-gov-h b { font-size: 18px; font-weight: 900; }
+        .fr-rank { font-size: 13px; font-weight: 900; color: #FDE68A; padding: 4px 9px; border-radius: 10px; background: rgba(251,191,36,.14); border: 1px solid rgba(251,191,36,.35); }
+        .fr-gov-h button { width: 32px; height: 32px; border-radius: 10px; border: 0; background: rgba(255,255,255,.08); color: #fff; display: grid; place-items: center; cursor: pointer; }
+        .fr-gov-h button svg { width: 17px; height: 17px; }
+        .fr-gov-s { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+        .fr-gov-s div { padding: 9px 6px; border-radius: 13px; background: rgba(255,255,255,.05); text-align: center; }
+        .fr-gov-s b { display: block; font-size: 19px; font-weight: 900; color: #BBF7D0; font-variant-numeric: tabular-nums; }
+        .fr-gov-s span { font-size: 10.5px; font-weight: 700; color: rgba(236,253,245,.65); }
+        .fr-gov-s .on b { color: #FCD34D; }
+        .fr-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 6; padding: 16px 16px 14px; border-radius: 24px; background: linear-gradient(170deg, rgba(8,44,30,.9), rgba(3,16,11,.94)); border: 1px solid rgba(134,239,172,.24); box-shadow: 0 -10px 40px -12px rgba(0,0,0,.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: frUp .5s cubic-bezier(.2,1.2,.4,1); }
+        @keyframes frUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+        .fr-head b { display: block; font-size: 16px; font-weight: 900; }
+        .fr-head small { display: block; margin-top: 3px; font-size: 11.5px; line-height: 1.6; color: rgba(236,253,245,.7); }
+        .fr-durs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 12px; }
+        .fr-durs button { padding: 8px 2px 7px; border-radius: 14px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.05); color: #fff; font: inherit; cursor: pointer; transition: all .25s; }
+        .fr-durs b { display: block; font-size: 19px; font-weight: 900; line-height: 1.1; }
+        .fr-durs span { display: block; font-size: 10px; color: rgba(236,253,245,.6); }
+        .fr-durs em { display: block; margin-top: 3px; font-style: normal; font-size: 10px; font-weight: 800; color: #FCD34D; }
+        .fr-durs button.on { background: linear-gradient(160deg, rgba(52,211,153,.35), rgba(16,185,129,.18)); border-color: #6EE7B7; box-shadow: 0 0 18px -4px rgba(52,211,153,.7); transform: translateY(-2px); }
+        .fr-go { width: 100%; height: 50px; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 16px; font: inherit; font-size: 15.5px; font-weight: 900; color: #052E1B; cursor: pointer;
+            background: linear-gradient(135deg, #BBF7D0, #34D399 50%, #FDE68A); background-size: 200% 100%; box-shadow: 0 12px 30px -10px rgba(52,211,153,.9); animation: frShine 3s ease-in-out infinite; }
+        .fr-go svg { width: 20px; height: 20px; }
+        @keyframes frShine { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+        .fr-rules { display: flex; flex-direction: column; gap: 5px; margin-top: 11px; }
+        .fr-rules span { display: flex; align-items: center; gap: 7px; font-size: 11px; font-weight: 600; color: rgba(236,253,245,.66); }
+        .fr-rules svg { width: 14px; height: 14px; color: #FCA5A5; flex-shrink: 0; }
+        .fr-rules span + span svg { color: #FCD34D; }
+        .fr-need { text-align: center; }
+        .fr-need b { display: block; font-size: 16px; font-weight: 900; }
+        .fr-need small { display: block; margin-top: 4px; font-size: 12px; color: rgba(236,253,245,.7); }
+        .fr-sheet.run { display: flex; align-items: center; gap: 12px; }
+        .fr-run { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; }
+        .fr-ring { position: relative; width: 88px; height: 88px; flex-shrink: 0; }
+        .fr-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .fr-ring circle { fill: none; stroke-width: 7; }
+        .fr-ring .bg { stroke: rgba(255,255,255,.1); }
+        .fr-ring .fg { stroke: #34D399; stroke-linecap: round; transition: stroke-dashoffset .5s linear; filter: drop-shadow(0 0 5px rgba(52,211,153,.8)); }
+        .fr-ring > div { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .fr-ring b { font-size: 19px; font-weight: 900; font-variant-numeric: tabular-nums; }
+        .fr-ring span { font-size: 10px; font-weight: 800; color: #86EFAC; }
+        .fr-run-tx { min-width: 0; }
+        .fr-run-tx > b { display: block; font-size: 14.5px; font-weight: 900; }
+        .fr-run-tx small { display: block; margin-top: 3px; font-size: 11px; line-height: 1.55; color: rgba(236,253,245,.72); }
+        .fr-run-tx em { font-style: normal; font-weight: 900; color: #FCD34D; }
+        .fr-run-warn { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; font-size: 10.5px; font-weight: 700; color: #FCA5A5; }
+        .fr-run-warn svg { width: 13px; height: 13px; }
+        .fr-quit { align-self: stretch; padding: 0 12px; border-radius: 14px; border: 1px solid rgba(248,113,113,.35); background: rgba(220,38,38,.12); color: #FCA5A5; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; flex-shrink: 0; }
+        .fr-sheet.res { text-align: center; }
+        .fr-res-ic { width: 58px; height: 58px; margin: -40px auto 8px; border-radius: 20px; display: grid; place-items: center; color: #052E1B; background: linear-gradient(135deg, #BBF7D0, #34D399); box-shadow: 0 0 0 6px rgba(52,211,153,.15), 0 12px 30px -8px rgba(52,211,153,.8); animation: frPop .7s cubic-bezier(.2,1.5,.4,1); }
+        .fr-res-ic svg { width: 28px; height: 28px; }
+        .fr-sheet.bad .fr-res-ic { color: #FFF7ED; background: linear-gradient(135deg, #A16207, #78350F); box-shadow: 0 0 0 6px rgba(161,98,7,.18), 0 12px 30px -8px rgba(120,53,15,.8); }
+        @keyframes frPop { from { transform: scale(.3) rotate(-30deg); opacity: 0; } to { transform: none; opacity: 1; } }
+        .fr-res-t { display: block; font-size: 18px; font-weight: 900; }
+        .fr-res-p { margin: 5px 0 0; font-size: 12.5px; line-height: 1.7; color: rgba(236,253,245,.78); }
+        .fr-res-p em { font-style: normal; font-weight: 900; color: #FCD34D; }
+        .fr-sheet.bad .fr-go { background: rgba(255,255,255,.1); color: #fff; box-shadow: none; animation: none; }
+        .fr-check { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(1,8,5,.72); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+        .fr-ck { width: 100%; max-width: 340px; padding: 22px 18px 20px; border-radius: 26px; text-align: center; background: linear-gradient(170deg, #0B3A28, #04170F); border: 1px solid rgba(251,191,36,.45); box-shadow: 0 0 0 8px rgba(251,191,36,.08), 0 24px 60px -12px rgba(0,0,0,.9); animation: frPop .5s cubic-bezier(.2,1.4,.4,1); }
+        .fr-ck-ring { position: relative; width: 70px; height: 70px; margin: 0 auto 10px; }
+        .fr-ck-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+        .fr-ck-ring circle { fill: none; stroke-width: 6; }
+        .fr-ck-ring .bg { stroke: rgba(255,255,255,.1); }
+        .fr-ck-ring .fg { stroke: #FBBF24; stroke-linecap: round; transition: stroke-dashoffset .5s linear; }
+        .fr-ck-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 22px; font-weight: 900; color: #FDE68A; }
+        .fr-ck-t { display: block; font-size: 21px; font-weight: 900; }
+        .fr-ck p { margin: 6px 0 0; font-size: 13px; color: rgba(236,253,245,.78); }
+        .fr-ck p em { font-style: normal; font-weight: 900; color: #FDE68A; font-size: 15px; }
+        .fr-ck-btns { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+        .fr-ck-btns button { flex: 1; height: 50px; border-radius: 15px; border: 1px solid rgba(134,239,172,.35); background: rgba(52,211,153,.12); color: #ECFDF5; font: inherit; font-size: 15px; font-weight: 900; cursor: pointer; }
+        .fr-ck-btns button.no { animation: frNo .45s; border-color: #F87171; color: #FCA5A5; }
+        @keyframes frNo { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+        .fr-flat { position: absolute; inset: 0; overflow-y: auto; padding: calc(env(safe-area-inset-top, 0px) + 80px) 14px 280px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-content: start; }
+        .fr-flat button { padding: 12px; border-radius: 14px; border: 1px solid rgba(134,239,172,.25); background: rgba(16,185,129,.1); color: #fff; font: inherit; text-align: right; cursor: pointer; }
+        .fr-flat b { display: block; font-size: 14px; }
+        .fr-flat span { font-size: 11px; color: #86EFAC; }
+        @media (prefers-reduced-motion: reduce) { .fr-go, .fr-title .live i { animation: none; } }
         /* ===== سما الأحلام ===== */
         #dreamsView { animation: none !important; }
         .dr { position: fixed; inset: 0; z-index: 45; overflow: hidden; background: #070B1F; color: #fff; }
@@ -2762,6 +2879,17 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
+                <button onclick="app.goToForest()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background: linear-gradient(135deg, rgba(16,185,129,.13), rgba(251,191,36,.12)); border-color: rgba(52,211,153,.45);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #059669, #84CC16);">
+                        <i data-lucide="trees" class="w-5 h-5" style="color: #fff;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">غابة العراق</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">ادرس وازرع شجرة بمحافظتك على خارطة العراق، وشوف منو يدرس هسه</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.goToDreams()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(249,168,212,.14)); border-color: rgba(167,139,250,.45);">
                     <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #7C3AED, #EC4899);">
                         <i data-lucide="sparkles" class="w-5 h-5" style="color: #fff;"></i>
@@ -3597,6 +3725,26 @@
                 <div class="dr-sheet hidden" id="drSheet" onclick="if (event.target === this) app._drClose()"></div>
                 <div class="dr-sheet hidden" id="drView" onclick="if (event.target === this) app._drClose()"></div>
                 <div class="dr-sheet hidden" id="drMine" onclick="if (event.target === this) app._drClose()"></div>
+            </div>
+        </div>
+
+        <!-- ===== غابة العراق ===== -->
+        <div id="forestView" class="hidden">
+            <div class="fr" id="frRoot">
+                <div class="gw3d fr-map" id="fr3d">
+                    <canvas aria-hidden="true"></canvas>
+                    <div class="gw3d-labels"></div>
+                    <div class="gw3d-load"><span class="gw3d-radar"></span><b>جاري تحميل خارطة العراق...</b></div>
+                </div>
+                <div class="fr-top">
+                    <button class="fr-ic" onclick="app.forestBack()" aria-label="رجوع"><i data-lucide="chevron-right"></i></button>
+                    <div class="fr-title"><b>غابة العراق</b><small id="frSub"></small></div>
+                    <div class="fr-mine" title="شجراتك"><i data-lucide="trees"></i><b id="frMineN">0</b></div>
+                </div>
+                <div class="fr-ticker" id="frTicker"></div>
+                <div class="fr-gov hidden" id="frGov"></div>
+                <div class="fr-sheet" id="frSheet"></div>
+                <div class="fr-check hidden" id="frCheck"></div>
             </div>
         </div>
 
@@ -4852,7 +5000,7 @@
                 window.addEventListener('pointermove', move, { passive: true });
                 window.addEventListener('pointerup', up);
                 window.addEventListener('pointercancel', up);
-                this.canvas.addEventListener('dblclick', () => { this.yaw = 0; this.pitch = 1.0; });
+                this.canvas.addEventListener('dblclick', () => { this.yaw = this.yawHome || 0; this.pitch = this.pitchHome || 1.0; });
                 this.labels.addEventListener('click', (e) => { const b = e.target.closest('[data-g]'); if (b) this.onPick(b.getAttribute('data-g')); });
             }
 
@@ -4910,41 +5058,13 @@
 
             _colH(n) { const r = this.byName[n], s = r && this.max ? r.m / this.max : 0; return 0.18 + 1.9 * s; }
 
-            frame(ts) {
-                const gl = this.gl, cv = this.canvas, now = ts / 1000;
-                const dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
-                if (!w || !h) return;
-                if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
-                const idle = performance.now() - (this.lastTouch || 0) > 2500;
-                this.yawNow = this.yaw + (idle ? 0.16 * Math.sin(now * 0.12) : 0);
-                if (idle) this.yaw *= 0.995;
-                const tY = Math.tan((40 * Math.PI / 180) / 2), aspect = w / h;
-                const bw = (this.box[1] - this.box[0]) * 1.06, bd = (this.box[3] - this.box[2]) * 1.02;
-                this.dist = Math.max(bw / 2 / (tY * aspect), (bd / 2) * Math.sin(this.pitch) / tY + 1.2, 8) / (this.zoom || 1);
-                const M = this._mat(aspect);
-                gl.viewport(0, 0, w, h);
-                gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-                gl.enable(gl.DEPTH_TEST);
-                // terrain
-                if (this.tex) {
-                    this.reveal = Math.min(1, (now - (this.texAt || now)) / 1.2);
-                    gl.useProgram(this.pTer);
-                    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-                    gl.depthMask(true);
-                    const ap = gl.getAttribLocation(this.pTer, 'p'), at = gl.getAttribLocation(this.pTer, 't');
-                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bPos); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 0, 0);
-                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bUv); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-                    gl.uniformMatrix4fv(gl.getUniformLocation(this.pTer, 'm'), false, M);
-                    gl.uniform1f(gl.getUniformLocation(this.pTer, 'r'), this.reveal);
-                    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
-                    gl.uniform1i(gl.getUniformLocation(this.pTer, 's'), 0);
-                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bIdx);
-                    gl.drawElements(gl.TRIANGLES, this.nIdx, this.idxType, 0);
-                    gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(at);
-                }
-                // sprites
-                const S = this.spr; let n = 0;
-                const add = (x, y, z, c, a, s) => { if (n >= 7000) return; const o = n * 8; S[o] = x; S[o + 1] = y; S[o + 2] = z; S[o + 3] = c[0]; S[o + 4] = c[1]; S[o + 5] = c[2]; S[o + 6] = a; S[o + 7] = s; n++; };
+            // Hooks the forest map overrides (camera flights, solid trees, its own effects).
+            _camera() {}
+            _solids() {}
+            _labelY(g) { return this._colH(g) + 0.12; }
+
+            // Columns, live rings, missiles, impacts, border comets and dust of the war map.
+            _overlay(add, now) {
                 const names = Object.keys(this.anchors);
                 names.forEach((g, gi) => {
                     const p = this.anchors[g], col = this._col(g), r = this.byName[g], hh = this._colH(g), on = r && r.m > 0;
@@ -5005,6 +5125,47 @@
                 }
                 // floating dust
                 this.dust.forEach((d, i) => { const y = ((d[1] + now * 0.04 * d[3]) % 1); add(d[0], 0.2 + y * 2.4, d[2], [1, 0.85, 0.55], 0.35 * Math.sin(y * Math.PI), 0.05); });
+            }
+
+            frame(ts) {
+                const gl = this.gl, cv = this.canvas, now = ts / 1000;
+                const dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+                if (!w || !h) return;
+                if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+                const idle = performance.now() - (this.lastTouch || 0) > 2500;
+                this.yawNow = this.yaw + (idle ? 0.16 * Math.sin(now * 0.12) : 0);
+                if (idle) this.yaw += ((this.yawHome || 0) - this.yaw) * 0.005;
+                this._camera(now);
+                const tY = Math.tan((40 * Math.PI / 180) / 2), aspect = w / h;
+                const bw = (this.box[1] - this.box[0]) * 1.06, bd = (this.box[3] - this.box[2]) * 1.02;
+                this.dist = Math.max(bw / 2 / (tY * aspect), (bd / 2) * Math.sin(this.pitch) / tY + 1.2, 8) / (this.zoom || 1);
+                const M = this._mat(aspect);
+                gl.viewport(0, 0, w, h);
+                gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+                gl.enable(gl.DEPTH_TEST);
+                // terrain
+                if (this.tex) {
+                    this.reveal = Math.min(1, (now - (this.texAt || now)) / 1.2);
+                    gl.useProgram(this.pTer);
+                    gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+                    gl.depthMask(true);
+                    const ap = gl.getAttribLocation(this.pTer, 'p'), at = gl.getAttribLocation(this.pTer, 't');
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bPos); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 0, 0);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bUv); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
+                    gl.uniformMatrix4fv(gl.getUniformLocation(this.pTer, 'm'), false, M);
+                    gl.uniform1f(gl.getUniformLocation(this.pTer, 'r'), this.reveal);
+                    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
+                    gl.uniform1i(gl.getUniformLocation(this.pTer, 's'), 0);
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bIdx);
+                    gl.drawElements(gl.TRIANGLES, this.nIdx, this.idxType, 0);
+                    gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(at);
+                }
+                this._M = M;
+                this._solids(M, h, now);
+                // sprites
+                const S = this.spr; let n = 0;
+                const add = (x, y, z, c, a, s) => { if (n >= 7000) return; const o = n * 8; S[o] = x; S[o + 1] = y; S[o + 2] = z; S[o + 3] = c[0]; S[o + 4] = c[1]; S[o + 5] = c[2]; S[o + 6] = a; S[o + 7] = s; n++; };
+                this._overlay(add, now);
                 // draw sprites
                 gl.useProgram(this.pSpr);
                 gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
@@ -5027,7 +5188,7 @@
                         const g = el.getAttribute('data-g'), p = this.anchors[g];
                         if (!p) return;
                         if (!el._w) { el._w = el.offsetWidth || 60; el._h = el.offsetHeight || 18; }
-                        const y = p[1] + this._colH(g) + 0.12;
+                        const y = p[1] + this._labelY(g);
                         const cx = M[0] * p[0] + M[4] * y + M[8] * p[2] + M[12], cy = M[1] * p[0] + M[5] * y + M[9] * p[2] + M[13], cw = M[3] * p[0] + M[7] * y + M[11] * p[2] + M[15];
                         const sx = ((cx / cw) * 0.5 + 0.5) * cv.clientWidth, sy = (0.5 - (cy / cw) * 0.5) * cv.clientHeight;
                         const over = (r) => placed.some((q) => r[0] < q[2] && r[2] > q[0] && r[1] < q[3] && r[3] > q[1]);
@@ -5053,6 +5214,416 @@
                     this.raf = requestAnimationFrame(loop);
                 };
                 this.raf = requestAnimationFrame(loop);
+            }
+        }
+
+        // ===== غابة العراق =====
+        // The war map's satellite terrain with a forest growing on every governorate. Trees are
+        // shaded spheres (palms in the south, pines in the north, round trees in between); the
+        // settled forest sits in a static buffer and sways in the shader, only growing trees and
+        // the student's own sapling are rebuilt each frame.
+        class IraqForest3D extends GovWar3D {
+            constructor(wrap, onPick) {
+                super(wrap, onPick);
+                this.MAXT = 40;
+                this.yawHome = this.yaw = 0.62; this.pitchHome = this.pitch = 0.98;
+                this.home = this.target.slice();
+                this.camT = this.home.slice(); this.homeZ = 1; this.camZ = 1; this.zoom = 1;
+                this.govs = {}; this.live = {}; this.shown = {}; this.anims = []; this.fx = [];
+                this.sel = ''; this.selAt = 0; this.sess = null; this.outl = {}; this.dirty = true;
+                this.slots = {};
+                Object.keys(IRAQ_GEO.g).forEach((g) => { this.slots[g] = this._makeSlots(g); });
+                this.pSol = this._prog(
+                    'attribute vec3 p;attribute vec3 c;attribute vec3 z;uniform mat4 m;uniform float k;uniform float T;varying vec3 q;void main(){vec3 o=p;o.x+=sin(T*1.3+z.z)*z.y*.07;o.z+=cos(T*1.1+z.z)*z.y*.035;vec4 w=m*vec4(o,1.);gl_Position=w;gl_PointSize=max(1.,z.x*k/w.w);q=c;}',
+                    'precision mediump float;varying vec3 q;uniform float S;void main(){vec2 d=gl_PointCoord*2.-1.;float r=dot(d,d);if(r>1.)discard;if(S>.5){gl_FragColor=vec4(0.,0.,0.,(1.-r)*.38);return;}vec3 n=vec3(d.x,-d.y,sqrt(1.-r));float l=max(dot(n,normalize(vec3(-.45,.75,.5))),0.);float h=fract(sin(dot(floor(gl_PointCoord*5.),vec2(12.9898,78.233)))*43758.5453);vec3 c=q*(.42+.85*l)*(.86+.28*h)+vec3(.05,.08,.02)*pow(1.-n.z,3.);gl_FragColor=vec4(c,1.);}');
+                const B = (n) => ({ a: new Float32Array(9 * n), n: 0, cap: n, b: this.gl.createBuffer() });
+                this.bT = B(32000); this.bTd = B(4000); this.bS = B(900); this.bSd = B(120);
+                this._bindTap();
+            }
+
+            // Tree spots inside each governorate, nearest to its centre first, so a growing
+            // forest spreads outwards from the middle.
+            _makeSlots(g) {
+                const gd = IRAQ_GEO.g[g], rings = gd.r || [], c = gd.c, seed = g.length * 131 + g.charCodeAt(0) * 7 + g.charCodeAt(g.length - 1);
+                const inside = (x, y) => {
+                    let inn = false;
+                    rings.forEach((r) => {
+                        for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
+                            const xi = r[i], yi = r[i + 1], xj = r[j], yj = r[j + 1];
+                            if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inn = !inn;
+                        }
+                    });
+                    return inn;
+                };
+                const ok = rings.length ? (x, y) => inside(x, y) && inside(x + 4, y) && inside(x - 4, y) && inside(x, y + 4) && inside(x, y - 4) : (x, y) => Math.hypot(x - c[0], y - c[1]) < 13;
+                let x0 = c[0] - 14, x1 = c[0] + 14, y0 = c[1] - 14, y1 = c[1] + 14;
+                rings.forEach((r) => { for (let i = 0; i < r.length; i += 2) { x0 = Math.min(x0, r[i]); x1 = Math.max(x1, r[i]); y0 = Math.min(y0, r[i + 1]); y1 = Math.max(y1, r[i + 1]); } });
+                const cand = [];
+                for (let k = 0; k < 2600 && cand.length < 700; k++) {
+                    const x = x0 + this._hash(k, seed) * (x1 - x0), y = y0 + this._hash(seed, k + 7) * (y1 - y0);
+                    if (ok(x, y)) cand.push([x, y, Math.hypot(x - c[0], (y - c[1]) * 1.15) * (0.85 + 0.3 * this._hash(k, seed + 3))]);
+                }
+                cand.sort((a, b) => a[2] - b[2]);
+                let pts = [];
+                for (let sp = 10; sp >= 3.5; sp *= 0.8) {
+                    pts = [];
+                    for (const q of cand) { if (pts.every((o) => Math.hypot(o[0] - q[0], o[1] - q[1]) >= sp)) pts.push(q); if (pts.length > this.MAXT) break; }
+                    if (pts.length > this.MAXT) break;
+                }
+                const north = ['دهوك', 'أربيل', 'السليمانية', 'حلبجة'].indexOf(g) !== -1, mid = ['نينوى', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار'].indexOf(g) !== -1;
+                return pts.slice(0, this.MAXT + 1).map(([x, y], i) => {
+                    const t = this._uv(x, y), w = this._world(t[0], t[1]), r = this._hash(i + 3, seed + 5);
+                    const type = north ? (r < 0.6 ? 'pine' : 'oak') : mid ? (r < 0.45 ? 'palm' : r < 0.8 ? 'oak' : 'pine') : (r < 0.75 ? 'palm' : 'oak');
+                    return { w, type, s: 0.85 + this._hash(seed + 9, i) * 0.4, ph: this._hash(i, seed + 21) * 6.283, lean: this._hash(i + 11, seed) * 6.283 };
+                });
+            }
+
+            // Tree shapes -------------------------------------------------------------------
+            // put(x, y, z, colour, size, sway weight, phase); gr = growth 0..1, wt = withering
+            // 0..1 (turns brown), fall = 0..1 (tips over).
+            _tree(put, sl, gr, wt, fall) {
+                const [bx, by, bz] = sl.w, s = sl.s * gr, ph = sl.ph;
+                if (s <= 0.001) return;
+                const dry = [0.42, 0.3, 0.17];
+                const C = (c) => (wt ? [c[0] + (dry[0] - c[0]) * wt, c[1] + (dry[1] - c[1]) * wt, c[2] + (dry[2] - c[2]) * wt] : c);
+                const fx = Math.cos(sl.lean), fz = Math.sin(sl.lean);
+                const P = (dx, dy, dz, col, size) => {
+                    const y = dy * (1 - fall * 0.55);
+                    put(bx + dx + fx * dy * fall * 0.9, by + y, bz + dz + fz * dy * fall * 0.9, C(col), size, dy * (1 - fall), ph);
+                };
+                if (sl.type === 'palm') {
+                    const H = 0.19 * s, lx = Math.cos(sl.lean) * 0.03 * s, lz = Math.sin(sl.lean) * 0.03 * s;
+                    for (let k = 0; k <= 6; k++) { const f = k / 6; P(lx * f * f, H * f, lz * f * f, [0.45, 0.33, 0.2], 0.024 * s * (1.1 - 0.35 * f)); }
+                    for (let j = 0; j < 7; j++) {
+                        const a = (j / 7) * 6.283 + ph, ca = Math.cos(a), sa = Math.sin(a);
+                        for (let i = 1; i <= 4; i++) {
+                            const rr = i * 0.027 * s, dy = (0.018 * i - 0.0085 * i * i) * s;
+                            P(lx + ca * rr, H + dy, lz + sa * rr, i > 2 ? [0.36, 0.56, 0.2] : [0.2, 0.42, 0.14], (0.032 - i * 0.004) * s);
+                        }
+                    }
+                    P(lx + 0.012 * s, H - 0.018 * s, lz, [0.8, 0.47, 0.12], 0.02 * s);
+                    P(lx - 0.01 * s, H - 0.02 * s, lz + 0.01 * s, [0.72, 0.4, 0.1], 0.018 * s);
+                } else if (sl.type === 'pine') {
+                    P(0, 0.012 * s, 0, [0.3, 0.2, 0.12], 0.024 * s); P(0, 0.035 * s, 0, [0.3, 0.2, 0.12], 0.022 * s);
+                    const N = [7, 6, 5, 4];
+                    for (let j = 0; j < 4; j++) {
+                        const y = (0.055 + j * 0.034) * s, rad = (0.05 - j * 0.011) * s, col = j % 2 ? [0.14, 0.38, 0.2] : [0.1, 0.31, 0.17];
+                        P(0, y + 0.006 * s, 0, col, (0.07 - j * 0.012) * s);
+                        for (let i = 0; i < N[j]; i++) { const a = (i / N[j]) * 6.283 + ph + j; P(Math.cos(a) * rad, y, Math.sin(a) * rad, col, (0.042 - j * 0.006) * s); }
+                    }
+                    P(0, 0.2 * s, 0, [0.16, 0.42, 0.22], 0.028 * s);
+                } else {
+                    for (let k = 0; k < 3; k++) P(0, (0.015 + k * 0.03) * s, 0, [0.34, 0.23, 0.13], 0.026 * s);
+                    const g1 = [0.22, 0.47, 0.16], g2 = [0.34, 0.58, 0.2], g3 = [0.18, 0.4, 0.14];
+                    P(0, 0.125 * s, 0, g3, 0.1 * s);
+                    for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283 + ph; P(Math.cos(a) * 0.045 * s, (0.115 + 0.012 * Math.sin(a * 3)) * s, Math.sin(a) * 0.045 * s, i % 2 ? g1 : g3, 0.068 * s); }
+                    for (let i = 0; i < 3; i++) { const a = (i / 3) * 6.283 + ph + 0.5; P(Math.cos(a) * 0.024 * s, 0.16 * s, Math.sin(a) * 0.024 * s, g2, 0.062 * s); }
+                    P(0, 0.19 * s, 0, g2, 0.05 * s);
+                }
+            }
+
+            _push(B, x, y, z, c, size, sw, ph) {
+                if (B.n >= B.cap) return;
+                const o = B.n * 9, a = B.a;
+                a[o] = x; a[o + 1] = y; a[o + 2] = z; a[o + 3] = c[0]; a[o + 4] = c[1]; a[o + 5] = c[2]; a[o + 6] = size; a[o + 7] = sw; a[o + 8] = ph;
+                B.n++;
+            }
+            _shadow(B, sl, gr) { const w = sl.w; this._push(B, w[0] + 0.03 * sl.s * gr, w[1] + 0.004, w[2] - 0.02 * sl.s * gr, [0, 0, 0], 0.15 * sl.s * gr, 0, 0); }
+
+            _ease(x) { const c1 = 1.70158, c3 = c1 + 1; x = Math.max(0, Math.min(1, x)); return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+
+            _buildSolids(now) {
+                const gl = this.gl;
+                const busy = {};
+                this.anims = this.anims.filter((a) => { if (a.t0 === null) a.t0 = now + a.d; if (now - a.t0 >= 1.3) { this.dirty = true; return false; } busy[a.g + '#' + a.i] = 1; return true; });
+                if (this.dirty) {
+                    this.dirty = false;
+                    this.bT.n = 0; this.bS.n = 0;
+                    Object.keys(this.slots).forEach((g) => {
+                        const sl = this.slots[g], n = Math.min(this.shown[g] || 0, sl.length);
+                        for (let i = 0; i < n; i++) {
+                            if (busy[g + '#' + i]) continue;
+                            this._tree((x, y, z, c, sz, sw, ph) => this._push(this.bT, x, y, z, c, sz, sw, ph), sl[i], 1, 0, 0);
+                            this._shadow(this.bS, sl[i], 1);
+                        }
+                    });
+                    [this.bT, this.bS].forEach((B) => { gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.STATIC_DRAW); });
+                }
+                const D = this.bTd, DS = this.bSd, put = (x, y, z, c, sz, sw, ph) => this._push(D, x, y, z, c, sz, sw, ph);
+                D.n = 0; DS.n = 0;
+                this.anims.forEach((a) => {
+                    const sl = this.slots[a.g][a.i], u = (now - a.t0) / 1.3;
+                    if (!sl || u < 0) return;
+                    const gr = this._ease(u);
+                    this._tree(put, sl, gr, 0, 0); this._shadow(DS, sl, Math.min(1, gr));
+                });
+                const S = this.sess;
+                if (S) {
+                    const sl0 = this.slots[S.g] && this.slots[S.g][S.idx], sl = sl0 && Object.assign({}, sl0, { s: sl0.s * 1.5 });
+                    if (sl) {
+                        const u = now - S.t;
+                        let gr = 0.1 + 0.9 * (1 - Math.pow(1 - S.p, 1.6)), wt = 0, fall = 0;
+                        if (S.state === 'done') gr = 1 + 0.18 * Math.sin(Math.min(1, u / 0.9) * Math.PI) * Math.exp(-u);
+                        if (S.state === 'fail') { wt = Math.min(1, u / 1.2); fall = Math.max(0, Math.min(1, (u - 1.0) / 1.2)); fall = fall * fall; gr *= 1 - Math.max(0, (u - 2.1) / 0.6); if (u > 2.7) { this.sess = null; gr = 0; } }
+                        if (gr > 0) { this._tree(put, sl, gr, wt, fall); if (fall < 0.5) this._shadow(DS, sl, gr); }
+                    }
+                }
+                [D, DS].forEach((B) => { gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.DYNAMIC_DRAW); });
+            }
+
+            _solids(M, h, now) {
+                if (!this.tex) return;
+                this._buildSolids(now);
+                const gl = this.gl, P = this.pSol;
+                gl.useProgram(P);
+                const lp = gl.getAttribLocation(P, 'p'), lc = gl.getAttribLocation(P, 'c'), lz = gl.getAttribLocation(P, 'z');
+                gl.uniformMatrix4fv(gl.getUniformLocation(P, 'm'), false, M);
+                gl.uniform1f(gl.getUniformLocation(P, 'k'), h / 2 / Math.tan((40 * Math.PI / 180) / 2));
+                gl.uniform1f(gl.getUniformLocation(P, 'T'), now % 1000);
+                const uS = gl.getUniformLocation(P, 'S');
+                gl.enableVertexAttribArray(lp); gl.enableVertexAttribArray(lc); gl.enableVertexAttribArray(lz);
+                const draw = (B, sh) => {
+                    if (!B.n) return;
+                    gl.bindBuffer(gl.ARRAY_BUFFER, B.b);
+                    gl.vertexAttribPointer(lp, 3, gl.FLOAT, false, 36, 0);
+                    gl.vertexAttribPointer(lc, 3, gl.FLOAT, false, 36, 12);
+                    gl.vertexAttribPointer(lz, 3, gl.FLOAT, false, 36, 24);
+                    gl.uniform1f(uS, sh);
+                    gl.drawArrays(gl.POINTS, 0, B.n);
+                };
+                gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+                draw(this.bS, 1); draw(this.bSd, 1);
+                gl.disable(gl.BLEND); gl.depthMask(true);
+                draw(this.bT, 0); draw(this.bTd, 0);
+                gl.disableVertexAttribArray(lp); gl.disableVertexAttribArray(lc); gl.disableVertexAttribArray(lz);
+            }
+
+            // Data ----------------------------------------------------------------------------
+            setForest(govs, live, mine) {
+                const now = performance.now() / 1000, first = !this._fed;
+                this.govs = govs || {}; this.live = live || {}; this.mine = mine || '';
+                let seeds = 0;
+                Object.keys(this.slots).forEach((g) => {
+                    const want = Math.min(this.MAXT, numOr0(this.govs[g] && this.govs[g].t)), have = this.shown[g] || 0;
+                    const S = this.sess;
+                    if (want > have) {
+                        for (let i = have; i < want; i++) {
+                            if (S && S.state === 'done' && S.g === g && S.idx === i) { this.sess = null; continue; }
+                            // On the first load the whole forest sprouts from the centre out once the map is painted.
+                            if (first) this.anims.push({ g, i, t0: null, d: 0.9 + Math.min(2.2, i * 0.05) + this._hash(i, g.length) * 0.5 });
+                            else this.anims.push({ g, i, t0: now + 0.95 + (i - have) * 0.2 });
+                            if (!first && seeds < 6 && !(S && S.g === g)) { this.fx.push({ k: 'seed', q: this.slots[g][i].w, t0: now + (i - have) * 0.2 }); seeds++; }
+                        }
+                    } else if (want < have) {
+                        this.anims = this.anims.filter((a) => !(a.g === g && a.i >= want));
+                    }
+                    this.shown[g] = want;
+                });
+                this._fed = true; this.dirty = true;
+                const rows = Object.keys(this.slots).map((g) => ({ g, t: numOr0(this.govs[g] && this.govs[g].t), l: this.live[g] || 0 }));
+                const top = rows.slice().sort((a, b) => b.t - a.t)[0];
+                this.leader = top && top.t ? top.g : '';
+                const pr = (r) => (r.g === this.sel ? -1 : r.g === this.leader ? 0 : r.g === this.mine ? 1 : 2);
+                this.labels.innerHTML = rows.map((r, i) => ({ r, i })).sort((a, b) => pr(a.r) - pr(b.r) || b.r.t - a.r.t).map(({ r }) => {
+                    const cls = (r.g === this.leader ? ' lead' : '') + (r.g === this.mine ? ' me' : '') + (r.g === this.sel ? ' sel' : '');
+                    return `<button class="gw3d-lb fr-lb${cls}" data-g="${escapeHtml(r.g)}">${r.g === this.leader ? '<i></i>' : ''}${escapeHtml(r.g)}${r.t ? `<small>${r.t}</small>` : ''}${r.l ? `<em>${r.l}</em>` : ''}</button>`;
+                }).join('');
+                this.lbEls = Array.from(this.labels.children);
+            }
+
+            _labelY() { return 0.3; }
+
+            // Camera ----------------------------------------------------------------------------
+            _camera() {
+                const k = 0.06;
+                for (let i = 0; i < 3; i++) this.target[i] += (this.camT[i] - this.target[i]) * k;
+                this.zoom += (this.camZ - this.zoom) * k;
+                this.offY = (this.offY || 0) + ((this.offT || 0) - (this.offY || 0)) * k;
+            }
+            // Shifts the picture up so the map sits in the space above the bottom panel.
+            _mat(aspect) {
+                const o = super._mat(aspect), k = this.offY || 0;
+                for (let c = 0; c < 4; c++) o[c * 4 + 1] += k * o[c * 4 + 3];
+                return o;
+            }
+            flyTo(g, z) {
+                const a = g && this.anchors[g];
+                if (a) { this.camT = [a[0], a[1] + 0.05, a[2]]; this.camZ = z || 2.6; }
+                else { this.camT = this.home.slice(); this.camZ = this.homeZ; }
+            }
+            select(g) {
+                const now = performance.now() / 1000;
+                this.sel = g || '';
+                this.lbEls && this.lbEls.forEach((el) => el.classList.toggle('sel', el.getAttribute('data-g') === this.sel));
+                if (g && this.anchors[g]) { this.selAt = now; this.fx.push({ k: 'ring', q: this.anchors[g], t0: now }); }
+                this.flyTo(this.sel || (this.sess && this.sess.state === 'grow' ? this.sess.g : ''), this.sess && !g ? 3.8 : 2.6);
+            }
+
+            _scr(x, y, z) {
+                const M = this._M;
+                if (!M) return null;
+                const cw = M[3] * x + M[7] * y + M[11] * z + M[15];
+                if (cw <= 0) return null;
+                const cx = M[0] * x + M[4] * y + M[8] * z + M[12], cy = M[1] * x + M[5] * y + M[9] * z + M[13];
+                return [((cx / cw) * 0.5 + 0.5) * this.canvas.clientWidth, (0.5 - (cy / cw) * 0.5) * this.canvas.clientHeight];
+            }
+
+            _bindTap() {
+                let d = null;
+                this.canvas.addEventListener('pointerdown', (e) => { d = [e.clientX, e.clientY, performance.now()]; });
+                this.canvas.addEventListener('pointerup', (e) => {
+                    if (!d || Math.hypot(e.clientX - d[0], e.clientY - d[1]) > 10 || performance.now() - d[2] > 450) { d = null; return; }
+                    d = null;
+                    const r = this.canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+                    let best = null, bd = 60;
+                    Object.keys(this.anchors).forEach((g) => {
+                        const p = this.anchors[g], q = this._scr(p[0], p[1] + 0.08, p[2]);
+                        if (!q) return;
+                        const dd = Math.hypot(q[0] - x, q[1] - y);
+                        if (dd < bd) { bd = dd; best = g; }
+                    });
+                    this.onPick(best);
+                });
+            }
+
+            // Session sapling -------------------------------------------------------------------
+            plant(g, minutes) {
+                if (!this.slots[g]) return;
+                this.sess = { g, idx: Math.min(this.shown[g] || 0, this.slots[g].length - 1), p: 0, state: 'grow', t: performance.now() / 1000 };
+                const now = performance.now() / 1000;
+                this.fx.push({ k: 'seed', q: this.slots[g][this.sess.idx].w, t0: now + 0.4 });
+                this.sel = ''; this.flyTo(g, 3.8);
+            }
+            grow(p) { if (this.sess && this.sess.state === 'grow') this.sess.p = Math.max(0, Math.min(1, p)); }
+            finish(ok) {
+                const S = this.sess;
+                if (!S || S.state !== 'grow') return;
+                const now = performance.now() / 1000, q = this.slots[S.g][S.idx].w;
+                S.state = ok ? 'done' : 'fail'; S.t = now;
+                if (ok) { S.p = 1; this.fx.push({ k: 'glory', q, t0: now }); this.fx.push({ k: 'burst', q: [q[0], q[1] + 0.12, q[2]], t0: now, c: [1, 0.85, 0.3], n: 60 }); }
+                else this.fx.push({ k: 'ash', q, t0: now + 0.6 });
+                setTimeout(() => { if (!this.sel) this.flyTo(''); }, ok ? 4200 : 3000);
+            }
+
+            // Glow effects ------------------------------------------------------------------------
+            _outlinePts(g) {
+                if (this.outl[g]) return this.outl[g];
+                const gd = IRAQ_GEO.g[g], out = [];
+                (gd.r || []).forEach((r) => {
+                    for (let i = 0; i < r.length; i += 2) {
+                        const j = (i + 2) % r.length, a = this._uv(r[i], r[i + 1]), b = this._uv(r[j], r[j + 1]);
+                        const wa = this._world(a[0], a[1]), wb = this._world(b[0], b[1]), n = Math.max(1, Math.ceil(Math.hypot(wb[0] - wa[0], wb[2] - wa[2]) / 0.035));
+                        for (let k = 0; k < n; k++) { const f = k / n, u = a[0] + (b[0] - a[0]) * f, v = a[1] + (b[1] - a[1]) * f, w = this._world(u, v); w[1] += 0.02; out.push(w); }
+                    }
+                });
+                if (!out.length) { const c = this.anchors[g]; for (let k = 0; k < 40; k++) { const an = k / 40 * 6.283; out.push([c[0] + Math.cos(an) * 0.13, c[1] + 0.02, c[2] + Math.sin(an) * 0.13]); } }
+                return (this.outl[g] = out);
+            }
+
+            _fx(add, f, now) {
+                const u = now - f.t0, q = f.q;
+                if (u < 0) return true;
+                if (f.k === 'seed') {
+                    const d = 0.95, a = Math.min(1, u / d), y = q[1] + 2.4 * (1 - a * a);
+                    for (let j = 0; j < 22; j++) add(q[0], y + j * 0.045, q[2], [0.75, 1, 0.55], (1 - j / 22) * 0.8, 0.07 * (1 - j / 30));
+                    add(q[0], y, q[2], [1, 1, 0.85], 1, 0.16);
+                    if (a >= 1) { this.fx.push({ k: 'burst', q: [q[0], q[1] + 0.03, q[2]], t0: now, c: [0.55, 1, 0.45], n: 34 }); return false; }
+                    return true;
+                }
+                if (f.k === 'burst') {
+                    const a = u / 1.3;
+                    if (a >= 1) return false;
+                    if (!f.sp) f.sp = Array.from({ length: f.n || 30 }, () => [Math.random() * 6.283, 0.2 + Math.random() * 0.5, 0.3 + Math.random() * 0.9]);
+                    const fade = 1 - a;
+                    add(q[0], q[1], q[2], f.c, fade * 0.8, 0.5 * (0.4 + a));
+                    for (let s = 0; s < 30; s++) { const an = s / 30 * 6.283, rad = 0.03 + a * 0.35; add(q[0] + Math.cos(an) * rad, q[1] - 0.02, q[2] + Math.sin(an) * rad, f.c, fade * 0.7, 0.05); }
+                    f.sp.forEach((p) => add(q[0] + Math.cos(p[0]) * p[1] * a, q[1] + p[2] * (a * 0.8 - a * a * 0.7), q[2] + Math.sin(p[0]) * p[1] * a, f.c, fade, 0.05));
+                    return true;
+                }
+                if (f.k === 'ring') {
+                    const a = u / 1.6;
+                    if (a >= 1) return false;
+                    for (let r = 0; r < 2; r++) {
+                        const b = a - r * 0.18;
+                        if (b <= 0) continue;
+                        for (let s = 0; s < 48; s++) { const an = s / 48 * 6.283, rad = 0.05 + b * 0.9; add(q[0] + Math.cos(an) * rad, q[1] + 0.03, q[2] + Math.sin(an) * rad, [0.5, 1, 0.7], (1 - b) * 0.7, 0.06); }
+                    }
+                    return true;
+                }
+                if (f.k === 'glory') {
+                    const a = u / 3.2;
+                    if (a >= 1) return false;
+                    const fade = a < 0.8 ? 1 : (1 - a) / 0.2;
+                    for (let j = 0; j < 40; j++) { const t = (j / 40 + u * 0.35) % 1, an = t * 18 + u * 3, rad = 0.13 * (1 - t) + 0.02; add(q[0] + Math.cos(an) * rad, q[1] + t * 0.9, q[2] + Math.sin(an) * rad, [1, 0.84, 0.3], fade * (1 - t), 0.07); }
+                    for (let j = 0; j < 26; j++) add(q[0], q[1] + j * 0.1, q[2], [1, 0.92, 0.6], fade * 0.25 * (1 - j / 26), 0.2);
+                    return true;
+                }
+                if (f.k === 'ash') {
+                    const a = u / 2.2;
+                    if (a >= 1) return false;
+                    if (!f.sp) f.sp = Array.from({ length: 36 }, () => [Math.random() * 6.283, Math.random() * 0.25, 0.08 + Math.random() * 0.2, Math.random()]);
+                    f.sp.forEach((p) => add(q[0] + Math.cos(p[0]) * p[1] * a + Math.sin(u * 3 + p[3] * 6) * 0.02, q[1] + p[2] + 0.1 - a * 0.25, q[2] + Math.sin(p[0]) * p[1] * a, [0.62, 0.5, 0.38], (1 - a) * 0.8, 0.045));
+                    return true;
+                }
+                return false;
+            }
+
+            _overlay(add, now) {
+                const names = Object.keys(this.anchors);
+                names.forEach((g, gi) => {
+                    const p = this.anchors[g], t = this.shown[g] || 0, L = this.live[g] || 0, sl = this.slots[g];
+                    // fireflies over the forests
+                    const nf = Math.min(7, Math.ceil(t / 6));
+                    for (let j = 0; j < nf; j++) {
+                        const s = sl[(j * 5 + gi) % Math.max(1, Math.min(t, sl.length))];
+                        if (!s) break;
+                        const q = s.w, ph = s.ph + j * 1.7, a = 0.5 + 0.5 * Math.sin(now * 2.3 + ph * 3);
+                        add(q[0] + Math.sin(now * 0.6 + ph) * 0.07, q[1] + 0.2 + Math.sin(now * 0.9 + ph) * 0.06, q[2] + Math.cos(now * 0.5 + ph) * 0.07, [0.8, 1, 0.45], 0.75 * a, 0.04);
+                    }
+                    // students studying right now: little flames circling their governorate
+                    const n = Math.min(12, L);
+                    for (let j = 0; j < n; j++) {
+                        const an = now * 0.45 + (j / n) * 6.283 + gi, rad = 0.14 + 0.04 * Math.sin(now + j);
+                        const x = p[0] + Math.cos(an) * rad, z = p[2] + Math.sin(an) * rad * 0.9, y = p[1] + 0.34 + 0.04 * Math.sin(now * 1.7 + j * 2);
+                        const fl = 0.8 + 0.2 * Math.sin(now * 13 + j * 5);
+                        add(x, y, z, [1, 0.62, 0.2], 0.9 * fl, 0.12); add(x, y + 0.01, z, [1, 0.95, 0.75], 1, 0.035);
+                    }
+                    if (L) {
+                        const pu = (now * 0.55 + gi * 0.3) % 1;
+                        for (let s = 0; s < 28; s++) { const an = s / 28 * 6.283, rad = 0.05 + pu * 0.4; add(p[0] + Math.cos(an) * rad, p[1] + 0.02, p[2] + Math.sin(an) * rad, [1, 0.75, 0.3], 0.45 * (1 - pu), 0.05); }
+                    }
+                });
+                // the student's governorate (soft gold) and the tapped one (bright, flowing)
+                if (this.mine && this.mine !== this.sel) this._outlinePts(this.mine).forEach((w, i) => add(w[0], w[1], w[2], [1, 0.75, 0.3], 0.16 + 0.12 * Math.sin(i * 0.3 - now * 3), 0.035));
+                if (this.sel) {
+                    const k = Math.min(1, (now - this.selAt) / 0.8);
+                    this._outlinePts(this.sel).forEach((w, i, arr) => {
+                        if (i / arr.length > k) return;
+                        const a = 0.35 + 0.65 * Math.pow(0.5 + 0.5 * Math.sin(i * 0.28 - now * 7), 3);
+                        add(w[0], w[1], w[2], [0.45, 1, 0.65], a, 0.06);
+                    });
+                }
+                // the sapling that is growing now: a ring of light and rising sparks
+                const S = this.sess;
+                if (S && S.state === 'grow' && this.slots[S.g]) {
+                    const q = this.slots[S.g][S.idx].w, pl = 0.8 + 0.2 * Math.sin(now * 3);
+                    for (let s = 0; s < 36; s++) { const an = s / 36 * 6.283 + now * 0.8; add(q[0] + Math.cos(an) * 0.09, q[1] + 0.01, q[2] + Math.sin(an) * 0.09, [1, 0.8, 0.3], 0.55 * pl, 0.035); }
+                    for (let j = 0; j < 14; j++) { const t = (j / 14 + now * 0.25) % 1, an = j * 2.4 + now; add(q[0] + Math.cos(an) * 0.06 * (1 - t), q[1] + 0.03 + t * 0.5, q[2] + Math.sin(an) * 0.06 * (1 - t), [1, 0.9, 0.5], 0.8 * (1 - t), 0.04); }
+                    for (let j = 0; j < 18; j++) add(q[0], q[1] + j * 0.12, q[2], [1, 0.85, 0.45], 0.12 * (1 - j / 18) * pl, 0.14);
+                }
+                this.fx = this.fx.filter((f) => this._fx(add, f, now));
+                // a soft green light running around Iraq
+                const BL = this.borderLen[this.borderLen.length - 1], bp = (dist) => {
+                    dist = ((dist % BL) + BL) % BL; let i = 1; while (i < this.borderLen.length - 1 && this.borderLen[i] < dist) i++;
+                    const a = this.border[i - 1], c = this.border[i], f = (dist - this.borderLen[i - 1]) / Math.max(1e-6, this.borderLen[i] - this.borderLen[i - 1]);
+                    return [a[0] + (c[0] - a[0]) * f, a[1] + (c[1] - a[1]) * f, a[2] + (c[2] - a[2]) * f];
+                };
+                for (let c = 0; c < 2; c++) {
+                    const head = now * (BL / 22) + c * (BL / 2);
+                    for (let j = 0; j < 30; j++) { const q = bp(head - j * 0.05); add(q[0], q[1], q[2], [0.55, 1, 0.7], (1 - j / 30) * 0.8, j ? 0.1 : 0.24); }
+                }
+                // pollen in the air
+                this.dust.forEach((d) => { const y = ((d[1] + now * 0.03 * d[3]) % 1); add(d[0], 0.2 + y * 2.2, d[2], [0.85, 1, 0.7], 0.3 * Math.sin(y * Math.PI), 0.04); });
             }
         }
 
@@ -5124,6 +5695,7 @@
                 this.loadCustomThemeColor();
                 this.loadUserData();
                 this.checkInterruptedFocus();
+                this.checkInterruptedForest();
                 this.loadNotifPrefs();
                 this.watchAuthState();
                 this.hydrateNewsCache();
@@ -7366,6 +7938,382 @@
                 const n = (this._dreams || []).length;
                 if (el) el.textContent = n ? n + ' حلم من طلاب العراق' : 'كون أول واحد يطلق حلمه';
                 document.getElementById('drEmpty')?.classList.toggle('hidden', n > 0);
+            },
+
+            // ===== غابة العراق =====
+            // A study session on this page grows a tree on the student's governorate. Leaving the
+            // page or the app (more than a few seconds), or missing a "still studying?" check,
+            // kills the tree and the session's points. Data: forest/govs/{gov} {t: trees, m:
+            // minutes}, forest/last (the latest planting, animated for everyone), focusLive/{uid}
+            // (shared with focus mode: who is studying right now).
+            FOREST_KEY: 'isp_forest_session',
+            FOREST_DURS: [25, 45, 60, 90],
+            FOREST_GRACE_MS: 3000,
+            FOREST_CHECK_SECS: 60,
+            FOREST_WORDS: ['شجرة', 'نخلة', 'غيمة', 'نجمة', 'وردة', 'قمر', 'نهر', 'جبل'],
+            forestMinutes: 25,
+
+            listenForForest() {
+                if (this._frListening || !window.firebaseDb) return;
+                this._frListening = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, 'forest/govs'), (snap) => { this._frGovs = snap.val() || {}; this._frSync(); });
+                onValue(ref(window.firebaseDb, 'focusLive'), (snap) => { this._frLiveRaw = snap.val() || {}; this._frSync(); });
+                let firstLast = true;
+                onValue(ref(window.firebaseDb, 'forest/last'), (snap) => {
+                    const v = snap.val();
+                    if (!firstLast && v && v.at && Date.now() - v.at < 120000 && v.u !== this.authUid) this._frTicker(v);
+                    firstLast = false;
+                });
+            },
+
+            _frLiveCounts() {
+                const now = Date.now(), c = {};
+                Object.values(this._frLiveRaw || {}).forEach((v) => {
+                    if (v && IRAQ_GOVERNORATES.indexOf(v.gov) !== -1 && numOr0(v.until) > now) c[v.gov] = (c[v.gov] || 0) + 1;
+                });
+                return c;
+            },
+
+            _frSync() {
+                const govs = this._frGovs || {}, live = this._frLiveCounts();
+                const trees = Object.values(govs).reduce((s, g) => s + numOr0(g && g.t), 0), studying = Object.values(live).reduce((s, n) => s + n, 0);
+                const sub = document.getElementById('frSub');
+                if (sub) sub.innerHTML = `<span>${trees} شجرة</span><span class="dot"></span><span class="live"><i></i>${studying} يدرسون هسه</span>`;
+                const mine = document.getElementById('frMineN');
+                if (mine) mine.textContent = numOr0(this.currentUser && this.currentUser.forestTrees);
+                if (this._f3d) this._f3d.setForest(govs, live, this._myGov());
+                else if (this._f3dFail) this._frFlat();
+                this._frFit();
+                if (this._frPick) this._frGovCard(this._frPick);
+            },
+
+            goToForest() {
+                this.listenForForest();
+                this.switchView('forestView');
+                const wrap = document.getElementById('fr3d');
+                if (wrap && !this._f3d && !this._f3dFail) {
+                    try {
+                        this._f3d = new IraqForest3D(wrap, (g) => this.pickForestGov(g));
+                    } catch (e) {
+                        console.warn('3D forest unavailable:', e);
+                        this._f3dFail = true;
+                    }
+                }
+                if (this._f3d) this._f3d.start(() => this.currentView === 'forestView' && !document.hidden);
+                this._frSync();
+                if (this._forest) this._frRenderRunning(); else if (!this._frResult) this._frRenderSetup();
+                lucide.createIcons();
+            },
+
+            // Keeps the map centred in the space between the top bar and the bottom panel.
+            _frFit() {
+                if (!this._f3d) return;
+                requestAnimationFrame(() => {
+                    const sh = document.getElementById('frSheet'), H = window.innerHeight || 800;
+                    if (this._f3d) this._f3d.offT = Math.max(0, ((sh ? sh.offsetHeight + 12 : 0) - 70) / H);
+                });
+            },
+
+            // Flat list when WebGL is not available.
+            _frFlat() {
+                const wrap = document.getElementById('fr3d');
+                if (!wrap) return;
+                const govs = this._frGovs || {}, live = this._frLiveCounts();
+                wrap.className = 'fr-flat';
+                wrap.innerHTML = IRAQ_GOVERNORATES.map((g) => ({ g, t: numOr0(govs[g] && govs[g].t) })).sort((a, b) => b.t - a.t).map((r) =>
+                    `<button onclick="app.pickForestGov(${jsArg(r.g)})"><b>${escapeHtml(r.g)}</b><span>${r.t} شجرة${live[r.g] ? ' · ' + live[r.g] + ' يدرسون' : ''}</span></button>`).join('');
+            },
+
+            forestBack() {
+                if (this._forest) {
+                    if (!confirm('إذا طلعت هسه تذبل شجرتك وتروح نقاط الجلسة. متأكد؟')) return;
+                    this.failForest('طلعت من صفحة الغابة', true);
+                }
+                this._frResult = null;
+                this.goBack();
+            },
+
+            pickForestGov(g) {
+                if (!g || g === this._frPick) {
+                    this._frPick = null;
+                    document.getElementById('frGov')?.classList.add('hidden');
+                    if (this._f3d) this._f3d.select('');
+                    return;
+                }
+                this._frPick = g;
+                if (this._f3d) this._f3d.select(g);
+                this._frGovCard(g);
+            },
+
+            _frGovCard(g) {
+                const box = document.getElementById('frGov');
+                if (!box) return;
+                const govs = this._frGovs || {}, live = this._frLiveCounts(), d = govs[g] || {};
+                const rank = IRAQ_GOVERNORATES.map((x) => ({ x, t: numOr0(govs[x] && govs[x].t) })).sort((a, b) => b.t - a.t).findIndex((r) => r.x === g) + 1;
+                const t = numOr0(d.t), m = numOr0(d.m), l = live[g] || 0;
+                box.innerHTML = `
+                    <div class="fr-gov-h">
+                        <div><small>${g === this._myGov() ? 'محافظتك' : 'محافظة'}</small><b>${escapeHtml(g)}</b></div>
+                        <span class="fr-rank">#${rank}</span>
+                        <button onclick="app.pickForestGov(null)" aria-label="إغلاق"><i data-lucide="x"></i></button>
+                    </div>
+                    <div class="fr-gov-s">
+                        <div><b>${t}</b><span>شجرة</span></div>
+                        <div><b>${m >= 60 ? Math.round(m / 6) / 10 : m}</b><span>${m >= 60 ? 'ساعة دراسة' : 'دقيقة دراسة'}</span></div>
+                        <div class="${l ? 'on' : ''}"><b>${l}</b><span>يدرسون هسه</span></div>
+                    </div>`;
+                if (box.classList.contains('hidden')) { box.classList.remove('hidden'); box.classList.remove('in'); void box.offsetWidth; box.classList.add('in'); }
+                lucide.createIcons();
+            },
+
+            _frTicker(v) {
+                const el = document.getElementById('frTicker');
+                if (!el) return;
+                el.innerHTML = `<i data-lucide="sprout"></i><span>${escapeHtml(v.n || 'طالب')} من ${escapeHtml(v.g || 'العراق')} زرع شجرة بعد ${numOr0(v.m)} دقيقة دراسة</span>`;
+                lucide.createIcons();
+                el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+                clearTimeout(this._frTickT);
+                this._frTickT = setTimeout(() => el.classList.remove('on'), 5200);
+            },
+
+            setForestMinutes(m) { this.forestMinutes = m; this._frRenderSetup(); },
+
+            _frRenderSetup() {
+                const box = document.getElementById('frSheet');
+                if (!box) return;
+                const gov = this._myGov();
+                let body;
+                if (!this.isLoggedIn || !this.currentUser) {
+                    body = `<div class="fr-need"><b>سجّل دخولك حتى تزرع شجرتك</b><small>كل جلسة دراسة تكملها تصير شجرة بمحافظتك، وتكسب نقاط</small><button class="fr-go" onclick="app.goToAuth('login')"><i data-lucide="log-in"></i>تسجيل الدخول</button></div>`;
+                } else if (!gov) {
+                    body = `<div class="fr-need"><b>حدد محافظتك أول</b><small>شجرتك تنزرع بمحافظتك، فلازم تكون محددة بحسابك</small><button class="fr-go" onclick="app.goToProfile ? app.goToProfile() : app.switchView('profileView')"><i data-lucide="map-pin"></i>حسابي</button></div>`;
+                } else {
+                    body = `
+                        <div class="fr-head"><b>ازرع شجرة ب${escapeHtml(gov)}</b><small>ادرس بهاي الصفحة لحد ما يخلص الوقت، وشجرتك تكبر قدامك على الخارطة</small></div>
+                        <div class="fr-durs">${this.FOREST_DURS.map((m) => `<button class="${m === this.forestMinutes ? 'on' : ''}" onclick="app.setForestMinutes(${jsNum(m)})"><b>${m}</b><span>دقيقة</span><em>+${m} نقطة</em></button>`).join('')}</div>
+                        <button class="fr-go" onclick="app.startForest()"><i data-lucide="sprout"></i>ابدأ وازرع</button>
+                        <div class="fr-rules">
+                            <span><i data-lucide="log-out"></i>تطلع من الصفحة أو التطبيق؟ تذبل شجرتك وتروح النقاط</span>
+                            <span><i data-lucide="hand"></i>كل شوية يسألك "لسه تدرس؟" وعندك دقيقة ترد</span>
+                        </div>`;
+                }
+                box.className = 'fr-sheet';
+                box.innerHTML = body;
+                this._frFit();
+                lucide.createIcons();
+            },
+
+            startForest() {
+                if (this._forest) return;
+                if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
+                const gov = this._myGov();
+                if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
+                if (this._focus) { this.showToast('عندك جلسة تركيز شغالة، كمّلها أول'); return; }
+                const minutes = this.forestMinutes, now = Date.now();
+                this._forest = { start: now, dur: minutes * 60000, minutes, g: gov, next: now + this._frGap(true), check: null };
+                try { localStorage.setItem(this.FOREST_KEY, JSON.stringify({ start: now, dur: minutes * 60000 })); } catch (e) {}
+                this._frResult = null;
+                this._bindForestEvents();
+                this._requestWakeLock();
+                this._govLiveJoin(minutes);
+                document.body.classList.add('forest-running');
+                this.pickForestGov(null);
+                if (this._f3d) this._f3d.plant(gov, minutes);
+                this._frRenderRunning();
+                clearInterval(this._frTimer);
+                this._frTimer = setInterval(() => this._frTick(), 500);
+                this._frTick();
+            },
+
+            // Minutes until the next "still studying?" check: the first comes sooner.
+            _frGap(first) { return (first ? 4 + Math.random() * 4 : 6 + Math.random() * 5) * 60000; },
+
+            _frStage(p) { return p < 0.1 ? 'بذرة' : p < 0.35 ? 'برعم' : p < 0.7 ? 'شتلة' : p < 1 ? 'شجرة صغيرة' : 'شجرة'; },
+
+            _frRenderRunning() {
+                const box = document.getElementById('frSheet');
+                const f = this._forest;
+                if (!box || !f) return;
+                const C = 2 * Math.PI * 44;
+                box.className = 'fr-sheet run';
+                box.innerHTML = `
+                    <div class="fr-run">
+                        <div class="fr-ring">
+                            <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="bg"/><circle cx="50" cy="50" r="44" class="fg" id="frArc" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg>
+                            <div><b id="frClock" dir="ltr">--:--</b><span id="frStage">بذرة</span></div>
+                        </div>
+                        <div class="fr-run-tx">
+                            <b>شجرتك تكبر ب${escapeHtml(f.g)}</b>
+                            <small>ابقَ بهاي الصفحة. بنهاية الجلسة تكسب <em>+${f.minutes} نقطة</em></small>
+                            <div class="fr-run-warn"><i data-lucide="shield-alert"></i>الطلعة من الصفحة تذبّل الشجرة</div>
+                        </div>
+                    </div>
+                    <button class="fr-quit" onclick="app.quitForest()">انسحاب</button>`;
+                this._frFit();
+                lucide.createIcons();
+                this._frTick();
+            },
+
+            _frTick() {
+                const f = this._forest;
+                if (!f) return;
+                const now = Date.now();
+                if (f.hiddenAt) return;
+                if (f.check && now > f.check.until) { this.failForest('ما رديت على سؤال "لسه تدرس؟"'); return; }
+                const left = f.start + f.dur - now;
+                if (left <= 0) { this.completeForest(); return; }
+                if (!f.check && now >= f.next && left > 60000) this._frAsk();
+                const p = 1 - left / f.dur, secs = Math.ceil(left / 1000);
+                if (this._f3d) this._f3d.grow(p);
+                const clock = document.getElementById('frClock');
+                if (clock) clock.textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+                const st = document.getElementById('frStage');
+                if (st) st.textContent = this._frStage(p);
+                const arc = document.getElementById('frArc');
+                if (arc) arc.setAttribute('stroke-dashoffset', (2 * Math.PI * 44 * (1 - p)).toFixed(1));
+                if (f.check) {
+                    const s = Math.max(0, Math.ceil((f.check.until - now) / 1000));
+                    const el = document.getElementById('frCkSec');
+                    if (el) el.textContent = s;
+                    const ring = document.getElementById('frCkArc');
+                    if (ring) ring.setAttribute('stroke-dashoffset', (2 * Math.PI * 30 * (1 - s / this.FOREST_CHECK_SECS)).toFixed(1));
+                }
+            },
+
+            // "Still studying?": three words, only one is right, and the buttons move around,
+            // so it can't be answered without looking at the screen.
+            _frAsk() {
+                const f = this._forest;
+                if (!f) return;
+                const words = this.FOREST_WORDS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
+                const right = words[Math.floor(Math.random() * 3)];
+                f.check = { until: Date.now() + this.FOREST_CHECK_SECS * 1000, right };
+                const box = document.getElementById('frCheck');
+                if (box) {
+                    const C = 2 * Math.PI * 30;
+                    box.innerHTML = `
+                        <div class="fr-ck">
+                            <div class="fr-ck-ring"><svg viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="30" class="bg"/><circle cx="35" cy="35" r="30" class="fg" id="frCkArc" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"/></svg><b id="frCkSec">${this.FOREST_CHECK_SECS}</b></div>
+                            <b class="fr-ck-t">لسه تدرس؟</b>
+                            <p>اضغط على كلمة <em>${escapeHtml(right)}</em> حتى تبقى شجرتك عايشة</p>
+                            <div class="fr-ck-btns" style="flex-direction:${Math.random() < 0.5 ? 'row' : 'row-reverse'}">${words.map((w, i) => `<button style="margin-top:${[0, 18, 8][i]}px" onclick="app.answerForestCheck(this, ${jsArg(w)})">${escapeHtml(w)}</button>`).join('')}</div>
+                        </div>`;
+                    box.classList.remove('hidden');
+                }
+                this.playNotifySound();
+                try { navigator.vibrate && navigator.vibrate([220, 120, 220]); } catch (e) {}
+                this._frTick();
+            },
+
+            answerForestCheck(btn, w) {
+                const f = this._forest;
+                if (!f || !f.check) return;
+                if (w !== f.check.right) {
+                    btn.classList.remove('no'); void btn.offsetWidth; btn.classList.add('no');
+                    return;
+                }
+                f.check = null;
+                f.next = Date.now() + this._frGap(false);
+                document.getElementById('frCheck')?.classList.add('hidden');
+                this.showToast('تمام، كمّل دراستك');
+            },
+
+            quitForest() {
+                if (!this._forest) return;
+                if (!confirm('إذا انسحبت هسه تذبل شجرتك وتروح نقاط الجلسة. متأكد؟')) return;
+                this.failForest('انسحبت قبل ما يخلص الوقت');
+            },
+
+            _bindForestEvents() {
+                if (this._frBound) return;
+                this._frBound = true;
+                document.addEventListener('visibilitychange', () => {
+                    const f = this._forest;
+                    if (!f) return;
+                    if (document.hidden) { f.hiddenAt = Date.now(); return; }
+                    if (!f.hiddenAt) return;
+                    const away = Date.now() - f.hiddenAt;
+                    delete f.hiddenAt;
+                    if (away > this.FOREST_GRACE_MS) this.failForest('طلعت من التطبيق أثناء الجلسة');
+                    else { this._requestWakeLock(); this._frTick(); }
+                });
+            },
+
+            _frStop() {
+                clearInterval(this._frTimer);
+                this._frTimer = null;
+                try { localStorage.removeItem(this.FOREST_KEY); } catch (e) {}
+                if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
+                this._govLiveLeave();
+                document.body.classList.remove('forest-running');
+                document.getElementById('frCheck')?.classList.add('hidden');
+                const f = this._forest;
+                this._forest = null;
+                return f;
+            },
+
+            completeForest() {
+                const f = this._frStop();
+                if (!f) return;
+                if (this._f3d) this._f3d.finish(true);
+                this.playNotifySound();
+                const u = this.currentUser || {};
+                this.saveFocusStats({ forestTrees: numOr0(u.forestTrees) + 1, forestMinutes: numOr0(u.forestMinutes) + f.minutes });
+                this.addPointsAtomic(f.minutes).then(() => this.logDailyActivity({ points: f.minutes, studySessions: 1 }));
+                this._govWarAdd(f.minutes);
+                if (window.firebaseDb) {
+                    const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                    runTransaction(ref(window.firebaseDb, 'forest/govs/' + f.g), (cur) => {
+                        const c = cur || {};
+                        return { t: numOr0(c.t) + 1, m: numOr0(c.m) + f.minutes };
+                    }).catch((e) => console.warn('Forest update failed:', e));
+                    const first = String(u.fullName || '').trim().split(/\s+/)[0] || '';
+                    set(ref(window.firebaseDb, 'forest/last'), { g: f.g, n: filterBadWords(first).clean.slice(0, 20), m: f.minutes, at: Date.now(), u: this.authUid || '' }).catch(() => {});
+                }
+                this._frResult = { ok: true, f };
+                this._frRenderResult();
+                this._frSync();
+            },
+
+            failForest(reason, away) {
+                const f = this._frStop();
+                if (!f) return;
+                if (this._f3d) this._f3d.finish(false);
+                const u = this.currentUser || {};
+                this.saveFocusStats({ forestDead: numOr0(u.forestDead) + 1 });
+                try { navigator.vibrate && navigator.vibrate(400); } catch (e) {}
+                this._frResult = { ok: false, f, reason };
+                this._frRenderResult();
+                if (away || this.currentView !== 'forestView') this.showToast('ذبلت شجرتك: ' + reason);
+            },
+
+            _frRenderResult() {
+                const box = document.getElementById('frSheet'), r = this._frResult;
+                if (!box || !r) return;
+                box.className = 'fr-sheet res ' + (r.ok ? 'ok' : 'bad');
+                box.innerHTML = r.ok ? `
+                    <span class="fr-res-ic"><i data-lucide="trees"></i></span>
+                    <b class="fr-res-t">انزرعت شجرتك ب${escapeHtml(r.f.g)}</b>
+                    <p class="fr-res-p">كملت ${r.f.minutes} دقيقة دراسة وكسبت <em>+${r.f.minutes} نقطة</em>. شجرتك صارت جزء من غابة العراق.</p>
+                    <button class="fr-go" onclick="app._frResult = null; app._frRenderSetup()"><i data-lucide="sprout"></i>ازرع شجرة ثانية</button>` : `
+                    <span class="fr-res-ic"><i data-lucide="leaf"></i></span>
+                    <b class="fr-res-t">ذبلت شجرتك</b>
+                    <p class="fr-res-p">${escapeHtml(r.reason || '')}. راحت ${r.f.minutes} نقطة كانت تنتظرك.</p>
+                    <button class="fr-go" onclick="app._frResult = null; app._frRenderSetup()"><i data-lucide="rotate-ccw"></i>حاول مرة ثانية</button>`;
+                this._frFit();
+                lucide.createIcons();
+            },
+
+            // A session still saved when the app starts means the app was closed mid-session.
+            checkInterruptedForest() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(this.FOREST_KEY) || 'null'); } catch (e) {}
+                if (!saved) return;
+                try { localStorage.removeItem(this.FOREST_KEY); } catch (e) {}
+                const u = this.currentUser || {};
+                this.saveFocusStats({ forestDead: numOr0(u.forestDead) + 1 });
+                setTimeout(() => this.showToast('ذبلت شجرتك لأن التطبيق انسد قبل ما تخلص الجلسة'), 1500);
             },
 
             goToDreams() {
@@ -15914,6 +16862,7 @@
             },
 
             switchView(viewId) {
+                if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
                 if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
@@ -15932,6 +16881,7 @@
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
                 document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
+                document.body.classList.toggle('forest-on', viewId === 'forestView');
                 window.scrollTo(0, 0);
 
                 if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
