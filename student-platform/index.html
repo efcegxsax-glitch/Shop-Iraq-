@@ -1430,45 +1430,35 @@
         .au-log span { font-size: 10.5px; color: var(--text2); }
 
         /* ===== Tomorrow: school or holiday? (باچر دوام لو عطلة؟) ===== */
-        #dayStatusWrap { padding: 16px 16px 0; }
-        .ds, .ds * { box-sizing: border-box; }
-        .ds { position: relative; overflow: hidden; padding: 16px; border-radius: 24px; color: #fff; animation: cardIn .5s var(--ease-out) both;
-            background: linear-gradient(135deg, var(--c1), var(--c2)); box-shadow: 0 20px 40px -22px var(--c2); }
-        .ds.on { --c1: #064E3B; --c2: #059669; --dot: #4ADE80; }
-        .ds.off { --c1: #7F1D1D; --c2: #DC2626; --dot: #FCA5A5; }
-        .ds.pending { --c1: #78350F; --c2: #D97706; --dot: #FDE68A; }
-        .ds::before { content: ""; position: absolute; inset: -40% -20% auto auto; width: 220px; height: 220px; border-radius: 50%; background: radial-gradient(closest-side, rgba(255,255,255,.18), transparent); animation: hpFloat 7s ease-in-out infinite; pointer-events: none; }
-        .ds::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.1) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 6s ease-in-out infinite; pointer-events: none; }
-        .ds > * { position: relative; z-index: 1; }
-        .ds-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 700; }
-        .ds-when { opacity: .9; }
-        .ds-gov { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px; border-radius: 99px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.14); color: #fff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
-        .ds-gov svg { width: 13px; height: 13px; }
-        .ds-main { display: flex; align-items: center; gap: 12px; margin-top: 14px; }
-        .ds-ic { flex-shrink: 0; width: 58px; height: 58px; border-radius: 19px; display: grid; place-items: center; background: rgba(255,255,255,.16); animation: hpBob 3s ease-in-out infinite; }
-        .ds-ic svg { width: 30px; height: 30px; }
-        .ds-main small { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; opacity: .9; }
-        .ds-dot { position: relative; width: 9px; height: 9px; border-radius: 50%; background: var(--dot); box-shadow: 0 0 8px var(--dot); }
-        .ds-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--dot); animation: lvPing 1.5s ease-out infinite; }
-        .ds-main b { display: block; margin-top: 2px; font-size: 26px; font-weight: 900; line-height: 1.25; }
-        .ds-reason { margin: 12px 0 0; padding: 9px 12px; border-radius: 14px; background: rgba(0,0,0,.16); font-size: 13px; font-weight: 700; line-height: 1.7; }
-        .ds-meta { display: block; margin-top: 8px; font-size: 11px; opacity: .8; }
-        .ds-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,.28); }
-        .ds-day { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 7px 2px; border-radius: 13px; background: rgba(255,255,255,.1); font-size: 10.5px; font-weight: 700; }
-        .ds-day.sel { background: rgba(255,255,255,.24); box-shadow: inset 0 0 0 1.5px rgba(255,255,255,.6); }
-        .ds-day i { width: 10px; height: 10px; border-radius: 50%; }
-        .ds-day i.on { background: #4ADE80; } .ds-day i.off { background: #F87171; } .ds-day i.pending { background: #FBBF24; }
-        .ds-day em { font-style: normal; font-size: 10px; opacity: .85; }
-        .ds-pick { margin-top: 10px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: hpPop .3s var(--ease-spring) both; }
+        #dayStatusWrap { padding: 12px 16px 0; }
+        .dsb, .dsb * { box-sizing: border-box; }
+        .dsb { display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 6px 0 12px; border-radius: 14px; border: 1px solid var(--bd); background: var(--bg2); color: var(--text); font: inherit; font-size: 12.5px; text-align: right; cursor: pointer; overflow: hidden; }
+        .dsb.on { --c: #16A34A; --bd: rgba(22,163,74,.3); --bg2: rgba(22,163,74,.08); }
+        .dsb.off { --c: #DC2626; --bd: rgba(220,38,38,.3); --bg2: rgba(220,38,38,.08); }
+        .dsb.pending { --c: #D97706; --bd: rgba(217,119,6,.35); --bg2: rgba(245,158,11,.1); }
+        .dsb.ask { --c: rgb(var(--p)); --bd: var(--border); --bg2: var(--surface); }
+        .dsb-dot { position: relative; flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+        .dsb-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--c); animation: dsbPing 1.8s ease-out infinite; }
+        @keyframes dsbPing { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(2.6); opacity: 0; } }
+        .dsb-when { flex-shrink: 0; font-weight: 700; color: var(--text2); white-space: nowrap; }
+        .dsb-st { flex-shrink: 0; font-weight: 900; color: var(--c); white-space: nowrap; }
+        .dsb-why { flex: 1; min-width: 0; font-size: 11.5px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dsb-gov { flex-shrink: 0; display: inline-flex; align-items: center; gap: 3px; height: 28px; padding: 0 9px; border-radius: 10px; border: 0; background: var(--surface); color: var(--text); font: inherit; font-size: 11.5px; font-weight: 800; cursor: pointer; box-shadow: 0 0 0 1px var(--border); }
+        .dsb-gov svg { width: 12px; height: 12px; }
+        .dsb-more { margin-top: 6px; padding: 10px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+        .dsb-more p { margin: 0 2px 8px; line-height: 1.6; color: var(--text); }
+        .dsb-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+        .dsb-day { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 5px 2px; border-radius: 10px; background: var(--input-bg); font-size: 10px; font-weight: 700; }
+        .dsb-day.sel { box-shadow: inset 0 0 0 1.5px var(--text2); }
+        .dsb-day i { width: 8px; height: 8px; border-radius: 50%; }
+        .dsb-day i.on { background: #16A34A; } .dsb-day i.off { background: #DC2626; } .dsb-day i.pending { background: #D97706; }
+        .ds-pick { margin-top: 6px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: hpPop .3s var(--ease-spring) both; }
         .ds-pick p { margin: 0 2px 8px; font-size: 12px; font-weight: 700; color: var(--text2); }
         .ds-pick div { display: flex; flex-wrap: wrap; gap: 6px; }
         .ds-pick button { height: 32px; padding: 0 11px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
         .ds-pick button.on { color: #fff; background: rgb(var(--p)); border-color: transparent; }
-        .ds-ask { padding: 16px; border-radius: 22px; text-align: center; background: var(--surface); border: 1px dashed var(--border); }
-        .ds-ask b { display: block; font-size: 15px; font-weight: 900; color: var(--text); }
-        .ds-ask span { font-size: 12px; color: var(--text2); }
-        .ds-push { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 12px; padding: 10px 12px; border-radius: 14px; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.12); color: #fff; font: inherit; font-size: 12.5px; font-weight: 800; text-align: right; cursor: pointer; }
-        .ds-push.on { cursor: default; background: rgba(0,0,0,.14); font-weight: 700; }
+        .ds-push { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 800; text-align: right; cursor: pointer; }
+        .ds-push.on { cursor: default; font-weight: 700; }
         .ds-push svg { width: 17px; height: 17px; flex-shrink: 0; }
         #bottomNav .nav-dot { position: absolute; top: 1px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #EF4444; animation: hpBlink 1.1s ease-in-out infinite; }
         #bottomNav .nav-dot.amber { background: #F59E0B; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #F59E0B; }
@@ -6713,7 +6703,7 @@
                 return diff === 0 ? 'اليوم' : diff === 1 ? 'باچر' : diff === 2 ? 'عكب باچر' : this.DS_DAYS[date.getDay()];
             },
 
-            toggleDsPicker() { this._dsPickerOpen = !this._dsPickerOpen; this.renderDayStatus(); },
+            toggleDsPicker() { this._dsPickerOpen = !this._dsPickerOpen; this._dsMore = false; this.renderDayStatus(); },
 
             pickDsGov(g) {
                 if (IRAQ_GOVERNORATES.indexOf(g) === -1) return;
@@ -6727,6 +6717,10 @@
                 this.updateHolidayNavDot();
             },
 
+            toggleDsMore() { this._dsMore = !this._dsMore; this._dsPickerOpen = false; this.renderDayStatus(); },
+
+            // A slim strip (same height as the news ticker): dot, day, answer, reason, governorate.
+            // Tapping it shows the next five days; tapping the governorate lets you pick another.
             renderDayStatus() {
                 const box = document.getElementById('dayStatusWrap');
                 if (!box) return;
@@ -6737,40 +6731,38 @@
                         <div>${IRAQ_GOVERNORATES.map((g) => `<button class="${g === gov ? 'on' : ''}" onclick="app.pickDsGov(${jsArg(g)})">${escapeHtml(g)}</button>`).join('')}</div>
                     </div>`;
                 if (!gov) {
-                    box.innerHTML = `<div class="ds-ask"><b>باچر دوام لو عطلة؟</b><span>اختار محافظتك حتى نكلك كل يوم</span></div>` + picker;
+                    box.innerHTML = `<button class="dsb ask" onclick="app.toggleDsPicker()"><span class="dsb-dot"></span><b class="dsb-st">باچر دوام لو عطلة؟</b><span class="dsb-why">اختار محافظتك</span><span class="dsb-gov"><i data-lucide="map-pin"></i>اختار</span></button>` + (this._dsPickerOpen ? picker : '');
+                    lucide.createIcons();
                     return;
                 }
                 const target = this._dsTarget();
                 const st = this._dsStatus(target, gov);
-                const icon = st.s === 'on' ? 'backpack' : st.s === 'pending' ? 'hourglass' : 'house';
-                const head = st.s === 'on' ? (st.kind === 'admin' ? 'دوام رسمي، مؤكد' : 'دوام رسمي')
+                const head = st.s === 'on' ? (st.kind === 'admin' ? 'دوام، مؤكد' : 'دوام رسمي')
                     : st.s === 'pending' ? 'بانتظار القرار'
-                    : st.kind === 'weekend' ? 'عطلة نهاية الأسبوع' : st.kind === 'summer' ? 'العطلة الصيفية' : 'عطلة رسمية';
-                let reason = '';
-                if (st.s === 'pending') reason = 'لحد هسه ما انعلن قرار رسمي. راح نبلغك أول ما يطلع' + (st.reason ? '<br>' + escapeHtml(st.reason) : '');
-                else if (st.kind === 'admin' && st.reason) reason = (st.s === 'off' ? 'السبب: ' : '') + escapeHtml(st.reason);
-                else if (st.kind === 'holiday') reason = escapeHtml(st.reason);
-                else if (st.s === 'on') reason = 'ما انعلنت أي عطلة لمحافظتك';
-                const days = [];
-                const d0 = new Date(); d0.setHours(0, 0, 0, 0);
-                for (let i = 0; i < 5; i++) {
-                    const d = new Date(d0.getTime()); d.setDate(d0.getDate() + i);
-                    const s = this._dsStatus(d, gov);
-                    days.push(`<div class="ds-day${d.getTime() === target.getTime() ? ' sel' : ''}"><span>${this._dsDayLabel(d)}</span><i class="${s.s}"></i><em>${s.s === 'on' ? 'دوام' : s.s === 'off' ? 'عطلة' : 'بانتظار'}</em></div>`);
+                    : st.kind === 'weekend' ? 'عطلة الأسبوع' : st.kind === 'summer' ? 'العطلة الصيفية' : 'عطلة';
+                const why = st.s === 'pending' ? 'راح نبلغك أول ما يطلع القرار' : (st.s === 'off' && (st.kind === 'admin' || st.kind === 'holiday') ? st.reason : (st.kind === 'admin' ? st.reason : ''));
+                let more = '';
+                if (this._dsMore) {
+                    const days = [];
+                    const d0 = new Date(); d0.setHours(0, 0, 0, 0);
+                    for (let i = 0; i < 5; i++) {
+                        const d = new Date(d0.getTime()); d.setDate(d0.getDate() + i);
+                        const x = this._dsStatus(d, gov);
+                        days.push(`<div class="dsb-day${d.getTime() === target.getTime() ? ' sel' : ''}"><span>${this._dsDayLabel(d)}</span><i class="${x.s}"></i><span>${x.s === 'on' ? 'دوام' : x.s === 'off' ? 'عطلة' : 'بانتظار'}</span></div>`);
+                    }
+                    const note = st.s === 'pending' ? 'لحد هسه ما انعلن قرار رسمي. راح نبلغك أول ما يطلع' + (st.reason ? ' — ' + escapeHtml(st.reason) : '')
+                        : st.reason ? escapeHtml(st.reason) : 'ما انعلنت أي عطلة لمحافظتك';
+                    more = `<div class="dsb-more"><p>${note}${st.kind === 'admin' && st.at ? ' · إعلان من إدارة المنصة ' + timeAgo(st.at) : ''}</p><div class="dsb-days">${days.join('')}</div>${this._dsPushRow()}</div>`;
                 }
                 box.innerHTML = `
-                    <section class="ds ${st.s}">
-                        <div class="ds-top"><span class="ds-when">${this._dsDayLabel(target)} · ${this.DS_DAYS[target.getDay()]} ${target.getDate()} ${IRAQI_MONTHS[target.getMonth()]}</span>
-                            <button class="ds-gov btn-press" onclick="app.toggleDsPicker()"><i data-lucide="map-pin"></i>${escapeHtml(gov)}<i data-lucide="chevron-down"></i></button></div>
-                        <div class="ds-main">
-                            <span class="ds-ic"><i data-lucide="${icon}"></i></span>
-                            <div><small><span class="ds-dot"></span>${this._dsDayLabel(target)} دوام لو عطلة؟</small><b>${head}</b></div>
-                        </div>
-                        ${reason ? `<p class="ds-reason">${reason}</p>` : ''}
-                        ${st.kind === 'admin' ? `<span class="ds-meta">إعلان من إدارة المنصة${st.at ? ' · ' + timeAgo(st.at) : ''}</span>` : ''}
-                        <div class="ds-days">${days.join('')}</div>
-                        ${this._dsPushRow()}
-                    </section>
+                    <button class="dsb ${st.s}" onclick="app.toggleDsMore()" aria-expanded="${this._dsMore ? 'true' : 'false'}">
+                        <span class="dsb-dot"></span>
+                        <span class="dsb-when">${this._dsDayLabel(target)} ${this.DS_DAYS[target.getDay()]}</span>
+                        <b class="dsb-st">${head}</b>
+                        <span class="dsb-why">${why ? '· ' + escapeHtml(why) : ''}</span>
+                        <span class="dsb-gov" onclick="event.stopPropagation(); app.toggleDsPicker()"><i data-lucide="map-pin"></i>${escapeHtml(gov)}<i data-lucide="chevron-down"></i></span>
+                    </button>
+                    ${more}
                     ${this._dsPickerOpen ? picker : ''}`;
                 lucide.createIcons();
             },
