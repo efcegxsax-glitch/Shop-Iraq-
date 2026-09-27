@@ -1160,6 +1160,232 @@
         .sc-btns svg { width: 18px; height: 18px; }
         .sc-note { margin-top: 10px; text-align: center; font-size: 11.5px; color: var(--text2); }
 
+        /* ===== Shared bits for the live pages ===== */
+        .lv, .lv * { box-sizing: border-box; }
+        .lv { padding: 14px 16px 28px; }
+        .lv-sec { display: flex; align-items: center; justify-content: space-between; margin: 20px 4px 10px; font-size: 14px; font-weight: 800; color: var(--text); }
+        .lv-sec small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .lv-rules { display: flex; flex-direction: column; gap: 8px; margin-top: 18px; }
+        .lv-rules div { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; line-height: 1.6; color: var(--text); }
+        .lv-rules svg { width: 17px; height: 17px; flex-shrink: 0; color: rgb(var(--p)); }
+        .lv-btn { width: 100%; height: 50px; margin-top: 12px; border: 0; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; font: inherit; font-size: 14px; font-weight: 800; color: #fff; cursor: pointer; background: linear-gradient(135deg, rgb(var(--p)), #0B5E54); box-shadow: 0 14px 28px -14px rgb(var(--p)); }
+        .lv-btn svg { width: 18px; height: 18px; }
+        .lv-btn:disabled { opacity: .6; }
+        .lv-empty { padding: 30px 16px; text-align: center; border-radius: 22px; background: var(--surface); border: 1px dashed var(--border); color: var(--text2); font-size: 13px; line-height: 1.8; }
+        .lv-empty svg { width: 34px; height: 34px; margin-bottom: 8px; color: var(--text2); }
+        .lv-empty b { display: block; font-size: 15px; color: var(--text); }
+        @keyframes lvPing { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(2.4); opacity: 0; } }
+
+        /* ===== Governorate war (حرب المحافظات) ===== */
+        .gw-hero { position: relative; overflow: hidden; padding: 16px; border-radius: 24px; color: #fff; background: linear-gradient(135deg, #7F1D1D, #991B1B 35%, #0F172A); box-shadow: 0 20px 40px -22px #991B1B; animation: cardIn .5s var(--ease-out) both; }
+        .gw-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.1) 45%, transparent 60%); background-size: 250% 100%; animation: hpShine 6s ease-in-out infinite; pointer-events: none; }
+        .gw-hero-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700; }
+        .gw-live { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; background: rgba(255,255,255,.14); }
+        .gw-live i { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; }
+        .gw-live i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: #4ADE80; animation: lvPing 1.6s ease-out infinite; }
+        .gw-clock { opacity: .9; }
+        .gw-clock b { font-variant-numeric: tabular-nums; }
+        .gw-lead { position: relative; display: flex; align-items: center; gap: 12px; margin-top: 14px; }
+        .gw-crown { flex-shrink: 0; width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; color: #FDE68A; background: rgba(250,204,21,.16); animation: hpBob 3s ease-in-out infinite; }
+        .gw-crown svg { width: 28px; height: 28px; }
+        .gw-lead small { display: block; font-size: 11px; opacity: .75; }
+        .gw-lead b { display: block; font-size: 22px; font-weight: 900; }
+        .gw-lead em { font-style: normal; font-size: 12px; opacity: .85; }
+        .gw-last { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding: 11px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); font-size: 12px; color: var(--text2); }
+        .gw-last > svg { width: 20px; height: 20px; color: #D97706; flex-shrink: 0; }
+        .gw-last div { flex: 1; min-width: 0; }
+        .gw-last b { display: block; font-size: 13px; color: var(--text); }
+        .gw-last button { flex-shrink: 0; height: 36px; padding: 0 12px; border: 0; border-radius: 12px; font: inherit; font-size: 12px; font-weight: 800; color: #fff; background: #D97706; cursor: pointer; }
+        .gw-last.win { border-color: rgba(217,119,6,.4); background: rgba(245,158,11,.08); }
+        .gw-map { display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(7, 52px); gap: 5px; direction: ltr; }
+        .gw-tile { position: relative; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 2px; border-radius: 12px; text-align: center; background: var(--input-bg); border: 1px solid var(--border); color: var(--text); animation: hpPop .45s var(--ease-spring) both; direction: rtl; }
+        .gw-tile b { font-size: 10px; font-weight: 800; line-height: 1.2; white-space: nowrap; }
+        .gw-tile span { font-size: 9px; font-weight: 700; opacity: .75; white-space: nowrap; }
+        .gw-tile.lv1 { background: rgb(var(--p) / .14); border-color: rgb(var(--p) / .2); }
+        .gw-tile.lv2 { background: rgb(var(--p) / .32); border-color: transparent; }
+        .gw-tile.lv3 { background: rgb(var(--p) / .6); border-color: transparent; color: #fff; }
+        .gw-tile.lv4 { background: rgb(var(--p)); border-color: transparent; color: #fff; box-shadow: 0 8px 18px -8px rgb(var(--p)); }
+        .gw-tile.me { outline: 2px solid #F59E0B; outline-offset: 1px; }
+        .gw-tile em { position: absolute; top: -6px; left: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 99px; font-style: normal; font-size: 10px; font-weight: 900; line-height: 18px; color: #fff; background: #16A34A; box-shadow: 0 0 0 2px var(--surface); }
+        .gw-tile.on::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; border: 2px solid #16A34A; animation: gwGlow 1.8s ease-in-out infinite; pointer-events: none; }
+        @keyframes gwGlow { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+        .gw-t-crown { position: absolute; top: -9px; right: -3px; width: 16px; height: 16px; color: #F59E0B; }
+        .gw-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-top: 10px; font-size: 10.5px; color: var(--text2); }
+        .gw-legend span { display: inline-flex; align-items: center; gap: 4px; }
+        .gw-legend i { width: 14px; height: 10px; border-radius: 3px; background: var(--input-bg); border: 1px solid var(--border); }
+        .gw-legend i.lv1 { background: rgb(var(--p) / .14); } .gw-legend i.lv2 { background: rgb(var(--p) / .32); } .gw-legend i.lv3 { background: rgb(var(--p) / .6); } .gw-legend i.lv4 { background: rgb(var(--p)); }
+        .gw-legend em { width: 10px; height: 10px; border-radius: 50%; background: #16A34A; }
+        .gw-me { margin-top: 16px; padding: 14px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .gw-me p { margin: 0; font-size: 13px; color: var(--text2); text-align: center; }
+        .gw-me-row { display: flex; align-items: center; gap: 12px; }
+        .gw-me-rank { flex-shrink: 0; width: 46px; height: 46px; border-radius: 15px; display: grid; place-items: center; font-size: 20px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #F59E0B, #D97706); }
+        .gw-me-row b { display: block; font-size: 14px; font-weight: 900; color: var(--text); }
+        .gw-me-row small { font-size: 11.5px; color: var(--text2); }
+        .gw-rank { display: flex; flex-direction: column; gap: 6px; }
+        .gw-row { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); animation: cardIn .4s var(--ease-out) both; }
+        .gw-row.me { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.06); }
+        .gw-n { flex-shrink: 0; width: 26px; height: 26px; border-radius: 9px; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: var(--text2); background: var(--input-bg); }
+        .gw-n.top1 { color: #fff; background: #D97706; } .gw-n.top2 { color: #fff; background: #64748B; } .gw-n.top3 { color: #fff; background: #B45309; }
+        .gw-row-main { flex: 1; min-width: 0; }
+        .gw-row-top { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text); }
+        .gw-row-top b { font-weight: 800; }
+        .gw-row-top em { margin-right: auto; font-style: normal; font-size: 11.5px; font-weight: 800; color: var(--text2); font-variant-numeric: tabular-nums; }
+        .gw-row-live { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: #16A34A; }
+        .gw-row-live i { width: 6px; height: 6px; border-radius: 50%; background: #16A34A; animation: gwGlow 1.4s ease-in-out infinite; }
+        .gw-bar { height: 6px; margin-top: 6px; border-radius: 4px; background: var(--input-bg); overflow: hidden; }
+        .gw-bar i { display: block; height: 100%; width: var(--w); border-radius: 4px; background: rgb(var(--p)); transform-origin: right; animation: hpGrow .9s var(--ease-out) both; }
+        .gw-more { display: block; width: 100%; height: 42px; margin-top: 8px; border-radius: 14px; border: 1px dashed var(--border); background: none; font: inherit; font-size: 12.5px; font-weight: 800; color: var(--text2); cursor: pointer; }
+        .fc-gov { margin-top: 10px !important; font-size: 12.5px !important; font-weight: 800; color: #B91C1C !important; }
+
+        /* ===== Study twin (توأم المذاكرة) ===== */
+        .tw-hero { position: relative; overflow: hidden; padding: 20px 16px 18px; border-radius: 24px; text-align: center; color: #fff; background: linear-gradient(135deg, #312E81, #4C1D95 50%, #0F172A); box-shadow: 0 20px 40px -22px #4C1D95; animation: cardIn .5s var(--ease-out) both; }
+        .tw-hero b { display: block; margin-top: 12px; font-size: 18px; font-weight: 900; }
+        .tw-hero p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.8; opacity: .85; }
+        .tw-orbs { display: flex; align-items: center; justify-content: center; gap: 0; }
+        .tw-orb { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.3); animation: hpBob 3s ease-in-out infinite; }
+        .tw-orb.b { animation-delay: -1.5s; }
+        .tw-orb svg { width: 24px; height: 24px; }
+        .tw-link { width: 54px; height: 2px; background: repeating-linear-gradient(90deg, rgba(255,255,255,.7) 0 6px, transparent 6px 11px); background-size: 22px 2px; animation: twDash 1s linear infinite; }
+        @keyframes twDash { to { background-position: -22px 0; } }
+        .tw-points { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+        .tw-points div { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; color: var(--text); }
+        .tw-points svg { width: 18px; height: 18px; flex-shrink: 0; color: #7C3AED; }
+        .tw-stages { display: flex; flex-wrap: wrap; gap: 6px; }
+        .tw-stages button { height: 36px; padding: 0 13px; border-radius: 99px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+        .tw-stages button.on { color: #fff; background: #7C3AED; border-color: transparent; }
+        .tw-alias { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding: 12px 14px; border-radius: 16px; background: rgba(124,58,237,.07); border: 1px solid rgba(124,58,237,.2); }
+        .tw-alias span { font-size: 12px; color: var(--text2); }
+        .tw-alias b { flex: 1; font-size: 15px; font-weight: 900; color: #7C3AED; }
+        .tw-alias button { width: 36px; height: 36px; border-radius: 12px; border: 0; display: grid; place-items: center; color: #7C3AED; background: rgba(124,58,237,.12); cursor: pointer; }
+        .tw-alias button svg { width: 17px; height: 17px; }
+        .tw .lv-btn { background: linear-gradient(135deg, #7C3AED, #4C1D95); box-shadow: 0 14px 28px -14px #7C3AED; }
+        .tw-search { margin-top: 16px; padding: 22px 16px; border-radius: 22px; text-align: center; background: var(--surface); border: 1px solid var(--border); }
+        .tw-radar { position: relative; width: 96px; height: 96px; margin: 0 auto 14px; display: grid; place-items: center; }
+        .tw-radar > i { position: absolute; inset: 30px; border-radius: 50%; border: 2px solid #7C3AED; animation: lvPing 2.4s ease-out infinite; }
+        .tw-radar > i:nth-child(2) { animation-delay: .8s; } .tw-radar > i:nth-child(3) { animation-delay: 1.6s; }
+        .tw-radar span { position: relative; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #7C3AED; }
+        .tw-radar span svg { width: 20px; height: 20px; }
+        .tw-search b { display: block; font-size: 15px; font-weight: 900; color: var(--text); }
+        .tw-search p { margin: 6px 0 0; font-size: 12.5px; line-height: 1.8; color: var(--text2); }
+        .tw-cancel, .tw-end { margin-top: 14px; padding: 9px 18px; border-radius: 12px; border: 1px solid var(--border); background: none; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--text2); cursor: pointer; }
+        .tw-end { display: block; margin: 22px auto 0; color: #DC2626; border-color: rgba(220,38,38,.3); }
+        .tw-pair { display: flex; align-items: center; gap: 6px; padding: 16px 12px; border-radius: 24px; color: #fff; background: linear-gradient(135deg, #312E81, #4C1D95 55%, #0F172A); box-shadow: 0 20px 40px -22px #4C1D95; animation: cardIn .5s var(--ease-out) both; }
+        .tw-p { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+        .tw-av { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.14); border: 2px solid rgba(255,255,255,.35); }
+        .tw-p.him .tw-av { border-color: #FDE68A; }
+        .tw-av svg { width: 26px; height: 26px; }
+        .tw-p b { font-size: 13.5px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+        .tw-p small { font-size: 11px; opacity: .75; }
+        .tw-mid { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .tw-beat { width: 14px; height: 14px; border-radius: 50%; background: #F472B6; box-shadow: 0 0 0 0 rgba(244,114,182,.6); animation: twBeat 1.6s ease-out infinite; }
+        @keyframes twBeat { 0% { box-shadow: 0 0 0 0 rgba(244,114,182,.6); } 70% { box-shadow: 0 0 0 12px rgba(244,114,182,0); } 100% { box-shadow: 0 0 0 0 rgba(244,114,182,0); } }
+        .tw-mid em { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: rgba(255,255,255,.14); white-space: nowrap; }
+        .tw-alert { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 16px; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.35); animation: hpPop .5s var(--ease-spring) both; }
+        .tw-alert > svg { width: 22px; height: 22px; flex-shrink: 0; color: #D97706; animation: hpBob 1.2s ease-in-out infinite; }
+        .tw-alert b { display: block; font-size: 13px; color: var(--text); }
+        .tw-alert span { font-size: 11.5px; color: var(--text2); }
+        .tw-today { display: flex; align-items: stretch; gap: 8px; }
+        .tw-col { flex: 1; padding: 12px; border-radius: 18px; text-align: center; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .tw-col small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .tw-col b { display: block; font-size: 26px; font-weight: 900; color: rgb(var(--p)); font-variant-numeric: tabular-nums; }
+        .tw-col.him b { color: #7C3AED; }
+        .tw-col span { font-size: 11px; color: var(--text2); }
+        .tw-vs { align-self: center; font-size: 11px; font-weight: 800; color: var(--text2); }
+        .tw-note { margin: 10px 4px 0; font-size: 12.5px; font-weight: 700; color: var(--text); text-align: center; }
+        .tw-week { display: grid; grid-template-columns: 40px repeat(7, 1fr); gap: 4px; align-items: center; padding: 12px 10px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); }
+        .tw-wk-lbl { display: flex; flex-direction: column; gap: 10px; font-size: 10px; font-weight: 700; color: var(--text2); padding-bottom: 16px; }
+        .tw-wk-day { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+        .tw-wk-day i { width: 16px; height: 16px; border-radius: 50%; border: 1.5px dashed var(--border); }
+        .tw-wk-day i.on { border: 0; background: rgb(var(--p)); }
+        .tw-wk-day i.him.on { background: #7C3AED; }
+        .tw-wk-day span { font-size: 9.5px; font-weight: 700; color: var(--text2); white-space: nowrap; }
+        .tw-wk-day.both span { color: #16A34A; }
+        .tw-cheers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .tw-cheers button { min-height: 44px; padding: 8px 10px; border-radius: 14px; border: 1px solid rgba(124,58,237,.25); background: rgba(124,58,237,.06); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+        .tw-got { display: flex; flex-direction: column; gap: 6px; }
+        .tw-got div { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; }
+        .tw-got svg { width: 16px; height: 16px; color: #EC4899; flex-shrink: 0; }
+        .tw-got b { flex: 1; color: var(--text); }
+        .tw-got span { font-size: 10.5px; color: var(--text2); }
+
+        /* ===== Wasted time calculator (حاسبة الوقت الضايع) ===== */
+        .ws-hero { position: relative; overflow: hidden; padding: 18px 16px; border-radius: 24px; text-align: center; color: #fff; background: radial-gradient(120% 100% at 50% 0%, #3F1D1D, #1F1115 60%, #0F172A); box-shadow: 0 20px 40px -22px #7F1D1D; }
+        .ws-hero::before { content: ""; position: absolute; left: 50%; top: -80px; width: 260px; height: 260px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgba(239,68,68,.35), transparent); animation: hpFloat 6s ease-in-out infinite; }
+        .ws-hero > * { position: relative; }
+        .ws-hero small { font-size: 12px; opacity: .8; }
+        .ws-big { display: block; margin: 4px 0; font-size: 58px; font-weight: 900; line-height: 1.1; color: #FCA5A5; font-variant-numeric: tabular-nums; }
+        .ws-hero p { margin: 0; font-size: 13px; line-height: 1.8; opacity: .9; }
+        .ws-hero p b { color: #FDE68A; }
+        .ws-sliders { display: flex; flex-direction: column; gap: 8px; }
+        .ws-sl { padding: 11px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); }
+        .ws-sl-top { display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 700; color: var(--text); }
+        .ws-sl-top span:first-child { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); flex-shrink: 0; }
+        .ws-sl-top svg { width: 16px; height: 16px; }
+        .ws-sl-top b { margin-right: auto; font-size: 13px; font-weight: 900; color: var(--c); font-variant-numeric: tabular-nums; }
+        .ws-sl input[type=range] { width: 100%; margin-top: 8px; accent-color: var(--c); }
+        .ws-total { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding: 10px 14px; border-radius: 14px; font-size: 13px; font-weight: 800; color: var(--text); background: var(--input-bg); }
+        .ws-total b { font-size: 16px; color: #DC2626; }
+        .ws-conv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .ws-c { padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); animation: hpPop .45s var(--ease-spring) both; }
+        .ws-c span { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 11px; color: var(--c); background: color-mix(in srgb, var(--c) 13%, transparent); }
+        .ws-c span svg { width: 17px; height: 17px; }
+        .ws-c b { display: block; margin-top: 8px; font-size: 24px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+        .ws-c small { font-size: 11.5px; color: var(--text2); line-height: 1.5; }
+        .ws-cut { margin-top: 10px; padding: 14px; border-radius: 20px; background: linear-gradient(135deg, rgba(22,163,74,.1), rgba(14,165,233,.08)); border: 1px solid rgba(22,163,74,.25); }
+        .ws-cut-opts { display: flex; gap: 6px; margin-bottom: 10px; }
+        .ws-cut-opts button { flex: 1; height: 36px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+        .ws-cut-opts button.on { color: #fff; background: #16A34A; border-color: transparent; }
+        .ws-cut p { margin: 0; font-size: 13px; line-height: 1.9; color: var(--text); }
+        .ws-cut p b { color: #15803D; font-size: 15px; }
+        .ws-acts { display: flex; gap: 8px; }
+        .ws-acts .lv-btn { flex: 1; }
+        .ws-acts .lv-btn.ghost { color: var(--text); background: var(--surface); border: 1px solid var(--border); box-shadow: none; }
+
+        /* ===== Points auction (مزاد النقاط) ===== */
+        .au-hero { position: relative; overflow: hidden; padding: 16px; border-radius: 24px; color: #fff; background: linear-gradient(135deg, #1C1917, #44403C 45%, #78350F); box-shadow: 0 22px 44px -22px #78350F; animation: cardIn .5s var(--ease-out) both; }
+        .au-hero::before { content: ""; position: absolute; inset: auto -40px -60px auto; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(closest-side, rgba(250,204,21,.3), transparent); animation: hpFloat 7s ease-in-out infinite; }
+        .au-hero > * { position: relative; }
+        .au-hero-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; font-weight: 700; }
+        .au-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 99px; color: #FDE68A; background: rgba(250,204,21,.14); }
+        .au-tag svg { width: 13px; height: 13px; }
+        .au-clock b { font-variant-numeric: tabular-nums; color: #FDE68A; }
+        .au-hero h2 { margin: 14px 0 4px; font-size: 20px; font-weight: 900; line-height: 1.5; }
+        .au-hero p { margin: 0; font-size: 12.5px; opacity: .8; line-height: 1.7; }
+        .au-top { margin-top: 14px; padding: 12px; border-radius: 18px; text-align: center; background: rgba(255,255,255,.08); border: 1px solid rgba(250,204,21,.25); }
+        .au-top small { font-size: 11px; opacity: .75; }
+        .au-top b { display: block; font-size: 38px; font-weight: 900; color: #FDE68A; font-variant-numeric: tabular-nums; animation: hpPop .5s var(--ease-spring) both; }
+        .au-top b em { font-style: normal; font-size: 14px; margin-right: 6px; opacity: .8; }
+        .au-top span { font-size: 12.5px; font-weight: 700; }
+        .au-hero.ended { filter: saturate(.75); }
+        .au-bid { margin-top: 12px; padding: 14px; border-radius: 22px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .au-mine { display: flex; align-items: baseline; gap: 8px; font-size: 12px; color: var(--text2); }
+        .au-mine b { font-size: 18px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums; }
+        .au-mine em { font-style: normal; font-size: 11px; font-weight: 700; color: #D97706; }
+        .au-lead { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 5px 11px; border-radius: 99px; font-size: 12px; font-weight: 800; color: #B45309; background: rgba(245,158,11,.12); }
+        .au-lead svg { width: 14px; height: 14px; }
+        .au-step { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+        .au-step > button { width: 48px; height: 48px; border-radius: 16px; border: 1px solid var(--border); display: grid; place-items: center; background: var(--input-bg); color: var(--text); cursor: pointer; }
+        .au-step > button svg { width: 20px; height: 20px; }
+        .au-step div { flex: 1; text-align: center; }
+        .au-step b { display: block; font-size: 30px; font-weight: 900; color: #B45309; font-variant-numeric: tabular-nums; }
+        .au-step small { font-size: 11px; color: var(--text2); }
+        .au-quick { display: flex; gap: 6px; margin-top: 10px; }
+        .au-quick button { flex: 1; height: 34px; border-radius: 11px; border: 1px solid rgba(217,119,6,.3); background: rgba(245,158,11,.07); color: #B45309; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .au .lv-btn { background: linear-gradient(135deg, #D97706, #92400E); box-shadow: 0 14px 28px -14px #D97706; }
+        .au-note { margin: 8px 0 0; text-align: center; font-size: 11.5px; color: var(--text2); }
+        .au-win { margin-top: 12px; padding: 16px; border-radius: 22px; text-align: center; background: var(--surface); border: 1px solid var(--border); }
+        .au-win.me { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.08); }
+        .au-win svg { width: 34px; height: 34px; color: #D97706; animation: hpBob 2.4s ease-in-out infinite; }
+        .au-win b { display: block; margin-top: 6px; font-size: 16px; font-weight: 900; color: var(--text); }
+        .au-win p { margin: 4px 0 0; font-size: 12.5px; color: var(--text2); line-height: 1.7; }
+        .au-log { display: flex; flex-direction: column; gap: 6px; }
+        .au-log div { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--border); font-size: 12.5px; color: var(--text); animation: cardIn .35s var(--ease-out) both; }
+        .au-log div:first-child { border-color: rgba(245,158,11,.45); }
+        .au-log svg { width: 15px; height: 15px; color: #D97706; flex-shrink: 0; }
+        .au-log b { flex: 1; font-weight: 700; }
+        .au-log em { font-style: normal; font-weight: 900; color: #B45309; font-variant-numeric: tabular-nums; }
+        .au-log span { font-size: 10.5px; color: var(--text2); }
+
         /* ===== Admin-controlled site config ===== */
         .cfg-off { display: none !important; }
         .site-announce { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-radius: 16px; font-size: 13.5px; line-height: 1.6; border: 1px solid transparent; }
@@ -2356,6 +2582,50 @@
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
 
+                <button onclick="app.goToGovWar()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #DC2626 12%, transparent);">
+                        <i data-lucide="swords" class="w-5 h-5" style="color: #DC2626;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">حرب المحافظات</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">خريطة العراق تضوي حسب التركيز، ومحافظتك تنافس على الصدارة كل أسبوع</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToTwin()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #7C3AED 12%, transparent);">
+                        <i data-lucide="users-round" class="w-5 h-5" style="color: #7C3AED;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">توأم المذاكرة</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">طالب بمرحلتك من محافظة ثانية، تشوفون تقدم بعض وتشجعون بعض</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToAuction()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #D97706 12%, transparent);">
+                        <i data-lucide="gavel" class="w-5 h-5" style="color: #D97706;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">مزاد النقاط</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">زايد بنقاطك على جائزة الأسبوع، والأعلى ياخذها</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToWaste()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #E5484D 12%, transparent);">
+                        <i data-lucide="hourglass" class="w-5 h-5" style="color: #E5484D;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">حاسبة الوقت الضايع</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">شكد يروح من وقتك على الهاتف، وشكد تكدر تنجز بيه</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
                 <button onclick="app.goToGrades()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                     <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                         <i data-lucide="chart-line" class="w-5 h-5 text-primary"></i>
@@ -3102,6 +3372,59 @@
                 </div>
             </div>
             <div id="focusContent" class="fc"></div>
+        </div>
+
+        <!-- ===== LIVE PAGES: governorate war, study twin, wasted time, points auction ===== -->
+        <div id="govWarView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">حرب المحافظات</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">أي محافظة أكثر تركيز هالأسبوع؟</div>
+                </div>
+            </div>
+            <div id="govWarContent" class="lv gw"></div>
+        </div>
+
+        <div id="twinView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">توأم المذاكرة</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">نذاكر سوا من محافظتين</div>
+                </div>
+            </div>
+            <div id="twinContent" class="lv tw"></div>
+        </div>
+
+        <div id="wasteView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">حاسبة الوقت الضايع</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">شكد يروح من وقتك على الهاتف؟</div>
+                </div>
+            </div>
+            <div id="wasteContent" class="lv ws"></div>
+        </div>
+
+        <div id="auctionView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">مزاد النقاط</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">زايد بنقاطك على جائزة الأسبوع</div>
+                </div>
+            </div>
+            <div id="auctionContent" class="lv au"></div>
         </div>
 
         <!-- ===== GRADES PROGRESS VIEW (تطور درجاتي) ===== -->
@@ -3857,7 +4180,8 @@
                 ['_tasksListener', '_walletTxListener', '_friendsListener', '_friendRequestsListener',
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
-                    '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub'].forEach((key) => {
+                    '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
+                    '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -3870,6 +4194,7 @@
             // start from the real value.
             listenForOwnUserRecord() {
                 if (!window.firebaseDb || !this.authUid || this._ownUserListener) return;
+                this._twinAttach();
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._ownUserListener = onValue(ref(window.firebaseDb, 'users/' + this.authUid), (snap) => {
                     if (!snap.exists() || !this.currentUser) return;
@@ -5909,6 +6234,7 @@
                         <div class="fc-rule"><span style="--c:#E5484D"><i data-lucide="log-out"></i></span>إذا طلعت من التطبيق أكثر من 5 ثواني تنكسر الجلسة</div>
                         <div class="fc-rule"><span style="--c:#F59E0B"><i data-lucide="lock"></i></span>قفل الشاشة يكسر الجلسة — الشاشة تبقى شغالة وحدها طول الجلسة</div>
                         <div class="fc-rule"><span style="--c:#16A34A"><i data-lucide="users"></i></span>تظهر بغرفة المذاكرة الجماعية حتى يشوفك زملاءك تركّز</div>
+                        <button class="fc-rule btn-press" style="width:100%;text-align:right;cursor:pointer;font:inherit" onclick="app.goToGovWar()"><span style="--c:#DC2626"><i data-lucide="swords"></i></span>دقائقك تنحسب لمحافظتك بحرب المحافظات، شوف الترتيب</button>
                     </div>
 
                     <button class="fc-start btn-press" onclick="app.startFocus()"><i data-lucide="play"></i>ابدأ ${this.focusMinutes} دقيقة تركيز</button>
@@ -5933,6 +6259,7 @@
                 document.body.classList.add('focus-mode');
                 this._requestWakeLock();
                 this.joinStudyRoom('focus');
+                this._govLiveJoin(minutes);
                 this.renderFocusRunning();
                 clearInterval(this._focusTimer);
                 this._focusTimer = setInterval(() => this._focusTick(), 500);
@@ -5984,6 +6311,7 @@
                 document.body.classList.remove('focus-mode');
                 if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
                 this.leaveStudyRoom();
+                this._govLiveLeave();
                 const f = this._focus;
                 this._focus = null;
                 return f;
@@ -5999,6 +6327,7 @@
                     this.addPointsAtomic(f.minutes).then(() => {
                         this.logDailyActivity({ points: f.minutes, studySessions: 1 });
                     });
+                    this._govWarAdd(f.minutes);
                 }
                 this.renderFocusResult(true, f.minutes, f.minutes);
             },
@@ -6027,6 +6356,7 @@
                         <h3>أحسنت! كملت الجلسة</h3>
                         <p>ركّزت ${minutes} دقيقة بدون ما تلمس هاتفك</p>
                         ${this.isLoggedIn ? `<span class="fc-pts">+${minutes} نقطة</span>` : '<p>سجّل دخولك المرة الجاية حتى تنحسب نقاطك</p>'}
+                        ${this.isLoggedIn && this._myGov() ? `<p class="fc-gov">+${minutes} دقيقة لمحافظة ${escapeHtml(this._myGov())} بحرب المحافظات</p>` : ''}
                         <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">جلسة ثانية</button><button onclick="app.shareFocusStory(${jsNum(minutes)})">شارك إنجازك</button></div>
                         <button class="fc-quit" style="color:var(--text2);border-color:var(--border);background:none" onclick="app.renderFocusSetup()">رجوع</button>
                     </div>` : `
@@ -6068,6 +6398,844 @@
 
             // A session that was still saved when the app starts means the app was closed
             // (or the page reloaded) mid-session — that counts as broken.
+            // ===== Shared helpers for the live pages =====
+            // The study week runs Saturday to Friday.
+            _weekStart(d) {
+                const x = new Date(d || Date.now());
+                x.setHours(0, 0, 0, 0);
+                x.setDate(x.getDate() - ((x.getDay() + 1) % 7));
+                return x;
+            },
+            _weekKey(d) { return this.localDateStr(this._weekStart(d)); },
+            _myGov() {
+                const g = String((this.currentUser && this.currentUser.governorate) || '').trim();
+                const n = GOVERNORATE_ALIASES[g] || g;
+                return IRAQ_GOVERNORATES.indexOf(n) !== -1 ? n : '';
+            },
+            _fmtLeft(ms) {
+                const s = Math.max(0, Math.floor(ms / 1000));
+                const d = Math.floor(s / 86400), p = (n) => String(n).padStart(2, '0');
+                return (d ? d + ' يوم ' : '') + '<span dir="ltr">' + p(Math.floor((s % 86400) / 3600)) + ':' + p(Math.floor((s % 3600) / 60)) + ':' + p(s % 60) + '</span>';
+            },
+            // One 1-second ticker shared by the live pages; it stops when fn returns false.
+            _liveTick(fn) {
+                clearInterval(this._liveTimer);
+                this._liveTimer = setInterval(() => { if (!fn()) { clearInterval(this._liveTimer); this._liveTimer = null; } }, 1000);
+            },
+
+            // ===== Governorate war (حرب المحافظات) =====
+            // Completed focus minutes are added to govWar/{week}/{governorate}; focusLive/{uid}
+            // marks who is focusing right now. The winning governorate's students who took part
+            // claim a prize once the week is over.
+            GOV_TILES: { 'دهوك': [2, 0], 'نينوى': [1, 1], 'أربيل': [2, 1], 'السليمانية': [3, 1], 'حلبجة': [4, 1], 'الأنبار': [0, 2, 2], 'صلاح الدين': [1, 2], 'كركوك': [2, 2], 'بغداد': [1, 3], 'ديالى': [2, 3], 'كربلاء': [0, 4], 'بابل': [1, 4], 'واسط': [2, 4], 'النجف': [0, 5], 'القادسية': [1, 5], 'ذي قار': [2, 5], 'ميسان': [3, 5], 'المثنى': [1, 6], 'البصرة': [3, 6] },
+            GOV_WAR_PRIZE: 50,
+
+            goToGovWar() {
+                this._gwAttach();
+                this.renderGovWar();
+                this.switchView('govWarView');
+                this._liveTick(() => {
+                    if (this.currentView !== 'govWarView') return false;
+                    if (this._weekKey() !== this._gwWeek) { this._gwAttach(); return true; }
+                    const el = document.getElementById('gwClock');
+                    if (el) el.innerHTML = this._fmtLeft(this._weekStart().getTime() + 7 * 86400000 - Date.now());
+                    return true;
+                });
+            },
+
+            _gwAttach() {
+                if (!window.firebaseDb) return;
+                const { ref, onValue, get } = window.firebaseDbHelpers;
+                const wk = this._weekKey();
+                if (this._gwWeek !== wk) {
+                    if (typeof this._gwWeekUnsub === 'function') this._gwWeekUnsub();
+                    this._gwWeek = wk;
+                    this._gwData = {};
+                    this._gwWeekUnsub = onValue(ref(window.firebaseDb, 'govWar/' + wk), (snap) => {
+                        this._gwData = snap.val() || {};
+                        if (this.currentView === 'govWarView') this.renderGovWar();
+                    });
+                    const last = this._weekKey(this._weekStart().getTime() - 86400000);
+                    get(ref(window.firebaseDb, 'govWar/' + last)).then((snap) => {
+                        this._gwLast = { key: last, data: snap.val() || {} };
+                        if (this.currentView === 'govWarView') this.renderGovWar();
+                    }).catch(() => {});
+                    this._gwMineLoad(last);
+                }
+                if (!this._gwLiveUnsub) {
+                    this._gwLiveUnsub = onValue(ref(window.firebaseDb, 'focusLive'), (snap) => {
+                        this._gwLive = snap.val() || {};
+                        if (this.currentView === 'govWarView') this.renderGovWar();
+                    });
+                }
+            },
+
+            _gwMineLoad(lastKey) {
+                if (!this.authUid || !window.firebaseDb) return;
+                const { ref, get } = window.firebaseDbHelpers;
+                Promise.all([
+                    get(ref(window.firebaseDb, 'users/' + this.authUid + '/govWarMine')),
+                    get(ref(window.firebaseDb, 'users/' + this.authUid + '/govWarClaimed/' + lastKey))
+                ]).then(([mine, claimed]) => {
+                    this._gwMine = mine.val() || {};
+                    this._gwClaimed = !!claimed.val();
+                    if (this.currentView === 'govWarView') this.renderGovWar();
+                }).catch(() => {});
+            },
+
+            _gwLiveCounts() {
+                const now = Date.now(), c = {};
+                let total = 0;
+                Object.values(this._gwLive || {}).forEach((v) => {
+                    if (v && IRAQ_GOVERNORATES.indexOf(v.gov) !== -1 && numOr0(v.until) > now) { c[v.gov] = (c[v.gov] || 0) + 1; total++; }
+                });
+                return { c, total };
+            },
+
+            _gwHrs(m) { return m >= 60 ? (Math.round(m / 6) / 10) + ' ساعة' : m + ' دقيقة'; },
+
+            renderGovWar() {
+                const box = document.getElementById('govWarContent');
+                if (!box) return;
+                const data = this._gwData || {};
+                const live = this._gwLiveCounts();
+                const mine = this._myGov();
+                const rows = IRAQ_GOVERNORATES.map((g) => ({ g, m: numOr0(data[g] && data[g].minutes), s: numOr0(data[g] && data[g].sessions), l: live.c[g] || 0 }))
+                    .sort((a, b) => b.m - a.m || b.l - a.l || a.g.localeCompare(b.g, 'ar'));
+                const max = rows[0].m;
+                const leader = max > 0 ? rows[0] : null;
+                const rankOf = (g) => rows.findIndex((r) => r.g === g) + 1;
+                const lvl = (m) => (!m || !max ? 0 : Math.max(1, Math.ceil((m / max) * 4)));
+                const hrs = (m) => this._gwHrs(m);
+                const ws = this._weekStart(), we = new Date(ws.getTime() + 6 * 86400000);
+                const endMs = ws.getTime() + 7 * 86400000;
+                let lastWin = null;
+                if (this._gwLast) {
+                    const ld = this._gwLast.data;
+                    const lr = Object.keys(ld).filter((g) => IRAQ_GOVERNORATES.indexOf(g) !== -1).map((g) => ({ g, m: numOr0(ld[g] && ld[g].minutes) })).sort((a, b) => b.m - a.m)[0];
+                    if (lr && lr.m > 0) lastWin = lr;
+                }
+                const took = lastWin && numOr0(this._gwMine && this._gwMine[this._gwLast.key]) > 0;
+                const canClaim = !!(lastWin && this.isLoggedIn && mine === lastWin.g && took && !this._gwClaimed);
+                const myWeek = numOr0(this._gwMine && this._gwMine[this._gwWeek]);
+                box.innerHTML = `
+                    <section class="gw-hero">
+                        <div class="gw-hero-top"><span class="gw-live"><i></i>${live.total} طالب يركز هسه</span><span class="gw-clock">تنتهي الجولة بعد <b id="gwClock">${this._fmtLeft(endMs - Date.now())}</b></span></div>
+                        <div class="gw-lead">
+                            <span class="gw-crown"><i data-lucide="crown"></i></span>
+                            <div>${leader ? `<small>المتصدرة هالأسبوع</small><b>${escapeHtml(leader.g)}</b><em>${hrs(leader.m)} تركيز · ${leader.s} جلسة</em>` : '<small>الجولة بدت</small><b>ولا محافظة سجلت بعد</b><em>أول جلسة تكمّلها تحط محافظتك بالصدارة</em>'}</div>
+                        </div>
+                    </section>
+
+                    ${lastWin ? `<div class="gw-last${canClaim ? ' win' : ''}"><i data-lucide="trophy"></i><div><b>بطلة الأسبوع الماضي: ${escapeHtml(lastWin.g)}</b><span>${canClaim ? 'محافظتك فازت وإنت شاركت بيها' : hrs(lastWin.m) + ' تركيز' + (mine === lastWin.g && this._gwClaimed ? ' · استلمت جائزتك' : '')}</span></div>${canClaim ? `<button class="btn-press" onclick="app.claimGovWar()">استلم ${this.GOV_WAR_PRIZE} نقطة</button>` : ''}</div>` : ''}
+
+                    <div class="lv-sec">خريطة التركيز<small>تضوي حسب دقائق التركيز</small></div>
+                    <div class="gw-map">
+                        ${IRAQ_GOVERNORATES.map((g, i) => {
+                            const t = this.GOV_TILES[g];
+                            const r = rows.find((x) => x.g === g);
+                            if (!t || !r) return '';
+                            return `<div class="gw-tile lv${lvl(r.m)}${g === mine ? ' me' : ''}${r.l ? ' on' : ''}" style="grid-column:${t[0] + 1};grid-row:${t[1] + 1}${t[2] ? ' / span ' + t[2] : ''};animation-delay:${i * 0.025}s">
+                                ${leader && leader.g === g ? '<i data-lucide="crown" class="gw-t-crown"></i>' : ''}<b>${escapeHtml(g)}</b><span>${r.m ? hrs(r.m) : '-'}</span>${r.l ? `<em>${r.l}</em>` : ''}
+                            </div>`;
+                        }).join('')}
+                    </div>
+                    <div class="gw-legend"><span><i></i>بدون</span><span><i class="lv1"></i></span><span><i class="lv2"></i></span><span><i class="lv3"></i></span><span><i class="lv4"></i>الأكثر تركيز</span><span><em></em>رقم = يركزون هسه</span></div>
+
+                    <section class="gw-me">
+                        ${!this.isLoggedIn ? '<p>سجّل دخولك حتى تحارب لمحافظتك</p><button class="lv-btn btn-press" onclick="app.goToAuth(\'login\')"><i data-lucide="log-in"></i>تسجيل الدخول</button>'
+                        : !mine ? '<p>حدد محافظتك بالملف الشخصي حتى تنحسب دقائقك إلها</p><button class="lv-btn btn-press" onclick="app.openEditProfileModal()"><i data-lucide="map-pin"></i>تحديد المحافظة</button>'
+                        : `<div class="gw-me-row"><span class="gw-me-rank">${rankOf(mine)}</span><div><b>محافظتك: ${escapeHtml(mine)}</b><small>المركز ${rankOf(mine)} من ${rows.length} · مساهمتك هالأسبوع ${myWeek} دقيقة</small></div></div>
+                           <button class="lv-btn btn-press" onclick="app.goToFocus()"><i data-lucide="swords"></i>ابدأ جلسة تركيز لمحافظتك</button>`}
+                    </section>
+
+                    <div class="lv-sec">الترتيب<small>${ws.getDate()} ${IRAQI_MONTHS[ws.getMonth()]} - ${we.getDate()} ${IRAQI_MONTHS[we.getMonth()]}</small></div>
+                    <div class="gw-rank">
+                        ${rows.map((r, i) => ({ r, i })).filter(({ r, i }) => this._gwAll || i < 5 || r.g === mine).map(({ r, i }) => `
+                            <div class="gw-row${r.g === mine ? ' me' : ''}" style="animation-delay:${Math.min(i, 10) * 0.03}s">
+                                <span class="gw-n${i < 3 && r.m ? ' top' + (i + 1) : ''}">${i + 1}</span>
+                                <div class="gw-row-main">
+                                    <div class="gw-row-top"><b>${escapeHtml(r.g)}</b>${r.l ? `<span class="gw-row-live"><i></i>${r.l} هسه</span>` : ''}<em>${r.m ? hrs(r.m) + ' · ' + r.s + ' جلسة' : '-'}</em></div>
+                                    <div class="gw-bar"><i style="--w:${max ? (r.m ? Math.max(3, (r.m / max) * 100) : 0) : 0}%"></i></div>
+                                </div>
+                            </div>`).join('')}
+                    </div>
+                    <button class="gw-more btn-press" onclick="app._gwAll = !app._gwAll; app.renderGovWar()">${this._gwAll ? 'عرض أول 5 بس' : 'عرض كل المحافظات (' + rows.length + ')'}</button>
+
+                    <div class="lv-rules">
+                        <div><i data-lucide="timer"></i>كل دقيقة بجلسة تركيز تكمّلها تنحسب لمحافظتك، والجلسة المنكسرة ما تنحسب</div>
+                        <div><i data-lucide="calendar-range"></i>الجولة من السبت للجمعة، وكل سبت تبدي جولة جديدة</div>
+                        <div><i data-lucide="gift"></i>طلاب المحافظة الفائزة اللي شاركوا ياخذون ${this.GOV_WAR_PRIZE} نقطة</div>
+                    </div>
+                `;
+                lucide.createIcons();
+            },
+
+            claimGovWar() {
+                if (!this._gwLast || !this.authUid || !window.firebaseDb) return;
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/govWarClaimed/' + this._gwLast.key), (cur) => (cur ? undefined : Date.now()))
+                    .then((res) => {
+                        this._gwClaimed = true;
+                        if (!res.committed) { this.showToast('استلمت هاي الجائزة من قبل'); this.renderGovWar(); return; }
+                        this.addPointsAtomic(this.GOV_WAR_PRIZE).then(() => {
+                            this.showToast('مبروك! انضافت ' + this.GOV_WAR_PRIZE + ' نقطة لرصيدك');
+                            this.renderGovWar();
+                        });
+                    }).catch(() => this.showToast('تعذر استلام الجائزة'));
+            },
+
+            _govLiveJoin(minutes) {
+                if (!this._myGov() || !window.firebaseDb || !this.authUid) return;
+                const { ref, set, onDisconnect } = window.firebaseDbHelpers;
+                const r = ref(window.firebaseDb, 'focusLive/' + this.authUid);
+                set(r, { gov: this._myGov(), until: Date.now() + minutes * 60000 + 60000 }).catch(() => {});
+                try { onDisconnect(r).remove(); } catch (e) {}
+            },
+
+            _govLiveLeave() {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'focusLive/' + this.authUid), null).catch(() => {});
+            },
+
+            _govWarAdd(minutes) {
+                const gov = this._myGov();
+                if (!gov || !window.firebaseDb || !this.authUid) return;
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                const wk = this._weekKey();
+                runTransaction(ref(window.firebaseDb, 'govWar/' + wk + '/' + gov), (cur) => {
+                    const c = cur || {};
+                    return { minutes: numOr0(c.minutes) + minutes, sessions: numOr0(c.sessions) + 1 };
+                }).catch((e) => console.warn('Gov war update failed:', e));
+                runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/govWarMine/' + wk), (cur) => numOr0(cur) + minutes)
+                    .then((res) => { if (res.committed) { this._gwMine = this._gwMine || {}; this._gwMine[wk] = res.snapshot.val(); } })
+                    .catch(() => {});
+            },
+
+            // ===== Study twin (توأم المذاكرة) =====
+            // twinQueue/{stage}/{uid} holds students waiting for a twin; a match writes
+            // twins/{pairId} and twinOf/{uid} for both. Daily progress goes to
+            // twins/{pairId}/days/{date}/{uid}; cheers are picked from a fixed list (no free
+            // text, so nobody can pass on a phone number or anything personal).
+            TWIN_STAGES: [['sixth-science', 'سادس علمي'], ['sixth-literary', 'سادس أدبي'], ['fifth-science', 'خامس علمي'], ['fifth-literary', 'خامس أدبي'], ['fourth', 'رابع إعدادي'], ['third-mid', 'ثالث متوسط']],
+            TWIN_CHEERS: ['كمّل يا بطل', 'يلا نذاكر سوا', 'خلصت جلستي، دورك هسه', 'لا تستسلم هسه', 'فخور بيك اليوم', 'ارجع، أنتظرك'],
+            TWIN_NOUNS: ['صقر', 'نجم', 'قمر', 'أسد', 'نسر', 'برق', 'جبل', 'سهم', 'نهر', 'فارس'],
+            TWIN_ADJS: ['الهادئ', 'المثابر', 'السريع', 'الذكي', 'الصامد', 'المتألق', 'الطموح', 'الواثق', 'الشجاع', 'النشيط'],
+
+            _twinStage() {
+                let s = '';
+                try { s = localStorage.getItem('isp_twin_stage') || ''; } catch (e) {}
+                if (!this.TWIN_STAGES.some((x) => x[0] === s)) s = (this.currentUser && this.currentUser.grade === 'literary') ? 'sixth-literary' : 'sixth-science';
+                return s;
+            },
+
+            setTwinStage(s) {
+                if (this._twinSearching || !this.TWIN_STAGES.some((x) => x[0] === s)) return;
+                try { localStorage.setItem('isp_twin_stage', s); } catch (e) {}
+                this.renderTwin();
+            },
+
+            _newAlias() { const p = (l) => l[Math.floor(Math.random() * l.length)]; return p(this.TWIN_NOUNS) + ' ' + p(this.TWIN_ADJS); },
+
+            _twinAlias() {
+                let a = '';
+                try { a = localStorage.getItem('isp_twin_alias') || ''; } catch (e) {}
+                if (!a) { a = this._newAlias(); try { localStorage.setItem('isp_twin_alias', a); } catch (e) {} }
+                return a;
+            },
+
+            rerollTwinAlias() {
+                if (this._twinSearching) return;
+                try { localStorage.setItem('isp_twin_alias', this._newAlias()); } catch (e) {}
+                this.renderTwin();
+            },
+
+            goToTwin() {
+                this._twinAttach();
+                this.renderTwin();
+                this.switchView('twinView');
+            },
+
+            _twinAttach() {
+                if (!window.firebaseDb || !this.authUid || this._twinOfListener) return;
+                const { ref, onValue, get } = window.firebaseDbHelpers;
+                this._twinOfListener = onValue(ref(window.firebaseDb, 'twinOf/' + this.authUid), (snap) => {
+                    const pid = typeof snap.val() === 'string' ? snap.val() : null;
+                    if (pid === this._twinPairId && (pid || this._twinPairId === null)) { if (this.currentView === 'twinView') this.renderTwin(); return; }
+                    if (typeof this._twinPairListener === 'function') this._twinPairListener();
+                    this._twinPairListener = null;
+                    this._twinPairId = pid;
+                    this._twinData = null;
+                    if (pid) {
+                        this._twinSearching = false;
+                        this._twinPairListener = onValue(ref(window.firebaseDb, 'twins/' + pid), (s2) => {
+                            this._twinData = s2.val();
+                            if (this._twinData && this._twinData.ended) {
+                                const { set } = window.firebaseDbHelpers;
+                                set(ref(window.firebaseDb, 'twinOf/' + this.authUid), null).catch(() => {});
+                                return;
+                            }
+                            this._twinCheerToast();
+                            if (this.currentView === 'twinView') this.renderTwin();
+                        });
+                    }
+                    if (this.currentView === 'twinView') this.renderTwin();
+                });
+                get(ref(window.firebaseDb, 'twinQueue/' + this._twinStage() + '/' + this.authUid)).then((s) => {
+                    const v = s.val();
+                    this._twinSearching = !!(v && v.alias && !this._twinPairId);
+                    if (this.currentView === 'twinView') this.renderTwin();
+                }).catch(() => {});
+            },
+
+            _twinOther() {
+                const d = this._twinData;
+                const uid = d && d.members ? Object.keys(d.members).find((u) => u !== this.authUid) : null;
+                const m = uid ? d.members[uid] || {} : {};
+                return { uid: uid || '', alias: String(m.alias || 'توأمك'), gov: String(m.gov || '') };
+            },
+
+            async findTwin() {
+                if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+                if (this._twinPairId || this._twinBusy) return;
+                this._twinBusy = true;
+                this.renderTwin();
+                const { ref, get, set, update, runTransaction } = window.firebaseDbHelpers;
+                const db = window.firebaseDb, me = this.authUid, stage = this._twinStage(), gov = this._myGov(), alias = this._twinAlias();
+                const qp = 'twinQueue/' + stage + '/';
+                try {
+                    // If I'm waiting in the queue, lock my own entry first so nobody pairs me while I search.
+                    const mineQ = await get(ref(db, qp + me));
+                    if (mineQ.exists()) {
+                        const lock = await runTransaction(ref(db, qp + me + '/claimedBy'), (cur) => (cur && cur !== me ? undefined : me));
+                        if (!lock.committed || lock.snapshot.val() !== me) { this._twinBusy = false; this.renderTwin(); return; }
+                    }
+                    const q = (await get(ref(db, 'twinQueue/' + stage))).val() || {};
+                    const fresh = Date.now() - 7 * 86400000;
+                    const cands = Object.keys(q)
+                        .filter((u) => u !== me && q[u] && q[u].alias && !q[u].claimedBy && numOr0(q[u].at) > fresh && (!gov || !q[u].gov || q[u].gov !== gov))
+                        .sort((a, b) => numOr0(q[a].at) - numOr0(q[b].at));
+                    for (const u of cands) {
+                        const res = await runTransaction(ref(db, qp + u + '/claimedBy'), (cur) => (cur ? undefined : me));
+                        if (!res.committed || res.snapshot.val() !== me) continue;
+                        const c = (await get(ref(db, qp + u))).val();
+                        const busy = (await get(ref(db, 'twinOf/' + u))).val();
+                        if (!c || !c.alias || busy) { await set(ref(db, qp + u), null); continue; }
+                        const pid = 'p' + Date.now() + '_' + me.slice(0, 6);
+                        await update(ref(db), {
+                            ['twins/' + pid]: { stage, created: Date.now(), members: { [me]: { alias, gov }, [u]: { alias: String(c.alias).slice(0, 30), gov: String(c.gov || '') } } },
+                            ['twinOf/' + me]: pid,
+                            ['twinOf/' + u]: pid,
+                            [qp + u]: null,
+                            [qp + me]: null
+                        });
+                        this._twinBusy = false;
+                        this.showToast('لكينالك توأم! تعرّف على ' + c.alias);
+                        return;
+                    }
+                    await set(ref(db, qp + me), { alias, gov, at: Date.now() });
+                    this._twinSearching = true;
+                } catch (e) {
+                    console.warn('Twin match failed:', e);
+                    this.showToast('تعذر البحث، حاول مرة ثانية');
+                }
+                this._twinBusy = false;
+                this.renderTwin();
+            },
+
+            cancelTwinSearch() {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'twinQueue/' + this._twinStage() + '/' + this.authUid), null).catch(() => {});
+                this._twinSearching = false;
+                this.renderTwin();
+            },
+
+            endTwin() {
+                if (!this._twinPairId || !confirm('تنهي التوأمة؟ يختفي تقدمكم المشترك وتكدر تدور على توأم جديد.')) return;
+                const { ref, update } = window.firebaseDbHelpers;
+                const other = this._twinOther();
+                const upd = { ['twins/' + this._twinPairId + '/ended']: Date.now(), ['twinOf/' + this.authUid]: null };
+                if (other.uid) upd['twinOf/' + other.uid] = null;
+                update(ref(window.firebaseDb), upd).then(() => this.showToast('انتهت التوأمة')).catch(() => this.showToast('تعذر إنهاء التوأمة'));
+            },
+
+            sendTwinCheer(i) {
+                if (!this.TWIN_CHEERS[i] || !this._twinPairId || !window.firebaseDb) return;
+                const key = 'isp_twin_cheers_' + this.localDateStr();
+                let n = 0;
+                try { n = Number(localStorage.getItem(key)) || 0; } catch (e) {}
+                if (n >= 5) { this.showToast('وصلت حد التشجيعات لليوم (5)'); return; }
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'twins/' + this._twinPairId + '/cheers/' + Date.now() + '_' + this.authUid.slice(0, 6)), { from: this.authUid, i, at: Date.now() })
+                    .then(() => {
+                        try { localStorage.setItem(key, String(n + 1)); } catch (e) {}
+                        this.showToast('وصل تشجيعك لتوأمك');
+                    }).catch(() => this.showToast('تعذر الإرسال'));
+            },
+
+            _twinCheerToast() {
+                const d = this._twinData;
+                if (!d || !d.cheers) return;
+                let seen = 0;
+                try { seen = Number(localStorage.getItem('isp_twin_seen')) || 0; } catch (e) {}
+                const got = Object.values(d.cheers).filter((c) => c && c.from !== this.authUid && numOr0(c.at) > seen && this.TWIN_CHEERS[c.i]).sort((a, b) => b.at - a.at);
+                if (!got.length) return;
+                this.showToast('توأمك بعثلك: ' + this.TWIN_CHEERS[got[0].i]);
+                try { localStorage.setItem('isp_twin_seen', String(got[0].at)); } catch (e) {}
+            },
+
+            // Called from logDailyActivity: mirrors today's points / sessions to the twin pair.
+            _twinReport(deltas) {
+                const pts = numOr0(deltas.points), ses = numOr0(deltas.studySessions);
+                if ((pts <= 0 && ses <= 0) || !window.firebaseDb || !this.authUid) return;
+                const { ref, get, runTransaction } = window.firebaseDbHelpers;
+                const go = (pid) => {
+                    if (typeof pid !== 'string' || !pid) return;
+                    runTransaction(ref(window.firebaseDb, 'twins/' + pid + '/days/' + this.localDateStr() + '/' + this.authUid), (cur) => {
+                        const c = cur || {};
+                        return { points: numOr0(c.points) + Math.max(0, pts), sessions: numOr0(c.sessions) + Math.max(0, ses) };
+                    }).catch(() => {});
+                };
+                if (this._twinPairId) go(this._twinPairId);
+                else get(ref(window.firebaseDb, 'twinOf/' + this.authUid)).then((s) => go(s.val())).catch(() => {});
+            },
+
+            renderTwin() {
+                const box = document.getElementById('twinContent');
+                if (!box) return;
+                const hero = `
+                    <section class="tw-hero">
+                        <div class="tw-orbs"><span class="tw-orb"><i data-lucide="user-round"></i></span><span class="tw-link"></span><span class="tw-orb b"><i data-lucide="user-round"></i></span></div>
+                        <b>توأم المذاكرة</b>
+                        <p>نربطك بطالب بنفس مرحلتك من محافظة ثانية. تشوفون تقدم بعض كل يوم، وكل واحد يشجع الثاني.</p>
+                    </section>`;
+                if (!this.isLoggedIn) {
+                    box.innerHTML = hero + '<button class="lv-btn btn-press" onclick="app.goToAuth(\'login\')"><i data-lucide="log-in"></i>سجّل دخولك حتى تلكه توأم</button>';
+                    lucide.createIcons();
+                    return;
+                }
+                const d = this._twinData;
+                if (this._twinPairId && d && d.members && !d.ended) { box.innerHTML = this._twinPairedHtml(d); lucide.createIcons(); return; }
+                if (this._twinPairId && !d) { box.innerHTML = hero + '<div class="lv-empty">جاري تحميل توأمك...</div>'; lucide.createIcons(); return; }
+                const stage = this._twinStage();
+                const stageLabel = (this.TWIN_STAGES.find((x) => x[0] === stage) || [])[1] || '';
+                box.innerHTML = hero + `
+                    <div class="tw-points">
+                        <div><i data-lucide="venetian-mask"></i><span>أسماء مستعارة، بدون صور ولا أرقام</span></div>
+                        <div><i data-lucide="shield-check"></i><span>ماكو رسائل مكتوبة، بس تشجيعات جاهزة</span></div>
+                        <div><i data-lucide="bell-ring"></i><span>إذا توأمك غاب يوم تنتبه، وتشجعه حتى يرجع</span></div>
+                    </div>
+                    ${this._twinSearching ? `
+                    <div class="tw-search">
+                        <div class="tw-radar"><i></i><i></i><i></i><span><i data-lucide="search"></i></span></div>
+                        <b>دا ندورلك على توأم...</b>
+                        <p>أول ما يدور طالب من ${escapeHtml(stageLabel)} بمحافظة ثانية تنربطون، وتلكه هنا.<br>اسمك المستعار: <b style="display:inline;font-size:13px;color:#7C3AED">${escapeHtml(this._twinAlias())}</b></p>
+                        <button class="tw-cancel" onclick="app.cancelTwinSearch()">إلغاء البحث</button>
+                    </div>` : `
+                    <div class="lv-sec">مرحلتك</div>
+                    <div class="tw-stages">${this.TWIN_STAGES.map(([k, l]) => `<button class="${k === stage ? 'on' : ''}" onclick="app.setTwinStage('${k}')">${l}</button>`).join('')}</div>
+                    <div class="tw-alias"><span>اسمك المستعار</span><b>${escapeHtml(this._twinAlias())}</b><button onclick="app.rerollTwinAlias()" aria-label="اسم ثاني"><i data-lucide="refresh-cw"></i></button></div>
+                    <button class="lv-btn btn-press" onclick="app.findTwin()" ${this._twinBusy ? 'disabled' : ''}><i data-lucide="search"></i>${this._twinBusy ? 'دا ندور...' : 'دوّر لي على توأم'}</button>`}
+                `;
+                lucide.createIcons();
+            },
+
+            _twinPairedHtml(d) {
+                const me = this.authUid;
+                const other = this._twinOther();
+                const mine = (d.members && d.members[me]) || { alias: this._twinAlias() };
+                const days = d.days || {};
+                const act = (key, uid) => { const v = uid && days[key] && days[key][uid]; return v ? { p: numOr0(v.points), s: numOr0(v.sessions) } : null; };
+                const DAY = 86400000;
+                const today = this.localDateStr(), yest = this.localDateStr(new Date(Date.now() - DAY));
+                const tMe = act(today, me) || { p: 0, s: 0 }, tHim = act(today, other.uid) || { p: 0, s: 0 };
+                const since = Math.max(1, Math.floor((Date.now() - numOr0(d.created)) / DAY) + 1);
+                let streak = 0;
+                for (let i = 0; i < 400; i++) {
+                    const k = this.localDateStr(new Date(Date.now() - i * DAY));
+                    if (act(k, me) && act(k, other.uid)) streak++;
+                    else if (i > 0) break;
+                }
+                const names = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
+                const week = [];
+                for (let i = 6; i >= 0; i--) {
+                    const dt = new Date(Date.now() - i * DAY), k = this.localDateStr(dt);
+                    week.push({ n: i === 0 ? 'اليوم' : names[dt.getDay()], a: !!act(k, me), b: !!act(k, other.uid) });
+                }
+                const startYest = new Date(new Date().setHours(0, 0, 0, 0) - DAY).getTime();
+                const missed = numOr0(d.created) < startYest && !act(yest, other.uid);
+                const diff = tMe.p - tHim.p;
+                const cheers = Object.values(d.cheers || {}).filter((c) => c && c.from === other.uid && this.TWIN_CHEERS[c.i]).sort((a, b) => b.at - a.at).slice(0, 5);
+                return `
+                    <section class="tw-pair">
+                        <div class="tw-p"><span class="tw-av"><i data-lucide="user-round"></i></span><b>${escapeHtml(mine.alias || '')}</b><small>إنت${mine.gov ? ' · ' + escapeHtml(mine.gov) : ''}</small></div>
+                        <div class="tw-mid"><span class="tw-beat"></span><em>${since} يوم سوا</em></div>
+                        <div class="tw-p him"><span class="tw-av"><i data-lucide="user-round"></i></span><b>${escapeHtml(other.alias)}</b><small>توأمك${other.gov ? ' · ' + escapeHtml(other.gov) : ''}</small></div>
+                    </section>
+                    ${missed ? '<div class="tw-alert"><i data-lucide="bell-ring"></i><div><b>توأمك غاب البارحة</b><span>ابعثله تشجيع من تحت حتى يرجع يذاكر وياك</span></div></div>' : ''}
+
+                    <div class="lv-sec">اليوم</div>
+                    <div class="tw-today">
+                        <div class="tw-col"><small>إنت</small><b>${tMe.p}</b><span>نقطة · ${tMe.s} جلسة</span></div>
+                        <div class="tw-vs">ضد</div>
+                        <div class="tw-col him"><small>توأمك</small><b>${tHim.p}</b><span>نقطة · ${tHim.s} جلسة</span></div>
+                    </div>
+                    <p class="tw-note">${diff > 0 ? 'إنت متقدم اليوم بـ ' + diff + ' نقطة، كمّل' : diff < 0 ? 'توأمك متقدم عليك بـ ' + (-diff) + ' نقطة، دورك هسه' : (tMe.p ? 'متعادلين اليوم' : 'محد بدى اليوم، كون إنت الأول')}</p>
+                    ${diff <= 0 ? '<button class="lv-btn btn-press" onclick="app.goToFocus()"><i data-lucide="timer"></i>ابدأ جلسة تركيز</button>' : ''}
+
+                    <div class="lv-sec">آخر 7 أيام<small>سلسلة سوا: ${streak} يوم</small></div>
+                    <div class="tw-week">
+                        <div class="tw-wk-lbl"><span>إنت</span><span>توأمك</span></div>
+                        ${week.map((w) => `<div class="tw-wk-day${w.a && w.b ? ' both' : ''}"><i class="${w.a ? 'on' : ''}"></i><i class="him${w.b ? ' on' : ''}"></i><span>${w.n}</span></div>`).join('')}
+                    </div>
+
+                    <div class="lv-sec">شجّع توأمك<small>5 تشجيعات باليوم</small></div>
+                    <div class="tw-cheers">${this.TWIN_CHEERS.map((c, i) => `<button class="btn-press" onclick="app.sendTwinCheer(${i})">${escapeHtml(c)}</button>`).join('')}</div>
+                    ${cheers.length ? `<div class="lv-sec">وصلك من توأمك</div><div class="tw-got">${cheers.map((c) => `<div><i data-lucide="heart"></i><b>${escapeHtml(this.TWIN_CHEERS[c.i])}</b><span>${timeAgo(c.at)}</span></div>`).join('')}</div>` : ''}
+                    <button class="tw-end" onclick="app.endTwin()">إنهاء التوأمة</button>
+                `;
+            },
+
+            // ===== Wasted time calculator (حاسبة الوقت الضايع) =====
+            WASTE_CATS: [['reels', 'فيديوهات قصيرة', 'clapperboard', '#E5484D'], ['social', 'سوشيال ميديا', 'users', '#8B5CF6'], ['games', 'ألعاب', 'gamepad-2', '#0EA5E9'], ['series', 'مسلسلات ويوتيوب', 'tv', '#F59E0B'], ['chat', 'دردشة', 'message-circle', '#16A34A']],
+            wasteCut: 50,
+
+            _wasteLoad() {
+                const def = { reels: 1.5, social: 1, games: 1, series: 1, chat: 0.5 };
+                try {
+                    const v = JSON.parse(localStorage.getItem('isp_waste') || 'null');
+                    if (v && typeof v === 'object') this.WASTE_CATS.forEach(([k]) => { const n = Number(v[k]); if (!isNaN(n)) def[k] = Math.max(0, Math.min(8, n)); });
+                } catch (e) {}
+                return def;
+            },
+
+            goToWaste() {
+                this.renderWaste();
+                this.switchView('wasteView');
+            },
+
+            setWaste(k, v) {
+                const w = this._wasteLoad();
+                w[k] = Math.max(0, Math.min(8, Number(v) || 0));
+                try { localStorage.setItem('isp_waste', JSON.stringify(w)); } catch (e) {}
+                const lbl = document.getElementById('wsV_' + k);
+                if (lbl) lbl.textContent = this._wasteH(w[k]);
+                this._renderWasteOut(false);
+            },
+
+            setWasteCut(p) { this.wasteCut = p; this._renderWasteOut(false); },
+
+            _wasteH(h) { return h === 0 ? 'ولا دقيقة' : (h < 1 ? Math.round(h * 60) + ' دقيقة' : (Math.round(h * 10) / 10) + ' ساعة'); },
+
+            _wasteHorizon() {
+                const now = Date.now();
+                const ex = (typeof examSchedule !== 'undefined' ? examSchedule : [])
+                    .map((e) => ({ e, t: new Date(e.date).getTime() })).filter((x) => !isNaN(x.t) && x.t > now).sort((a, b) => a.t - b.t)[0];
+                if (ex) return { days: Math.max(1, Math.ceil((ex.t - now) / 86400000)), label: 'امتحان ' + (ex.e.subject || 'الجاي') };
+                const d = new Date();
+                let t = new Date(d.getFullYear(), 5, 10).getTime();
+                if (t <= now) t = new Date(d.getFullYear() + 1, 5, 10).getTime();
+                return { days: Math.max(1, Math.ceil((t - now) / 86400000)), label: 'الامتحانات الوزارية' };
+            },
+
+            _wasteCalc() {
+                const w = this._wasteLoad();
+                const daily = this.WASTE_CATS.reduce((a, [k]) => a + w[k], 0);
+                const hz = this._wasteHorizon();
+                const horizon = daily * hz.days;
+                return { w, daily, month: Math.round(daily * 30), yearDays: Math.round((daily * 365) / 24), hz, horizon, chapters: Math.floor(horizon / 3), malazim: Math.floor(horizon / 25), sessions: Math.floor((horizon * 60) / 25) };
+            },
+
+            renderWaste() {
+                const box = document.getElementById('wasteContent');
+                if (!box) return;
+                const w = this._wasteLoad();
+                box.innerHTML = `
+                    <section class="ws-hero" id="wsHero"></section>
+                    <div class="lv-sec">شكد تقضي باليوم على<small>حرّك الشريط</small></div>
+                    <div class="ws-sliders">
+                        ${this.WASTE_CATS.map(([k, l, ic, c]) => `
+                            <div class="ws-sl" style="--c:${c}">
+                                <div class="ws-sl-top"><span><i data-lucide="${ic}"></i></span>${l}<b id="wsV_${k}">${this._wasteH(w[k])}</b></div>
+                                <input type="range" min="0" max="8" step="0.25" value="${w[k]}" oninput="app.setWaste('${k}', this.value)" aria-label="${l}">
+                            </div>`).join('')}
+                    </div>
+                    <div class="ws-total">المجموع باليوم<b id="wsDaily"></b></div>
+                    <div class="lv-sec" id="wsConvTitle"></div>
+                    <div class="ws-conv" id="wsConv"></div>
+                    <div class="lv-sec">لو قللتها</div>
+                    <div class="ws-cut" id="wsCut"></div>
+                    <div class="ws-acts">
+                        <button class="lv-btn btn-press" onclick="app.wasteToFocus(60)"><i data-lucide="timer"></i>حوّل ساعة لتركيز</button>
+                        <button class="lv-btn ghost btn-press" onclick="app.shareWasteStory()"><i data-lucide="image"></i>شارك كصورة</button>
+                    </div>
+                `;
+                this._renderWasteOut(true);
+            },
+
+            _renderWasteOut(first) {
+                const r = this._wasteCalc();
+                const fmt = (n) => Math.round(n).toLocaleString('en-US');
+                const hero = document.getElementById('wsHero');
+                if (hero) {
+                    hero.innerHTML = `<small>الوقت اللي يروح على الهاتف</small><b class="ws-big" id="wsBig">0</b><p>ساعة بالشهر، يعني <b>${fmt(r.yearDays)} يوم كامل</b> من سنتك</p>`;
+                    this._countUp(document.getElementById('wsBig'), first ? 0 : (this._wsLast || 0), r.month);
+                    this._wsLast = r.month;
+                }
+                const dl = document.getElementById('wsDaily');
+                if (dl) dl.textContent = this._wasteH(r.daily);
+                const ct = document.getElementById('wsConvTitle');
+                if (ct) ct.innerHTML = `لحد ${escapeHtml(r.hz.label)}<small>بعد ${r.hz.days} يوم · ${fmt(r.horizon)} ساعة</small>`;
+                const conv = document.getElementById('wsConv');
+                if (conv) conv.innerHTML = [
+                    ['book-open', '#0EA5E9', r.chapters, 'فصل تكدر تخلصه بهالوقت'],
+                    ['library', '#8B5CF6', r.malazim, 'ملزمة كاملة من البداية للنهاية'],
+                    ['timer', 'rgb(var(--p))', r.sessions, 'جلسة تركيز 25 دقيقة'],
+                    ['star', '#F59E0B', Math.round(r.horizon * 60), 'نقطة لو حولتها كلها لتركيز']
+                ].map(([ic, c, n, l], i) => `<div class="ws-c" style="--c:${c};animation-delay:${i * 0.05}s"><span><i data-lucide="${ic}"></i></span><b>${fmt(n)}</b><small>${l}</small></div>`).join('');
+                const cut = document.getElementById('wsCut');
+                if (cut) {
+                    const saved = (r.horizon * this.wasteCut) / 100;
+                    cut.innerHTML = `
+                        <div class="ws-cut-opts">${[25, 50, 75].map((p) => `<button class="${p === this.wasteCut ? 'on' : ''}" onclick="app.setWasteCut(${p})">${p}%</button>`).join('')}</div>
+                        <p>لو قللت وقت الهاتف ${this.wasteCut}% بس، توفر <b>${fmt(saved)} ساعة</b> لحد ${escapeHtml(r.hz.label)}.<br>هذا يكفي تخلص <b>${fmt(saved / 3)} فصل</b> زيادة وتكسب <b>${fmt(saved * 60)} نقطة</b> من جلسات التركيز.</p>`;
+                }
+                lucide.createIcons();
+            },
+
+            _countUp(el, from, to) {
+                if (!el) return;
+                const t0 = performance.now(), dur = 600;
+                const step = (t) => {
+                    const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+                    el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-US');
+                    if (k < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            },
+
+            wasteToFocus(m) {
+                if (!this._focus) this.focusMinutes = m;
+                this.goToFocus();
+            },
+
+            shareWasteStory() {
+                const r = this._wasteCalc();
+                this.openStory({
+                    badge: 'الوقت الضايع', badgeColor: '#DC2626',
+                    title: 'كنت أضيع ' + r.month + ' ساعة بالشهر على الهاتف',
+                    sub: 'قررت أحول هالوقت للمذاكرة. احسب وقتك إنت هم',
+                    stats: [[r.month, 'ساعة بالشهر'], [r.chapters, 'فصل ممكن أخلصه'], [r.yearDays, 'يوم بالسنة']]
+                });
+            },
+
+            // ===== Points auction (مزاد النقاط) =====
+            // The admin publishes auction/current; the highest bid sits in auctionBids/{id}/top.
+            // Bidding holds the points right away; the outbid student gets them back from the
+            // client that outbid them (a transaction on their points plus a refund notice).
+            goToAuction() {
+                this._auAttach();
+                this._auAmount = 0;
+                this.renderAuction();
+                this.switchView('auctionView');
+                this._liveTick(() => {
+                    if (this.currentView !== 'auctionView') return false;
+                    const a = this._auCur;
+                    const el = document.getElementById('auClock');
+                    if (a && el) {
+                        const left = numOr0(a.endsAt) - Date.now();
+                        if (left <= 0) this.renderAuction(); else el.innerHTML = this._fmtLeft(left);
+                    }
+                    return true;
+                });
+            },
+
+            _auAttach() {
+                if (!window.firebaseDb || this._auCurUnsub) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._auCurUnsub = onValue(ref(window.firebaseDb, 'auction/current'), (snap) => {
+                    const cur = snap.val();
+                    this._auCur = cur && typeof cur.id === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(cur.id) ? cur : null;
+                    const id = this._auCur ? this._auCur.id : null;
+                    if (id !== this._auBidsId) {
+                        if (typeof this._auBidsUnsub === 'function') this._auBidsUnsub();
+                        this._auBidsUnsub = null;
+                        this._auBids = null;
+                        this._auBidsId = id;
+                        this._auAmount = 0;
+                        if (id) {
+                            this._auBidsUnsub = onValue(ref(window.firebaseDb, 'auctionBids/' + id), (s2) => {
+                                this._auBids = s2.val() || {};
+                                this._auRefundCheck();
+                                if (this.currentView === 'auctionView') this.renderAuction();
+                            });
+                        }
+                    }
+                    if (this.currentView === 'auctionView') this.renderAuction();
+                });
+            },
+
+            _auRefundCheck() {
+                const r = this._auBids && this._auBids.refunds && this.authUid && this._auBids.refunds[this.authUid];
+                if (!r) return;
+                this.showToast('أحد زايد أعلى منك، رجعتلك ' + numOr0(r.amount) + ' نقطة');
+                const { ref, set } = window.firebaseDbHelpers;
+                set(ref(window.firebaseDb, 'auctionBids/' + this._auBidsId + '/refunds/' + this.authUid), null).catch(() => {});
+            },
+
+            _auName(n) {
+                const parts = String(n || 'طالب').trim().split(/\s+/);
+                return parts[0] + (parts[1] ? ' ' + parts[1].charAt(0) + '.' : '');
+            },
+
+            _auState() {
+                const a = this._auCur;
+                const bids = this._auBids || {};
+                const top = bids.top && numOr0(bids.top.amount) > 0 ? bids.top : null;
+                const step = Math.max(1, Math.floor(numOr0(a && a.step)) || 10);
+                const minNext = top ? numOr0(top.amount) + step : Math.max(1, Math.floor(numOr0(a && a.minBid)) || 1);
+                return { a, bids, top, step, minNext };
+            },
+
+            renderAuction() {
+                const box = document.getElementById('auctionContent');
+                if (!box) return;
+                const myPts = numOr0(this.currentUser && this.currentUser.points);
+                const { a, bids, top, step, minNext } = this._auState();
+                if (!a) {
+                    box.innerHTML = `<div class="lv-empty"><i data-lucide="gavel"></i><b>ماكو مزاد هسه</b>كل أسبوع تنعرض جائزة جديدة، جمّع نقاطك من جلسات التركيز وترقب المزاد الجاي.<br>نقاطك هسه: <b style="display:inline">${myPts.toLocaleString('en-US')}</b></div>`;
+                    lucide.createIcons();
+                    return;
+                }
+                const ended = Date.now() >= numOr0(a.endsAt);
+                const isMe = !!(top && top.uid === this.authUid);
+                if (!this._auAmount || this._auAmount < minNext) this._auAmount = minNext;
+                const log = Object.values(bids.log || {}).filter((b) => b && numOr0(b.amount) > 0).sort((x, y) => numOr0(y.at) - numOr0(x.at)).slice(0, 8);
+                box.innerHTML = `
+                    <section class="au-hero${ended ? ' ended' : ''}">
+                        <div class="au-hero-top"><span class="au-tag"><i data-lucide="gavel"></i>مزاد الأسبوع</span><span class="au-clock">${ended ? 'انتهى المزاد' : `ينتهي بعد <b id="auClock">${this._fmtLeft(numOr0(a.endsAt) - Date.now())}</b>`}</span></div>
+                        <h2>${escapeHtml(a.title || '')}</h2>
+                        ${a.desc ? `<p>${escapeHtml(a.desc)}</p>` : ''}
+                        <div class="au-top">
+                            <small>${ended ? 'المزايدة الفائزة' : 'أعلى مزايدة'}</small>
+                            <b>${top ? numOr0(top.amount).toLocaleString('en-US') : '-'}<em>نقطة</em></b>
+                            <span>${top ? (isMe ? 'إنت' : escapeHtml(this._auName(top.name))) : 'محد زايد بعد، البداية من ' + minNext + ' نقطة'}</span>
+                        </div>
+                    </section>
+
+                    ${ended ? `
+                    <div class="au-win${isMe ? ' me' : ''}">
+                        <i data-lucide="${top ? 'trophy' : 'circle-slash'}"></i>
+                        <b>${!top ? 'انتهى المزاد بدون مزايدات' : isMe ? 'مبروك! فزت بالمزاد' : 'الفائز: ' + escapeHtml(this._auName(top.name))}</b>
+                        <p>${!top ? 'ترقب المزاد الجاي' : isMe ? 'الإدارة راح تتواصل وياك حتى تستلم الجائزة' : 'فاز بـ ' + numOr0(top.amount).toLocaleString('en-US') + ' نقطة. حظ أوفر بالمزاد الجاي'}</p>
+                    </div>` : `
+                    <section class="au-bid">
+                        <div class="au-mine"><span>نقاطك</span><b>${myPts.toLocaleString('en-US')}</b>${isMe ? `<em>+ ${numOr0(top.amount).toLocaleString('en-US')} محجوزة بالمزاد</em>` : ''}</div>
+                        ${isMe ? '<div class="au-lead"><i data-lucide="crown"></i>إنت الأعلى هسه</div>' : ''}
+                        <div class="au-step">
+                            <button class="btn-press" onclick="app.auAdjust(-1)" aria-label="أقل"><i data-lucide="minus"></i></button>
+                            <div><b id="auAmount">${this._auAmount}</b><small>أقل مزايدة ${minNext}</small></div>
+                            <button class="btn-press" onclick="app.auAdjust(1)" aria-label="أكثر"><i data-lucide="plus"></i></button>
+                        </div>
+                        <div class="au-quick">${[1, 5, 10].map((k) => `<button class="btn-press" onclick="app.auAdjust(${k})">+${k * step}</button>`).join('')}</div>
+                        <button class="lv-btn btn-press" id="auGo" onclick="app.placeBid()"><i data-lucide="gavel"></i>زايد بـ <span id="auGoAmt">${this._auAmount}</span> نقطة</button>
+                        <p class="au-note">نقاطك تنحجز، وإذا أحد زايد أعلى منك ترجعلك كاملة.</p>
+                    </section>`}
+
+                    ${log.length ? `<div class="lv-sec">آخر المزايدات<small>${Object.keys(bids.log || {}).length} مزايدة</small></div>
+                    <div class="au-log">${log.map((b) => `<div><i data-lucide="gavel"></i><b>${b.uid === this.authUid ? 'إنت' : escapeHtml(this._auName(b.name))}</b><em>${numOr0(b.amount).toLocaleString('en-US')}</em><span>${timeAgo(b.at)}</span></div>`).join('')}</div>` : ''}
+
+                    <div class="lv-rules">
+                        <div><i data-lucide="lock"></i>لما تزايد تنحجز نقاطك، وإذا أحد زايد أعلى منك ترجعلك كاملة</div>
+                        <div><i data-lucide="clock"></i>إذا انحطت مزايدة بآخر دقيقتين، ينمدد المزاد دقيقتين حتى محد يخطف بآخر ثانية</div>
+                        <div><i data-lucide="trophy"></i>أعلى مزايد لما يخلص الوقت ياخذ الجائزة، ونقاطه تنصرف</div>
+                    </div>
+                `;
+                lucide.createIcons();
+            },
+
+            auAdjust(k) {
+                const { step, minNext } = this._auState();
+                const max = numOr0(this.currentUser && this.currentUser.points) + (this._auState().top && this._auState().top.uid === this.authUid ? numOr0(this._auState().top.amount) : 0);
+                this._auAmount = Math.max(minNext, (this._auAmount || minNext) + k * step);
+                if (k > 0 && this._auAmount > max && max >= minNext) this._auAmount = max;
+                const a = document.getElementById('auAmount'), b = document.getElementById('auGoAmt');
+                if (a) a.textContent = this._auAmount;
+                if (b) b.textContent = this._auAmount;
+            },
+
+            async placeBid() {
+                if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+                const { a, top, step, minNext } = this._auState();
+                if (!a || Date.now() >= numOr0(a.endsAt)) { this.showToast('المزاد منتهي'); return; }
+                if (this._auBusy) return;
+                const amount = Math.floor(numOr0(this._auAmount));
+                if (amount < minNext) { this.showToast('أقل مزايدة ' + minNext + ' نقطة'); return; }
+                const me = this.authUid, id = a.id, db = window.firebaseDb;
+                const held = top && top.uid === me ? numOr0(top.amount) : 0;
+                const charge = amount - held;
+                const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                const name = String((this.currentUser && this.currentUser.fullName) || 'طالب').slice(0, 40);
+                this._auBusy = true;
+                const btn = document.getElementById('auGo');
+                if (btn) btn.disabled = true;
+                let charged = false;
+                try {
+                    const left = await this.addPointsAtomic(-charge, { reject: true });
+                    if (left === null) { this.showToast('نقاطك ما تكفي لهاي المزايدة'); return; }
+                    charged = true;
+                    let prev = null;
+                    const res = await runTransaction(ref(db, 'auctionBids/' + id + '/top'), (cur) => {
+                        prev = cur;
+                        if (Date.now() >= numOr0(a.endsAt)) return undefined;
+                        if (cur && numOr0(cur.amount) > 0) {
+                            if (amount < numOr0(cur.amount) + step) return undefined;
+                            if ((cur.uid === me ? numOr0(cur.amount) : 0) !== held) return undefined;
+                        }
+                        return { uid: me, name, num: String((this.currentUser && this.currentUser.studentNumber) || ''), amount, at: Date.now() };
+                    });
+                    if (!res.committed) {
+                        await this.addPointsAtomic(charge);
+                        charged = false;
+                        this.showToast('في واحد زايد قبلك، شوف السعر الجديد وحاول مرة ثانية');
+                        return;
+                    }
+                    charged = false;
+                    if (prev && prev.uid && prev.uid !== me && numOr0(prev.amount) > 0) this._auRefund(id, prev);
+                    else if (!prev && held) this.addPointsAtomic(held);
+                    set(ref(db, 'auctionBids/' + id + '/log/' + Date.now() + '_' + me.slice(0, 6)), { uid: me, name, amount, at: Date.now() }).catch(() => {});
+                    if (numOr0(a.endsAt) - Date.now() < 120000) {
+                        runTransaction(ref(db, 'auction/current/endsAt'), (cur) => Math.max(numOr0(cur), Date.now() + 120000)).catch(() => {});
+                    }
+                    this.addWalletTransaction({ title: 'مزايدة: ' + String(a.title || '').slice(0, 40), amount: '-' + charge + ' نقطة', isNegative: true, icon: 'gavel', iconColor: '#F59E0B', iconBg: 'bg-warning/10' });
+                    this.showToast('صرت الأعلى بـ ' + amount + ' نقطة');
+                } catch (e) {
+                    console.warn('Bid failed:', e);
+                    if (charged) this.addPointsAtomic(charge);
+                    this.showToast('تعذرت المزايدة');
+                } finally {
+                    this._auBusy = false;
+                    this._auAmount = 0;
+                    this.renderAuction();
+                }
+            },
+
+            _auRefund(id, prev) {
+                const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                const db = window.firebaseDb, amt = numOr0(prev.amount);
+                runTransaction(ref(db, 'users/' + prev.uid + '/points'), (cur) => numOr0(cur) + amt).then((r) => {
+                    if (r.committed) set(ref(db, 'leaderboard/' + prev.uid + '/points'), r.snapshot.val()).catch(() => {});
+                }).catch((e) => console.warn('Auction refund failed:', e));
+                set(ref(db, 'auctionBids/' + id + '/refunds/' + prev.uid), { amount: amt, at: Date.now() }).catch(() => {});
+                const now = new Date(), pad = (n) => String(n).padStart(2, '0'), rid = Date.now();
+                set(ref(db, 'walletTransactions/' + prev.uid + '/' + rid), {
+                    id: rid, title: 'إرجاع مزايدة', amount: '+' + amt + ' نقطة', isNegative: false, icon: 'undo-2', iconColor: '#10B981', iconBg: 'bg-success/10',
+                    date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes())
+                }).catch(() => {});
+            },
+
             // ===== Grades progress (تطور درجاتي) =====
             // Marks (0-100) per subject across the Iraqi school-year periods. Kept on the
             // device (isp_grades) and mirrored to users/{uid}/grades when signed in.
@@ -10592,6 +11760,7 @@
             // ==================== MONTHLY CALENDAR / PROGRESS ====================
             logDailyActivity(deltas) {
                 if (!window.firebaseDb || !this.authUid) return;
+                this._twinReport(deltas);
                 const dateStr = this.localDateStr();
                 const { ref, runTransaction } = window.firebaseDbHelpers;
                 const path = 'userActivity/' + this.authUid + '/' + dateStr;
@@ -12911,7 +14080,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);

@@ -212,6 +212,7 @@
             <div class="nav-group-label">المالية والمتجر</div>
             <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
             <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
+            <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
 
             <div class="nav-group-label">الإدارة</div>
             <button class="tab" data-tab="ban"><span class="tab-ic"><i data-lucide="ban"></i></span><span>حظر طالب</span></button>
@@ -841,6 +842,55 @@
             </div>
 
             <!-- Ban Student -->
+            <div id="sec-auction" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="gavel"></i></div>
+                        <div>
+                            <h3>إطلاق مزاد نقاط</h3>
+                            <p>الطلاب يزايدون بنقاطهم والأعلى ياخذ الجائزة. نقاط اللي ينزايد عليه ترجعله تلقائياً</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>الجائزة *</label>
+                        <input type="text" id="au_title" maxlength="80" placeholder="مثال: ملزمة الفيزياء كاملة مجاناً">
+                    </div>
+                    <div class="field">
+                        <label>وصف (اختياري)</label>
+                        <input type="text" id="au_desc" maxlength="160" placeholder="مثال: تنرسل للفائز بصيغة PDF">
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>أقل مزايدة (نقطة)</label>
+                            <input type="number" id="au_min" value="100" min="1">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>أقل زيادة (نقطة)</label>
+                            <input type="number" id="au_step" value="10" min="1">
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:16px;">
+                        <label>ينتهي بتاريخ *</label>
+                        <input type="datetime-local" id="au_end">
+                    </div>
+                    <button class="btn mt-4" id="au_start">إطلاق المزاد</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="activity"></i></div>
+                        <div><h3>المزاد الحالي</h3><p>أعلى مزايد ورقمه حتى تسلمه الجائزة</p></div>
+                    </div>
+                    <div id="auCurrent"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="history"></i></div>
+                        <div><h3>المزادات السابقة</h3></div>
+                    </div>
+                    <div id="auHistory"></div>
+                </div>
+            </div>
+
             <div id="sec-ban" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -896,7 +946,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'store', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -932,7 +982,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
@@ -1776,11 +1826,135 @@
             });
         }
 
+
+        // ---------- Points auction ----------
+        // auction/current is what students see; auctionBids/{id}/top is the highest bid (its
+        // points are already held from that student). Ending keeps the winner in auctionHistory;
+        // cancelling gives the held points back.
+        let auCur = null, auBids = null, auBidsUnsub = null;
+        function loadAuction() {
+            const f = el('au_end');
+            if (f && !f.value) {
+                const d = new Date();
+                d.setDate(d.getDate() + (((5 - d.getDay() + 7) % 7) || 7));
+                d.setHours(21, 0, 0, 0);
+                const p = (n) => String(n).padStart(2, '0');
+                f.value = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+            onValue(ref(db, 'auction/current'), (snap) => {
+                const v = snap.val();
+                auCur = v && v.id ? v : null;
+                if (auBidsUnsub) { auBidsUnsub(); auBidsUnsub = null; }
+                auBids = null;
+                if (auCur) auBidsUnsub = onValue(ref(db, 'auctionBids/' + auCur.id), (s) => { auBids = s.val() || {}; renderAuAdmin(); });
+                renderAuAdmin();
+            });
+            onValue(ref(db, 'auctionHistory'), (snap) => {
+                const box = el('auHistory');
+                if (!box) return;
+                const list = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0)).slice(0, 20) : [];
+                box.innerHTML = list.length ? list.map((h) => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(h.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${h.winner ? 'الفائز: ' + escapeHtml(h.winner.name || '') + ' · رقم الطالب: ' + escapeHtml(h.winner.num || '-') + ' · ' + (Number(h.winner.amount) || 0) + ' نقطة' : 'بدون مزايدات'}</div>
+                        </div>
+                    </div>`).join('') : '<p class="list-empty">ماكو مزادات سابقة</p>';
+            });
+        }
+
+        function renderAuAdmin() {
+            const box = el('auCurrent');
+            if (!box) return;
+            if (!auCur) { box.innerHTML = '<p class="list-empty">ماكو مزاد شغال هسه</p>'; return; }
+            const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+            const ended = Date.now() >= Number(auCur.endsAt);
+            const log = auBids && auBids.log ? Object.values(auBids.log).sort((a, b) => (b.at || 0) - (a.at || 0)) : [];
+            box.innerHTML = `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(auCur.title || '')}</div>
+                        <div class="text-slate-400 text-xs">${ended ? 'انتهى' : 'ينتهي'}: ${new Date(Number(auCur.endsAt)).toLocaleString('en-GB')} · ${log.length} مزايدة</div>
+                    </div>
+                </div>
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold">${top ? (ended ? 'الفائز' : 'أعلى مزايدة') + ': ' + Number(top.amount) + ' نقطة' : 'ماكو مزايدات بعد'}</div>
+                        ${top ? `<div class="text-slate-400 text-xs">${escapeHtml(top.name || '')} · رقم الطالب: ${escapeHtml(top.num || '-')}</div>` : ''}
+                    </div>
+                </div>
+                ${log.slice(0, 10).map((b) => `<div class="row-item"><div class="flex-1 min-w-0 text-xs">${escapeHtml(b.name || '')}</div><div class="text-xs font-bold">${Number(b.amount) || 0}</div></div>`).join('')}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    ${ended ? '<button class="btn-sm" onclick="auArchive()">حفظ الفائز بالسجل وإغلاق المزاد</button>' : '<button class="btn-sm" onclick="auEndNow()">إنهاء الآن</button>'}
+                    <button class="del" onclick="auCancel()">إلغاء وإرجاع النقاط</button>
+                </div>`;
+        }
+
+        async function archiveAuction(a) {
+            const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+            await set(ref(db, 'auctionHistory/' + a.id), {
+                title: a.title || '',
+                endedAt: Math.min(Number(a.endsAt) || Date.now(), Date.now()),
+                archivedAt: Date.now(),
+                winner: top ? { name: top.name || '', num: top.num || '', amount: Number(top.amount), uid: top.uid || '' } : null
+            });
+        }
+
+        el('au_start').addEventListener('click', async () => {
+            const title = val('au_title');
+            const min = Math.max(1, Math.floor(Number(val('au_min')) || 0));
+            const step = Math.max(1, Math.floor(Number(val('au_step')) || 0));
+            const end = new Date(val('au_end')).getTime();
+            if (!title) { toast('اكتب الجائزة', false); return; }
+            if (!end || isNaN(end) || end <= Date.now() + 60000) { toast('اختار وقت انتهاء بالمستقبل', false); return; }
+            if (auCur && !confirm('أكو مزاد شغال. إطلاق مزاد جديد ينهي الحالي ويحفظ الفائز بيه بالسجل. تكمل؟')) return;
+            try {
+                if (auCur) await archiveAuction(auCur);
+                const id = 'a' + Date.now();
+                await set(ref(db, 'auction/current'), { id, title, desc: val('au_desc'), minBid: min, step, endsAt: end, createdAt: Date.now() });
+                toast('انطلق المزاد، وظهر عند الطلاب');
+                el('au_title').value = ''; el('au_desc').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل إطلاق المزاد', false);
+            }
+        });
+
+        window.auEndNow = () => {
+            if (!auCur || !confirm('تنهي المزاد هسه؟ أعلى مزايد يفوز.')) return;
+            update(ref(db, 'auction/current'), { endsAt: Date.now() }).then(() => toast('انتهى المزاد')).catch(() => toast('فشل إنهاء المزاد', false));
+        };
+
+        window.auArchive = async () => {
+            if (!auCur) return;
+            try {
+                await archiveAuction(auCur);
+                await set(ref(db, 'auction/current'), null);
+                toast('انحفظ الفائز بالسجل');
+            } catch (e) { console.warn(e); toast('فشل الحفظ', false); }
+        };
+
+        window.auCancel = async () => {
+            if (!auCur || !confirm('تلغي المزاد وترجع النقاط المحجوزة لأعلى مزايد؟')) return;
+            try {
+                const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+                if (top && top.uid) {
+                    const amt = Number(top.amount);
+                    const r = await runTransaction(ref(db, 'users/' + top.uid + '/points'), (cur) => (typeof cur === 'number' ? cur : 0) + amt);
+                    if (r.committed) await set(ref(db, 'leaderboard/' + top.uid + '/points'), r.snapshot.val());
+                    await set(ref(db, 'auctionBids/' + auCur.id + '/top'), null);
+                }
+                await set(ref(db, 'auction/current'), null);
+                toast('انلغى المزاد' + (top ? ' ورجعت النقاط' : ''));
+            } catch (e) { console.warn(e); toast('فشل إلغاء المزاد', false); }
+        };
+
         // FIX: loadLists() used to be called near the top of the module, before the
         // `let tickerData`, `let siteConfig`, ... declarations it writes to. It only worked
         // because the first snapshot happens to arrive asynchronously; a cached snapshot
         // would hit the temporal dead zone and throw. Calling it last removes that risk.
         loadLists();
+        loadAuction();
     </script>
 </body>
 </html>
