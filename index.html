@@ -1487,6 +1487,32 @@
         .pl-res.me span { color: #6D28D9; }
         .pl-res b { font-size: 12.5px; font-variant-numeric: tabular-nums; }
         .pl-all { display: block; margin: 8px auto 0; border: 0; background: none; font: inherit; font-size: 11.5px; font-weight: 700; color: var(--text2); cursor: pointer; }
+        /* ===== نافذة التأكيد (بدل نافذة المتصفح) ===== */
+        .ax-bg { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(3,8,7,.55); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); animation: axFade .22s ease; }
+        .ax-bg.out { animation: axFadeOut .2s ease forwards; }
+        .ax { width: 100%; max-width: 340px; padding: 24px 20px 18px; border-radius: 28px; text-align: center; color: var(--text); background: linear-gradient(var(--surface), var(--surface)), var(--bg); border: 1px solid rgba(127,127,127,.18); box-shadow: 0 30px 70px -20px rgba(0,0,0,.55); animation: axPop .38s cubic-bezier(.2,1.35,.4,1); }
+        .ax-bg.out .ax { animation: axDrop .2s ease forwards; }
+        .ax-ic { position: relative; width: 62px; height: 62px; margin: 0 auto 14px; border-radius: 22px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, var(--ax1), var(--ax2)); box-shadow: 0 12px 26px -8px var(--ax1); }
+        .ax-ic::after { content: ""; position: absolute; inset: -7px; border-radius: 27px; border: 2px solid var(--ax1); opacity: .35; animation: axRing 1.8s ease-out infinite; }
+        .ax-ic svg { width: 28px; height: 28px; }
+        .ax-t { display: block; font-size: 18px; font-weight: 900; }
+        .ax-p { margin: 7px 0 0; font-size: 13.5px; line-height: 1.75; color: var(--text2); }
+        .ax-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .ax-btns button { flex: 1; height: 50px; border-radius: 16px; font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform .15s; }
+        .ax-btns button:active { transform: scale(.96); }
+        .ax-btns button:focus { outline: none; }
+        .ax-btns button:focus-visible { outline: 2px solid var(--ax1); outline-offset: 2px; }
+        .ax-ok { border: 0; color: #fff; background: linear-gradient(135deg, var(--ax1), var(--ax2)); box-shadow: 0 10px 22px -10px var(--ax1); }
+        .ax-no { border: 1px solid rgba(127,127,127,.28); color: var(--text); background: rgba(127,127,127,.1); }
+        .ax.danger { --ax1: #E5484D; --ax2: #B42318; }
+        .ax.primary { --ax1: rgb(var(--p)); --ax2: #0B5E53; }
+        .ax.warn { --ax1: #F59E0B; --ax2: #C2410C; }
+        @keyframes axFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes axFadeOut { to { opacity: 0; } }
+        @keyframes axPop { from { opacity: 0; transform: translateY(24px) scale(.9); } to { opacity: 1; transform: none; } }
+        @keyframes axDrop { to { opacity: 0; transform: translateY(14px) scale(.96); } }
+        @keyframes axRing { from { transform: scale(.9); opacity: .45; } to { transform: scale(1.25); opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) { .ax, .ax-bg, .ax-ic::after { animation: none !important; } }
         /* ===== غابة العراق ===== */
         #forestView { animation: none !important; }
         body.forest-on #bottomNav, body.forest-on #appHeaderBar { display: none !important; }
@@ -6691,8 +6717,8 @@
                 }
             },
 
-            logout() {
-                if (confirm('هل أنت متأكد من تسجيل الخروج؟')) {
+            async logout() {
+                if (await this.ask({ icon: 'log-out', title: 'تسجيل الخروج', text: 'متأكد تريد تطلع من حسابك؟', ok: 'اطلع', cancel: 'ابقَ' })) {
                     this.leaveStudyRoom();
                     this.leaveVoiceRoom();
                     if (window.firebaseDb && this.authUid) {
@@ -8492,9 +8518,9 @@
                     `<button onclick="app.pickForestGov(${jsArg(r.g)})"><b>${escapeHtml(r.g)}</b><span>${r.t} شجرة${live[r.g] ? ' · ' + live[r.g] + ' يدرسون' : ''}</span></button>`).join('');
             },
 
-            forestBack() {
+            async forestBack() {
                 if (this._forest) {
-                    if (!confirm('إذا طلعت هسه تذبل شجرتك وتروح نقاط الجلسة. متأكد؟')) return;
+                    if (!(await this.ask({ icon: 'leaf', title: 'تطلع من الغابة؟', text: 'إذا طلعت هسه تذبل شجرتك وتروح نقاط الجلسة.', ok: 'اطلع', cancel: 'أكمل الدراسة' }))) return;
                     this.failForest('طلعت من صفحة الغابة', true);
                 }
                 this._frResult = null;
@@ -8686,9 +8712,9 @@
                 this.showToast('تمام، كمّل دراستك');
             },
 
-            quitForest() {
+            async quitForest() {
                 if (!this._forest) return;
-                if (!confirm('إذا انسحبت هسه تذبل شجرتك وتروح نقاط الجلسة. متأكد؟')) return;
+                if (!(await this.ask({ icon: 'leaf', title: 'تنسحب من الجلسة؟', text: 'إذا انسحبت هسه تذبل شجرتك وتروح نقاط الجلسة.', ok: 'انسحب', cancel: 'أكمل الدراسة' }))) return;
                 this.failForest('انسحبت قبل ما يخلص الوقت');
             },
 
@@ -8931,9 +8957,10 @@
                 lucide.createIcons();
             },
 
-            deleteDream(id) {
+            async deleteDream(id) {
                 const d = (this._dreams || []).find((x) => x.id === id);
-                if (!d || d.o !== this._dreamOwner() || !confirm('تحذف هذا الحلم من السما؟')) return;
+                if (!d || d.o !== this._dreamOwner()) return;
+                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف حلمك؟', text: 'يختفي من سما الأحلام وما يرجع.', ok: 'احذف' }))) return;
                 const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'dreams/' + id), null).then(() => this.showToast('انحذف الحلم')).catch(() => this.showToast('تعذر الحذف'));
             },
@@ -9536,9 +9563,9 @@
                 this.renderFocusResult(false, f.minutes, done, reason);
             },
 
-            giveUpFocus() {
+            async giveUpFocus() {
                 if (!this._focus) return;
-                if (!confirm('إذا أنهيت الجلسة الآن تنكسر وما تاخذ نقاطها. متأكد؟')) return;
+                if (!(await this.ask({ icon: 'timer-off', title: 'تنهي الجلسة؟', text: 'إذا أنهيتها هسه تنكسر وما تاخذ نقاطها.', ok: 'أنهِ الجلسة', cancel: 'أكمل' }))) return;
                 this.breakFocus('أنهيت الجلسة قبل وقتها');
             },
 
@@ -10005,8 +10032,10 @@
                 this.renderTwin();
             },
 
-            endTwin() {
-                if (!this._twinPairId || !confirm('تنهي التوأمة؟ يختفي تقدمكم المشترك وتكدر تدور على توأم جديد.')) return;
+            async endTwin() {
+                if (!this._twinPairId) return;
+                if (!(await this.ask({ icon: 'user-x', title: 'تنهي التوأمة؟', text: 'يختفي تقدمكم المشترك وتكدر تدور على توأم جديد.', ok: 'أنهِ التوأمة' }))) return;
+                if (!this._twinPairId) return;
                 const { ref, update } = window.firebaseDbHelpers;
                 const other = this._twinOther();
                 const upd = { ['twins/' + this._twinPairId + '/ended']: Date.now(), ['twinOf/' + this.authUid]: null };
@@ -10701,9 +10730,10 @@
                 this.renderGrades();
             },
 
-            removeGradeSubject() {
+            async removeGradeSubject() {
                 const s = this.gradesSubject;
-                if (!s || !confirm('تحذف مادة ' + s + ' وكل درجاتها؟')) return;
+                if (!s) return;
+                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف المادة؟', text: 'تنحذف مادة ' + s + ' وكل درجاتها.', ok: 'احذف' }))) return;
                 const g = this._gradesLoad();
                 g.subjects = g.subjects.filter((x) => x !== s);
                 delete g.marks[s];
@@ -13825,9 +13855,9 @@
                 }
             },
 
-            removeFriend(uid) {
+            async removeFriend(uid) {
                 if (!window.firebaseDb || !this.authUid) return;
-                if (!confirm('إلغاء الصداقة مع هذا الطالب؟')) return;
+                if (!(await this.ask({ icon: 'user-minus', title: 'تلغي الصداقة؟', text: 'ما يبقى بقائمة أصدقائك، وتكدرون ترجعون أصدقاء بطلب جديد.', ok: 'ألغِ الصداقة' }))) return;
                 const { ref, set } = window.firebaseDbHelpers;
                 Promise.all([
                     set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + uid), null),
@@ -13841,12 +13871,12 @@
                 });
             },
 
-            blockUser(uid) {
+            async blockUser(uid) {
                 if (!window.firebaseDb || !this.authUid) return;
                 const friend = friendsList.find(f => f.uid === uid);
                 const name = (friend && friend.name) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === uid ? this._pendingProfileTarget.name : '') || 'هذا الطالب';
                 const avatar = (friend && friend.avatar) || (this._pendingProfileTarget && this._pendingProfileTarget.uid === uid ? this._pendingProfileTarget.avatar : '') || '';
-                if (!confirm(name + ' — حظره يلغي الصداقة ويمنعه من مراسلتك؟')) return;
+                if (!(await this.ask({ icon: 'ban', title: 'تحظر ' + name + '؟', text: 'الحظر يلغي الصداقة ويمنعه من مراسلتك.', ok: 'احظر' }))) return;
                 const { ref, set, remove } = window.firebaseDbHelpers;
                 const payload = { uid, name, avatar, blockedAt: Date.now() };
                 Promise.all([
@@ -15718,9 +15748,9 @@
                 });
             },
 
-            deleteEntireChat() {
+            async deleteEntireChat() {
                 if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                if (!confirm('حذف هذه المحادثة من عندك؟ (تبقى عند الطرف الثاني)')) return;
+                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف المحادثة؟', text: 'تنحذف من عندك بس، وتبقى عند الطرف الثاني.', ok: 'احذف' }))) return;
                 const otherUid = this.currentChatUid;
                 const { ref, set } = window.firebaseDbHelpers;
                 Promise.all([
@@ -17389,6 +17419,40 @@
                 this._skipHistory = true;
                 this.switchView(target);
                 this._skipHistory = false;
+            },
+
+            // The app's own confirmation window (instead of the browser's confirm(), which shows
+            // the site address and can't be styled). Resolves true when the main button is pressed.
+            ask(o) {
+                const opt = typeof o === 'string' ? { text: o } : (o || {});
+                if (this._askDone) this._askDone(false);
+                return new Promise((resolve) => {
+                    const bg = document.createElement('div');
+                    bg.className = 'ax-bg';
+                    bg.innerHTML = `<div class="ax ${opt.tone || 'danger'}" role="alertdialog" aria-modal="true">
+                        <span class="ax-ic"><i data-lucide="${escapeHtml(opt.icon || 'alert-triangle')}"></i></span>
+                        ${opt.title ? `<b class="ax-t">${escapeHtml(opt.title)}</b>` : ''}
+                        ${opt.text ? `<p class="ax-p">${escapeHtml(opt.text)}</p>` : ''}
+                        <div class="ax-btns"><button class="ax-ok">${escapeHtml(opt.ok || 'تأكيد')}</button><button class="ax-no">${escapeHtml(opt.cancel || 'إلغاء')}</button></div>
+                    </div>`;
+                    const done = (v) => {
+                        if (this._askDone !== done) return;
+                        this._askDone = null;
+                        document.removeEventListener('keydown', key);
+                        bg.classList.add('out');
+                        setTimeout(() => bg.remove(), 200);
+                        resolve(v);
+                    };
+                    const key = (e) => { if (e.key === 'Escape') done(false); else if (e.key === 'Enter') done(true); };
+                    this._askDone = done;
+                    bg.addEventListener('click', (e) => { if (e.target === bg) done(false); });
+                    bg.querySelector('.ax-ok').addEventListener('click', () => done(true));
+                    bg.querySelector('.ax-no').addEventListener('click', () => done(false));
+                    document.addEventListener('keydown', key);
+                    document.body.appendChild(bg);
+                    try { lucide.createIcons(); } catch (e) {}
+                    setTimeout(() => bg.querySelector('.ax-no')?.focus(), 50);
+                });
             },
 
             showToast(message) {
