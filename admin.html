@@ -196,6 +196,24 @@
         .ds-help .cp code { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: ltr; text-align: left; word-break: break-all; }
         .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
         .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
+        /* confirmation window (instead of the browser's confirm / prompt) */
+        .ax-bg { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(2,6,23,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: axFade .2s ease; }
+        .ax-bg.out { animation: axFadeOut .18s ease forwards; }
+        .ax { width: 100%; max-width: 360px; padding: 24px 20px 18px; border-radius: 22px; text-align: center; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 30px 70px -20px rgba(0,0,0,.7); animation: axPop .32s cubic-bezier(.2,1.35,.4,1); }
+        .ax-ic { width: 56px; height: 56px; margin: 0 auto 12px; border-radius: 18px; display: grid; place-items: center; color: #fff; background: var(--ax1); box-shadow: 0 10px 24px -8px var(--ax1); }
+        .ax-ic svg { width: 26px; height: 26px; }
+        .ax-t { display: block; font-size: 17px; font-weight: 800; }
+        .ax-p { margin: 6px 0 0; font-size: 13px; line-height: 1.7; color: var(--text2); }
+        .ax input { margin-top: 14px; }
+        .ax-btns { display: flex; gap: 10px; margin-top: 18px; }
+        .ax-btns button { flex: 1; height: 46px; border-radius: 13px; font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+        .ax-ok { border: 0; color: #fff; background: var(--ax1); }
+        .ax-btns button:focus { outline: none; }
+        .ax-btns button:focus-visible { outline: 2px solid var(--ax1); outline-offset: 2px; }
+        .ax-no { border: 1px solid var(--border); color: var(--text); background: transparent; }
+        .ax.danger { --ax1: var(--danger); } .ax.primary { --ax1: var(--primary); } .ax.warn { --ax1: #D97706; }
+        @keyframes axFade { from { opacity: 0; } } @keyframes axFadeOut { to { opacity: 0; } }
+        @keyframes axPop { from { opacity: 0; transform: translateY(20px) scale(.92); } }
     </style>
 </head>
 <body>
@@ -1168,6 +1186,40 @@
             toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
 
+        // Confirmation window in the panel's own style. With `input` it also asks for text and
+        // resolves to that text (or null when cancelled); otherwise to true / false.
+        function ask(o) {
+            return new Promise((resolve) => {
+                const bg = document.createElement('div');
+                bg.className = 'ax-bg';
+                bg.innerHTML = `<div class="ax ${o.tone || 'danger'}" role="alertdialog" aria-modal="true">
+                    <span class="ax-ic"><i data-lucide="${escapeHtml(o.icon || 'alert-triangle')}"></i></span>
+                    <b class="ax-t">${escapeHtml(o.title || '')}</b>
+                    ${o.text ? `<p class="ax-p">${escapeHtml(o.text)}</p>` : ''}
+                    ${o.input !== undefined ? `<input type="text" class="ax-in" maxlength="200" placeholder="${escapeHtml(o.input)}">` : ''}
+                    <div class="ax-btns"><button class="ax-ok">${escapeHtml(o.ok || 'تأكيد')}</button><button class="ax-no">${escapeHtml(o.cancel || 'إلغاء')}</button></div>
+                </div>`;
+                const inp = bg.querySelector('.ax-in');
+                let closed = false;
+                const done = (yes) => {
+                    if (closed) return;
+                    closed = true;
+                    document.removeEventListener('keydown', key);
+                    bg.classList.add('out');
+                    setTimeout(() => bg.remove(), 180);
+                    resolve(inp ? (yes ? inp.value.trim() : null) : yes);
+                };
+                const key = (e) => { if (e.key === 'Escape') done(false); else if (e.key === 'Enter') done(true); };
+                bg.addEventListener('click', (e) => { if (e.target === bg) done(false); });
+                bg.querySelector('.ax-ok').addEventListener('click', () => done(true));
+                bg.querySelector('.ax-no').addEventListener('click', () => done(false));
+                document.addEventListener('keydown', key);
+                document.body.appendChild(bg);
+                try { lucide.createIcons(); } catch (e) {}
+                setTimeout(() => (inp || bg.querySelector('.ax-no')).focus(), 50);
+            });
+        }
+
         // Database keys can't contain . # $ [ ] or / (a "/" would silently create a nested path).
         const sanitize = (str) => String(str).replace(/[.#$\[\]\/]/g, '_');
 
@@ -1614,7 +1666,7 @@
             } catch (e) { console.warn(e); toast('فشل القبول', false); }
         };
         window.rejectStore = async (uid) => {
-            const reason = prompt('سبب الرفض (اختياري):');
+            const reason = await ask({ icon: 'store', title: 'ترفض المتجر؟', input: 'سبب الرفض (اختياري)', ok: 'ارفض' });
             if (reason === null) return; // FIX: pressing "Cancel" used to reject the store anyway
             try {
                 await update(ref(db, 'stores/' + uid), { status: 'rejected', rejectionReason: reason.trim() });
@@ -1755,12 +1807,13 @@
         }
 
         document.querySelectorAll('[data-cfg]').forEach(inp => {
-            inp.addEventListener('change', () => {
+            inp.addEventListener('change', async () => {
                 const path = inp.dataset.cfg;
                 // keep twin switches (same key in two tabs) in sync right away
                 document.querySelectorAll(`[data-cfg="${path}"]`).forEach(o => { o.checked = inp.checked; });
-                if (path === 'maintenance.enabled' && inp.checked && !confirm('تشغيل وضع الصيانة يمنع كل الطلاب من استخدام المنصة. متأكد؟')) {
-                    inp.checked = false; return;
+                if (path === 'maintenance.enabled' && inp.checked && !(await ask({ icon: 'wrench', tone: 'warn', title: 'تشغّل وضع الصيانة؟', text: 'يمنع كل الطلاب من استخدام المنصة لحد ما تطفيه.', ok: 'شغّل' }))) {
+                    document.querySelectorAll(`[data-cfg="${path}"]`).forEach(o => { o.checked = false; });
+                    return;
                 }
                 const name = inp.getAttribute('aria-label') || '';
                 cfgWrite({ [path.replace(/\./g, '/')]: inp.checked }, (inp.checked ? 'تم تشغيل: ' : 'تم إطفاء: ') + name);
@@ -2092,8 +2145,8 @@
             btn.disabled = false;
         }
 
-        window.removeDayStatus = (d, k) => {
-            if (!confirm('تحذف هذا الإعلان؟ الجواب يرجع يطلع من تقويم العطل.')) return;
+        window.removeDayStatus = async (d, k) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف هذا الإعلان؟', text: 'الجواب يرجع يطلع من تقويم العطل.', ok: 'احذف' }))) return;
             remove(ref(db, 'dayStatus/' + d + '/' + k)).then(() => toast('انحذف الإعلان')).catch(() => toast('فشل الحذف', false));
         };
 
@@ -2234,8 +2287,8 @@
         window.closePoll = (id) => {
             update(ref(db, 'polls/' + id), { closed: true }).then(() => toast('انتهى الاستطلاع')).catch(() => toast('فشل', false));
         };
-        window.deletePoll = (id) => {
-            if (!confirm('تحذف الاستطلاع ونتائجه؟')) return;
+        window.deletePoll = async (id) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف الاستطلاع؟', text: 'ينحذف الاستطلاع وكل نتائجه.', ok: 'احذف' }))) return;
             update(ref(db), { ['polls/' + id]: null, ['pollVotes/' + id]: null }).then(() => toast('انحذف الاستطلاع')).catch(() => toast('فشل الحذف', false));
         };
 
@@ -2259,8 +2312,8 @@
                     <div style="display:flex;gap:8px;margin-top:10px;"><button class="del" onclick="deleteDreamAdmin(${jsArg(d.id)})">حذف</button></div>
                 </div>`).join('');
         }
-        window.deleteDreamAdmin = (id) => {
-            if (!confirm('تحذف هذا الحلم؟')) return;
+        window.deleteDreamAdmin = async (id) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف هذا الحلم؟', text: 'يختفي من سما الأحلام عند كل الطلاب.', ok: 'احذف' }))) return;
             remove(ref(db, 'dreams/' + id)).then(() => toast('انحذف الحلم')).catch(() => toast('فشل الحذف', false));
         };
 
@@ -2344,7 +2397,7 @@
             const end = new Date(val('au_end')).getTime();
             if (!title) { toast('اكتب الجائزة', false); return; }
             if (!end || isNaN(end) || end <= Date.now() + 60000) { toast('اختار وقت انتهاء بالمستقبل', false); return; }
-            if (auCur && !confirm('أكو مزاد شغال. إطلاق مزاد جديد ينهي الحالي ويحفظ الفائز بيه بالسجل. تكمل؟')) return;
+            if (auCur && !(await ask({ icon: 'gavel', tone: 'warn', title: 'أكو مزاد شغال', text: 'إطلاق مزاد جديد ينهي الحالي ويحفظ الفائز بيه بالسجل.', ok: 'أطلق الجديد' }))) return;
             try {
                 if (auCur) await archiveAuction(auCur);
                 const id = 'a' + Date.now();
@@ -2357,8 +2410,8 @@
             }
         });
 
-        window.auEndNow = () => {
-            if (!auCur || !confirm('تنهي المزاد هسه؟ أعلى مزايد يفوز.')) return;
+        window.auEndNow = async () => {
+            if (!auCur || !(await ask({ icon: 'gavel', tone: 'warn', title: 'تنهي المزاد هسه؟', text: 'أعلى مزايد يفوز.', ok: 'أنهِ المزاد' })) || !auCur) return;
             update(ref(db, 'auction/current'), { endsAt: Date.now() }).then(() => toast('انتهى المزاد')).catch(() => toast('فشل إنهاء المزاد', false));
         };
 
@@ -2372,7 +2425,7 @@
         };
 
         window.auCancel = async () => {
-            if (!auCur || !confirm('تلغي المزاد وترجع النقاط المحجوزة لأعلى مزايد؟')) return;
+            if (!auCur || !(await ask({ icon: 'x-circle', title: 'تلغي المزاد؟', text: 'ترجع النقاط المحجوزة لأعلى مزايد.', ok: 'ألغِ المزاد' })) || !auCur) return;
             try {
                 const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
                 if (top && top.uid) {
