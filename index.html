@@ -1553,8 +1553,16 @@
         .fr-wind.gust { border-color: rgba(186,230,253,.6); box-shadow: 0 0 18px -4px rgba(186,230,253,.7); }
         .fr-wind.gust .fr-wind-ar i { animation: frGust .5s ease-in-out infinite alternate; }
         @keyframes frGust { from { width: 18px; } to { width: 22px; margin-left: -11px; } }
+        .fr-dim { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; background: radial-gradient(120% 90% at 50% 40%, rgba(10,16,28,.35), rgba(3,6,12,.9)); transition: opacity 1.5s ease; }
+        .fr-dim.dust { background: radial-gradient(120% 90% at 50% 40%, rgba(150,100,40,.35), rgba(80,50,20,.85)); }
+        .fr-flash { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; background: radial-gradient(90% 70% at 50% 40%, rgba(225,232,255,.95), rgba(200,210,255,.4)); }
+        .fr-wx { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 116px); left: 14px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 6px 11px 6px 7px; border-radius: 14px; background: rgba(2,14,10,.62); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); max-width: 60%; }
+        .fr-wx .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); color: #FDE68A; flex-shrink: 0; }
+        .fr-wx .ic svg { width: 18px; height: 18px; }
+        .fr-wx b { display: block; font-size: 12.5px; font-weight: 900; color: #F1F5F9; }
+        .fr-wx small { display: block; font-size: 9.5px; font-weight: 700; color: rgba(236,253,245,.6); white-space: nowrap; }
         .fr-credit { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sh, 0px) + 4px); z-index: 5; font-size: 8px; color: rgba(255,255,255,.35); text-align: center; pointer-events: none; direction: ltr; }
-        .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 112px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 168px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
         .fr-ticker span { overflow: hidden; text-overflow: ellipsis; }
         .fr-ticker svg { width: 15px; height: 15px; color: #86EFAC; flex-shrink: 0; }
         .fr-ticker.on { opacity: 1; transform: translate(-50%, 0); }
@@ -3777,6 +3785,9 @@
                     <div class="fr-title"><b>غابة العراق</b><small id="frSub"></small></div>
                     <div class="fr-mine" title="شجراتك"><i data-lucide="trees"></i><b id="frMineN">0</b></div>
                 </div>
+                <div class="fr-dim" id="frDim"></div>
+                <div class="fr-flash" id="frFlash"></div>
+                <div class="fr-wx" id="frWx"><span class="ic"></span><div><b>صحو</b><small></small></div></div>
                 <div class="fr-wind" id="frWind"><span class="fr-wind-ar"><i></i></span><div><small>رياح شمالية غربية</small><b><span id="frWindKm">14</span> كم/س</b></div></div>
                 <div class="fr-credit">Imagery: Copernicus Sentinel-2 2021 (ESA WorldCover) · Terrain: AWS Terrain Tiles</div>
                 <div class="fr-ticker" id="frTicker"></div>
@@ -4832,7 +4843,7 @@
             return out;
         }
 
-        const IRAQ_ASSETS = { dem: 'assets/iraq-dem.png', sat2: 'assets/iraq-sat-2k.jpg', sat4: 'assets/iraq-sat-4k.jpg', mask: 'assets/iraq-mask.png' };
+        const IRAQ_ASSETS = { dem: 'assets/iraq-dem.png', sat2: 'assets/iraq-sat-2k.jpg', sat4: 'assets/iraq-sat-4k.jpg', mask: 'assets/iraq-mask.png', clouds: 'assets/clouds.png' };
         let IRAQ_DEM = null;
         function loadIraqDem() {
             if (IRAQ_DEM !== null) return Promise.resolve(IRAQ_DEM);
@@ -5029,13 +5040,18 @@
                 // shadows drifting with the wind and sun glints on rivers, marshes and the Gulf.
                 this.pTer = this._prog(
                     'attribute vec3 p;attribute vec2 t;attribute vec3 q;uniform mat4 m;varying vec2 v;varying float d;varying vec3 wp;varying vec3 wn;void main(){v=t;d=length(p.xz);wp=p;wn=q;gl_Position=m*vec4(p,1.);}',
-                    'precision mediump float;uniform sampler2D s;uniform sampler2D k;uniform sampler2D z;uniform float r;uniform float T;uniform vec2 W;uniform vec3 E;uniform vec3 L;uniform float Q;varying vec2 v;varying float d;varying vec3 wp;varying vec3 wn;'
+                    'precision mediump float;uniform sampler2D s;uniform sampler2D k;uniform sampler2D z;uniform float r;uniform float T;uniform vec2 W;uniform vec3 E;uniform vec3 L;uniform float Q;uniform vec4 CL[12];uniform vec4 FL;uniform vec4 WX;varying vec2 v;varying float d;varying vec3 wp;varying vec3 wn;'
                     + 'float gust(vec2 a){return pow(.5+.5*sin(dot(a,W)*.55-T*.9),3.)*(.7+.3*sin(dot(a,vec2(-W.y,W.x))*1.3+T*.3));}'
-                    + 'void main(){vec3 c=texture2D(s,v).rgb;vec3 mk=texture2D(k,v).rgb*Q;vec3 n=normalize(wn);float dif=max(dot(n,L),0.);c*=.52+.58*dif;'
-                    + 'float g=gust(wp.xz);float rp=.5+.5*sin(dot(wp.xz,W)*70.-T*7.+sin(wp.x*23.+wp.z*9.)*2.);c+=mk.g*g*(.05+.08*rp)*vec3(.6,.8,.35);'
-                    + 'float cl=texture2D(z,v*2.3-W*T*.006).r*.62+texture2D(z,v*5.1-W*T*.009+.3).r*.38;c*=1.-.24*smoothstep(.58,.8,cl)*Q;'
-                    + 'if(mk.r>.02){vec2 fl=W*T*.02;float h1=texture2D(z,v*38.+fl).r,h2=texture2D(z,v*61.-fl.yx*1.3).r;vec3 n2=normalize(vec3((h1-.5)*.9,1.,(h2-.5)*.9));vec3 vd=normalize(E-wp);float sp=pow(max(dot(reflect(-L,n2),vd),0.),40.);float fr=pow(1.-max(vd.y,0.),3.);vec3 wc=mix(c*vec3(.8,.95,1.05),vec3(.1,.22,.3),.3)+vec3(1.,.93,.78)*sp*1.4+vec3(.5,.62,.7)*fr*.25;c=mix(c,wc,mk.r);}'
-                    + 'c=mix(c,vec3(.55,.62,.66),smoothstep(10.,30.,length(E-wp))*.28);'
+                    + 'void main(){vec3 c=texture2D(s,v).rgb;vec3 mk=texture2D(k,v).rgb*Q;vec3 n=normalize(wn);float dif=max(dot(n,L),0.);float I=WX.x;c*=(.52+.58*dif)*mix(.62,1.,I);'
+                    + 'float g=gust(wp.xz)*WX.w;float rp=.5+.5*sin(dot(wp.xz,W)*70.-T*7.+sin(wp.x*23.+wp.z*9.)*2.);c+=mk.g*g*(.05+.08*rp)*vec3(.6,.8,.35);'
+                    // cloud shadows and wet ground under the real clouds (x, z, radius, rain*9 + shadow)
+                    + 'float nz=texture2D(z,v*7.+W*T*.004).r,sh=0.,wet=0.;for(int i=0;i<12;i++){vec4 q=CL[i];if(q.z<=0.)continue;float dd=length(wp.xz-q.xy)/q.z+(nz-.5)*.45;float kk=1.-smoothstep(.3,1.,dd);sh=max(sh,kk*fract(q.w));wet=max(wet,kk*floor(q.w)/9.);}'
+                    + 'c*=1.-sh;c=mix(c,c*vec3(.66,.72,.78),wet*.7);'
+                    + 'if(WX.z>.5){float cl=texture2D(z,v*2.3-W*T*.006).r*.62+texture2D(z,v*5.1-W*T*.009+.3).r*.38;c*=1.-.24*smoothstep(.58,.8,cl)*Q;}'
+                    + 'if(mk.r>.02){vec2 fl=W*T*.02*(.6+WX.w);float h1=texture2D(z,v*38.+fl).r,h2=texture2D(z,v*61.-fl.yx*1.3).r;vec3 n2=normalize(vec3((h1-.5)*(.9+wet),1.,(h2-.5)*(.9+wet)));vec3 vd=normalize(E-wp);float sp=pow(max(dot(reflect(-L,n2),vd),0.),40.)*I*(1.-sh);float fr=pow(1.-max(vd.y,0.),3.);vec3 wc=mix(c*vec3(.8,.95,1.05),vec3(.1,.22,.3),.3)+vec3(1.,.93,.78)*sp*1.4+vec3(.5,.62,.7)*fr*.25;c=mix(c,wc,mk.r);}'
+                    + 'c=mix(c,vec3(.78,.62,.42)*mix(.7,1.,I),WX.y*(.4+.25*nz));'
+                    + 'c+=vec3(.72,.78,1.)*FL.w*(.12+.9*(1.-smoothstep(0.,FL.z,length(wp.xz-FL.xy))));'
+                    + 'c=mix(c,mix(vec3(.25,.28,.32),vec3(.55,.62,.66),I),smoothstep(10.,30.,length(E-wp))*.28);'
                     + 'float e=smoothstep(0.,.07,v.x)*smoothstep(1.,.93,v.x)*smoothstep(0.,.07,v.y)*smoothstep(1.,.93,v.y);c*=1.-smoothstep(3.5,7.5,d)*.4;gl_FragColor=vec4(c,e*r);}');
                 this.pSpr = this._prog(
                     'attribute vec3 p;attribute vec4 c;attribute float z;uniform mat4 m;uniform float k;varying vec4 q;void main(){vec4 w=m*vec4(p,1.);gl_Position=w;gl_PointSize=max(1.,z*k/w.w);q=c;}',
@@ -5313,7 +5329,7 @@
 
             frame(ts) {
                 const gl = this.gl, cv = this.canvas, now = ts / 1000;
-                const dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
+                const dpr = Math.min(this.maxDpr || 2, window.devicePixelRatio || 1), w = Math.round(cv.clientWidth * dpr), h = Math.round(cv.clientHeight * dpr);
                 if (!w || !h) return;
                 if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
                 const idle = performance.now() - (this.lastTouch || 0) > 2500;
@@ -5345,6 +5361,11 @@
                     gl.uniform3fv(U('E'), this.eye);
                     gl.uniform3fv(U('L'), this.sun);
                     gl.uniform1f(U('Q'), this.maskTex ? 1 : 0);
+                    // weather (the forest map fills this; the war map keeps its drifting noise shadows)
+                    const wu = this.wxU;
+                    gl.uniform4fv(U('CL[0]'), wu ? wu.cl : this._clZero || (this._clZero = new Float32Array(48)));
+                    gl.uniform4fv(U('FL'), wu ? wu.fl : [0, 0, 1, 0]);
+                    gl.uniform4fv(U('WX'), wu ? wu.wx : [1, 0, 1, 1]);
                     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
                     gl.uniform1i(U('s'), 0);
                     gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.maskTex || this.noiseTex);
@@ -5437,6 +5458,7 @@
                     'precision mediump float;varying vec3 q;void main(){vec2 d=gl_PointCoord*2.-1.;d.y*=1.9;float r=dot(d,d);if(r>1.)discard;gl_FragColor=vec4(q*(.75+.35*(1.-r)),1.);}');
                 this.bL = { a: new Float32Array(9 * 400), n: 0, cap: 400, b: this.gl.createBuffer() };
                 this._treeSetup();
+                this._wxSetup();
                 this._bindTap();
             }
 
@@ -5518,24 +5540,24 @@
                 this.atlas = this._treeAtlas();
                 this.meshes = this._treeMeshes();
                 this.pTree = this._prog(
-                    'attribute vec3 p;attribute vec3 n;attribute vec4 t;attribute vec3 c;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform float T;uniform vec2 W;'
+                    'attribute vec3 p;attribute vec3 n;attribute vec4 t;attribute vec3 c;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform float T;uniform vec2 W;uniform float WS;'
                     + 'varying vec2 vt;varying vec3 vn;varying vec3 vc;varying float vm;varying float vw;varying float vh;varying vec3 vp;'
                     + 'float gust(vec2 a){return pow(.5+.5*sin(dot(a,W)*.55-T*.9),3.)*(.7+.3*sin(dot(a,vec2(-W.y,W.x))*1.3+T*.3));}'
                     + 'void main(){float s=ia.x*ib.x,cy=cos(ia.y),sy=sin(ia.y);vec3 q=vec3(p.x*cy-p.z*sy,p.y,p.x*sy+p.z*cy);vec3 nn=vec3(n.x*cy-n.z*sy,n.y,n.x*sy+n.z*cy);'
                     + 'if(ib.z>0.){vec2 fd=vec2(cos(ia.z),sin(ia.z));float a=ib.z*1.45,ca=cos(a),sa=sin(a),h=dot(q.xz,fd);float nh=h*ca+q.y*sa;q.y=-h*sa+q.y*ca;q.xz+=fd*(nh-h);}'
-                    + 'float g=gust(ip.xz),b=t.z*t.z;float sw=sin(T*1.7+ia.z)*.22+sin(T*3.3+ia.z*1.7)*.07+g*1.05;'
+                    + 'float g=gust(ip.xz)*WS,b=t.z*t.z;float sw=(sin(T*1.7+ia.z)*.22+sin(T*3.3+ia.z*1.7)*.07)*(.5+.5*WS)+g*1.05;'
                     + 'q.xz+=W*sw*b*.1+vec2(-W.y,W.x)*sin(T*2.1+ia.z)*b*.025;q.y-=abs(sw)*b*.025;'
                     + 'if(t.w>1.5){q+=nn*sin(T*11.+ia.z*5.+p.x*23.+p.z*17.+p.y*31.)*.018*(.35+g*1.8)*t.z;}'
                     + 'vec3 w=ip+q*s;gl_Position=m*vec4(w,1.);vt=t.xy;vn=nn;vc=c*(.9+.2*fract(ia.z*7.13));vm=t.w;vw=ib.y;vh=p.y;vp=w;}',
-                    'precision mediump float;uniform sampler2D A;uniform vec3 L;uniform vec3 E;varying vec2 vt;varying vec3 vn;varying vec3 vc;varying float vm;varying float vw;varying float vh;varying vec3 vp;'
+                    'precision mediump float;uniform sampler2D A;uniform vec3 L;uniform vec3 E;uniform float I;uniform vec4 FL;varying vec2 vt;varying vec3 vn;varying vec3 vc;varying float vm;varying float vw;varying float vh;varying vec3 vp;'
                     + 'void main(){vec2 uv;if(vm<.5)uv=vec2(.5+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<1.5)uv=vec2(.75+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<2.5)uv=vec2(vt.x*.5,vt.y*.5);else if(vm<3.5)uv=vec2(.5+vt.x*.5,vt.y*.5);else uv=vec2(vt.x*.5,.5+vt.y*.5);'
                     + 'vec4 tx=texture2D(A,uv);if(tx.a<.45)discard;vec3 N=normalize(vn);if(vm<2.5&&!gl_FrontFacing)N=-N;'
                     + 'float dif=max(dot(N,L),0.),lf=step(1.5,vm),tr=max(dot(-N,L),0.)*.5*lf;vec3 amb=mix(vec3(.3,.26,.2),vec3(.55,.66,.8),N.y*.5+.5)*.62;float ao=.5+.5*clamp(vh*1.25,0.,1.);'
-                    + 'vec3 col=tx.rgb*vc*(amb+vec3(1.,.93,.8)*(dif*.95+tr))*ao;col=mix(col,vec3(.45,.32,.19)*(.45+.55*dif),vw);col=mix(col,vec3(.55,.62,.66),smoothstep(10.,30.,length(E-vp))*.28);gl_FragColor=vec4(col,1.);}');
+                    + 'vec3 col=tx.rgb*vc*(amb+vec3(1.,.93,.8)*(dif*.95+tr))*ao;col=mix(col,vec3(.45,.32,.19)*(.45+.55*dif),vw);col*=mix(.55,1.,I);col+=tx.rgb*vec3(.7,.75,1.)*FL.w*(.25+.9*(1.-smoothstep(0.,FL.z,length(vp.xz-FL.xy))));col=mix(col,mix(vec3(.25,.28,.32),vec3(.55,.62,.66),I),smoothstep(10.,30.,length(E-vp))*.28);gl_FragColor=vec4(col,1.);}');
                 // soft ground shadows cast away from the sun
                 this.pShd = this._prog(
-                    'attribute vec2 o;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform vec3 L;varying vec2 vo;varying float va;'
-                    + 'void main(){float s=ia.x*ib.x*(1.-ib.z*.6);vec2 sd=-normalize(L.xz),pd=vec2(-sd.y,sd.x);vec2 xz=ip.xz+(sd*(o.y*.5+.32)+pd*o.x*.3)*s;gl_Position=m*vec4(xz.x,ip.y+.003,xz.y,1.);vo=o;va=1.-ib.y*.6;}',
+                    'attribute vec2 o;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform vec3 L;uniform float I;varying vec2 vo;varying float va;'
+                    + 'void main(){float s=ia.x*ib.x*(1.-ib.z*.6);vec2 sd=-normalize(L.xz),pd=vec2(-sd.y,sd.x);vec2 xz=ip.xz+(sd*(o.y*.5+.32)+pd*o.x*.3)*s;gl_Position=m*vec4(xz.x,ip.y+.003,xz.y,1.);vo=o;va=(1.-ib.y*.6)*I;}',
                     'precision mediump float;varying vec2 vo;varying float va;void main(){float r=dot(vo,vo);if(r>1.)discard;gl_FragColor=vec4(0.,.02,0.,(1.-r)*(1.-r)*.45*va);}');
                 this.bQuad = this._buf(new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]));
                 this.iBuf = {};
@@ -5800,7 +5822,8 @@
                 // shadows
                 let P = this.pShd;
                 gl.useProgram(P);
-                gl.uniformMatrix4fv(un(P, 'm'), false, M); gl.uniform3fv(un(P, 'L'), this.sun);
+                const wx = this.wxU ? this.wxU.wx : [1, 0, 0, 1], fl = this.wxU ? this.wxU.fl : [0, 0, 1, 0];
+                gl.uniformMatrix4fv(un(P, 'm'), false, M); gl.uniform3fv(un(P, 'L'), this.sun); gl.uniform1f(un(P, 'I'), wx[0]);
                 const ls = { o: loc(P, 'o'), ip: loc(P, 'ip'), ia: loc(P, 'ia'), ib: loc(P, 'ib') };
                 gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.DEPTH_TEST);
                 Object.keys(this.iBuf).forEach((k) => {
@@ -5817,6 +5840,7 @@
                 gl.useProgram(P);
                 gl.uniformMatrix4fv(un(P, 'm'), false, M); gl.uniform1f(un(P, 'T'), T); gl.uniform2fv(un(P, 'W'), this.wind);
                 gl.uniform3fv(un(P, 'L'), this.sun); gl.uniform3fv(un(P, 'E'), this.eye);
+                gl.uniform1f(un(P, 'I'), wx[0]); gl.uniform4fv(un(P, 'FL'), fl); gl.uniform1f(un(P, 'WS'), wx[3]);
                 gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.atlas); gl.uniform1i(un(P, 'A'), 0);
                 const lt = { p: loc(P, 'p'), n: loc(P, 'n'), t: loc(P, 't'), c: loc(P, 'c'), ip: loc(P, 'ip'), ia: loc(P, 'ia'), ib: loc(P, 'ib') };
                 gl.disable(gl.BLEND); gl.depthMask(true);
@@ -5832,11 +5856,13 @@
                 });
                 // leaves torn off by the gusts
                 this._leaves(now, M, h);
+                // clouds, rain shafts, rain and dust, on top of everything on the ground
+                this._drawWeather(M, h, now);
             }
 
             _gust(x, z, now) {
                 const W = this.wind, T = now % 1000;
-                return Math.pow(0.5 + 0.5 * Math.sin((x * W[0] + z * W[1]) * 0.55 - T * 0.9), 3) * (0.7 + 0.3 * Math.sin((-x * W[1] + z * W[0]) * 1.3 + T * 0.3));
+                return (this.ws || 1) * Math.pow(0.5 + 0.5 * Math.sin((x * W[0] + z * W[1]) * 0.55 - T * 0.9), 3) * (0.7 + 0.3 * Math.sin((-x * W[1] + z * W[0]) * 1.3 + T * 0.3));
             }
             _hAt(x, z) { return this._h(Math.max(0, Math.min(1, x / this.W + 0.5)), Math.max(0, Math.min(1, z / this.H + 0.5))) * this.HS; }
 
@@ -5885,32 +5911,279 @@
                 gl.disableVertexAttribArray(lp); gl.disableVertexAttribArray(lc); gl.disableVertexAttribArray(lz);
             }
 
-            // Wind streaks: thin white trails flowing with the shamal, brighter inside a gust.
-            _windStreaks(add, now) {
-                const W = this.wind, P = [-W[1], W[0]], bx = this.box;
-                const spawn = (s, any) => {
-                    const t = any ? Math.random() : 0;
-                    // start somewhere up-wind of the map and cross it
-                    const cx = (bx[0] + bx[1]) / 2, cz = (bx[2] + bx[3]) / 2, span = 7;
-                    const o = (Math.random() - 0.5) * span * 1.6, back = -span * 0.75 + t * span * 1.5;
-                    s.x = cx + P[0] * o + W[0] * back; s.z = cz + P[1] * o + W[1] * back;
-                    s.v = 0.9 + Math.random() * 0.6; s.ph = Math.random() * 6.28; s.amp = 0.03 + Math.random() * 0.05; s.len = 34 + Math.floor(Math.random() * 26);
-                    s.t = 0; s.life = 2.5 + Math.random() * 2.5; s.hy = 0.1 + Math.random() * 0.25;
-                    return s;
+            // Weather ---------------------------------------------------------------------------
+            // One clock for every student: each 4-minute cycle is a thunderstorm, fair weather
+            // clouds, another storm or a dust storm. Clouds are lit puffs drifting with the wind
+            // and casting shadows; storm cells darken, rain (streaks + rain shafts) and throw
+            // lightning that lights up the clouds and the ground.
+            _wxSetup() {
+                const gl = this.gl;
+                this.pCloud = this._prog(
+                    'attribute vec3 p;attribute vec2 o;attribute vec2 s;attribute vec4 q;uniform mat4 m;uniform vec3 R;uniform vec3 U;uniform vec3 E;uniform float Z;varying vec2 vu;varying vec4 vq;varying float vf;'
+                    + 'void main(){float vr=mod(q.w,10.);vec3 up=vr>2.5?vec3(0.,1.,0.):U;vec3 w=p+R*o.x*s.x+up*o.y*s.y;gl_Position=m*vec4(w,1.);vec2 b=vec2(mod(vr,2.),floor(vr/2.))*.5;vu=b+(o*vec2(.5,-.5)+.5)*.5;vq=q;vf=smoothstep(Z*.45,Z*1.3,length(E-p));}',
+                    'precision mediump float;uniform sampler2D C;uniform float I;varying vec2 vu;varying vec4 vq;varying float vf;'
+                    + 'void main(){vec4 t=texture2D(C,vu);float a=t.a*vq.y*vf;if(a<.004)discard;vec3 tp,bt;'
+                    + 'if(vq.w>9.5){tp=vec3(.88,.74,.54);bt=vec3(.6,.46,.3);}else{tp=mix(vec3(1.,.99,.97),vec3(.4,.43,.5),vq.x);bt=mix(vec3(.5,.56,.66),vec3(.06,.07,.1),vq.x);}'
+                    + 'vec3 c=mix(bt,tp,t.r)*mix(.72,1.,I)+vec3(.78,.82,1.)*vq.z*(.35+t.g);gl_FragColor=vec4(c,a);}');
+                this.pLine = this._prog(
+                    'attribute vec3 p;attribute float a;uniform mat4 m;varying float va;void main(){gl_Position=m*vec4(p,1.);va=a;}',
+                    'precision mediump float;uniform vec4 C;varying float va;void main(){gl_FragColor=vec4(C.rgb,C.a*va);}');
+                this.cBuf = { a: new Float32Array(6 * 11 * 700), b: gl.createBuffer() };
+                this.lBuf = { a: new Float32Array(2 * 4 * 1400), b: gl.createBuffer() };
+                this.clouds = []; this.bolts = []; this.q = 1; this.maxDpr = 2; this._ema = 16;
+                this.wxU = { cl: new Float32Array(48), fl: new Float32Array([0, 0, 1, 0]), wx: new Float32Array([1, 0, 0, 1]) };
+                this.cAtlas = null;
+                this._cloudAtlas();
+            }
+
+            // Baked 2x2 atlas (assets/clouds.png): three cumulus clouds shaded from 3D billows
+            // (R = light, G = thickness, A = coverage) and a rain shaft.
+            _cloudAtlas() {
+                const im = new Image();
+                im.onload = () => {
+                    const gl = this.gl, t = gl.createTexture();
+                    gl.bindTexture(gl.TEXTURE_2D, t);
+                    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, im);
+                    gl.generateMipmap(gl.TEXTURE_2D);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                    this.cAtlas = t;
                 };
-                if (!this.streaks.length) for (let i = 0; i < 36; i++) this.streaks.push(spawn({}, true));
-                const dt = Math.min(0.05, now - (this._st || now)); this._st = now;
-                this.streaks.forEach((s) => {
-                    s.t += dt; s.x += W[0] * s.v * dt; s.z += W[1] * s.v * dt;
-                    if (s.t > s.life) spawn(s, true);
-                    const life = Math.sin(Math.PI * s.t / s.life), g = this._gust(s.x, s.z, now), A = life * (0.22 + 1.1 * g);
-                    if (A < 0.02) return;
-                    for (let j = 0; j < s.len; j++) {
-                        const f = j / s.len, wob = Math.sin(j * 0.15 + s.ph + now * 2.2) * s.amp;
-                        const x = s.x - W[0] * j * 0.02 + P[0] * wob, z = s.z - W[1] * j * 0.02 + P[1] * wob;
-                        add(x, this._hAt(x, z) + s.hy + Math.sin(j * 0.2 + s.ph) * 0.02, z, [0.92, 0.97, 1], Math.min(1, A * (1 - f) * (j ? 0.42 : 1)), (j ? 0.03 : 0.05) * (1 - f * 0.5));
+                im.src = IRAQ_ASSETS.clouds;
+            }
+
+            _weatherAt(t) {
+                const L = 240000, c = Math.floor(t / L), u = (t - c * L) / L, kind = ['storm', 'fair', 'storm', 'dust'][((c % 4) + 4) % 4];
+                const ramp = (a, b, x) => Math.max(0, Math.min(1, (x - a) / (b - a))), bell = (a, b, c2, e, x) => ramp(a, b, x) * (1 - ramp(c2, e, x));
+                let cover = 0.25, dark = 0, rain = 0, thunder = 0, dust = 0, ws = 0.7;
+                if (kind === 'storm') { cover = 0.25 + 0.75 * bell(0.06, 0.3, 0.8, 0.97, u); dark = bell(0.26, 0.42, 0.74, 0.88, u); rain = bell(0.38, 0.48, 0.76, 0.88, u); thunder = bell(0.44, 0.5, 0.72, 0.78, u); ws = 0.7 + 0.9 * bell(0.28, 0.44, 0.74, 0.86, u); }
+                else if (kind === 'fair') { cover = 0.2 + 0.5 * bell(0.08, 0.38, 0.62, 0.92, u); ws = 0.6; }
+                else { cover = 0.12; dust = bell(0.12, 0.36, 0.66, 0.9, u); ws = 0.7 + 1.1 * dust; }
+                return { kind, u, cover, dark, rain, thunder, dust, ws, L, c };
+            }
+            _wxLabel(w) {
+                return w.dust > 0.3 ? ['wind', 'عاصفة ترابية'] : w.thunder > 0.25 ? ['cloud-lightning', 'عاصفة رعدية'] : w.rain > 0.3 ? ['cloud-rain', 'مطر'] : w.dark > 0.3 ? ['cloud', 'غيوم سوداء'] : w.cover > 0.55 ? ['cloudy', 'غائم'] : w.cover > 0.32 ? ['cloud-sun', 'غائم جزئياً'] : ['sun', 'صحو'];
+            }
+
+            _spawnCloud(type, anywhere) {
+                const W = this.wind, P = [-W[1], W[0]], bx = this.box, C = [(bx[0] + bx[1]) / 2, (bx[2] + bx[3]) / 2];
+                const r = (a, b) => a + Math.random() * (b - a);
+                const along = anywhere ? r(-5.5, 5.5) : r(-7.5, -6.5), side = type === 'storm' ? r(-2.8, 2.8) : r(-6, 6);
+                const cl = { type, x: C[0] + W[0] * along + P[0] * side, z: C[1] + W[1] * along + P[1] * side, born: this._now || 0, die: 0, puffs: [] };
+                if (type === 'storm') {
+                    cl.r = r(1.1, 1.6); cl.y = 0.9; cl.spd = r(0.05, 0.08);
+                    const n = Math.round(34 * (0.6 + 0.4 * this.q));
+                    for (let i = 0; i < n; i++) {
+                        const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()), top = i > n * 0.78;
+                        const h = top ? r(1.05, 1.25) : Math.max(0, 1 - rr) * r(0.3, 1.0);
+                        cl.puffs.push({ dx: Math.cos(a) * rr * cl.r * (top ? 1.25 : 0.85), dz: Math.sin(a) * rr * cl.r * (top ? 1.25 : 0.85), dy: h, s: top ? r(0.8, 1.15) : r(0.6, 1.0), v: Math.floor(Math.random() * 3), a: r(0.8, 1), fl: Math.random() < 0.5 ? -1 : 1 });
+                    }
+                } else if (type === 'dust') {
+                    cl.r = r(0.8, 1.4); cl.y = 0.06; cl.spd = r(0.3, 0.42);
+                    for (let i = 0; i < 7; i++) cl.puffs.push({ dx: r(-1, 1) * cl.r, dz: r(-0.6, 0.6) * cl.r, dy: r(0, 0.18), s: r(1.0, 1.7), v: Math.floor(Math.random() * 3), a: r(0.6, 0.95), fl: Math.random() < 0.5 ? -1 : 1 });
+                } else {
+                    cl.r = r(0.35, 0.7); cl.y = r(1.0, 1.25); cl.spd = r(0.1, 0.16);
+                    const n = 2 + Math.round(Math.random() * 3 * this.q);
+                    for (let i = 0; i < n; i++) {
+                        const a = Math.random() * 6.283, rr = Math.sqrt(Math.random());
+                        cl.puffs.push({ dx: Math.cos(a) * rr * cl.r, dz: Math.sin(a) * rr * cl.r * 0.7, dy: Math.max(0, 1 - rr) * r(0.02, 0.12), s: r(0.6, 1.0), v: Math.floor(Math.random() * 3), a: r(0.85, 1), fl: Math.random() < 0.5 ? -1 : 1 });
+                    }
+                }
+                this.clouds.push(cl);
+                return cl;
+            }
+
+            _wxStep(now) {
+                const dt = Math.min(0.1, now - (this._now || now)); this._now = now;
+                const w = this.wx = this._weatherAt(Date.now() + (this.wxShift || 0));
+                this.ws = w.ws;
+                const W = this.wind, bx = this.box, C = [(bx[0] + bx[1]) / 2, (bx[2] + bx[3]) / 2], first = !this._wxInit;
+                this._wxInit = true;
+                const want = { small: Math.round((3 + 15 * w.cover) * this.q), storm: w.dark > 0.04 ? (this.q > 0.7 ? 3 : 2) : 0, dust: w.dust > 0.05 ? Math.round(14 * this.q) : 0 };
+                ['small', 'storm', 'dust'].forEach((t) => {
+                    const alive = this.clouds.filter((c) => c.type === t && !c.die);
+                    for (let i = alive.length; i < want[t]; i++) this._spawnCloud(t, first || t === 'storm');
+                    for (let i = want[t]; i < alive.length; i++) alive[i].die = now;
+                });
+                this.clouds = this.clouds.filter((c) => {
+                    c.x += W[0] * c.spd * (0.5 + 0.5 * w.ws) * dt; c.z += W[1] * c.spd * (0.5 + 0.5 * w.ws) * dt;
+                    const inF = Math.min(1, (now - c.born) / (c.type === 'storm' ? 10 : 6)), outF = c.die ? 1 - (now - c.die) / 7 : 1;
+                    c.f = Math.max(0, Math.min(inF, outF));
+                    if (c.die && outF <= 0) return false;
+                    if ((c.x - C[0]) * W[0] + (c.z - C[1]) * W[1] > 7.5) { if (!c.die) this._spawnCloud(c.type, false); return false; }
+                    return true;
+                });
+                // lightning
+                const storms = this.clouds.filter((c) => c.type === 'storm' && c.f > 0.5);
+                if (w.thunder > 0.05 && storms.length && Math.random() < dt * (0.25 + 1.1 * w.thunder)) {
+                    const c = storms[Math.floor(Math.random() * storms.length)], a = Math.random() * 6.283, rr = Math.random() * c.r * 0.6;
+                    const sx = c.x + Math.cos(a) * rr, sz = c.z + Math.sin(a) * rr, gx = sx + (Math.random() - 0.5) * 0.4, gz = sz + (Math.random() - 0.5) * 0.4;
+                    this.bolts.push({ t0: now, pts: this._boltPath([sx, c.y + 0.25, sz], [gx, this._hAt(gx, gz), gz]), x: gx, z: gz, cl: c });
+                }
+                let flash = 0, fx = 0, fz = 0;
+                this.bolts = this.bolts.filter((b) => {
+                    const u = now - b.t0;
+                    const bl = this.boltLife || 0.55;
+                    if (u > bl) return false;
+                    b.i = [1, 0.25, 0.95, 0.4, 0.8, 0.15][Math.min(5, Math.floor(u / 0.06))] * (1 - u / bl);
+                    if (b.i > flash) { flash = b.i; fx = b.x; fz = b.z; }
+                    return true;
+                });
+                this.flash = flash;
+                // uniforms: light, dust, wind; the 12 biggest clouds' shadows and rain
+                const U = this.wxU;
+                U.wx[0] = 1 - 0.55 * w.dark - 0.35 * w.dust - 0.12 * w.cover; U.wx[1] = w.dust; U.wx[2] = 0; U.wx[3] = w.ws;
+                U.fl[0] = fx; U.fl[1] = fz; U.fl[2] = 2.2; U.fl[3] = flash * 0.9;
+                U.cl.fill(0);
+                const L = this.sun;
+                this.clouds.filter((c) => c.type !== 'dust' && c.f > 0.02).sort((a, b) => b.r - a.r).slice(0, 12).forEach((c, i) => {
+                    const k = c.y / L[1], storm = c.type === 'storm';
+                    U.cl[i * 4] = c.x - L[0] * k; U.cl[i * 4 + 1] = c.z - L[2] * k; U.cl[i * 4 + 2] = c.r * (storm ? 1.35 : 1.15);
+                    U.cl[i * 4 + 3] = Math.floor((storm ? w.rain * c.f : 0) * 9) + Math.min(0.95, (storm ? 0.3 + 0.35 * w.dark : 0.22 + 0.2 * w.dark) * c.f);
+                });
+            }
+
+            // Jagged bolt from the cloud to the ground, with two short branches.
+            _boltPath(a, b) {
+                let pts = [a, b];
+                for (let lvl = 0, off = 0.22; lvl < 6; lvl++, off *= 0.55) {
+                    const np = [pts[0]];
+                    for (let i = 1; i < pts.length; i++) {
+                        const p = pts[i - 1], q = pts[i];
+                        np.push([(p[0] + q[0]) / 2 + (Math.random() - 0.5) * off, (p[1] + q[1]) / 2 + (Math.random() - 0.5) * off * 0.4, (p[2] + q[2]) / 2 + (Math.random() - 0.5) * off], q);
+                    }
+                    pts = np;
+                }
+                const out = [pts];
+                for (let k = 0; k < 2; k++) {
+                    const s = pts[8 + Math.floor(Math.random() * 20)], br = [s];
+                    let c = s.slice();
+                    for (let i = 0; i < 10; i++) { c = [c[0] + (Math.random() - 0.4) * 0.05, c[1] - 0.03, c[2] + (Math.random() - 0.4) * 0.05]; br.push(c); }
+                    out.push(br);
+                }
+                return out;
+            }
+
+            _drawWeather(M, h, now) {
+                if (!this.cAtlas || !this.wx) return;
+                const gl = this.gl, w = this.wx, E = this.eye, T = this.target;
+                const f = [T[0] - E[0], T[1] - E[1], T[2] - E[2]], fl = Math.hypot(f[0], f[1], f[2]); f[0] /= fl; f[1] /= fl; f[2] /= fl;
+                let R = [-f[2], 0, f[0]]; const rl = Math.hypot(R[0], R[2]) || 1; R = [R[0] / rl, 0, R[2] / rl];
+                const Up = [R[1] * f[2] - R[2] * f[1], R[2] * f[0] - R[0] * f[2], R[0] * f[1] - R[1] * f[0]];
+                // clouds thin out when the camera comes down close
+                const za = this.zoom > 2 ? Math.max(0.28, 1 - (this.zoom - 2) * 0.38) : 1;
+                const list = [];
+                this.clouds.forEach((c) => {
+                    const storm = c.type === 'storm', dust = c.type === 'dust';
+                    const dk = storm ? Math.min(1, 0.25 + w.dark * 0.8) : dust ? 0 : w.dark * 0.55;
+                    let cf = 0;
+                    this.bolts.forEach((b) => { if (b.cl === c) cf = Math.max(cf, b.i); });
+                    c.puffs.forEach((p) => {
+                        const x = c.x + p.dx, z = c.z + p.dz, y = (dust ? this._hAt(x, z) : 0) + c.y + p.dy;
+                        const sz = p.s * (storm ? 1 + 0.25 * w.dark : 1);
+                        list.push([x, y, z, sz * (p.fl || 1), sz * (dust ? 0.45 : 0.62), dk, p.a * c.f * (dust ? w.dust : za), cf * (0.6 + 0.4 * Math.random()), p.v + (dust ? 10 : 0)]);
+                    });
+                    // rain shafts under a raining storm cell
+                    if (storm && w.rain > 0.02) {
+                        for (let k = 0; k < 4; k++) {
+                            const a = k * 1.7 + c.born, x = c.x + Math.cos(a) * c.r * 0.45, z = c.z + Math.sin(a) * c.r * 0.45, g = this._hAt(x, z), hh = c.y - g;
+                            list.push([x + this.wind[0] * 0.1, g + hh / 2, z + this.wind[1] * 0.1, c.r * 0.55, hh / 2, 0.4, 0.3 * w.rain * c.f * za, 0, 3]);
+                        }
                     }
                 });
+                list.forEach((p) => { p.d = (p[0] - E[0]) * f[0] + (p[1] - E[1]) * f[1] + (p[2] - E[2]) * f[2]; });
+                list.sort((a, b) => b.d - a.d);
+                const B = this.cBuf, A = B.a, n = Math.min(list.length, 700);
+                let o = 0;
+                const corners = [[-1, -1], [1, -1], [1, 1], [-1, -1], [1, 1], [-1, 1]];
+                for (let i = 0; i < n; i++) {
+                    const p = list[i];
+                    for (const c of corners) { A[o++] = p[0]; A[o++] = p[1]; A[o++] = p[2]; A[o++] = c[0]; A[o++] = c[1]; A[o++] = p[3]; A[o++] = p[4]; A[o++] = p[5]; A[o++] = p[6]; A[o++] = p[7]; A[o++] = p[8]; }
+                }
+                gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
+                if (n) {
+                    const P = this.pCloud;
+                    gl.useProgram(P);
+                    const un = (k) => gl.getUniformLocation(P, k);
+                    gl.uniformMatrix4fv(un('m'), false, M); gl.uniform3fv(un('R'), R); gl.uniform3fv(un('U'), Up); gl.uniform3fv(un('E'), E);
+                    gl.uniform1f(un('Z'), 1.1); gl.uniform1f(un('I'), this.wxU.wx[0]);
+                    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.cAtlas); gl.uniform1i(un('C'), 0);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, A.subarray(0, o), gl.DYNAMIC_DRAW);
+                    const at = [['p', 3, 0], ['o', 2, 12], ['s', 2, 20], ['q', 4, 28]].map(([k, sz, off]) => { const l = gl.getAttribLocation(P, k); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, sz, gl.FLOAT, false, 44, off); return l; });
+                    gl.drawArrays(gl.TRIANGLES, 0, n * 6);
+                    at.forEach((l) => gl.disableVertexAttribArray(l));
+                }
+                // rain streaks
+                if (w.rain > 0.02) {
+                    const LB = this.lBuf, a = LB.a, W = this.wind;
+                    let m = 0;
+                    this.clouds.forEach((c) => {
+                        if (c.type !== 'storm') return;
+                        const cnt = Math.round(170 * w.rain * c.f * this.q);
+                        for (let i = 0; i < cnt && m < 1400; i++) {
+                            const hx = this._hash(i, 71), hz = this._hash(i, 73), ph = this._hash(i, 79);
+                            const ang = hx * 6.283, rr = Math.sqrt(hz) * c.r * 0.8, x0 = c.x + Math.cos(ang) * rr, z0 = c.z + Math.sin(ang) * rr;
+                            const g = this._hAt(x0, z0), top = c.y, fall = ((now * 1.7 + ph) % 1);
+                            const y = top - fall * (top - g), sl = fall * 0.25 * w.ws;
+                            const x = x0 + W[0] * sl, z = z0 + W[1] * sl, al = Math.min(1, (y - g) * 8) * Math.min(1, fall * 5);
+                            a[m * 8] = x; a[m * 8 + 1] = y; a[m * 8 + 2] = z; a[m * 8 + 3] = al;
+                            a[m * 8 + 4] = x - W[0] * 0.035 * w.ws; a[m * 8 + 5] = y + 0.16; a[m * 8 + 6] = z - W[1] * 0.035 * w.ws; a[m * 8 + 7] = 0;
+                            m++;
+                        }
+                    });
+                    if (m) {
+                        const P = this.pLine;
+                        gl.useProgram(P);
+                        gl.uniformMatrix4fv(gl.getUniformLocation(P, 'm'), false, M);
+                        gl.uniform4fv(gl.getUniformLocation(P, 'C'), [0.8, 0.86, 0.94, 0.32 * za + 0.12]);
+                        gl.bindBuffer(gl.ARRAY_BUFFER, LB.b); gl.bufferData(gl.ARRAY_BUFFER, a.subarray(0, m * 8), gl.DYNAMIC_DRAW);
+                        const lp = gl.getAttribLocation(P, 'p'), la = gl.getAttribLocation(P, 'a');
+                        gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp, 3, gl.FLOAT, false, 16, 0);
+                        gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la, 1, gl.FLOAT, false, 16, 12);
+                        gl.drawArrays(gl.LINES, 0, m * 2);
+                        gl.disableVertexAttribArray(lp); gl.disableVertexAttribArray(la);
+                    }
+                }
+                gl.depthMask(true);
+            }
+
+            // Lightning bolts and rain splashes (glowing, drawn with the other lights).
+            _wxOverlay(add, now) {
+                this.bolts.forEach((b) => {
+                    b.pts.forEach((path, pi) => {
+                        const k = pi ? 0.55 : 1;
+                        for (let i = 1; i < path.length; i++) {
+                            const p = path[i - 1], q = path[i], n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1], q[2] - p[2]) / 0.012));
+                            for (let j = 0; j < n; j++) {
+                                const f = j / n, x = p[0] + (q[0] - p[0]) * f, y = p[1] + (q[1] - p[1]) * f, z = p[2] + (q[2] - p[2]) * f;
+                                add(x, y, z, [1, 1, 1], b.i * k, 0.022 * k);
+                                if (j % 2 === 0) add(x, y, z, [0.55, 0.62, 1], b.i * 0.35 * k, 0.09 * k);
+                            }
+                        }
+                    });
+                    add(b.x, this._hAt(b.x, b.z) + 0.02, b.z, [0.8, 0.85, 1], b.i * 0.8, 0.6);
+                });
+                const w = this.wx;
+                if (w && w.rain > 0.1) {
+                    this.clouds.forEach((c) => {
+                        if (c.type !== 'storm') return;
+                        for (let i = 0; i < 22 * this.q; i++) {
+                            const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * c.r * 0.8, x = c.x + Math.cos(a) * rr, z = c.z + Math.sin(a) * rr;
+                            add(x, this._hAt(x, z) + 0.004, z, [0.8, 0.86, 0.95], 0.35 * w.rain * c.f, 0.018);
+                        }
+                    });
+                }
+            }
+
+            // Keeps the page smooth: lowers the resolution and the amount of clouds when frames get
+            // slow, and raises them again when there is room.
+            _adapt(ts) {
+                const dt = ts - (this._lts || ts); this._lts = ts;
+                if (dt <= 0 || dt > 250) return;
+                this._ema = this._ema * 0.95 + dt * 0.05;
+                if (ts - (this._adAt || 0) < 2500) return;
+                if (this._ema > 24 && (this.maxDpr > 1 || this.q > 0.5)) { this._adAt = ts; if (this.maxDpr > 1) this.maxDpr = Math.max(1, this.maxDpr - 0.35); else this.q = Math.max(0.5, this.q - 0.25); }
+                else if (this._ema < 15 && (this.maxDpr < 2 || this.q < 1)) { this._adAt = ts + 4000; if (this.q < 1) this.q = Math.min(1, this.q + 0.25); else this.maxDpr = Math.min(2, this.maxDpr + 0.25); }
             }
 
             // Data ----------------------------------------------------------------------------
@@ -5949,8 +6222,11 @@
             _labelY() { return 0.3; }
 
             frame(ts) {
+                this._adapt(ts);
+                this._wxStep(ts / 1000);
                 super.frame(ts);
-                if (this.windEl && ts - (this._wAt || 0) > 150) { this._wAt = ts; this._windHud(ts / 1000); }
+                if (this.flashEl) this.flashEl.style.opacity = (this.flash || 0) * 0.22;
+                if (this.windEl && ts - (this._wAt || 0) > 200) { this._wAt = ts; this._windHud(ts / 1000); }
             }
             // Wind gauge: the arrow follows the shamal's direction on screen, the speed rises in a gust.
             _windHud(now) {
@@ -5959,7 +6235,24 @@
                 const g = this._gust(t[0], t[2], now);
                 this.windEl.style.setProperty('--a', (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI).toFixed(1) + 'deg');
                 this.windEl.classList.toggle('gust', g > 0.4);
-                if (this.windKm) this.windKm.textContent = Math.round(12 + 34 * g);
+                if (this.windKm) this.windKm.textContent = Math.round(8 + 30 * g + 10 * ((this.ws || 1) - 0.6));
+                const w = this.wx;
+                if (!w || !this.wxEl) return;
+                if (this.dimEl) { this.dimEl.style.opacity = Math.min(0.5, w.dark * 0.3 + w.dust * 0.35).toFixed(3); this.dimEl.classList.toggle('dust', w.dust > w.dark); }
+                const lb = this._wxLabel(w);
+                if (lb[1] !== this._wxLb) {
+                    this._wxLb = lb[1];
+                    this.wxEl.querySelector('.ic').innerHTML = `<i data-lucide="${lb[0]}"></i>`;
+                    this.wxEl.querySelector('b').textContent = lb[1];
+                    try { lucide.createIcons(); } catch (e) {}
+                }
+                if (now - (this._wxNAt || 0) > 1) {
+                    this._wxNAt = now;
+                    const t0 = Date.now() + (this.wxShift || 0);
+                    let txt = '';
+                    for (let d = 5; d <= 300; d += 5) { const l2 = this._wxLabel(this._weatherAt(t0 + d * 1000)); if (l2[1] !== lb[1]) { txt = l2[1] + ' بعد ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0'); break; } }
+                    this.wxEl.querySelector('small').textContent = txt;
+                }
             }
 
             // Camera ----------------------------------------------------------------------------
@@ -6141,18 +6434,8 @@
                     for (let j = 0; j < 18; j++) add(q[0], q[1] + j * 0.12, q[2], [1, 0.85, 0.45], 0.12 * (1 - j / 18) * pl, 0.14);
                 }
                 this.fx = this.fx.filter((f) => this._fx(add, f, now));
-                // a soft green light running around Iraq
-                const BL = this.borderLen[this.borderLen.length - 1], bp = (dist) => {
-                    dist = ((dist % BL) + BL) % BL; let i = 1; while (i < this.borderLen.length - 1 && this.borderLen[i] < dist) i++;
-                    const a = this.border[i - 1], c = this.border[i], f = (dist - this.borderLen[i - 1]) / Math.max(1e-6, this.borderLen[i] - this.borderLen[i - 1]);
-                    return [a[0] + (c[0] - a[0]) * f, a[1] + (c[1] - a[1]) * f, a[2] + (c[2] - a[2]) * f];
-                };
-                for (let c = 0; c < 2; c++) {
-                    const head = now * (BL / 22) + c * (BL / 2);
-                    for (let j = 0; j < 30; j++) { const q = bp(head - j * 0.05); add(q[0], q[1], q[2], [0.55, 1, 0.7], (1 - j / 30) * 0.8, j ? 0.1 : 0.24); }
-                }
                 // the wind itself
-                this._windStreaks(add, now);
+                this._wxOverlay(add, now);
             }
         }
 
@@ -8547,6 +8830,9 @@
                         this._f3d = new IraqForest3D(wrap, (g) => this.pickForestGov(g));
                         this._f3d.windEl = document.getElementById('frWind');
                         this._f3d.windKm = document.getElementById('frWindKm');
+                        this._f3d.wxEl = document.getElementById('frWx');
+                        this._f3d.dimEl = document.getElementById('frDim');
+                        this._f3d.flashEl = document.getElementById('frFlash');
                     } catch (e) {
                         console.warn('3D forest unavailable:', e);
                         this._f3dFail = true;
