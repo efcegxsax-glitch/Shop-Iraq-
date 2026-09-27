@@ -197,6 +197,18 @@
         .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
         .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
         /* confirmation window (instead of the browser's confirm / prompt) */
+        .vf-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+        .vf-row:last-child { border-bottom: 0; }
+        .vf-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--panel-2); }
+        .vf-row .vf-n { flex: 1; min-width: 0; }
+        .vf-row .vf-n b { display: flex; align-items: center; gap: 5px; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .vf-row .vf-n small { display: block; font-size: 11.5px; color: var(--text2); }
+        .vf-row button { flex-shrink: 0; height: 34px; padding: 0 13px; border-radius: 10px; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; border: 0; }
+        .vf-row .vf-on { background: #0095F6; color: #fff; }
+        .vf-row .vf-off { background: transparent; color: #F87171; border: 1px solid rgba(248,113,113,.4); }
+        .vf-sub { margin: 16px 0 4px; font-size: 12.5px; font-weight: 800; color: var(--text2); }
+        .vb { display: inline-flex; width: 16px; height: 16px; flex-shrink: 0; }
+        .vb svg { width: 100%; height: 100%; }
         .fb-now { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
         .fb-now div { padding: 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); text-align: center; }
         .fb-now b { display: block; font-size: 20px; font-weight: 800; color: #4ADE80; }
@@ -421,6 +433,19 @@
 
             <!-- Users / Analytics -->
             <div id="sec-users" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic" style="background:rgba(0,149,246,.15);color:#38BDF8;"><i data-lucide="badge-check"></i></div>
+                        <div>
+                            <h3>توثيق الحسابات</h3>
+                            <p>العلامة الزرقاء تطلع جنب اسم الحساب الموثّق بكل مكان: البروفايل، الترتيب، المحادثات، الأصدقاء</p>
+                        </div>
+                    </div>
+                    <input type="text" id="vf_q" placeholder="ابحث بالاسم أو رقم الطالب...">
+                    <div id="vf_results" style="margin-top:10px;"></div>
+                    <div class="vf-sub">الحسابات الموثّقة (<span id="vf_count">0</span>)</div>
+                    <div id="vf_list"></div>
+                </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="smartphone"></i></div>
@@ -1975,6 +2000,7 @@
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
+                if (typeof renderVerified === 'function') renderVerified();
                 if (typeof renderAppStats === 'function') renderAppStats();
             });
             onValue(ref(db, 'presence'), (snap) => {
@@ -2383,6 +2409,45 @@
             return out;
         }
 
+        // ---------- Verified accounts ----------
+        // verified/{uid} = { at, name }: the student app shows a blue badge next to these names.
+        const VB = (() => {
+            let d = '';
+            for (let i = 0; i <= 96; i++) { const a = (i / 96) * Math.PI * 2, r = 10.2 + 1.35 * Math.cos(a * 8); d += (i ? 'L' : 'M') + (12 + Math.cos(a) * r).toFixed(2) + ' ' + (12 + Math.sin(a) * r).toFixed(2); }
+            return '<span class="vb"><svg viewBox="0 0 24 24"><path d="' + d + 'Z" fill="#0095F6"/><path d="M7.4 12.4l3.1 3.1 6.1-6.4" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+        })();
+        let verifiedData = {};
+        function loadVerified() {
+            el('vf_q').addEventListener('input', renderVerified);
+            onValue(ref(db, 'verified'), (snap) => { verifiedData = snap.val() || {}; renderVerified(); });
+        }
+        function vfRow(uid) {
+            const u = usersData[uid] || {}, v = verifiedData[uid], name = u.fullName || (v && v.name) || 'مستخدم';
+            const av = u.avatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=0095F6&color=fff');
+            const sub = [u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || ''].filter(Boolean).join(' • ');
+            return `<div class="vf-row"><img src="${escapeHtml(av)}" alt=""><div class="vf-n"><b>${escapeHtml(name)}${v ? VB : ''}</b><small>${escapeHtml(sub)}</small></div>
+                ${v ? `<button class="vf-off" onclick="setVerified(${jsArg(uid)}, false)">إلغاء التوثيق</button>` : `<button class="vf-on" onclick="setVerified(${jsArg(uid)}, true)">توثيق</button>`}</div>`;
+        }
+        function renderVerified() {
+            const q = val('vf_q'), res = el('vf_results'), list = el('vf_list');
+            if (!res || !list) return;
+            if (q) {
+                const found = Object.keys(usersData).filter((uid) => { const u = usersData[uid] || {}; return String(u.fullName || '').includes(q) || String(u.studentNumber || '').includes(q) || uid === q; }).slice(0, 20);
+                res.innerHTML = found.length ? found.map(vfRow).join('') : '<p class="list-empty">ماكو طالب بهالاسم أو الرقم</p>';
+            } else res.innerHTML = '';
+            const ids = Object.keys(verifiedData).sort((a, b) => (verifiedData[b].at || 0) - (verifiedData[a].at || 0));
+            el('vf_count').textContent = ids.length;
+            list.innerHTML = ids.length ? ids.map(vfRow).join('') : '<p class="list-empty">ماكو حسابات موثّقة بعد</p>';
+            try { lucide.createIcons(); } catch (e) {}
+        }
+        window.setVerified = async (uid, on) => {
+            const name = (usersData[uid] && usersData[uid].fullName) || 'هذا الحساب';
+            if (!on && !(await ask({ icon: 'badge-x', title: 'تلغي توثيق ' + name + '؟', text: 'العلامة الزرقاء تختفي من جنب اسمه.', ok: 'ألغِ التوثيق' }))) return;
+            set(ref(db, 'verified/' + uid), on ? { at: Date.now(), name } : null)
+                .then(() => toast(on ? 'انوثّق ' + name : 'انلغى التوثيق'))
+                .catch(() => toast('فشل', false));
+        };
+
         // ---------- Forest companions ----------
         let botsCfg = null;
         function loadForestWeather() {
@@ -2591,6 +2656,7 @@
         loadDreamsAdmin();
         loadForestBots();
         loadForestWeather();
+        loadVerified();
     </script>
 </body>
 </html>
