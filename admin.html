@@ -3,765 +3,2121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة التحكم الأم - ADMIN PANEL</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-    
+    <title>لوحة التحكم - منصة الطالب العراقي</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script>window.lucide = window.lucide || { createIcons: function () {} };</script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
-        body { background-color: #111217; color: #FFFFFF; padding: 20px; display: flex; justify-content: center; }
-        
-        .admin-wrapper { width: 100%; max-width: 620px; display: flex; flex-direction: column; gap: 20px; }
-        
-        .admin-header {
-            background: linear-gradient(135deg, #1A1D20 0%, #252830 100%);
-            padding: 20px; border-radius: 20px; border: 1px solid rgba(255,196,37,0.3);
-            display: flex; justify-content: space-between; align-items: center;
+        :root {
+            --bg: #0F172A;
+            --panel: #1E293B;
+            --panel-2: #0F172A;
+            --border: #334155;
+            --primary: #2563EB;
+            --primary-600: #1D4ED8;
+            --danger: #DC2626;
+            --success: #16A34A;
+            --text: #F1F5F9;
+            --text2: #94A3B8;
+        }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: var(--bg); color: var(--text); }
+
+        input, select, textarea { background: #0F172A; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; width: 100%; color: var(--text); font-size: 16px; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+        label { font-size: 12.5px; font-weight: 700; color: var(--text2); display: block; margin-bottom: 6px; }
+
+        /* ---------- Top bar ---------- */
+        .topbar { position: sticky; top: 0; z-index: 30; background: rgba(15,23,42,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); }
+        .topbar-inner { max-width: 1120px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .brand { display: flex; align-items: center; gap: 12px; }
+        .brand-icon { width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #2563EB, #1D4ED8); display: flex; align-items: center; justify-content: center; font-size: 19px; flex-shrink: 0; }
+        .brand h1 { font-size: 15px; font-weight: 800; margin: 0; }
+        .brand p { font-size: 11.5px; color: var(--text2); margin: 2px 0 0; }
+        .badges { display: flex; gap: 8px; flex-wrap: wrap; }
+        .badge { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 999px; white-space: nowrap; }
+
+        /* ---------- Shell / layout ---------- */
+        /* Mobile-first: stacked (nav strip on top, content below). Switched to a
+           side-by-side sidebar layout only from 900px up. */
+        .shell { max-width: 1120px; margin: 0 auto; padding: 14px 14px 40px; display: flex; flex-direction: column; gap: 14px; align-items: stretch; }
+        .sidenav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
+        .sidenav::-webkit-scrollbar { display: none; }
+        .nav-group-label { display: none; }
+
+        .tab { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--panel); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; transition: .15s ease; flex-shrink: 0; }
+        .tab:hover { color: var(--text); border-color: #475569; }
+        .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+        .tab-ic { font-size: 15px; line-height: 1; }
+
+        .content { flex: 1; min-width: 0; width: 100%; }
+
+        @media (min-width: 900px) {
+            .shell { flex-direction: row; align-items: flex-start; gap: 22px; padding: 18px 20px 60px; }
+            .sidenav { flex-direction: column; width: 230px; flex-shrink: 0; position: sticky; top: 92px; overflow-x: visible; padding-bottom: 0; }
+            .nav-group-label { display: block; font-size: 10.5px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin: 16px 4px 7px; }
+            .nav-group-label:first-child { margin-top: 2px; }
+            .tab { width: 100%; }
         }
 
-        .admin-title-zone h1 { font-size: 18px; color: #FFC425; font-weight: 700; }
-        .admin-title-zone p { font-size: 11px; color: #8A8D91; }
+        /* ---------- Cards ---------- */
+        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+        .card-head { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
+        .card-head .ic { width: 36px; height: 36px; border-radius: 10px; background: var(--panel-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .card-head h3 { font-size: 14px; font-weight: 800; margin: 0; }
+        .card-head p { font-size: 11.5px; color: var(--text2); margin: 3px 0 0; line-height: 1.5; }
 
-        .status-badge {
-            padding: 6px 14px; border-radius: 20px; font-size: 11px; font-weight: 700;
-        }
-        .status-badge.active { background-color: rgba(46,125,50,0.2); color: #4CAF50; border: 1px solid #4CAF50; }
-        .status-badge.banned { background-color: rgba(235,0,27,0.2); color: #EB001B; border: 1px solid #EB001B; }
+        .field { margin-bottom: 14px; }
+        .field:last-child { margin-bottom: 0; }
+        .field-grid { display: grid; gap: 14px; grid-template-columns: 1fr; margin-bottom: 14px; }
+        @media (min-width: 640px) { .field-grid-2 { grid-template-columns: 1fr 1fr; } }
 
-        .admin-card-section {
-            background-color: #1A1D20; border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px;
-        }
+        .hint { font-size: 11.5px; color: var(--text2); margin-top: 8px; line-height: 1.6; }
 
-        .section-title { font-size: 14px; font-weight: 700; color: #FFC425; display: flex; align-items: center; gap: 8px; }
+        .chk-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+        .chk { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: var(--text); background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px; cursor: pointer; }
+        .chk input { width: 16px; height: 16px; accent-color: var(--primary); flex-shrink: 0; }
 
-        .input-group { display: flex; flex-direction: column; gap: 6px; }
-        .input-group label { font-size: 11px; color: #A0A5B5; font-weight: 600; }
-        
-        .admin-input, .admin-select {
-            width: 100%; height: 42px; background-color: #22252F; border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 12px; padding: 0 12px; color: #FFFFFF; font-size: 12px; outline: none;
-            font-family: 'Cairo', sans-serif;
-        }
+        .preview-img { display: block; margin-top: 8px; border-radius: 10px; object-fit: cover; border: 1px solid var(--border); }
 
-        .admin-btn {
-            height: 42px; border: none; border-radius: 12px; font-size: 12px; font-weight: 700;
-            cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;
-            transition: transform 0.1s ease;
-        }
-        .admin-btn:active { transform: scale(0.97); }
+        .btn { background: var(--primary); color: #fff; font-weight: 700; border-radius: 12px; padding: 12px 24px; cursor: pointer; border: none; font-size: 14px; width: 100%; transition: .15s; }
+        .btn:hover:not(:disabled) { background: var(--primary-600); }
+        .btn:disabled { opacity: .55; cursor: not-allowed; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover:not(:disabled) { background: #B91C1C; }
 
-        .btn-gold { background-color: #FFC425; color: #1A1D20; }
-        .btn-red { background-color: #EB001B; color: #FFFFFF; }
-        .btn-green { background-color: #2E7D32; color: #FFFFFF; }
+        .subtabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+        .subtab { padding: 7px 14px; border-radius: 999px; font-size: 12px; font-weight: 700; cursor: pointer; background: var(--panel-2); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; }
+        .subtab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .list-empty { font-size: 12.5px; color: var(--text2); text-align: center; padding: 18px 0; }
 
-        .user-result-box {
-            background-color: #22252F; border: 1px solid rgba(255,196,37,0.2);
-            border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 8px;
-            margin-top: 4px;
-        }
+        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        @media (min-width: 640px) { .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+        .stat-tile { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px; padding: 14px; }
+        .stat-tile .stat-value { font-size: 22px; font-weight: 800; line-height: 1.2; }
+        .stat-tile .stat-label { font-size: 11.5px; color: var(--text2); margin-top: 4px; font-weight: 700; }
+        .stat-tile .stat-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; margin-inline-end: 6px; }
 
-        .store-list-item {
-            background-color: #22252F; border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 12px; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;
-        }
-        .store-id-tag {
-            background-color: #FFC425; color: #1A1D20; padding: 2px 8px; border-radius: 8px;
-            font-size: 11px; font-weight: 700;
-        }
+        .user-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+        .user-row .avatar { width: 38px; height: 38px; border-radius: 999px; object-fit: cover; flex-shrink: 0; background: var(--panel); }
+        .user-row .status-dot { width: 9px; height: 9px; border-radius: 999px; flex-shrink: 0; }
+
+        .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
+        .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .row-item .del { margin-inline-start: auto; background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+
+        #toast { position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 420px; margin: 0 auto; background: var(--success); color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 700; text-align: center; display: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+
+        /* ---------- Site control: switches ---------- */
+        .sw-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .sw-row:last-child { border-bottom: 0; padding-bottom: 0; }
+        .sw-row:first-child { padding-top: 0; }
+        .sw-text { min-width: 0; }
+        .sw-text strong { display: block; font-size: 13.5px; font-weight: 700; }
+        .sw-text span { display: block; font-size: 11.5px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
+        .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex-shrink: 0; margin: 0; }
+        .switch input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; opacity: 0; cursor: pointer; z-index: 1; }
+        .switch .track { position: absolute; inset: 0; border-radius: 999px; background: #475569; transition: background-color .2s ease; }
+        .switch .track::after { content: ""; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: transform .2s ease; }
+        .switch input:checked + .track { background: var(--success); }
+        .switch input:checked + .track::after { transform: translateX(-20px); }
+        .switch input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(37,99,235,.45); }
+        .switch.danger input:checked + .track { background: var(--danger); }
+        .live-note { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; margin-bottom: 16px; }
+        .live-note b { width: 8px; height: 8px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+        .tone-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tone-row .chk { flex: 1; min-width: 90px; justify-content: center; }
+        .btn-sm { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+        .btn-sm:hover:not(:disabled) { border-color: #64748B; }
+        .btn-sm:disabled { opacity: .35; cursor: not-allowed; }
+        .tk-row { flex-wrap: wrap; }
+        .tk-row.is-off .tk-row-text { opacity: .5; text-decoration: line-through; }
+        .tk-row > .flex-1 { flex: 1 1 160px; }
+        .tk-row-actions { display: flex; gap: 6px; margin-inline-start: auto; }
+        .tk-row-edit { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+        .tk-row-edit input { padding: 8px 10px; font-size: 14px; }
+        .tk-preview { display: flex; align-items: center; gap: 10px; background: #fff; color: #0E1F1B; border-radius: 14px; padding: 12px 14px; margin-bottom: 14px; }
+        .tk-preview .pv-pill { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; color: #B42328; background: rgba(229,72,77,.12); }
+        .tk-preview .pv-pill i { width: 7px; height: 7px; border-radius: 50%; background: #E5484D; }
+        .tk-preview .pv-text { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+        /* icons (lucide) that replaced the emojis */
+        .tab-ic { display: inline-grid; } .tab-ic svg { width: 16px; height: 16px; }
+        .card-head .ic svg { width: 18px; height: 18px; color: var(--primary); }
+        .brand-icon svg { width: 20px; height: 20px; color: #fff; }
+        .tone-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+
+        /* ---------- Self-contained fallbacks for the handful of Tailwind utility
+           classes this page relies on. The Tailwind CDN script generates these at
+           runtime — if it's blocked, slow, or offline, every ".hidden" section
+           used for tab-switching would render at once instead of staying hidden.
+           Defining them here means the page always looks and behaves correctly
+           even if the CDN script never loads. !important on .hidden matches
+           Tailwind's own specificity guarantee for that class. */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .flex-1 { flex: 1 1 0%; }
+        .min-w-0 { min-width: 0; }
+        .gap-1 { gap: 4px; }
+        .font-bold { font-weight: 700; }
+        .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .text-xs { font-size: 12px; }
+        .text-slate-400 { color: #94A3B8; }
+        .mt-1 { margin-top: 4px; }
+        .mt-2 { margin-top: 8px; }
+        .mt-3 { margin-top: 12px; }
+        .mt-4 { margin-top: 16px; }
+        .ds-chks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .ds-chk { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; }
+        .ds-chks .ds-chk { padding: 6px 10px; border-radius: 99px; border: 1px solid rgba(148,163,184,.35); }
+        .ds-chks .ds-chk:has(input:checked) { border-color: #0F766E; background: rgba(15,118,110,.12); }
+        .ds-all { font-weight: 700; }
+        .ds-chk input[type=checkbox] { width: 18px !important; min-width: 18px; height: 18px; margin: 0; padding: 0; flex-shrink: 0; }
+        .ds-chk span { white-space: nowrap; }
+        .ds-help { margin-top: 14px; padding: 12px; border-radius: 14px; border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.08); font-size: 13px; line-height: 1.8; }
+        .ds-help b { display: block; margin-bottom: 6px; }
+        .ds-help .cp { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+        .ds-help .cp span { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: rtl; word-break: break-word; }
+        .ds-help .cp code { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: ltr; text-align: left; word-break: break-all; }
+        .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
+        .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
     </style>
 </head>
 <body>
 
-    <div class="admin-wrapper">
-        
-        <!-- الهيدر والحالة -->
-        <div class="admin-header">
-            <div class="admin-title-zone">
-                <h1>لوحة التحكم الأم (Admin Panel)</h1>
-                <p>التحكم الكامل واللحظي بتطبيق Shop Iraq عبر الفايربيس</p>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="brand">
+                <div class="brand-icon"><i data-lucide="wrench"></i></div>
+                <div>
+                    <h1>لوحة تحكم المنصة</h1>
+                    <p>نشر الأخبار والملازم والإشعارات وإدارة صور الموقع</p>
+                </div>
             </div>
-            <div id="user-status-indicator" class="status-badge active">الحساب نشط</div>
+            <div class="badges">
+                <span id="versionBadge" class="badge" style="background:#2563EB;color:#fff;">الإصدار 2.2</span>
+                <span id="modeBadge" class="badge" style="background:#334155;color:#CBD5E1;">جاري التحقق...</span>
+            </div>
         </div>
+    </header>
 
-        <!-- [1] قسم البحث عن المستخدم بواسطة الـ ID -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-magnifying-glass"></i> البحث عن مستخدم بواسطة المعرّف (ID)</div>
-            
-            <div class="input-group">
-                <label>أدخل معرّف المستخدم (ID):</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="search-user-id-input" class="admin-input" placeholder="مثال: IQ-8892401 أو 8892401" value="#IQ-8892401">
-                    <button class="admin-btn btn-gold" style="width: 110px;" onclick="searchUserById()"><i class="fa-solid fa-search"></i> بحث</button>
+    <div class="shell">
+        <!-- Side / top navigation -->
+        <nav class="sidenav" id="panel">
+            <div class="nav-group-label">الموقع</div>
+            <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span></button>
+
+            <div class="nav-group-label">الإحصائيات</div>
+            <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="users"></i></span><span>المستخدمون</span></button>
+
+            <div class="nav-group-label">المحتوى</div>
+            <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
+            <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
+            <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
+            <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
+            <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
+
+            <div class="nav-group-label">التواصل والوسائط</div>
+            <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إشعارات</span></button>
+            <button class="tab" data-tab="imgs"><span class="tab-ic"><i data-lucide="image"></i></span><span>صور الموقع</span></button>
+
+            <div class="nav-group-label">المالية والمتجر</div>
+            <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
+            <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
+            <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
+
+            <div class="nav-group-label">الإدارة</div>
+            <button class="tab" data-tab="ban"><span class="tab-ic"><i data-lucide="ban"></i></span><span>حظر طالب</span></button>
+        </nav>
+
+        <main class="content">
+
+            <!-- Site control -->
+            <div id="sec-site" class="hidden">
+                <div class="live-note"><b></b><span>كل تغيير هنا يظهر فوراً عند جميع الطلاب بدون تحديث الصفحة.</span></div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="house"></i></div>
+                        <div>
+                            <h3>أقسام الواجهة الرئيسية</h3>
+                            <p>أطفئ أي قسم حتى يختفي من الصفحة الرئيسية عند الجميع</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>شريط البحث</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.search" aria-label="شريط البحث"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>تبويبات التصنيفات</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.categories" aria-label="تبويبات التصنيفات"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>السلايدر (صور العرض)</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.carousel" aria-label="السلايدر (صور العرض)"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>الشريط الإخباري</strong><span>يمكنك إدارة أخباره من تبويب الشريط الإخباري</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.ticker" aria-label="الشريط الإخباري"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>عدّاد الامتحانات</strong><span>يظهر فقط إذا كان هناك مواعيد في جدول الامتحانات</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.examCountdown" aria-label="عدّاد الامتحانات"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>العطل الرسمية والمدرسية</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.holidays" aria-label="العطل الرسمية والمدرسية"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>نصيحة اليوم</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.dailyTip" aria-label="نصيحة اليوم"><span class="track"></span></label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="compass"></i></div>
+                        <div>
+                            <h3>شريط التنقل السفلي</h3>
+                            <p>الرئيسية وحسابي ثابتان دائماً</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>الملازم</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.resources" aria-label="الملازم"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>العطل (تقويم العطل)</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.holidays" aria-label="العطل"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>المتجر</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.store" aria-label="المتجر"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>المتقدمون</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.leaderboard" aria-label="المتقدمون"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>رصيدي</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.wallet" aria-label="رصيدي"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>الرسائل</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="nav.messages" aria-label="الرسائل"><span class="track"></span></label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="pencil"></i></div>
+                        <div>
+                            <h3>اسم المنصة والوصف</h3>
+                            <p>يظهران في أعلى التطبيق بجانب الشعار. اتركهما فارغين للرجوع للنص الافتراضي</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="cfg_name">اسم المنصة</label>
+                        <input type="text" id="cfg_name" placeholder="منصة الطالب العراقي" maxlength="40">
+                    </div>
+                    <div class="field">
+                        <label for="cfg_tagline">الوصف تحت الاسم</label>
+                        <input type="text" id="cfg_tagline" placeholder="أخبار وزارة التربية أولاً بأول" maxlength="60">
+                    </div>
+                    <button class="btn mt-2" id="cfg_save_brand">حفظ الاسم والوصف</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="megaphone"></i></div>
+                        <div>
+                            <h3>إعلان أعلى الرئيسية</h3>
+                            <p>رسالة ثابتة فوق البحث. الطالب يقدر يخفيها، وترجع تظهر إذا غيّرت النص</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار الإعلان</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="announcement.enabled" aria-label="إظهار الإعلان"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3">
+                        <label for="cfg_ann_text">نص الإعلان</label>
+                        <textarea id="cfg_ann_text" rows="2" placeholder="مثال: التسجيل على الدور الثاني يبدأ الأحد"></textarea>
+                    </div>
+                    <div class="field">
+                        <label>لون الإعلان</label>
+                        <div class="tone-row">
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="info" checked><i class="tone-dot" style="background:#16A34A"></i>عادي</label>
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="warn"><i class="tone-dot" style="background:#F59E0B"></i>تنبيه</label>
+                            <label class="chk"><input type="radio" name="cfg_ann_tone" value="alert"><i class="tone-dot" style="background:#E5484D"></i>مهم</label>
+                        </div>
+                    </div>
+                    <button class="btn mt-2" id="cfg_save_ann">حفظ الإعلان</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="wrench"></i></div>
+                        <div>
+                            <h3>وضع الصيانة</h3>
+                            <p>يغطي المنصة بالكامل برسالة صيانة لكل الطلاب. لوحة التحكم تبقى تعمل عادي</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>تشغيل وضع الصيانة</strong><span>الطلاب ما يقدرون يستخدمون المنصة لحين إطفائه</span></div>
+                        <label class="switch danger"><input type="checkbox" data-cfg="maintenance.enabled" aria-label="تشغيل وضع الصيانة"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3">
+                        <label for="cfg_mt_title">عنوان الرسالة</label>
+                        <input type="text" id="cfg_mt_title" placeholder="المنصة تحت الصيانة" maxlength="50">
+                    </div>
+                    <div class="field">
+                        <label for="cfg_mt_msg">نص الرسالة</label>
+                        <textarea id="cfg_mt_msg" rows="2" placeholder="نعمل على تحسين المنصة، ونرجع لكم قريباً."></textarea>
+                    </div>
+                    <button class="btn mt-2" id="cfg_save_mt">حفظ رسالة الصيانة</button>
                 </div>
             </div>
 
-            <div id="user-search-result" class="user-result-box" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="font-size: 13px; font-weight: 700; color: #FFFFFF;" id="res-user-name">مستخدم شوب العراق</span>
-                    <span style="font-size: 11px; color: #FFC425; font-weight: 700;" id="res-user-id">#IQ-8892401</span>
+            <!-- Users / Analytics -->
+            <div id="sec-users" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="users"></i></div>
+                        <div>
+                            <h3>المستخدمون</h3>
+                            <p>عدد المستخدمين المسجّلين، ومين متصل بالتطبيق حالياً أو خلال آخر فترة</p>
+                        </div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-tile">
+                            <div class="stat-value" id="stat_total" style="color: var(--text);">—</div>
+                            <div class="stat-label">إجمالي المستخدمين</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-value" id="stat_online" style="color: #16A34A;"><span class="stat-dot" style="background:#16A34A;"></span>—</div>
+                            <div class="stat-label">متصلون الآن</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-value" id="stat_today" style="color: var(--primary);">—</div>
+                            <div class="stat-label">نشطون خلال ٢٤ ساعة</div>
+                        </div>
+                        <div class="stat-tile">
+                            <div class="stat-value" id="stat_week" style="color: var(--text);">—</div>
+                            <div class="stat-label">نشطون خلال ٧ أيام</div>
+                        </div>
+                    </div>
                 </div>
-                <div style="font-size: 11px; color: #A0A5B5; display: flex; gap: 12px; margin-top: 2px;">
-                    <span>الرصيد: <strong style="color:#4CAF50;" id="res-user-balance">350,000 د.ع</strong></span>
-                    <span>الحالة: <strong id="res-user-status" style="color:#4CAF50;">نشط</strong></span>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="radio"></i></div>
+                        <div><h3>متصلون الآن</h3></div>
+                    </div>
+                    <div id="onlineUsersList"></div>
                 </div>
-                <div style="font-size: 11px; color: #FFC425; margin-top: 4px;" id="res-user-admin-role">
-                    الصلاحية: مستخدم عادي
-                </div>
-            </div>
-        </div>
-
-        <!-- [2] قسم رفع أدمن وتعيينه كمالك لمتجر معين -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-user-shield"></i> رفع أدمن (منح صلاحية إدارة متجر لمستخدم)</div>
-            
-            <div class="input-group">
-                <label>معرّف المستخدم المستهدف (ID):</label>
-                <input type="text" id="promote-user-id" class="admin-input" value="#IQ-8892401" placeholder="مثال: #IQ-8892401">
-            </div>
-
-            <div class="input-group">
-                <label>معرّف المتجر المراد إسناد إدارته له (Store ID):</label>
-                <input type="text" id="promote-store-id" class="admin-input" placeholder="أدخل ID المتجر (مثال: 1024)">
-            </div>
-
-            <div class="grid-2">
-                <button class="admin-btn btn-green" onclick="promoteUserToStoreAdmin()"><i class="fa-solid fa-check-circle"></i> رفع كـ أدمن وتعيين كمدير متجر</button>
-                <button class="admin-btn btn-red" onclick="revokeUserStoreAdmin()"><i class="fa-solid fa-user-xmark"></i> سحب صلاحية الأدمن</button>
-            </div>
-        </div>
-
-        <!-- [3] قسم حظر وإلغاء حظر المستخدم -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-user-slash"></i> إدارة حظر المستخدم الحالي</div>
-            <div class="input-group">
-                <label>سبب الحظر الذي سيظهر للمستخدم عند فتح التطبيق:</label>
-                <input type="text" id="ban-reason-input" class="admin-input" placeholder="أدخل سبب الحظر هنا..." value="مخالفة الشروط والأحكام الخاصة بالتطبيق.">
-            </div>
-            <div class="grid-2">
-                <button class="admin-btn btn-red" onclick="banUser()"><i class="fa-solid fa-lock"></i> حظر المستخدم الآن</button>
-                <button class="admin-btn btn-green" onclick="unbanUser()"><i class="fa-solid fa-lock-open"></i> إلغاء الحظر</button>
-            </div>
-        </div>
-
-        <!-- [4] قسم التحكم بالرصيد -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-wallet"></i> التحكم بالرصيد والماستر كارد</div>
-            
-            <div class="input-group">
-                <label>تعديل/تعيين قيمة الرصيد مباشرة (د.ع):</label>
-                <input type="number" id="balance-amount-input" class="admin-input" placeholder="أدخل المبلغ مثلاً: 500000">
-            </div>
-            <button class="admin-btn btn-gold" onclick="setBalance()"><i class="fa-solid fa-check"></i> تعيين الرصيد المحدد</button>
-
-            <div class="grid-2" style="margin-top: 4px;">
-                <button class="admin-btn btn-green" onclick="addFunds(100000)"><i class="fa-solid fa-plus"></i> شحن +100,000 د.ع</button>
-                <button class="admin-btn btn-red" onclick="zeroBalance()"><i class="fa-solid fa-trash"></i> تصفير الرصيد (0)</button>
-            </div>
-        </div>
-
-        <!-- [5] قسم توليد أكواد الشحن والقسائم -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-ticket"></i> توليد أكواد شحن وقسائم</div>
-            
-            <div class="input-group">
-                <label>حدد قيمة كود الشحن (د.ع):</label>
-                <input type="number" id="recharge-code-value-input" class="admin-input" placeholder="أدخل القيمة مثلاً: 25000">
-            </div>
-            <button class="admin-btn btn-gold" onclick="generateRechargeCode()"><i class="fa-solid fa-plus-circle"></i> توليد كود شحن جديد</button>
-
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                <label style="font-size: 11px; color: #A0A5B5; font-weight: 700;">الأكواد الموالدة المتاحة:</label>
-                <div id="admin-generated-codes-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
-            </div>
-        </div>
-
-        <!-- [6] قسم إضافة متجر جديد -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-store"></i> إضافة متجر / بيج وتوليد ID تلقائي (4 أرقام)</div>
-            
-            <div class="input-group">
-                <label>اختر القسم الموجه له المتجر:</label>
-                <select id="store-category-select" class="admin-select">
-                    <option value="ساعات">قسم الساعات</option>
-                    <option value="أحذية">قسم الأحذية</option>
-                    <option value="ملابس">قسم الملابس</option>
-                    <option value="هدايا">قسم الهدايا</option>
-                    <option value="إلكترونيات">قسم الإلكترونيات</option>
-                    <option value="عطور">قسم العطور</option>
-                    <option value="مكياج">قسم المكياج</option>
-                    <option value="أثاث">قسم الأثاث</option>
-                    <option value="مطاعم">قسم المطاعم</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label>اسم المتجر / البيج:</label>
-                <input type="text" id="store-name-input" class="admin-input" placeholder="مثال: ساعات الملوك بغداد">
-            </div>
-
-            <div class="input-group">
-                <label>صورة المتجر / البيج (من الاستوديو):</label>
-                <input type="file" id="store-image-file-input" class="admin-input" accept="image/*" style="padding: 8px;">
-            </div>
-
-            <div class="grid-2">
-                <div class="input-group">
-                    <label>التقييم (1 - 5):</label>
-                    <input type="text" id="store-rating-input" class="admin-input" value="4.9">
-                </div>
-                <div class="input-group">
-                    <label>عدد المتابعين:</label>
-                    <input type="text" id="store-followers-input" class="admin-input" value="65K متابع">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="clock"></i></div>
+                        <div><h3>آخر نشاط</h3></div>
+                    </div>
+                    <div id="recentUsersList"></div>
                 </div>
             </div>
 
-            <button class="admin-btn btn-gold" onclick="addNewStore()"><i class="fa-solid fa-plus-circle"></i> نشر المتجر وتوليد ID تلقائي</button>
+            <!-- News -->
+            <div id="sec-news">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="newspaper"></i></div>
+                        <div>
+                            <h3>نشر خبر جديد</h3>
+                            <p>يظهر في قسم الأخبار داخل التطبيق، ويمكن إرسال إشعار به لجميع الطلاب فوراً</p>
+                        </div>
+                    </div>
 
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                <label style="font-size: 11px; color: #A0A5B5; font-weight: 700;">المتاجر المضافة ومعرفاتها:</label>
-                <div id="admin-stores-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+                    <div class="field">
+                        <label>عنوان الخبر *</label>
+                        <input type="text" id="n_title" placeholder="مثال: إعلان نتائج الامتحانات النهائية">
+                    </div>
+                    <div class="field">
+                        <label>نص مختصر</label>
+                        <textarea id="n_excerpt" rows="2" placeholder="وصف قصير للخبر..."></textarea>
+                    </div>
+                    <div class="field">
+                        <label>القسم *</label>
+                        <select id="n_category">
+                            <option value="exams">الامتحانات</option>
+                            <option value="results">النتائج</option>
+                            <option value="admission">القبول</option>
+                            <option value="grants">المنح</option>
+                            <option value="schools">المدارس</option>
+                            <option value="decisions">القرارات</option>
+                            <option value="other">أخرى</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>صورة الخبر (اختياري — إذا تركته تُستخدم صورة افتراضية)</label>
+                        <input type="file" id="n_image" accept="image/*">
+                        <img id="n_preview" class="hidden preview-img" style="width:96px;height:64px;" alt="معاينة">
+                    </div>
+
+                    <div class="chk-row">
+                        <label class="chk"><input type="checkbox" id="n_urgent"> عاجل</label>
+                        <label class="chk"><input type="checkbox" id="n_pinned"> مثبت</label>
+                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب</label>
+                    </div>
+
+                    <button class="btn mt-4" id="n_publish">نشر الخبر</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>الأخبار المنشورة</h3></div>
+                    </div>
+                    <div id="newsList"></div>
+                </div>
             </div>
-        </div>
 
-        <!-- [7] قسم حذف متجر / بيج بواسطة الـ ID -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-trash"></i> حذف متجر / بيج نهائياً (بواسطة Store ID)</div>
-            
-            <div class="input-group">
-                <label>أدخل معرّف المتجر المراد حذفه (Store ID):</label>
-                <input type="text" id="delete-store-id-input" class="admin-input" placeholder="مثال: 1024 أو #1024">
+            <!-- Resources -->
+            <div id="sec-res" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="book-open"></i></div>
+                        <div>
+                            <h3>نشر ملزمة PDF</h3>
+                            <p>تُضاف إلى قسم الملازم المجانية حسب المرحلة والمادة</p>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>عنوان الملزمة *</label>
+                        <input type="text" id="r_title" placeholder="مثال: ملزمة الكيمياء الشاملة">
+                    </div>
+                    <div class="field">
+                        <label>الوصف</label>
+                        <input type="text" id="r_desc" placeholder="مثال: الصف السادس العلمي - الطبعة 2025">
+                    </div>
+
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>المرحلة (القسم) *</label>
+                            <select id="r_stage">
+                                <option value="sixth-science">سادس علمي</option>
+                                <option value="sixth-literary">سادس أدبي</option>
+                                <option value="fifth-science">خامس علمي</option>
+                                <option value="fifth-literary">خامس أدبي</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>المادة *</label>
+                            <select id="r_subject"></select>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>السنة</label>
+                        <input type="text" id="r_year" value="2025">
+                    </div>
+                    <div class="field">
+                        <label>صورة الغلاف الملوّنة *</label>
+                        <input type="file" id="r_cover" accept="image/*">
+                        <img id="r_preview" class="hidden preview-img" style="width:64px;height:96px;" alt="معاينة">
+                    </div>
+                    <div class="field">
+                        <label>ملف PDF *</label>
+                        <input type="file" id="r_pdf" accept="application/pdf">
+                    </div>
+
+                    <button class="btn mt-4" id="r_publish">نشر الملزمة</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>الملازم المنشورة</h3></div>
+                    </div>
+                    <div id="resList"></div>
+                </div>
             </div>
 
-            <button class="admin-btn btn-red" onclick="deleteStoreById()"><i class="fa-solid fa-trash-can"></i> حذف المتجر من قاعدة البيانات نهائياً</button>
-        </div>
+            <!-- Notifications -->
+            <div id="sec-notif" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="bell"></i></div>
+                        <div>
+                            <h3>إرسال إشعار عام</h3>
+                            <p>يصل فوراً لكل الطلاب المسجّلين في التطبيق</p>
+                        </div>
+                    </div>
 
-        <!-- [8] قسم إرسال إشعارات عامة لكل المستخدمين -->
-        <div class="admin-card-section">
-            <div class="section-title"><i class="fa-solid fa-bullhorn"></i> إرسال إشعار عام لجميع المستخدمين</div>
-            
-            <div class="input-group">
-                <label>عنوان الإشعار:</label>
-                <input type="text" id="admin-notif-title-input" class="admin-input" placeholder="مثال: عرض خاص جديد! 🎉">
+                    <div class="field">
+                        <label>عنوان الإشعار *</label>
+                        <input type="text" id="no_title" placeholder="مثال: تذكير بموعد الامتحان">
+                    </div>
+                    <div class="field">
+                        <label>نص الإشعار</label>
+                        <textarea id="no_desc" rows="2" placeholder="تفاصيل الإشعار..."></textarea>
+                    </div>
+                    <div class="field">
+                        <label>النوع</label>
+                        <select id="no_type">
+                            <option value="urgent">عاجل</option>
+                            <option value="announcement" selected>إعلان رسمي</option>
+                            <option value="circular">تعميم</option>
+                            <option value="update">تحديث</option>
+                            <option value="reminder">تذكير</option>
+                            <option value="general">أخبار عامة</option>
+                        </select>
+                    </div>
+
+                    <button class="btn mt-4" id="no_send">إرسال الإشعار للجميع</button>
+                </div>
             </div>
 
-            <div class="input-group">
-                <label>نص الإشعار:</label>
-                <input type="text" id="admin-notif-message-input" class="admin-input" placeholder="أدخل نص الإشعار هنا...">
+            <!-- Images -->
+            <div id="sec-imgs" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="tag"></i></div>
+                        <div>
+                            <h3>شعار الموقع (اللوكو)</h3>
+                            <p>يظهر فورًا بجانب "منصة الطالب العراقي" عند كل المستخدمين</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <input type="file" id="logoFile" accept="image/*">
+                        <img id="logo_preview" class="hidden preview-img" style="width:64px;height:64px;border-radius:999px;" alt="معاينة">
+                    </div>
+                    <button class="btn mt-2" id="logoBtn">تغيير الشعار</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="images"></i></div>
+                        <div>
+                            <h3>صور السلايدر</h3>
+                            <p>تظهر فوق الشريط الإخباري في الواجهة الرئيسية</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>عنوان الصورة (اختياري)</label>
+                        <input type="text" id="c_title">
+                    </div>
+                    <div class="field">
+                        <input type="file" id="c_file" accept="image/*">
+                        <img id="c_preview" class="hidden preview-img" style="width:128px;height:64px;" alt="معاينة">
+                    </div>
+                    <button class="btn mt-2" id="c_add">إضافة للسلايدر</button>
+                    <div id="carouselList" class="mt-4"></div>
+                </div>
             </div>
 
-            <button class="admin-btn btn-gold" onclick="sendGlobalNotification()"><i class="fa-solid fa-paper-plane"></i> إرسال الإشعار لجميع المستخدمين</button>
-        </div>
+            <!-- Ticker -->
+            <div id="sec-ticker" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="megaphone"></i></div>
+                        <div>
+                            <h3>إضافة خبر للشريط</h3>
+                            <p>يظهر في الشريط الإخباري أعلى الرئيسية فقط — لا يدخل في الأخبار ولا الإشعارات</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="ti_text">نص الخبر *</label>
+                        <input type="text" id="ti_text" placeholder="مثال: الامتحانات النهائية تبدأ يوم الأحد القادم">
+                    </div>
+                    <div class="field">
+                        <label for="ti_expires">يختفي تلقائياً في (اختياري)</label>
+                        <input type="datetime-local" id="ti_expires">
+                    </div>
+                    <button class="btn mt-2" id="ti_publish">نشر في الشريط</button>
+                </div>
 
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div>
+                            <h3>أخبار الشريط</h3>
+                            <p>رتّبها بالأسهم، أوقف أي خبر مؤقتاً بالمفتاح، أو عدّل نصه مباشرة</p>
+                        </div>
+                    </div>
+                    <div id="tickerList"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="settings"></i></div>
+                        <div>
+                            <h3>إعدادات الشريط</h3>
+                            <p>شكل الشريط وسرعته عند الطلاب</p>
+                        </div>
+                    </div>
+                    <div class="tk-preview" aria-label="معاينة"><span class="pv-pill"><i></i><span id="pv_label">عاجل</span></span><span class="pv-text" id="pv_text">لا توجد أخبار مفعّلة</span></div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار الشريط</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="sections.ticker" aria-label="إظهار الشريط"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>تحريك الشريط تلقائياً</strong><span>إذا أطفأته يظهر الشريط واقفاً، والطالب يشغّله بزر التشغيل</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="ticker.autoplay" aria-label="تحريك الشريط تلقائياً"><span class="track"></span></label>
+                    </div>
+                    <div class="field-grid field-grid-2 mt-3">
+                        <div class="field" style="margin-bottom:0;">
+                            <label for="cfg_tk_label">كلمة الشارة</label>
+                            <input type="text" id="cfg_tk_label" placeholder="عاجل" maxlength="14">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label for="cfg_tk_duration">سرعة حركة الشريط</label>
+                            <select id="cfg_tk_duration">
+                                <option value="0">عادية (افتراضي)</option>
+                                <option value="4">سريعة جداً</option>
+                                <option value="6">سريعة</option>
+                                <option value="8">عادية</option>
+                                <option value="12">بطيئة</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn mt-4" id="cfg_save_tk">حفظ إعدادات الشريط</button>
+                </div>
+            </div>
+
+            <!-- Exam Schedule -->
+            <div id="sec-exams" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="calendar-days"></i></div>
+                        <div>
+                            <h3>إضافة موعد امتحان</h3>
+                            <p>يظهر في جدول الامتحانات القادمة للطلاب</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>اسم المادة *</label>
+                            <input type="text" id="ex_subject" placeholder="مثال: الرياضيات">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>تاريخ ووقت الامتحان *</label>
+                            <input type="datetime-local" id="ex_date">
+                        </div>
+                    </div>
+                    <button class="btn mt-4" id="ex_publish">إضافة للجدول</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>مواعيد الامتحانات الحالية</h3></div>
+                    </div>
+                    <div id="examsList"></div>
+                </div>
+            </div>
+
+            <!-- Holidays -->
+            <div id="sec-holidays" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="siren"></i></div>
+                        <div>
+                            <h3>باچر دوام لو عطلة؟ (إعلان سريع)</h3>
+                            <p>للعطل المفاجئة. يتغير الجواب فوراً بصفحة العطل عند طلاب المحافظات اللي تختارها، ويوصلهم إشعار</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>اليوم *</label>
+                            <input type="date" id="ds_date">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>الحالة *</label>
+                            <select id="ds_state">
+                                <option value="off">عطلة</option>
+                                <option value="pending">بانتظار القرار</option>
+                                <option value="on">دوام رسمي (نفي إشاعة العطلة)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:16px;">
+                        <label>المحافظات *</label>
+                        <label class="ds-chk ds-all"><input type="checkbox" id="ds_all"><span>كل محافظات العراق</span></label>
+                        <div class="ds-chks" id="ds_govs"><label class="ds-chk"><input type="checkbox" name="ds_gov" value="بغداد"><span>بغداد</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="البصرة"><span>البصرة</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="نينوى"><span>نينوى</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="أربيل"><span>أربيل</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="السليمانية"><span>السليمانية</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="دهوك"><span>دهوك</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="حلبجة"><span>حلبجة</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="كركوك"><span>كركوك</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="الأنبار"><span>الأنبار</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="صلاح الدين"><span>صلاح الدين</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ديالى"><span>ديالى</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="بابل"><span>بابل</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="كربلاء"><span>كربلاء</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="النجف"><span>النجف</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="واسط"><span>واسط</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="القادسية"><span>القادسية</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ذي قار"><span>ذي قار</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="ميسان"><span>ميسان</span></label><label class="ds-chk"><input type="checkbox" name="ds_gov" value="المثنى"><span>المثنى</span></label></div>
+                    </div>
+                    <div class="field">
+                        <label>السبب (اختياري)</label>
+                        <input type="text" id="ds_reason" maxlength="120" placeholder="مثال: بسبب الأمطار الغزيرة">
+                    </div>
+                    <label class="ds-chk" style="margin-top:4px;"><input type="checkbox" id="ds_notify" checked><span>أرسل إشعار للطلاب بهاي المحافظات</span></label>
+                    <button class="btn mt-4" id="ds_publish">نشر الإعلان</button>
+                    <div id="dsPushHelp"></div>
+                    <div id="dsList" style="margin-top:14px;"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="party-popper"></i></div>
+                        <div>
+                            <h3>إضافة عطلة للتقويم</h3>
+                            <p>تظهر في تقويم العطل داخل التطبيق</p>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label>اسم العطلة *</label>
+                        <input type="text" id="h_title" placeholder="مثال: عطلة الربيع">
+                    </div>
+
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>نوع العطلة *</label>
+                            <select id="h_type">
+                                <option value="government">عطلة رسمية</option>
+                                <option value="school">عطلة مدرسية</option>
+                            </select>
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>المحافظة</label>
+                            <select id="h_governorate">
+                                <option value="">كل المحافظات (عطلة عامة)</option>
+                                <option value="بغداد">بغداد</option>
+                                <option value="البصرة">البصرة</option>
+                                <option value="نينوى">نينوى</option>
+                                <option value="أربيل">أربيل</option>
+                                <option value="السليمانية">السليمانية</option>
+                                <option value="الأنبار">الأنبار</option>
+                                <option value="بابل">بابل</option>
+                                <option value="كربلاء">كربلاء</option>
+                                <option value="النجف">النجف</option>
+                                <option value="واسط">واسط</option>
+                                <option value="صلاح الدين">صلاح الدين</option>
+                                <option value="كركوك">كركوك</option>
+                                <option value="ديالى">ديالى</option>
+                                <option value="دهوك">دهوك</option>
+                                <option value="حلبجة">حلبجة</option>
+                                <option value="ذي قار">ذي قار</option>
+                                <option value="ميسان">ميسان</option>
+                                <option value="المثنى">المثنى</option>
+                                <option value="القادسية">القادسية</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>تاريخ البداية *</label>
+                            <input type="date" id="h_start">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>تاريخ النهاية *</label>
+                            <input type="date" id="h_end">
+                        </div>
+                    </div>
+
+                    <div class="chk-row mt-4">
+                        <label class="chk"><input type="checkbox" id="h_notify" checked> إشعار للطلاب</label>
+                    </div>
+
+                    <button class="btn mt-4" id="h_publish">إضافة للتقويم</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>العطل الحالية</h3></div>
+                    </div>
+                    <div id="holidaysList"></div>
+                </div>
+            </div>
+
+            <!-- Topup Codes -->
+            <div id="sec-topup" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="credit-card"></i></div>
+                        <div>
+                            <h3>توليد أكواد تعبئة</h3>
+                            <p>كل كود يُستخدم مرة واحدة فقط من طالب واحد، ثم يصبح غير صالح تلقائياً</p>
+                        </div>
+                    </div>
+
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>قيمة الكود (بالدينار العراقي) *</label>
+                            <input type="number" id="tc_value" placeholder="مثال: 5000 أو 10000" min="250" step="250">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>عدد الأكواد المطلوب توليدها</label>
+                            <input type="number" id="tc_count" value="1" min="1" max="50">
+                        </div>
+                    </div>
+
+                    <button class="btn mt-4" id="tc_generate">توليد الأكواد</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>الأكواد المولّدة</h3></div>
+                    </div>
+                    <div class="subtabs">
+                        <button class="subtab active" data-tcf="all" onclick="setTopupFilter('all')">الكل</button>
+                        <button class="subtab" data-tcf="unused" onclick="setTopupFilter('unused')">غير مستخدمة</button>
+                        <button class="subtab" data-tcf="used" onclick="setTopupFilter('used')">مستخدمة</button>
+                    </div>
+                    <div id="topupList"></div>
+                </div>
+            </div>
+
+            <!-- Store / Marketplace -->
+            <div id="sec-store" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="store"></i></div>
+                        <div><h3>طلبات فتح المتاجر</h3></div>
+                    </div>
+                    <div class="subtabs">
+                        <button class="subtab active" data-ssf="pending" onclick="setStoreSubFilter('pending')">قيد المراجعة</button>
+                        <button class="subtab" data-ssf="approved" onclick="setStoreSubFilter('approved')">مفعّلة</button>
+                        <button class="subtab" data-ssf="rejected" onclick="setStoreSubFilter('rejected')">مرفوضة</button>
+                    </div>
+                    <div id="storeAppsList"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="package"></i></div>
+                        <div><h3>منتجات المتاجر (ريلز)</h3></div>
+                    </div>
+                    <div class="subtabs">
+                        <button class="subtab active" data-spf="pending" onclick="setProductSubFilter('pending')">قيد المراجعة</button>
+                        <button class="subtab" data-spf="approved" onclick="setProductSubFilter('approved')">منشورة</button>
+                        <button class="subtab" data-spf="rejected" onclick="setProductSubFilter('rejected')">مرفوضة</button>
+                    </div>
+                    <div id="storeProductsAdminList"></div>
+                </div>
+            </div>
+
+            <!-- Ban Student -->
+            <div id="sec-auction" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="gavel"></i></div>
+                        <div>
+                            <h3>إطلاق مزاد نقاط</h3>
+                            <p>الطلاب يزايدون بنقاطهم والأعلى ياخذ الجائزة. نقاط اللي ينزايد عليه ترجعله تلقائياً</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>الجائزة *</label>
+                        <input type="text" id="au_title" maxlength="80" placeholder="مثال: ملزمة الفيزياء كاملة مجاناً">
+                    </div>
+                    <div class="field">
+                        <label>وصف (اختياري)</label>
+                        <input type="text" id="au_desc" maxlength="160" placeholder="مثال: تنرسل للفائز بصيغة PDF">
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>أقل مزايدة (نقطة)</label>
+                            <input type="number" id="au_min" value="100" min="1">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>أقل زيادة (نقطة)</label>
+                            <input type="number" id="au_step" value="10" min="1">
+                        </div>
+                    </div>
+                    <div class="field" style="margin-top:16px;">
+                        <label>ينتهي بتاريخ *</label>
+                        <input type="datetime-local" id="au_end">
+                    </div>
+                    <button class="btn mt-4" id="au_start">إطلاق المزاد</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="activity"></i></div>
+                        <div><h3>المزاد الحالي</h3><p>أعلى مزايد ورقمه حتى تسلمه الجائزة</p></div>
+                    </div>
+                    <div id="auCurrent"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="history"></i></div>
+                        <div><h3>المزادات السابقة</h3></div>
+                    </div>
+                    <div id="auHistory"></div>
+                </div>
+            </div>
+
+            <div id="sec-ban" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="ban"></i></div>
+                        <div>
+                            <h3>حظر طالب</h3>
+                            <p>يُسجَّل خروجه تلقائياً ولا يستطيع الدخول للمنصة مرة أخرى حتى يُرفع الحظر</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>رقم الطالب *</label>
+                        <input type="text" id="ban_number" placeholder="مثال: 12345">
+                    </div>
+                    <div class="field">
+                        <label>سبب الحظر (اختياري)</label>
+                        <input type="text" id="ban_reason" placeholder="مثال: مخالفة قوانين المنتدى">
+                    </div>
+                    <button class="btn btn-danger mt-4" id="ban_add">حظر الطالب</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>الطلاب المحظورون</h3></div>
+                    </div>
+                    <div id="bannedList"></div>
+                </div>
+            </div>
+
+        </main>
     </div>
 
-    <!-- كود لوحة الأدمن مع ربط المزامنة الفورية للفايربيس -->
+    <div id="toast"></div>
+
+    <!-- Plain, non-module script: runs independently of the Firebase imports below.
+         Tab navigation, the subject dropdown and image previews are pure UI logic
+         with no need for a network call — keeping them here means the panel stays
+         fully navigable even if the Firebase/Tailwind CDN scripts fail to load
+         (blocked network, firewall, temporary outage). Only actual publishing to
+         the database needs the module script below. -->
+    <script>
+        (function () {
+            const SUBJECTS = {
+                'sixth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
+                'sixth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية','الفلسفة','علم الاجتماع'],
+                'fifth-science': ['اللغة العربية','اللغة الإنجليزية','الرياضيات','الكيمياء','الفيزياء','الأحياء'],
+                'fifth-literary': ['اللغة العربية','اللغة الإنجليزية','التاريخ','الجغرافية','الاقتصاد','العلوم الإسلامية']
+            };
+            const el = (id) => document.getElementById(id);
+            const val = (id) => (el(id)?.value || '').trim();
+
+            // ---------- Tabs ----------
+            document.querySelectorAll('.tab').forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                });
+            });
+
+            // ---------- Subjects per stage ----------
+            function fillSubjects() {
+                const stage = val('r_stage');
+                el('r_subject').innerHTML = (SUBJECTS[stage] || []).map(s => `<option value="${s}">${s}</option>`).join('');
+            }
+            fillSubjects();
+            el('r_stage').addEventListener('change', fillSubjects);
+
+            // ---------- Image Previews (from gallery picker) ----------
+            function setupPreview(inputId, imgId) {
+                el(inputId).addEventListener('change', () => {
+                    const file = el(inputId).files[0];
+                    const img = el(imgId);
+                    if (!img) return;
+                    if (file && file.type.startsWith('image/')) {
+                        img.src = URL.createObjectURL(file);
+                        img.classList.remove('hidden');
+                    } else {
+                        img.classList.add('hidden');
+                    }
+                });
+            }
+            setupPreview('n_image', 'n_preview');
+            setupPreview('r_cover', 'r_preview');
+            setupPreview('logoFile', 'logo_preview');
+            setupPreview('c_file', 'c_preview');
+            lucide.createIcons();
+        })();
+    </script>
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-        import { getDatabase, ref, get, child, update, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyBo9t1b_Y4YZQLigluUMHekcKqDSV8Pn7s",
-            authDomain: "shop-iraq-86dd8.firebaseapp.com",
-            databaseURL: "https://shop-iraq-86dd8-default-rtdb.firebaseio.com",
-            projectId: "shop-iraq-86dd8",
-            storageBucket: "shop-iraq-86dd8.firebasestorage.app",
-            messagingSenderId: "763958830934",
-            appId: "1:763958830934:web:6622ef3125e26ce71018f7",
-            measurementId: "G-55F4YEXMV9"
+            apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
+            authDomain: "iraqi-student-platform-9918d.firebaseapp.com",
+            databaseURL: "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com/",
+            projectId: "iraqi-student-platform-9918d",
+            storageBucket: "iraqi-student-platform-9918d.firebasestorage.app",
+            messagingSenderId: "16734952715",
+            appId: "1:16734952715:web:6c11e771fb86f9d185960e"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        let targetFoundUid = null;
+        const el = (id) => document.getElementById(id);
+        const val = (id) => (el(id)?.value || '').trim();
 
-        // المزامنة الحية المباشرة لأكواد الشحن والقسائم من قاعدة البيانات الموحدة
-        const rechargeCodesRef = ref(db, 'recharge_codes');
-        onValue(rechargeCodesRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const firebaseCodes = Object.keys(data).map(k => ({
-                    code: k,
-                    amount: data[k].amount,
-                    used: data[k].used
-                }));
-                localStorage.setItem('app_generated_recharge_codes', JSON.stringify(firebaseCodes));
-            } else {
-                localStorage.setItem('app_generated_recharge_codes', JSON.stringify([]));
-            }
-            renderGeneratedCodesList();
-        });
-
-        // المزامنة الحية المباشرة للمتاجر المضافة من قاعدة البيانات الموحدة
-        const storesRef = ref(db, 'stores');
-        onValue(storesRef, (snapshot) => {
-            if (snapshot.exists()) {
-                const data = snapshot.val();
-                const firebaseStores = Object.keys(data).map(k => ({
-                    id: String(k),
-                    category: data[k].category || '',
-                    name: data[k].name || '',
-                    rating: data[k].rating || '5.0',
-                    followers: data[k].followers || '10K',
-                    bg: data[k].bg || '#1A1D20',
-                    cover: data[k].cover || '#1A1D20'
-                }));
-                localStorage.setItem('app_custom_stores', JSON.stringify(firebaseStores));
-            } else {
-                localStorage.setItem('app_custom_stores', JSON.stringify([]));
-            }
-            renderAdminStoresList();
-        });
-
-        window.updateAdminUI = function() {
-            const isBanned = localStorage.getItem('app_user_banned') === 'true';
-            const indicator = document.getElementById('user-status-indicator');
-            if (isBanned) {
-                indicator.className = "status-badge banned";
-                indicator.innerText = "الحساب محظور 🔴";
-            } else {
-                indicator.className = "status-badge active";
-                indicator.innerText = "الحساب نشط 🟢";
-            }
-            renderAdminStoresList();
-            renderGeneratedCodesList();
-        };
-
-        window.sendGlobalNotification = async function() {
-            const titleInput = document.getElementById('admin-notif-title-input');
-            const msgInput = document.getElementById('admin-notif-message-input');
-
-            const title = titleInput.value.trim();
-            const message = msgInput.value.trim();
-
-            if (!title || !message) {
-                alert('يرجى إدخال عنوان الإشعار ونصه.');
-                return;
-            }
-
-            const now = new Date();
-            const timeFormatted = 'الآن، ' + now.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-
-            const notifData = {
-                title: title,
-                message: message,
-                time: timeFormatted,
-                timestamp: Date.now()
-            };
-
-            try {
-                const newNotifRef = push(ref(db, 'global_notifications'));
-                await set(newNotifRef, notifData);
-                alert('🚀 تم إرسال الإشعار لجميع المستخدمين بنجاح!');
-                titleInput.value = '';
-                msgInput.value = '';
-            } catch (err) {
-                alert('خطأ أثناء إرسال الإشعار: ' + err.message);
-            }
-        };
-
-        window.searchUserById = async function() {
-            const query = document.getElementById('search-user-id-input').value.trim();
-            const resultBox = document.getElementById('user-search-result');
-
-            if (!query) {
-                alert('يرجى إدخال معرّف المستخدم (ID) للبحث.');
-                return;
-            }
-
-            try {
-                const snapshot = await get(child(ref(db), 'users'));
-                let foundUser = null;
-
-                // توحيد صيغة المعرّف المدخل لينجح البحث بأي شكل: #IQ-8892401 أو IQ-8892401 أو 8892401
-                const normalizeId = (val) => String(val || '').trim().toUpperCase().replace('#', '').replace('IQ-', '').trim();
-                const normalizedQuery = normalizeId(query);
-
-                if (snapshot.exists()) {
-                    const users = snapshot.val();
-                    for (let uid in users) {
-                        const u = users[uid];
-                        if (u.userId === query || uid === query || (u.userId && normalizedQuery !== '' && normalizeId(u.userId) === normalizedQuery)) {
-                            foundUser = u;
-                            targetFoundUid = uid;
-                            break;
-                        }
-                    }
-                }
-
-                if (foundUser) {
-                    document.getElementById('res-user-name').innerText = foundUser.name || "مستخدم شوب العراق";
-                    document.getElementById('res-user-id').innerText = foundUser.userId || "#IQ-8892401";
-                    document.getElementById('res-user-balance').innerText = (foundUser.balance !== undefined ? foundUser.balance : 0).toLocaleString() + " د.ع";
-                    
-                    const statusElem = document.getElementById('res-user-status');
-                    if (foundUser.banned) {
-                        statusElem.innerText = "محظور 🔴";
-                        statusElem.style.color = "#EB001B";
-                    } else {
-                        statusElem.innerText = "نشط 🟢";
-                        statusElem.style.color = "#4CAF50";
-                    }
-
-                    const roleElem = document.getElementById('res-user-admin-role');
-                    if (foundUser.managedStore) {
-                        const cleanStoreId = foundUser.managedStore.trim().replace('#', '');
-                        roleElem.innerText = `الصلاحية: أدمن كمالك ومدير للمتجر (Store ID: #${cleanStoreId}) 👑`;
-                        roleElem.style.color = "#FFC425";
-                    } else {
-                        roleElem.innerText = "الصلاحية: مستخدم عادي (بدون متجر)";
-                        roleElem.style.color = "#A0A5B5";
-                    }
-
-                    resultBox.style.display = "flex";
-                } else {
-                    const defaultUserId = "#IQ-8892401";
-                    const currentBalance = localStorage.getItem('app_user_balance') !== null ? parseInt(localStorage.getItem('app_user_balance')) : 0;
-                    const isBanned = localStorage.getItem('app_user_banned') === 'true';
-                    const rawManagedStore = localStorage.getItem('app_user_managed_store');
-
-                    if (query === defaultUserId || query.includes("8892401")) {
-                        document.getElementById('res-user-name').innerText = "مستخدم شوب العراق";
-                        document.getElementById('res-user-id').innerText = defaultUserId;
-                        document.getElementById('res-user-balance').innerText = currentBalance.toLocaleString() + " د.ع";
-                        
-                        const statusElem = document.getElementById('res-user-status');
-                        if (isBanned) {
-                            statusElem.innerText = "محظور 🔴";
-                            statusElem.style.color = "#EB001B";
-                        } else {
-                            statusElem.innerText = "نشط 🟢";
-                            statusElem.style.color = "#4CAF50";
-                        }
-
-                        const roleElem = document.getElementById('res-user-admin-role');
-                        if(rawManagedStore) {
-                            const cleanStoreId = rawManagedStore.trim().replace('#', '');
-                            roleElem.innerText = `الصلاحية: أدمن كمالك ومدير للمتجر (Store ID: #${cleanStoreId}) 👑`;
-                            roleElem.style.color = "#FFC425";
-                        } else {
-                            roleElem.innerText = "الصلاحية: مستخدم عادي (بدون متجر)";
-                            roleElem.style.color = "#A0A5B5";
-                        }
-
-                        resultBox.style.display = "flex";
-                    } else {
-                        alert(`❌ لم يتم العثور على أي مستخدم بالمعرّف (${query}).`);
-                        resultBox.style.display = "none";
-                    }
-                }
-            } catch (err) {
-                alert('خطأ أثناء البحث في الفايربيس: ' + err.message);
-            }
-        };
-
-        window.promoteUserToStoreAdmin = function() {
-            const userId = document.getElementById('promote-user-id').value.trim();
-            let rawStoreId = document.getElementById('promote-store-id').value.trim();
-            const cleanStoreId = rawStoreId.replace('#', '');
-
-            if (!userId || !cleanStoreId) {
-                alert('يرجى كتابة معرّف المستخدم ومعرّف المتجر (Store ID).');
-                return;
-            }
-
-            localStorage.setItem('app_user_managed_store', cleanStoreId);
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { managedStore: cleanStoreId });
-            }
-
-            alert(`🎉 تم رفع المستخدم (${userId}) بنجاح كـ أدمن وتكليفه بإدارة المتجر (#${cleanStoreId})!\nافتح الآن صفحة هذا المتجر في التطبيق وتفقد لوحة التحكم المخصصة لرفع المنتجات من الاستوديو.`);
-            searchUserById();
-        };
-
-        window.revokeUserStoreAdmin = function() {
-            localStorage.removeItem('app_user_managed_store');
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { managedStore: '' });
-            }
-            alert('⚠️ تم سحب صلاحيات الأدمن وإدارة المتجر من المستخدم بنجاح.');
-            searchUserById();
-        };
-
-        window.banUser = function() {
-            const reason = document.getElementById('ban-reason-input').value.trim();
-            if(!reason) {
-                alert('يرجى كتابة سبب الحظر أولاً.');
-                return;
-            }
-            localStorage.setItem('app_user_banned', 'true');
-            localStorage.setItem('app_ban_reason', reason);
-
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { banned: true, banReason: reason });
-            }
-
-            updateAdminUI();
-            alert('🛑 تم حظر المستخدم بنجاح وسيظهر له سبب الحظر فوراً!');
-        };
-
-        window.unbanUser = function() {
-            localStorage.setItem('app_user_banned', 'false');
-
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { banned: false });
-            }
-
-            updateAdminUI();
-            alert('🟢 تم إلغاء حظر المستخدم بنجاح واستعادة دخوله بالتطبيق!');
-        };
-
-        window.setBalance = function() {
-            const val = parseInt(document.getElementById('balance-amount-input').value);
-            if(isNaN(val) || val < 0) {
-                alert('يرجى إدخال مبلغ صحيح.');
-                return;
-            }
-            localStorage.setItem('app_user_balance', val);
-
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { balance: val });
-            }
-
-            alert('✅ تم تعديل رصيد المستخدم إلى: ' + val.toLocaleString() + ' د.ع');
-            searchUserById();
-        };
-
-        window.addFunds = function(amount) {
-            let current = parseInt(localStorage.getItem('app_user_balance') || 0);
-            current += amount;
-            localStorage.setItem('app_user_balance', current);
-
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { balance: current });
-            }
-
-            alert('✅ تم شحن حساب المستخدم بمبلغ ' + amount.toLocaleString() + ' د.ع');
-            searchUserById();
-        };
-
-        window.zeroBalance = function() {
-            localStorage.setItem('app_user_balance', 0);
-
-            if (targetFoundUid) {
-                update(ref(db, 'users/' + targetFoundUid), { balance: 0 });
-            }
-
-            alert('⚠️ تم تصفير رصيد المستخدم بالكامل إلى 0 د.ع');
-            searchUserById();
-        };
-
-        // توليد أفقية وإرسال كود الشحن لحفظه فورياً في قاعدة البيانات الموحدة
-        window.generateRechargeCode = async function() {
-            const val = parseInt(document.getElementById('recharge-code-value-input').value);
-            if (isNaN(val) || val <= 0) {
-                alert('يرجى إدخال قيمة شحن صحيحة.');
-                return;
-            }
-
-            const randomNum = Math.floor(10000 + Math.random() * 90000);
-            const generatedCode = `IQ-${val}-${randomNum}`;
-
-            const codeData = {
-                code: generatedCode,
-                amount: val,
-                used: false,
-                createdAt: new Date().toISOString()
-            };
-
-            try {
-                // الحفظ الفوري في الفايربيس الموحد
-                await set(ref(db, 'recharge_codes/' + generatedCode), codeData);
-
-                const codes = JSON.parse(localStorage.getItem('app_generated_recharge_codes') || '[]');
-                codes.push(codeData);
-                localStorage.setItem('app_generated_recharge_codes', JSON.stringify(codes));
-
-                alert(`🎉 تم توليد كود الشحن وحفظه بفرع القاعدة الموحدة بنجاح!\n🔑 الكود: ${generatedCode}\n💰 القيمة: ${val.toLocaleString()} د.ع`);
-
-                document.getElementById('recharge-code-value-input').value = '';
-                renderGeneratedCodesList();
-            } catch (err) {
-                alert('خطأ أثناء حفظ كود الشحن بالفايربيس: ' + err.message);
-            }
-        };
-
-        window.copyCodeToClipboard = function(codeText) {
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(codeText).then(() => {
-                    alert(`📋 تم نسخ كود الشحن (${codeText}) بنجاح!`);
-                }).catch(() => {
-                    fallbackCopyText(codeText);
-                });
-            } else {
-                fallbackCopyText(codeText);
-            }
-        };
-
-        function fallbackCopyText(text) {
-            const tempInput = document.createElement('input');
-            tempInput.value = text;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            alert(`📋 تم نسخ كود الشحن (${text}) بنجاح!`);
+        let toastTimer = null;
+        function toast(msg, ok = true) {
+            const t = el('toast');
+            t.textContent = msg;
+            t.style.background = ok ? '#16A34A' : '#DC2626';
+            t.style.display = 'block';
+            // FIX: a second toast used to be hidden early by the first toast's timer.
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
 
-        window.renderGeneratedCodesList = function() {
-            const container = document.getElementById('admin-generated-codes-list');
-            if (!container) return;
-            const codes = JSON.parse(localStorage.getItem('app_generated_recharge_codes') || '[]');
+        // Database keys can't contain . # $ [ ] or / (a "/" would silently create a nested path).
+        const sanitize = (str) => String(str).replace(/[.#$\[\]\/]/g, '_');
 
-            if (codes.length === 0) {
-                container.innerHTML = '<span style="font-size:11px; color:#8A8D91;">لا توجد أكواد شحن موالدة حالياً.</span>';
-                return;
-            }
+        // FIX (XSS): values from the database used to be pasted raw into inline
+        // onclick="fn('${value}')" handlers. escapeHtml() alone doesn't help there — the
+        // browser decodes &#39; back to ' before running the handler — so a store/product
+        // record written by a student with a quote in its id could run script inside this
+        // admin panel. jsArg() emits a JSON string literal (quotes/backslashes escaped) and
+        // then HTML-escapes it for the attribute.
+        const jsArg = (v) => escapeHtml(JSON.stringify(v == null ? '' : String(v)));
+        const entriesWithKey = (val) => Object.keys(val || {}).filter(k => val[k] && typeof val[k] === 'object').map(k => ({ ...val[k], _key: k }));
 
-            container.innerHTML = '';
-            codes.forEach(c => {
-                const item = document.createElement('div');
-                item.className = 'store-list-item';
-                item.innerHTML = `
-                    <div style="display:flex; flex-direction:column; gap:4px;">
-                        <div style="display:flex; align-items:center; gap:8px;">
-                            <span style="font-size:12px; font-weight:700; color:#FFFFFF;">الكود: ${c.code}</span>
-                            <button class="admin-btn btn-gold" style="height:24px; padding:0 8px; font-size:10px; width:auto;" onclick="copyCodeToClipboard('${c.code}')">
-                                <i class="fa-regular fa-copy"></i> نسخ الكود
-                            </button>
-                        </div>
-                        <span style="font-size:10px; color:#8A8D91;">القيمة: ${c.amount.toLocaleString()} د.ع | الحالة: ${c.used ? 'مستعمل 🔴' : 'متاح 🟢'}</span>
-                    </div>
-                    <span class="store-id-tag">${c.amount.toLocaleString()} د.ع</span>
-                `;
-                container.appendChild(item);
+        function escapeHtml(value) {
+            return String(value == null ? '' : value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // FIX: toISOString() gives the UTC date — before 03:00 Baghdad time it's yesterday.
+        function localDateStr(d = new Date()) {
+            const pad = (n) => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+        }
+
+        // FIX: after publishing, the file input was cleared but the old preview image stayed.
+        function clearPreview(inputId, imgId) {
+            if (el(inputId)) el(inputId).value = '';
+            const img = el(imgId);
+            if (img) { img.classList.add('hidden'); img.removeAttribute('src'); }
+        }
+
+        function fileToDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
             });
+        }
+
+        async function compressImage(file) {
+            try {
+                const bitmap = await createImageBitmap(file);
+                const maxW = 1000;
+                const isSmall = file.size < 400 * 1024 && bitmap.width <= maxW;
+                if (isSmall) return file;
+                const scale = Math.min(1, maxW / bitmap.width);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(bitmap.width * scale);
+                canvas.height = Math.round(bitmap.height * scale);
+                canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+                const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.8));
+                if (!blob) return file;
+                return new File([blob], 'compressed.jpg', { type: 'image/jpeg' });
+            } catch (e) {
+                return file;
+            }
+        }
+
+        async function uploadFile(file, folder) {
+            // Always store as Base64 in Realtime Database — works on phone, localhost and any hosting without CORS setup
+            let fileToUpload = file;
+            if (file.type.startsWith('image/')) {
+                fileToUpload = await compressImage(file);
+            }
+            const dataUrl = await fileToDataURL(fileToUpload);
+            if (dataUrl.length > 9000000) {
+                throw new Error('الملف كبير جداً — الحد الأقصى حوالي 7MB (الصور تُضغط تلقائياً، جرّب PDF أصغر)');
+            }
+            return dataUrl;
+        }
+
+        (function setModeBadge() {
+            const badge = document.getElementById('modeBadge');
+            if (!badge) return;
+            badge.textContent = 'الرفع: Base64 — Realtime Database (بدون Storage)';
+            badge.style.background = '#16A34A';
+            badge.style.color = '#fff';
+        })();
+
+        // ---------- Publish News ----------
+        window.publishNews = async () => {
+            const title = val('n_title');
+            if (!title) { toast('أدخل عنوان الخبر', false); return; }
+            const btn = el('n_publish');
+            btn.disabled = true;
+            try {
+                let imageUrl = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
+                const imgFile = el('n_image').files[0];
+                if (imgFile) imageUrl = await uploadFile(imgFile, 'news_images/');
+                const id = Date.now();
+                const urgent = el('n_urgent').checked;
+                const sendNotif = el('n_notify').checked;
+                await set(ref(db, 'news/' + id), {
+                    id, title,
+                    excerpt: val('n_excerpt'),
+                    image: imageUrl,
+                    category: val('n_category'),
+                    date: localDateStr(),
+                    time: 'الآن',
+                    source: 'وزارة التربية العراقية',
+                    isUrgent: urgent,
+                    isPinned: el('n_pinned').checked,
+                    notifHandled: sendNotif,
+                    isRead: false, isBookmarked: false, views: 0,
+                    publishedAt: serverTimestamp()
+                });
+                if (sendNotif) {
+                    await set(ref(db, 'notifications/' + id), {
+                        id, title, description: val('n_excerpt'), time: 'الآن', read: false,
+                        type: urgent ? 'urgent' : 'announcement', createdAt: serverTimestamp()
+                    });
+                }
+                toast('تم نشر الخبر بنجاح');
+                el('n_title').value = ''; el('n_excerpt').value = '';
+                clearPreview('n_image', 'n_preview');
+                el('n_urgent').checked = false; el('n_pinned').checked = false;
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('n_publish').addEventListener('click', publishNews);
+
+        // ---------- Publish Resource ----------
+        window.publishResource = async () => {
+            const title = val('r_title');
+            const pdfFile = el('r_pdf').files[0];
+            const coverFile = el('r_cover').files[0];
+            if (!title) { toast('أدخل عنوان الملزمة', false); return; }
+            if (!pdfFile) { toast('اختر ملف PDF', false); return; }
+            if (!coverFile) { toast('اختر صورة الغلاف', false); return; }
+            const btn = el('r_publish');
+            btn.disabled = true;
+            try {
+                const coverUrl = await uploadFile(coverFile, 'covers/');
+                const pdfUrl = await uploadFile(pdfFile, 'pdfs/');
+                const id = Date.now();
+                await set(ref(db, 'resources/' + id), {
+                    id, title,
+                    description: val('r_desc') || 'ملزمة منشورة من لوحة التحكم',
+                    stage: val('r_stage'),
+                    subject: val('r_subject'),
+                    fileType: 'PDF',
+                    fileSize: (pdfFile.size / (1024 * 1024)).toFixed(1) + ' MB',
+                    thumbnail: coverUrl,
+                    downloads: 0,
+                    isOfficial: true,
+                    year: val('r_year') || '2025',
+                    isBookmarked: false,
+                    isDownloaded: false,
+                    fileUrl: pdfUrl,
+                    createdAt: serverTimestamp()
+                });
+                toast('تم نشر الملزمة بنجاح');
+                el('r_title').value = ''; el('r_desc').value = '';
+                clearPreview('r_cover', 'r_preview'); el('r_pdf').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('r_publish').addEventListener('click', publishResource);
+
+        // ---------- Send Notification ----------
+        window.sendNotification = async () => {
+            const title = val('no_title');
+            if (!title) { toast('أدخل عنوان الإشعار', false); return; }
+            const btn = el('no_send');
+            btn.disabled = true;
+            try {
+                const id = Date.now();
+                await set(ref(db, 'notifications/' + id), {
+                    id, title, description: val('no_desc'), time: 'الآن', read: false,
+                    type: val('no_type') || 'announcement', createdAt: serverTimestamp()
+                });
+                toast('تم إرسال الإشعار لجميع الطلاب');
+                el('no_title').value = ''; el('no_desc').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل الإرسال', false);
+            }
+            btn.disabled = false;
+        };
+        el('no_send').addEventListener('click', sendNotification);
+
+        // ---------- Ticker-only publishing (independent from news) ----------
+        window.publishTicker = async () => {
+            const text = val('ti_text');
+            if (!text) { toast('أدخل نص الخبر', false); return; }
+            const expRaw = val('ti_expires');
+            const expiresAt = expRaw ? new Date(expRaw).getTime() : 0;
+            if (expRaw && (!expiresAt || expiresAt <= Date.now())) { toast('وقت الاختفاء لازم يكون بالمستقبل', false); return; }
+            try {
+                const id = Date.now();
+                const item = { id, text, active: true, order: id, createdAt: serverTimestamp() };
+                if (expiresAt) item.expiresAt = expiresAt;
+                await set(ref(db, 'ticker/' + id), item);
+                toast('تم النشر في الشريط');
+                el('ti_text').value = ''; el('ti_expires').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر', false);
+            }
+        };
+        el('ti_publish').addEventListener('click', publishTicker);
+
+        // ---------- Exam Schedule ----------
+        window.publishExam = async () => {
+            const subject = val('ex_subject');
+            const dateVal = val('ex_date');
+            if (!subject) { toast('أدخل اسم المادة', false); return; }
+            if (!dateVal) { toast('اختر تاريخ ووقت الامتحان', false); return; }
+            try {
+                const id = Date.now();
+                await set(ref(db, 'examSchedule/' + id), { id, subject, date: dateVal, createdAt: serverTimestamp() });
+                toast('تمت إضافة الامتحان للجدول');
+                el('ex_subject').value = ''; el('ex_date').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشلت الإضافة', false);
+            }
+        };
+        el('ex_publish').addEventListener('click', publishExam);
+
+        // ---------- Holidays Calendar ----------
+        window.publishHoliday = async () => {
+            const title = val('h_title');
+            const startDate = val('h_start');
+            const endDate = val('h_end');
+            if (!title) { toast('أدخل اسم العطلة', false); return; }
+            if (!startDate) { toast('اختر تاريخ البداية', false); return; }
+            if (!endDate) { toast('اختر تاريخ النهاية', false); return; }
+            if (new Date(endDate) < new Date(startDate)) { toast('تاريخ النهاية يجب أن يكون بعد تاريخ البداية', false); return; }
+            try {
+                const id = Date.now();
+                const governorate = val('h_governorate');
+                const notify = el('h_notify').checked;
+                await set(ref(db, 'holidays/' + id), { id, title, type: val('h_type'), governorate, startDate, endDate, createdAt: serverTimestamp() });
+                if (notify) {
+                    const notifDesc = 'من ' + startDate + ' إلى ' + endDate + (governorate ? ' — محافظة ' + governorate : '');
+                    await set(ref(db, 'notifications/' + id), {
+                        id, title: title, description: notifDesc, time: 'الآن', read: false,
+                        type: 'circular', createdAt: serverTimestamp()
+                    });
+                }
+                toast('تمت إضافة العطلة للتقويم' + (notify ? ' وإرسال إشعار للطلاب' : ''));
+                el('h_title').value = ''; el('h_start').value = ''; el('h_end').value = ''; el('h_governorate').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشلت الإضافة', false);
+            }
+        };
+        el('h_publish').addEventListener('click', publishHoliday);
+
+        // ---------- Topup Codes ----------
+        // FIX: codes carry real money, so they now come from crypto.getRandomValues()
+        // instead of the predictable Math.random() (32 chars = 5 bits, so % has no bias).
+        function generateCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const bytes = new Uint8Array(12);
+            crypto.getRandomValues(bytes);
+            const s = Array.from(bytes, (b) => chars[b % chars.length]).join('');
+            return s.slice(0, 4) + '-' + s.slice(4, 8) + '-' + s.slice(8, 12);
+        }
+        window.generateTopupCodes = async () => {
+            const value = parseInt(val('tc_value'), 10);
+            const count = Math.max(1, Math.min(50, parseInt(val('tc_count'), 10) || 1));
+            if (!value || value < 250) { toast('أدخل قيمة كود صحيحة', false); return; }
+            const btn = el('tc_generate');
+            btn.disabled = true;
+            try {
+                for (let i = 0; i < count; i++) {
+                    // FIX: set() used to blindly overwrite — a collision with an existing code
+                    // would reset an already-used code back to "unused" (redeemable again).
+                    let code = generateCode();
+                    for (let tries = 0; tries < 5 && (await get(ref(db, 'topupCodes/' + code))).exists(); tries++) code = generateCode();
+                    await set(ref(db, 'topupCodes/' + code), {
+                        code, value, used: false, usedBy: null, usedAt: null, createdAt: serverTimestamp()
+                    });
+                }
+                toast('تم توليد ' + count + ' كود بقيمة ' + value.toLocaleString('en-US') + ' د.ع');
+                el('tc_value').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل التوليد: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('tc_generate').addEventListener('click', generateTopupCodes);
+
+        let topupCodesData = [];
+        let topupFilter = 'all';
+        window.setTopupFilter = (f) => {
+            topupFilter = f;
+            document.querySelectorAll('[data-tcf]').forEach(b => b.classList.toggle('active', b.dataset.tcf === f));
+            renderTopupList();
+        };
+        function renderTopupList() {
+            const box = el('topupList');
+            if (!box) return;
+            let list = topupCodesData;
+            if (topupFilter === 'unused') list = list.filter(c => !c.used);
+            else if (topupFilter === 'used') list = list.filter(c => c.used);
+            if (list.length === 0) { box.innerHTML = '<p class="list-empty">لا توجد أكواد</p>'; return; }
+            box.innerHTML = list.map(c => `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c.code)}</div>
+                        <div class="text-slate-400 text-xs">${Number(c.value).toLocaleString('en-US')} د.ع ${c.used ? '• مستخدم' : '• غير مستخدم'}</div>
+                    </div>
+                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode(${jsArg(c.code)})">نسخ</button>`}
+                    <button class="del" onclick="deleteItem('topupCodes', ${jsArg(c._key)})">حذف</button>
+                </div>`).join('');
+        }
+        window.copyTopupCode = (code) => {
+            (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
 
-        window.addNewStore = function() {
-            const cat = document.getElementById('store-category-select').value;
-            const name = document.getElementById('store-name-input').value.trim();
-            const rating = document.getElementById('store-rating-input').value.trim();
-            const followers = document.getElementById('store-followers-input').value.trim();
-            const fileInput = document.getElementById('store-image-file-input');
+        // ---------- Users / Analytics ----------
+        // Reuses the app's existing presence system (app writes to presence/{uid} with
+        // { online, lastSeen } on login/logout — see setupPresence() in the main app) rather
+        // than adding a second tracking mechanism. "Active" here means: online right now,
+        // or presence last touched within the last 24h / 7 days.
+        let usersData = {};
+        let presenceData = {};
+        const DAY_MS = 24 * 60 * 60 * 1000;
 
-            if(!name) {
-                alert('يرجى إدخال اسم المتجر.');
-                return;
-            }
+        function timeAgoAr(ts) {
+            if (!ts) return '';
+            const diff = Date.now() - ts;
+            if (diff < 60000) return 'الآن';
+            const mins = Math.floor(diff / 60000);
+            if (mins < 60) return 'قبل ' + mins + ' د';
+            const hours = Math.floor(mins / 60);
+            if (hours < 24) return 'قبل ' + hours + ' س';
+            const days = Math.floor(hours / 24);
+            if (days < 30) return 'قبل ' + days + ' يوم';
+            return 'قبل ' + Math.floor(days / 30) + ' شهر';
+        }
 
-            const randomStoreId = Math.floor(1000 + Math.random() * 9000);
+        function renderUsersStats() {
+            const totalEl = el('stat_total'), onlineEl = el('stat_online'), todayEl = el('stat_today'), weekEl = el('stat_week');
+            if (!totalEl) return;
 
-            const processSaveStore = async (coverUrl) => {
-                const storeData = {
-                    id: String(randomStoreId),
-                    category: cat,
-                    name: name,
-                    rating: rating || "5.0",
-                    followers: followers || "10K",
-                    bg: "#1A1D20",
-                    cover: coverUrl || "#1A1D20"
-                };
+            const totalUsers = Object.keys(usersData).length;
+            const presenceEntries = Object.keys(presenceData).map((uid) => ({ uid, ...presenceData[uid] }));
+            const now = Date.now();
+            const onlineNow = presenceEntries.filter((p) => p.online).length;
+            const activeToday = presenceEntries.filter((p) => p.online || (p.lastSeen && now - p.lastSeen <= DAY_MS)).length;
+            const activeWeek = presenceEntries.filter((p) => p.online || (p.lastSeen && now - p.lastSeen <= 7 * DAY_MS)).length;
 
-                try {
-                    await set(ref(db, 'stores/' + randomStoreId), storeData);
+            totalEl.textContent = totalUsers.toLocaleString('en-US');
+            onlineEl.innerHTML = '<span class="stat-dot" style="background:#16A34A;"></span>' + onlineNow.toLocaleString('en-US');
+            todayEl.textContent = activeToday.toLocaleString('en-US');
+            weekEl.textContent = activeWeek.toLocaleString('en-US');
 
-                    const currentStores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
-                    currentStores.push(storeData);
-
-                    localStorage.setItem('app_custom_stores', JSON.stringify(currentStores));
-                    alert(`🎉 تم إضافة المتجر (${name}) بنجاح مع الصور إلى قسم (${cat}) وحفظه بالقاعدة!\n🔑 معرّف المتجر المولد (ID): #${randomStoreId}`);
-                    
-                    document.getElementById('store-name-input').value = '';
-                    if (fileInput) fileInput.value = '';
-                    renderAdminStoresList();
-                } catch (err) {
-                    alert('خطأ أثناء إضافة المتجر بالفايربيس: ' + err.message);
-                }
+            const nameFor = (uid) => (usersData[uid] && usersData[uid].fullName) || 'مستخدم';
+            const avatarFor = (uid) => (usersData[uid] && usersData[uid].avatar) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(nameFor(uid)) + '&background=2563EB&color=fff');
+            const subFor = (uid) => {
+                const u = usersData[uid];
+                if (!u) return '';
+                return [u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || ''].filter(Boolean).join(' • ');
             };
 
-            if (fileInput && fileInput.files && fileInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    processSaveStore(e.target.result);
-                };
-                reader.readAsDataURL(fileInput.files[0]);
-            } else {
-                processSaveStore('#1A1D20');
+            const onlineBox = el('onlineUsersList');
+            if (onlineBox) {
+                const onlineList = presenceEntries.filter((p) => p.online);
+                if (onlineList.length === 0) {
+                    onlineBox.innerHTML = '<p class="list-empty">ماكو أحد متصل حالياً</p>';
+                } else {
+                    onlineBox.innerHTML = onlineList.map((p) => `
+                        <div class="user-row">
+                            <img class="avatar" src="${escapeHtml(avatarFor(p.uid))}" alt="">
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold truncate">${escapeHtml(nameFor(p.uid))}</div>
+                                <div class="text-slate-400 text-xs">${escapeHtml(subFor(p.uid))}</div>
+                            </div>
+                            <span class="status-dot" style="background:#16A34A;"></span>
+                        </div>`).join('');
+                }
             }
+
+            const recentBox = el('recentUsersList');
+            if (recentBox) {
+                const recentList = [...presenceEntries].sort((a, b) => (b.lastSeen || 0) - (a.lastSeen || 0)).slice(0, 30);
+                if (recentList.length === 0) {
+                    recentBox.innerHTML = '<p class="list-empty">لا يوجد نشاط مسجّل بعد</p>';
+                } else {
+                    recentBox.innerHTML = recentList.map((p) => `
+                        <div class="user-row">
+                            <img class="avatar" src="${escapeHtml(avatarFor(p.uid))}" alt="">
+                            <div class="flex-1 min-w-0">
+                                <div class="font-bold truncate">${escapeHtml(nameFor(p.uid))}</div>
+                                <div class="text-slate-400 text-xs">${escapeHtml(subFor(p.uid))}</div>
+                            </div>
+                            <span class="text-slate-400 text-xs" style="flex-shrink:0;">${p.online ? 'متصل الآن' : timeAgoAr(p.lastSeen)}</span>
+                        </div>`).join('');
+                }
+            }
+        }
+
+        // ---------- Store / Marketplace approvals ----------
+        const CATEGORY_LABELS = { stationery: 'قرطاسية', books: 'كتب', notes: 'ملازم', supplies: 'مستلزمات' };
+
+        let storeAppsData = [];
+        let storeAppsFilter = 'pending';
+        window.setStoreSubFilter = (f) => {
+            storeAppsFilter = f;
+            document.querySelectorAll('[data-ssf]').forEach(b => b.classList.toggle('active', b.dataset.ssf === f));
+            renderStoreAppsList();
         };
-
-        // دالة حذف أي متجر عبر الـ ID مباشرة من فايربيس وقائمة اللوحة الأم
-        window.deleteStoreById = async function(targetId) {
-            let storeId = targetId;
-            if (!storeId) {
-                const input = document.getElementById('delete-store-id-input');
-                if (input) storeId = input.value.trim();
-            }
-
-            if (!storeId) {
-                alert('يرجى إدخال معرّف المتجر (Store ID) المراد حذفه.');
-                return;
-            }
-
-            const cleanId = String(storeId).replace('#', '').trim();
-
-            if (!confirm(`هل أنت تأكد من رغبتك في حذف المتجر (#${cleanId}) نهائياً من قاعدة البيانات؟`)) {
-                return;
-            }
-
+        function renderStoreAppsList() {
+            const box = el('storeAppsList');
+            if (!box) return;
+            const list = storeAppsData.filter(s => s.status === storeAppsFilter);
+            if (list.length === 0) { box.innerHTML = '<p class="list-empty">لا توجد طلبات</p>'; return; }
+            box.innerHTML = list.map(s => `
+                <div class="row-item" style="align-items:flex-start;">
+                    <img src="${escapeHtml(s.logo || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(s.name || 'S') + '&background=2563EB&color=fff'))}" alt="">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(s.name || '')}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(s.ownerName || '')} • ${escapeHtml(CATEGORY_LABELS[s.category] || s.category || '')}</div>
+                        ${s.description ? `<div class="text-slate-400 text-xs mt-1">${escapeHtml(s.description)}</div>` : ''}
+                        ${s.status === 'rejected' && s.rejectionReason ? `<div class="text-xs mt-1" style="color:#DC2626;">السبب: ${escapeHtml(s.rejectionReason)}</div>` : ''}
+                    </div>
+                    ${s.status === 'pending' ? `
+                        <div class="flex flex-col gap-1">
+                            <button class="del" style="background:#16A34A;" onclick="approveStore(${jsArg(s._key)})">قبول</button>
+                            <button class="del" onclick="rejectStore(${jsArg(s._key)})">رفض</button>
+                        </div>
+                    ` : `<button class="del" onclick="deleteItem('stores', ${jsArg(s._key)})">حذف</button>`}
+                </div>`).join('');
+        }
+        window.approveStore = async (uid) => {
             try {
-                await remove(ref(db, 'stores/' + cleanId));
-                await remove(ref(db, 'store_metrics/' + cleanId));
-
-                let currentStores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
-                currentStores = currentStores.filter(s => String(s.id).replace('#', '').trim() !== cleanId);
-                localStorage.setItem('app_custom_stores', JSON.stringify(currentStores));
-
-                alert(`🗑️ تم حذف المتجر (#${cleanId}) بنجاح من قاعدة البيانات واللوحة الأم!`);
-
-                const input = document.getElementById('delete-store-id-input');
-                if (input) input.value = '';
-
-                renderAdminStoresList();
-            } catch (err) {
-                alert('خطأ أثناء حذف المتجر من الفايربيس: ' + err.message);
-            }
+                await set(ref(db, 'stores/' + uid + '/status'), 'approved');
+                toast('تم قبول المتجر');
+            } catch (e) { console.warn(e); toast('فشل القبول', false); }
+        };
+        window.rejectStore = async (uid) => {
+            const reason = prompt('سبب الرفض (اختياري):');
+            if (reason === null) return; // FIX: pressing "Cancel" used to reject the store anyway
+            try {
+                await update(ref(db, 'stores/' + uid), { status: 'rejected', rejectionReason: reason.trim() });
+                toast('تم رفض المتجر');
+            } catch (e) { console.warn(e); toast('فشل الرفض', false); }
         };
 
-        window.renderAdminStoresList = function() {
-            const container = document.getElementById('admin-stores-list');
-            const stores = JSON.parse(localStorage.getItem('app_custom_stores') || '[]');
-            
-            if(stores.length === 0) {
-                container.innerHTML = '<span style="font-size:11px; color:#8A8D91;">لا توجد متاجر مضافة حالياً.</span>';
-                return;
-            }
+        let storeProductsData = [];
+        let storeProductsFilter = 'pending';
+        window.setProductSubFilter = (f) => {
+            storeProductsFilter = f;
+            document.querySelectorAll('[data-spf]').forEach(b => b.classList.toggle('active', b.dataset.spf === f));
+            renderStoreProductsAdminList();
+        };
+        function renderStoreProductsAdminList() {
+            const box = el('storeProductsAdminList');
+            if (!box) return;
+            const list = storeProductsData.filter(p => p.status === storeProductsFilter);
+            if (list.length === 0) { box.innerHTML = '<p class="list-empty">لا توجد منتجات</p>'; return; }
+            box.innerHTML = list.map(p => `
+                <div class="row-item" style="align-items:flex-start;">
+                    <img src="${escapeHtml(p.imageUrl || '')}" alt="">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(p.title || '')}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(p.storeName || '')} • ${escapeHtml(CATEGORY_LABELS[p.category] || p.category || '')} • ${Number(p.pricePoints || 0).toLocaleString('en-US')} نقطة</div>
+                    </div>
+                    ${p.status === 'pending' ? `
+                        <div class="flex flex-col gap-1">
+                            <button class="del" style="background:#16A34A;" onclick="approveProduct(${jsArg(p._key)})">قبول</button>
+                            <button class="del" onclick="rejectProduct(${jsArg(p._key)})">رفض</button>
+                        </div>
+                    ` : `<button class="del" onclick="deleteItem('storeProducts', ${jsArg(p._key)})">حذف</button>`}
+                </div>`).join('');
+        }
+        window.approveProduct = async (id) => {
+            try {
+                await set(ref(db, 'storeProducts/' + id + '/status'), 'approved');
+                toast('تم قبول المنتج');
+            } catch (e) { console.warn(e); toast('فشل القبول', false); }
+        };
+        window.rejectProduct = async (id) => {
+            try {
+                await set(ref(db, 'storeProducts/' + id + '/status'), 'rejected');
+                toast('تم رفض المنتج');
+            } catch (e) { console.warn(e); toast('فشل الرفض', false); }
+        };
 
-            container.innerHTML = '';
-            stores.forEach(s => {
-                const item = document.createElement('div');
-                item.className = 'store-list-item';
-                item.innerHTML = `
-                    <div style="display:flex; flex-direction:column; gap:2px;">
-                        <span style="font-size:12px; font-weight:700; color:#FFFFFF;">${s.name} (${s.category})</span>
-                        <span style="font-size:10px; color:#8A8D91;">المتابعين: ${s.followers} | التقييم: ${s.rating}</span>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span class="store-id-tag">ID: #${s.id}</span>
-                        <button class="admin-btn btn-red" style="height:26px; padding:0 8px; font-size:10px; width:auto;" onclick="deleteStoreById('${s.id}')">
-                            <i class="fa-solid fa-trash"></i>
-                        </button>
-                    </div>
-                `;
-                container.appendChild(item);
+        // ---------- Ban Student ----------
+        window.banStudent = async () => {
+            const number = val('ban_number');
+            if (!number) { toast('أدخل رقم الطالب', false); return; }
+            try {
+                // FIX: a raw key containing "/" or "." either throws or writes a nested path
+                // the student app never checks, so the ban silently did nothing.
+                await set(ref(db, 'bannedStudents/' + sanitize(number)), {
+                    studentNumber: number,
+                    reason: val('ban_reason'),
+                    bannedAt: serverTimestamp()
+                });
+                toast('تم حظر الطالب');
+                el('ban_number').value = ''; el('ban_reason').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل الحظر', false);
+            }
+        };
+        el('ban_add').addEventListener('click', banStudent);
+        window.unbanStudent = (number) => {
+            remove(ref(db, 'bannedStudents/' + number)).then(() => toast('تم رفع الحظر')).catch((e) => toast('فشل رفع الحظر', false));
+        };
+
+        // ---------- Site Images ----------
+        window.changeLogo = async () => {
+            const file = el('logoFile').files[0];
+            if (!file) { toast('اختر صورة الشعار', false); return; }
+            const btn = el('logoBtn');
+            btn.disabled = true;
+            try {
+                const url = await uploadFile(file, 'site/');
+                await set(ref(db, 'settings/logo'), { url, updatedAt: serverTimestamp() });
+                toast('تم تغيير الشعار — ظهر عند الجميع');
+                clearPreview('logoFile', 'logo_preview');
+            } catch (e) {
+                console.warn(e);
+                toast('فشل تغيير الشعار', false);
+            }
+            btn.disabled = false;
+        };
+        el('logoBtn').addEventListener('click', changeLogo);
+
+        window.addCarousel = async () => {
+            const file = el('c_file').files[0];
+            if (!file) { toast('اختر صورة السلايدر', false); return; }
+            const btn = el('c_add');
+            btn.disabled = true;
+            try {
+                const url = await uploadFile(file, 'site/');
+                const id = Date.now();
+                await set(ref(db, 'carousel/' + id), { id, image: url, title: val('c_title'), createdAt: serverTimestamp() });
+                toast('تمت إضافة الصورة للسلايدر');
+                el('c_title').value = ''; clearPreview('c_file', 'c_preview');
+            } catch (e) {
+                console.warn(e);
+                toast('فشلت الإضافة', false);
+            }
+            btn.disabled = false;
+        };
+        el('c_add').addEventListener('click', addCarousel);
+
+        // ---------- Site control (siteConfig) ----------
+        // The student site listens to `siteConfig` live. Missing keys mean default,
+        // so switches for sections/nav default to ON and flags default to OFF.
+        let siteConfig = {};
+        const CFG_DEFAULT_ON = (path) => /^(sections|nav)\./.test(path) || path === 'ticker.autoplay';
+        const cfgGet = (path) => path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), siteConfig);
+        const cfgWrite = (patch, okMsg) => {
+            const payload = { ...patch, updatedAt: serverTimestamp() };
+            return update(ref(db, 'siteConfig'), payload)
+                .then(() => okMsg && toast(okMsg))
+                .catch((e) => { console.warn(e); toast('فشل الحفظ — تأكد من صلاحيات قاعدة البيانات لـ siteConfig', false); });
+        };
+        const setFieldIfIdle = (id, v) => { const f = el(id); if (f && document.activeElement !== f) f.value = v == null ? '' : v; };
+
+        function fillSiteConfigForm() {
+            document.querySelectorAll('[data-cfg]').forEach(inp => {
+                const v = cfgGet(inp.dataset.cfg);
+                inp.checked = v === undefined ? CFG_DEFAULT_ON(inp.dataset.cfg) : v !== false;
             });
+            setFieldIfIdle('cfg_name', cfgGet('branding.name'));
+            setFieldIfIdle('cfg_tagline', cfgGet('branding.tagline'));
+            setFieldIfIdle('cfg_ann_text', cfgGet('announcement.text'));
+            const tone = cfgGet('announcement.tone') || 'info';
+            document.querySelectorAll('input[name="cfg_ann_tone"]').forEach(r => { r.checked = r.value === tone; });
+            setFieldIfIdle('cfg_mt_title', cfgGet('maintenance.title'));
+            setFieldIfIdle('cfg_mt_msg', cfgGet('maintenance.message'));
+            setFieldIfIdle('cfg_tk_label', cfgGet('ticker.label'));
+            setFieldIfIdle('cfg_tk_duration', String(cfgGet('ticker.duration') || 0));
+        }
+
+        document.querySelectorAll('[data-cfg]').forEach(inp => {
+            inp.addEventListener('change', () => {
+                const path = inp.dataset.cfg;
+                // keep twin switches (same key in two tabs) in sync right away
+                document.querySelectorAll(`[data-cfg="${path}"]`).forEach(o => { o.checked = inp.checked; });
+                if (path === 'maintenance.enabled' && inp.checked && !confirm('تشغيل وضع الصيانة يمنع كل الطلاب من استخدام المنصة. متأكد؟')) {
+                    inp.checked = false; return;
+                }
+                const name = inp.getAttribute('aria-label') || '';
+                cfgWrite({ [path.replace(/\./g, '/')]: inp.checked }, (inp.checked ? 'تم تشغيل: ' : 'تم إطفاء: ') + name);
+            });
+        });
+
+        el('cfg_save_brand').addEventListener('click', () => cfgWrite({
+            'branding/name': val('cfg_name'), 'branding/tagline': val('cfg_tagline')
+        }, 'تم حفظ الاسم والوصف'));
+
+        el('cfg_save_ann').addEventListener('click', () => {
+            const tone = document.querySelector('input[name="cfg_ann_tone"]:checked')?.value || 'info';
+            cfgWrite({ 'announcement/text': val('cfg_ann_text'), 'announcement/tone': tone }, 'تم حفظ الإعلان');
+        });
+
+        el('cfg_save_mt').addEventListener('click', () => cfgWrite({
+            'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
+        }, 'تم حفظ رسالة الصيانة'));
+
+        el('cfg_save_tk').addEventListener('click', () => cfgWrite({
+            'ticker/label': val('cfg_tk_label'), 'ticker/duration': Number(val('cfg_tk_duration')) || 0
+        }, 'تم حفظ إعدادات الشريط'));
+        el('cfg_tk_label').addEventListener('input', renderTickerPreview);
+
+        // ---------- Ticker items management ----------
+        let tickerData = [];
+        let tickerEditing = null;
+        const tkOrder = (t) => Number(t.order ?? t.id) || 0;
+        const tkSorted = () => tickerData.slice().sort((a, b) => tkOrder(b) - tkOrder(a));
+        const tkLive = (t) => t.active !== false && !(Number(t.expiresAt) && Number(t.expiresAt) <= Date.now());
+
+        function renderTickerPreview() {
+            const label = (document.activeElement === el('cfg_tk_label') ? val('cfg_tk_label') : (cfgGet('ticker.label') || '')).trim() || 'عاجل';
+            el('pv_label').textContent = label;
+            const first = tkSorted().find(tkLive);
+            el('pv_text').textContent = first ? first.text : 'لا توجد أخبار مفعّلة';
+        }
+
+        function fmtDate(ts) {
+            try { return new Date(ts).toLocaleString('ar-IQ', { dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return ''; }
+        }
+
+        function renderTickerAdmin() {
+            const box = el('tickerList');
+            renderTickerPreview();
+            if (!tickerData.length) { box.innerHTML = '<p class="list-empty">الشريط فارغ — أضف أول خبر من الأعلى</p>'; return; }
+            const list = tkSorted();
+            box.innerHTML = list.map((t, i) => {
+                const expired = Number(t.expiresAt) && Number(t.expiresAt) <= Date.now();
+                const meta = expired ? 'انتهت مدته' : (t.active === false ? 'موقوف' : (t.expiresAt ? 'يختفي ' + escapeHtml(fmtDate(Number(t.expiresAt))) : 'ظاهر'));
+                const editing = tickerEditing === t._key;
+                return `
+                <div class="row-item tk-row${t.active === false || expired ? ' is-off' : ''}">
+                    <label class="switch" title="إظهار / إيقاف"><input type="checkbox" ${t.active !== false ? 'checked' : ''} onchange="toggleTicker(${jsArg(t._key)}, this.checked)" aria-label="إظهار الخبر"><span class="track"></span></label>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate tk-row-text">${escapeHtml(t.text || '')}</div>
+                        <div class="text-slate-400 text-xs">${meta}</div>
+                    </div>
+                    <div class="tk-row-actions">
+                        <button class="btn-sm" onclick="moveTicker(${jsArg(t._key)}, -1)" ${i === 0 ? 'disabled' : ''} aria-label="تقديم">▲</button>
+                        <button class="btn-sm" onclick="moveTicker(${jsArg(t._key)}, 1)" ${i === list.length - 1 ? 'disabled' : ''} aria-label="تأخير">▼</button>
+                        <button class="btn-sm" onclick="editTicker(${jsArg(t._key)})">تعديل</button>
+                        <button class="del" style="margin:0" onclick="deleteItem('ticker', ${jsArg(t._key)})">حذف</button>
+                    </div>
+                    ${editing ? `<div class="tk-row-edit">
+                        <input type="text" id="tk_edit_${escapeHtml(t._key)}" value="${escapeHtml(t.text || '')}">
+                        <button class="btn-sm" style="background:var(--primary);border-color:var(--primary)" onclick="saveTicker(${jsArg(t._key)})">حفظ</button>
+                        <button class="btn-sm" onclick="editTicker(null)">إلغاء</button>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+            if (tickerEditing) {
+                const f = el('tk_edit_' + tickerEditing);
+                if (f) { f.focus(); f.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveTicker(tickerEditing); if (e.key === 'Escape') editTicker(null); }); }
+            }
+        }
+
+        window.toggleTicker = (id, on) => {
+            update(ref(db, 'ticker/' + id), { active: on })
+                .then(() => toast(on ? 'الخبر ظاهر بالشريط' : 'تم إيقاف الخبر'))
+                .catch(() => toast('فشل التحديث', false));
+        };
+        window.editTicker = (id) => { tickerEditing = id; renderTickerAdmin(); };
+        window.saveTicker = (id) => {
+            const text = (el('tk_edit_' + id)?.value || '').trim();
+            if (!text) { toast('النص فارغ', false); return; }
+            update(ref(db, 'ticker/' + id), { text })
+                .then(() => { tickerEditing = null; toast('تم تعديل الخبر'); })
+                .catch(() => toast('فشل التعديل', false));
+        };
+        window.moveTicker = (id, dir) => {
+            const list = tkSorted();
+            const i = list.findIndex(t => t._key === id);
+            const j = i + dir;
+            if (i < 0 || j < 0 || j >= list.length) return;
+            const a = list[i], b = list[j];
+            let oa = tkOrder(a), ob = tkOrder(b);
+            if (oa === ob) ob = oa + (dir < 0 ? 1 : -1);
+            update(ref(db, 'ticker'), { [a._key + '/order']: ob, [b._key + '/order']: oa })
+                .catch(() => toast('فشل الترتيب', false));
         };
 
-        updateAdminUI();
+        // ---------- Lists & Delete ----------
+        window.deleteItem = (node, id) => {
+            remove(ref(db, node + '/' + id)).then(() => toast('تم الحذف')).catch((e) => toast('فشل الحذف', false));
+        };
+
+        function loadLists() {
+            onValue(ref(db, 'users'), (snap) => {
+                usersData = snap.exists() ? snap.val() : {};
+                renderUsersStats();
+            });
+            onValue(ref(db, 'presence'), (snap) => {
+                presenceData = snap.exists() ? snap.val() : {};
+                renderUsersStats();
+            });
+            onValue(ref(db, 'news'), (snap) => {
+                const box = el('newsList');
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد أخبار منشورة</p>'; return; }
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(n => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(n.image || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? 'عاجل' : ''}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'resources'), (snap) => {
+                const box = el('resList');
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد ملازم منشورة</p>'; return; }
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(r => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(r.thumbnail || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(r.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(r.stage || '')} • ${escapeHtml(r.subject || '')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('resources', ${jsArg(r._key)})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'ticker'), (snap) => {
+                tickerData = snap.exists() ? entriesWithKey(snap.val()) : [];
+                renderTickerAdmin();
+            });
+            onValue(ref(db, 'siteConfig'), (snap) => {
+                siteConfig = snap.exists() ? snap.val() : {};
+                fillSiteConfigForm();
+                renderTickerPreview();
+            });
+            onValue(ref(db, 'carousel'), (snap) => {
+                const box = el('carouselList');
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد صور في السلايدر</p>'; return; }
+                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
+                box.innerHTML = vals.map(c => `
+                    <div class="row-item">
+                        <img src="${escapeHtml(c.image || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(c.title || 'صورة سلايدر')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('carousel', ${jsArg(c._key)})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'examSchedule'), (snap) => {
+                const box = el('examsList');
+                if (!box) return;
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد مواعيد امتحانات</p>'; return; }
+                const vals = entriesWithKey(snap.val()).sort((a, b) => new Date(a.date) - new Date(b.date));
+                box.innerHTML = vals.map(x => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(x.subject || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(x.date || '')}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('examSchedule', ${jsArg(x._key)})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'holidays'), (snap) => {
+                const box = el('holidaysList');
+                if (!box) return;
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد عطل مضافة</p>'; return; }
+                const vals = entriesWithKey(snap.val()).sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+                box.innerHTML = vals.map(h => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(h.title || '')} ${h.type === 'government' ? '' : ''}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(h.startDate || '')} → ${escapeHtml(h.endDate || '')}${h.governorate ? ' • ' + escapeHtml(h.governorate) : ' • كل المحافظات'}</div>
+                        </div>
+                        <button class="del" onclick="deleteItem('holidays', ${jsArg(h._key)})">حذف</button>
+                    </div>`).join('');
+            });
+            onValue(ref(db, 'topupCodes'), (snap) => {
+                topupCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderTopupList();
+            });
+            onValue(ref(db, 'stores'), (snap) => {
+                storeAppsData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderStoreAppsList();
+            });
+            onValue(ref(db, 'storeProducts'), (snap) => {
+                storeProductsData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderStoreProductsAdminList();
+            });
+            onValue(ref(db, 'bannedStudents'), (snap) => {
+                const box = el('bannedList');
+                if (!box) return;
+                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا يوجد طلاب محظورون</p>'; return; }
+                const vals = entriesWithKey(snap.val());
+                box.innerHTML = vals.map(b => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">رقم الطالب: ${escapeHtml(b.studentNumber || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(b.reason || 'بدون سبب محدد')}</div>
+                        </div>
+                        <button class="del" onclick="unbanStudent(${jsArg(b._key)})">رفع الحظر</button>
+                    </div>`).join('');
+            });
+        }
+
+
+        // ---------- Tomorrow: school or holiday? (quick announcement) ----------
+        // Writes dayStatus/{date}/{governorate | all} = { s: off | pending | on, reason, at }.
+        // The student app reads it before the holidays calendar, so it also overrides it.
+        // Same codes the student app registers with OneSignal (tag "gov") and Firebase (topic "gov_<code>")
+        const GOV_CODES = { 'بغداد': 'baghdad', 'البصرة': 'basra', 'نينوى': 'nineveh', 'أربيل': 'erbil', 'السليمانية': 'sulaymaniyah', 'دهوك': 'duhok', 'حلبجة': 'halabja', 'كركوك': 'kirkuk', 'الأنبار': 'anbar', 'صلاح الدين': 'salahaddin', 'ديالى': 'diyala', 'بابل': 'babil', 'كربلاء': 'karbala', 'النجف': 'najaf', 'واسط': 'wasit', 'القادسية': 'qadisiyah', 'ذي قار': 'dhiqar', 'ميسان': 'maysan', 'المثنى': 'muthanna' };
+        window.dsCopy = (btn) => {
+            const t = btn.previousElementSibling ? btn.previousElementSibling.textContent : '';
+            (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => { btn.textContent = 'انتسخ'; setTimeout(() => { btn.textContent = 'نسخ'; }, 1500); }).catch(() => toast('انسخه يدوياً', false));
+        };
+        // After an announcement: the text and the governorate codes ready to paste into OneSignal /
+        // Firebase, which deliver it to phones where the app is closed.
+        function showPushHelp(title, body, allIraq, govs) {
+            const codes = allIraq ? [] : govs.map((g) => GOV_CODES[g]).filter(Boolean);
+            const row = (label, text, ltr) => `<div>${label}</div><div class="cp">${ltr ? `<code>${escapeHtml(text)}</code>` : `<span>${escapeHtml(text)}</span>`}<button type="button" onclick="dsCopy(this)">نسخ</button></div>`;
+            el('dsPushHelp').innerHTML = `
+                <div class="ds-help">
+                    <b>حتى يوصل للهواتف المسدودة، أرسله من OneSignal:</b>
+                    ${row('العنوان', title)}
+                    ${body ? row('النص', body) : ''}
+                    ${allIraq ? '<div>الجمهور: كل المشتركين (Subscribed Users)</div>' : row('الفلتر: User Tag باسم gov يساوي وحدة من هاي', codes.join(' , '), true)}
+                    <div class="cp" style="margin-top:10px;"><a href="https://dashboard.onesignal.com" target="_blank" rel="noopener">فتح OneSignal</a></div>
+                    <div style="margin-top:8px;font-size:12px;opacity:.8;">إذا تستخدم Firebase بدل OneSignal: Messaging ثم Topic: ${allIraq ? '<code>all</code>' : codes.map((c) => '<code>gov_' + c + '</code>').join(' ')}</div>
+                </div>`;
+        }
+        const DS_LABEL = { off: ['عطلة', '#DC2626'], pending: ['بانتظار القرار', '#D97706'], on: ['دوام رسمي', '#059669'] };
+        const dsDayName = (dateStr) => {
+            const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+            if (!m) return dateStr;
+            const d = new Date(+m[1], +m[2] - 1, +m[3]), t = new Date(); t.setHours(0, 0, 0, 0);
+            const diff = Math.round((d - t) / 86400000);
+            const day = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][d.getDay()];
+            return (diff === 0 ? 'اليوم ' : diff === 1 ? 'باچر ' : '') + day + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+        };
+        function loadDayStatus() {
+            const f = el('ds_date');
+            if (f && !f.value) {
+                const d = new Date(); d.setDate(d.getDate() + 1);
+                f.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+            el('ds_all').addEventListener('change', () => {
+                el('ds_govs').style.opacity = el('ds_all').checked ? '.4' : '1';
+                document.querySelectorAll('input[name="ds_gov"]').forEach((c) => { c.disabled = el('ds_all').checked; });
+            });
+            el('ds_publish').addEventListener('click', publishDayStatus);
+            onValue(ref(db, 'dayStatus'), (snap) => {
+                const box = el('dsList');
+                if (!box) return;
+                const all = snap.val() || {};
+                const t = new Date(); t.setHours(0, 0, 0, 0);
+                const today = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+                const old = Object.keys(all).filter((d) => d < today);
+                const weekAgo = new Date(t.getTime() - 7 * 86400000);
+                const cut = weekAgo.getFullYear() + '-' + String(weekAgo.getMonth() + 1).padStart(2, '0') + '-' + String(weekAgo.getDate()).padStart(2, '0');
+                old.filter((d) => d < cut).forEach((d) => remove(ref(db, 'dayStatus/' + d)).catch(() => {}));
+                const rows = [];
+                Object.keys(all).filter((d) => d >= today).sort().forEach((d) => Object.keys(all[d] || {}).forEach((k) => rows.push({ d, k, v: all[d][k] || {} })));
+                box.innerHTML = rows.length ? '<div class="font-bold" style="margin-bottom:6px;">الإعلانات المنشورة</div>' + rows.map((r) => {
+                    const lb = DS_LABEL[r.v.s] || ['-', '#64748B'];
+                    return `<div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(dsDayName(r.d))} · ${r.k === 'all' ? 'كل العراق' : escapeHtml(r.k)} <span class="ds-state" style="background:${lb[1]}">${lb[0]}</span></div>
+                            ${r.v.reason ? `<div class="text-slate-400 text-xs">${escapeHtml(r.v.reason)}</div>` : ''}
+                        </div>
+                        <button class="del" onclick="removeDayStatus(${jsArg(r.d)}, ${jsArg(r.k)})">حذف</button>
+                    </div>`;
+                }).join('') : '<p class="list-empty">ماكو إعلانات قادمة. بدونها الجواب يطلع تلقائياً من تقويم العطل</p>';
+            });
+        }
+
+        async function publishDayStatus() {
+            const date = val('ds_date'), s = val('ds_state'), reason = val('ds_reason');
+            const allIraq = el('ds_all').checked;
+            const govs = allIraq ? [] : Array.from(document.querySelectorAll('input[name="ds_gov"]:checked')).map((c) => c.value);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) { toast('اختار اليوم', false); return; }
+            if (!allIraq && !govs.length) { toast('اختار محافظة وحدة على الأقل', false); return; }
+            if (!DS_LABEL[s]) return;
+            const keys = allIraq ? ['all'] : govs;
+            const btn = el('ds_publish');
+            btn.disabled = true;
+            try {
+                const upd = {};
+                keys.forEach((k) => { upd['dayStatus/' + date + '/' + k] = { s, reason, at: Date.now() }; });
+                await update(ref(db), upd);
+                if (el('ds_notify').checked) {
+                    const where = allIraq ? 'كل محافظات العراق' : (govs.length <= 3 ? govs.join('، ') : govs.length + ' محافظات');
+                    const day = dsDayName(date);
+                    const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
+                    const id = Date.now();
+                    const notif = { id, title, description: reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), time: 'الآن', read: false, type: 'urgent', createdAt: serverTimestamp() };
+                    if (!allIraq) notif.govs = govs;
+                    await set(ref(db, 'notifications/' + id), notif);
+                }
+                {
+                    const where = allIraq ? 'كل محافظات العراق' : (govs.length <= 3 ? govs.join('، ') : govs.length + ' محافظات');
+                    const day = dsDayName(date);
+                    const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
+                    showPushHelp(title, reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), allIraq, govs);
+                }
+                toast('انتشر الإعلان' + (el('ds_notify').checked ? ' ووصل الإشعار' : ''));
+                el('ds_reason').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر', false);
+            }
+            btn.disabled = false;
+        }
+
+        window.removeDayStatus = (d, k) => {
+            if (!confirm('تحذف هذا الإعلان؟ الجواب يرجع يطلع من تقويم العطل.')) return;
+            remove(ref(db, 'dayStatus/' + d + '/' + k)).then(() => toast('انحذف الإعلان')).catch(() => toast('فشل الحذف', false));
+        };
+
+        // ---------- Points auction ----------
+        // auction/current is what students see; auctionBids/{id}/top is the highest bid (its
+        // points are already held from that student). Ending keeps the winner in auctionHistory;
+        // cancelling gives the held points back.
+        let auCur = null, auBids = null, auBidsUnsub = null;
+        function loadAuction() {
+            const f = el('au_end');
+            if (f && !f.value) {
+                const d = new Date();
+                d.setDate(d.getDate() + (((5 - d.getDay() + 7) % 7) || 7));
+                d.setHours(21, 0, 0, 0);
+                const p = (n) => String(n).padStart(2, '0');
+                f.value = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
+            }
+            onValue(ref(db, 'auction/current'), (snap) => {
+                const v = snap.val();
+                auCur = v && v.id ? v : null;
+                if (auBidsUnsub) { auBidsUnsub(); auBidsUnsub = null; }
+                auBids = null;
+                if (auCur) auBidsUnsub = onValue(ref(db, 'auctionBids/' + auCur.id), (s) => { auBids = s.val() || {}; renderAuAdmin(); });
+                renderAuAdmin();
+            });
+            onValue(ref(db, 'auctionHistory'), (snap) => {
+                const box = el('auHistory');
+                if (!box) return;
+                const list = snap.exists() ? Object.values(snap.val()).sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0)).slice(0, 20) : [];
+                box.innerHTML = list.length ? list.map((h) => `
+                    <div class="row-item">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(h.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${h.winner ? 'الفائز: ' + escapeHtml(h.winner.name || '') + ' · رقم الطالب: ' + escapeHtml(h.winner.num || '-') + ' · ' + (Number(h.winner.amount) || 0) + ' نقطة' : 'بدون مزايدات'}</div>
+                        </div>
+                    </div>`).join('') : '<p class="list-empty">ماكو مزادات سابقة</p>';
+            });
+        }
+
+        function renderAuAdmin() {
+            const box = el('auCurrent');
+            if (!box) return;
+            if (!auCur) { box.innerHTML = '<p class="list-empty">ماكو مزاد شغال هسه</p>'; return; }
+            const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+            const ended = Date.now() >= Number(auCur.endsAt);
+            const log = auBids && auBids.log ? Object.values(auBids.log).sort((a, b) => (b.at || 0) - (a.at || 0)) : [];
+            box.innerHTML = `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(auCur.title || '')}</div>
+                        <div class="text-slate-400 text-xs">${ended ? 'انتهى' : 'ينتهي'}: ${new Date(Number(auCur.endsAt)).toLocaleString('en-GB')} · ${log.length} مزايدة</div>
+                    </div>
+                </div>
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold">${top ? (ended ? 'الفائز' : 'أعلى مزايدة') + ': ' + Number(top.amount) + ' نقطة' : 'ماكو مزايدات بعد'}</div>
+                        ${top ? `<div class="text-slate-400 text-xs">${escapeHtml(top.name || '')} · رقم الطالب: ${escapeHtml(top.num || '-')}</div>` : ''}
+                    </div>
+                </div>
+                ${log.slice(0, 10).map((b) => `<div class="row-item"><div class="flex-1 min-w-0 text-xs">${escapeHtml(b.name || '')}</div><div class="text-xs font-bold">${Number(b.amount) || 0}</div></div>`).join('')}
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+                    ${ended ? '<button class="btn-sm" onclick="auArchive()">حفظ الفائز بالسجل وإغلاق المزاد</button>' : '<button class="btn-sm" onclick="auEndNow()">إنهاء الآن</button>'}
+                    <button class="del" onclick="auCancel()">إلغاء وإرجاع النقاط</button>
+                </div>`;
+        }
+
+        async function archiveAuction(a) {
+            const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+            await set(ref(db, 'auctionHistory/' + a.id), {
+                title: a.title || '',
+                endedAt: Math.min(Number(a.endsAt) || Date.now(), Date.now()),
+                archivedAt: Date.now(),
+                winner: top ? { name: top.name || '', num: top.num || '', amount: Number(top.amount), uid: top.uid || '' } : null
+            });
+        }
+
+        el('au_start').addEventListener('click', async () => {
+            const title = val('au_title');
+            const min = Math.max(1, Math.floor(Number(val('au_min')) || 0));
+            const step = Math.max(1, Math.floor(Number(val('au_step')) || 0));
+            const end = new Date(val('au_end')).getTime();
+            if (!title) { toast('اكتب الجائزة', false); return; }
+            if (!end || isNaN(end) || end <= Date.now() + 60000) { toast('اختار وقت انتهاء بالمستقبل', false); return; }
+            if (auCur && !confirm('أكو مزاد شغال. إطلاق مزاد جديد ينهي الحالي ويحفظ الفائز بيه بالسجل. تكمل؟')) return;
+            try {
+                if (auCur) await archiveAuction(auCur);
+                const id = 'a' + Date.now();
+                await set(ref(db, 'auction/current'), { id, title, desc: val('au_desc'), minBid: min, step, endsAt: end, createdAt: Date.now() });
+                toast('انطلق المزاد، وظهر عند الطلاب');
+                el('au_title').value = ''; el('au_desc').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل إطلاق المزاد', false);
+            }
+        });
+
+        window.auEndNow = () => {
+            if (!auCur || !confirm('تنهي المزاد هسه؟ أعلى مزايد يفوز.')) return;
+            update(ref(db, 'auction/current'), { endsAt: Date.now() }).then(() => toast('انتهى المزاد')).catch(() => toast('فشل إنهاء المزاد', false));
+        };
+
+        window.auArchive = async () => {
+            if (!auCur) return;
+            try {
+                await archiveAuction(auCur);
+                await set(ref(db, 'auction/current'), null);
+                toast('انحفظ الفائز بالسجل');
+            } catch (e) { console.warn(e); toast('فشل الحفظ', false); }
+        };
+
+        window.auCancel = async () => {
+            if (!auCur || !confirm('تلغي المزاد وترجع النقاط المحجوزة لأعلى مزايد؟')) return;
+            try {
+                const top = auBids && auBids.top && Number(auBids.top.amount) > 0 ? auBids.top : null;
+                if (top && top.uid) {
+                    const amt = Number(top.amount);
+                    const r = await runTransaction(ref(db, 'users/' + top.uid + '/points'), (cur) => (typeof cur === 'number' ? cur : 0) + amt);
+                    if (r.committed) await set(ref(db, 'leaderboard/' + top.uid + '/points'), r.snapshot.val());
+                    await set(ref(db, 'auctionBids/' + auCur.id + '/top'), null);
+                }
+                await set(ref(db, 'auction/current'), null);
+                toast('انلغى المزاد' + (top ? ' ورجعت النقاط' : ''));
+            } catch (e) { console.warn(e); toast('فشل إلغاء المزاد', false); }
+        };
+
+        // FIX: loadLists() used to be called near the top of the module, before the
+        // `let tickerData`, `let siteConfig`, ... declarations it writes to. It only worked
+        // because the first snapshot happens to arrive asynchronously; a cached snapshot
+        // would hit the temporal dead zone and throw. Calling it last removes that risk.
+        loadLists();
+        loadAuction();
+        loadDayStatus();
     </script>
 </body>
 </html>
