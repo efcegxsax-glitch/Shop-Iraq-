@@ -1518,7 +1518,17 @@
         @keyframes frFlick { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.8); } }
         .fr-mine { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 11px; border-radius: 12px; border: 1px solid rgba(134,239,172,.35); background: rgba(16,185,129,.14); font-size: 13px; font-weight: 900; color: #BBF7D0; flex-shrink: 0; }
         .fr-mine svg { width: 17px; height: 17px; }
-        .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 66px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+        .fr-wind { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 64px); left: 14px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 6px 11px 6px 7px; border-radius: 14px; background: rgba(2,14,10,.62); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); transition: border-color .4s, box-shadow .4s; }
+        .fr-wind small { display: block; font-size: 9.5px; font-weight: 700; color: rgba(236,253,245,.6); }
+        .fr-wind b { display: block; font-size: 12.5px; font-weight: 900; color: #E0F2FE; font-variant-numeric: tabular-nums; }
+        .fr-wind-ar { position: relative; width: 30px; height: 30px; border-radius: 50%; border: 1px solid rgba(186,230,253,.35); background: radial-gradient(circle, rgba(186,230,253,.14), transparent 70%); }
+        .fr-wind-ar i { position: absolute; left: 50%; top: 50%; width: 18px; height: 2px; margin: -1px 0 0 -9px; background: #BAE6FD; border-radius: 2px; transform: rotate(var(--a, 45deg)); transition: transform .6s ease; }
+        .fr-wind-ar i::after { content: ""; position: absolute; right: -2px; top: -4px; border-left: 7px solid #BAE6FD; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+        .fr-wind.gust { border-color: rgba(186,230,253,.6); box-shadow: 0 0 18px -4px rgba(186,230,253,.7); }
+        .fr-wind.gust .fr-wind-ar i { animation: frGust .5s ease-in-out infinite alternate; }
+        @keyframes frGust { from { width: 18px; } to { width: 22px; margin-left: -11px; } }
+        .fr-credit { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--sh, 0px) + 4px); z-index: 5; font-size: 8px; color: rgba(255,255,255,.35); text-align: center; pointer-events: none; direction: ltr; }
+        .fr-ticker { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 112px); left: 50%; z-index: 6; display: flex; align-items: center; gap: 7px; max-width: calc(100% - 32px); padding: 7px 13px; border-radius: 99px; background: rgba(6,78,59,.78); border: 1px solid rgba(134,239,172,.4); font-size: 11.5px; font-weight: 700; color: #ECFDF5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; transform: translate(-50%, -10px); transition: opacity .5s, transform .5s; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
         .fr-ticker span { overflow: hidden; text-overflow: ellipsis; }
         .fr-ticker svg { width: 15px; height: 15px; color: #86EFAC; flex-shrink: 0; }
         .fr-ticker.on { opacity: 1; transform: translate(-50%, 0); }
@@ -3741,6 +3751,8 @@
                     <div class="fr-title"><b>غابة العراق</b><small id="frSub"></small></div>
                     <div class="fr-mine" title="شجراتك"><i data-lucide="trees"></i><b id="frMineN">0</b></div>
                 </div>
+                <div class="fr-wind" id="frWind"><span class="fr-wind-ar"><i></i></span><div><small>رياح شمالية غربية</small><b><span id="frWindKm">14</span> كم/س</b></div></div>
+                <div class="fr-credit">Imagery: Copernicus Sentinel-2 2021 (ESA WorldCover) · Terrain: AWS Terrain Tiles</div>
                 <div class="fr-ticker" id="frTicker"></div>
                 <div class="fr-gov hidden" id="frGov"></div>
                 <div class="fr-sheet" id="frSheet"></div>
@@ -4750,6 +4762,34 @@
         }
 
 
+        // Real Iraq for the 3D maps: terrain heights (AWS Terrain Tiles, metres) and a cloud-free
+        // satellite picture (Copernicus Sentinel-2 2021 composite by ESA WorldCover), both baked for
+        // IRAQ_GEO's bounding box. If they can't load, the maps paint their own terrain.
+        const IRAQ_ASSETS = { dem: 'assets/iraq-dem.png', sat2: 'assets/iraq-sat-2k.jpg', sat4: 'assets/iraq-sat-4k.jpg', mask: 'assets/iraq-mask.png' };
+        let IRAQ_DEM = null;
+        function loadIraqDem() {
+            if (IRAQ_DEM !== null) return Promise.resolve(IRAQ_DEM);
+            if (!loadIraqDem.p) loadIraqDem.p = new Promise((res) => {
+                const im = new Image();
+                const done = (v) => { IRAQ_DEM = v; res(v); };
+                im.onload = () => {
+                    try {
+                        const n = im.width, c = document.createElement('canvas');
+                        c.width = n; c.height = n;
+                        const x = c.getContext('2d', { willReadFrequently: true });
+                        x.drawImage(im, 0, 0);
+                        const d = x.getImageData(0, 0, n, n).data, a = new Float32Array(n * n);
+                        for (let i = 0; i < n * n; i++) a[i] = (d[i * 4] * 256 + d[i * 4 + 1]) / 16;
+                        done({ n, a });
+                    } catch (e) { done(false); }
+                };
+                im.onerror = () => done(false);
+                setTimeout(() => { if (IRAQ_DEM === null) done(false); }, 12000);
+                im.src = IRAQ_ASSETS.dem;
+            });
+            return loadIraqDem.p;
+        }
+
         class GovWar3D {
             constructor(wrap, onPick) {
                 this.wrap = wrap;
@@ -4763,6 +4803,10 @@
                 this.W = 10; this.H = this.W * this.sy / (this.sx * Math.cos(33.3 * Math.PI / 180));
                 this.HS = 0.85;
                 this.yaw = 0; this.pitch = 1.0; this.dist = 12;
+                // The shamal: Iraq's north-westerly wind (x = east, z = south). Afternoon sun from the south-west.
+                this.wind = [0.7071, 0.7071];
+                this.sun = [-0.5, 0.68, 0.53];
+                this.eye = [0, 10, 10];
                 this.rows = []; this.byName = {}; this.max = 0; this.mine = ''; this.leader = '';
                 this.missiles = []; this.impacts = []; this.nextShot = 0; this.salvo = [];
                 this.labels = wrap.querySelector('.gw3d-labels');
@@ -4791,6 +4835,12 @@
             // Terrain height 0..1 from geography: Kurdistan / Zagros mountains NE of a line along
             // the border, the Sinjar and Hamrin ridges, a western plateau, flat Mesopotamia.
             _initGeo() {
+                if (IRAQ_DEM) {
+                    const n = IRAQ_DEM.n, hm = new Float32Array(n * n);
+                    for (let i = 0; i < n * n; i++) hm[i] = Math.max(0, IRAQ_DEM.a[i]) / 3000;
+                    this.hN = n; this.hm = hm; this.HS = 0.42; this.real = true;
+                    return;
+                }
                 const N = 256; this.hN = N; const hm = new Float32Array(N * N);
                 const b = IRAQ_GEO.b;
                 const line = [[41.2, 37.05], [42.6, 36.8], [43.6, 36.55], [44.4, 36.2], [45.1, 35.75], [45.7, 35.2], [46.2, 34.5], [46.9, 33.6], [47.6, 32.8], [48.3, 31.9], [49.0, 31.2]];
@@ -4908,17 +4958,31 @@
 
             _initGL() {
                 const gl = this.gl;
+                // Terrain: satellite colour lit by the real relief, wind rippling over the fields, cloud
+                // shadows drifting with the wind and sun glints on rivers, marshes and the Gulf.
                 this.pTer = this._prog(
-                    'attribute vec3 p;attribute vec2 t;uniform mat4 m;varying vec2 v;varying float d;void main(){v=t;d=length(p.xz);gl_Position=m*vec4(p,1.);}',
-                    'precision mediump float;uniform sampler2D s;uniform float r;varying vec2 v;varying float d;void main(){vec3 c=texture2D(s,v).rgb;float e=smoothstep(0.,.07,v.x)*smoothstep(1.,.93,v.x)*smoothstep(0.,.07,v.y)*smoothstep(1.,.93,v.y);c*=1.-smoothstep(3.5,7.5,d)*.5;gl_FragColor=vec4(c,e*r);}');
+                    'attribute vec3 p;attribute vec2 t;attribute vec3 q;uniform mat4 m;varying vec2 v;varying float d;varying vec3 wp;varying vec3 wn;void main(){v=t;d=length(p.xz);wp=p;wn=q;gl_Position=m*vec4(p,1.);}',
+                    'precision mediump float;uniform sampler2D s;uniform sampler2D k;uniform sampler2D z;uniform float r;uniform float T;uniform vec2 W;uniform vec3 E;uniform vec3 L;uniform float Q;varying vec2 v;varying float d;varying vec3 wp;varying vec3 wn;'
+                    + 'float gust(vec2 a){return pow(.5+.5*sin(dot(a,W)*.55-T*.9),3.)*(.7+.3*sin(dot(a,vec2(-W.y,W.x))*1.3+T*.3));}'
+                    + 'void main(){vec3 c=texture2D(s,v).rgb;vec3 mk=texture2D(k,v).rgb*Q;vec3 n=normalize(wn);float dif=max(dot(n,L),0.);c*=.52+.58*dif;'
+                    + 'float g=gust(wp.xz);float rp=.5+.5*sin(dot(wp.xz,W)*70.-T*7.+sin(wp.x*23.+wp.z*9.)*2.);c+=mk.g*g*(.05+.08*rp)*vec3(.6,.8,.35);'
+                    + 'float cl=texture2D(z,v*2.3-W*T*.006).r*.62+texture2D(z,v*5.1-W*T*.009+.3).r*.38;c*=1.-.24*smoothstep(.58,.8,cl)*Q;'
+                    + 'if(mk.r>.02){vec2 fl=W*T*.02;float h1=texture2D(z,v*38.+fl).r,h2=texture2D(z,v*61.-fl.yx*1.3).r;vec3 n2=normalize(vec3((h1-.5)*.9,1.,(h2-.5)*.9));vec3 vd=normalize(E-wp);float sp=pow(max(dot(reflect(-L,n2),vd),0.),40.);float fr=pow(1.-max(vd.y,0.),3.);vec3 wc=mix(c*vec3(.8,.95,1.05),vec3(.1,.22,.3),.3)+vec3(1.,.93,.78)*sp*1.4+vec3(.5,.62,.7)*fr*.25;c=mix(c,wc,mk.r);}'
+                    + 'c=mix(c,vec3(.55,.62,.66),smoothstep(10.,30.,length(E-wp))*.28);'
+                    + 'float e=smoothstep(0.,.07,v.x)*smoothstep(1.,.93,v.x)*smoothstep(0.,.07,v.y)*smoothstep(1.,.93,v.y);c*=1.-smoothstep(3.5,7.5,d)*.4;gl_FragColor=vec4(c,e*r);}');
                 this.pSpr = this._prog(
                     'attribute vec3 p;attribute vec4 c;attribute float z;uniform mat4 m;uniform float k;varying vec4 q;void main(){vec4 w=m*vec4(p,1.);gl_Position=w;gl_PointSize=max(1.,z*k/w.w);q=c;}',
                     'precision mediump float;varying vec4 q;void main(){vec2 d=gl_PointCoord-.5;float r=dot(d,d)*4.;if(r>1.)discard;float a=exp(-r*3.2)*q.a;gl_FragColor=vec4(q.rgb*a,a);}');
                 // Terrain grid
-                const GX = 150, GZ = 150, pos = [], uv = [], idx = [];
+                const GX = this.real ? 254 : 150, GZ = GX, pos = [], uv = [], idx = [], nrm = [];
+                const du = 1 / GX, dv = 1 / GZ;
                 for (let j = 0; j <= GZ; j++) for (let i = 0; i <= GX; i++) {
                     const u = i / GX, v = j / GZ, w = this._world(u, v);
                     pos.push(w[0], w[1], w[2]); uv.push(u, v);
+                    const hx = (this._h(Math.min(1, u + du), v) - this._h(Math.max(0, u - du), v)) * this.HS / (2 * du * this.W);
+                    const hz = (this._h(u, Math.min(1, v + dv)) - this._h(u, Math.max(0, v - dv))) * this.HS / (2 * dv * this.H);
+                    const nl = Math.hypot(hx, 1, hz);
+                    nrm.push(-hx / nl, 1 / nl, -hz / nl);
                 }
                 for (let j = 0; j < GZ; j++) for (let i = 0; i < GX; i++) {
                     const a = j * (GX + 1) + i, b2 = a + 1, c = a + GX + 1, d = c + 1;
@@ -4928,6 +4992,9 @@
                 this.nIdx = idx.length;
                 this.bPos = this._buf(new Float32Array(pos));
                 this.bUv = this._buf(new Float32Array(uv));
+                this.bNrm = this._buf(new Float32Array(nrm));
+                this.noiseTex = this._noiseTex();
+                this.maskTex = null;
                 this.bIdx = gl.createBuffer();
                 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bIdx);
                 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, pos.length / 3 < 65536 ? new Uint16Array(idx) : new Uint32Array(idx), gl.STATIC_DRAW);
@@ -4947,6 +5014,28 @@
                 this.box = [Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs)];
                 this.target = [(this.box[0] + this.box[1]) / 2, 0.2, (this.box[2] + this.box[3]) / 2 + 0.25];
                 this.dust = Array.from({ length: 70 }, (_, i) => [(this._hash(i, 7) - 0.5) * this.W * 0.9, this._hash(i, 11), (this._hash(i, 13) - 0.5) * this.H * 0.9, 0.3 + this._hash(i, 17)]);
+            }
+
+            // Tileable soft noise (cloud shadows, water ripples).
+            _noiseTex() {
+                const N = 256, d = new Uint8Array(N * N * 4), P = 16;
+                const h = (x, y) => this._hash(((x % P) + P) % P, ((y % P) + P) % P);
+                const vn = (x, y, f) => {
+                    const X = x * f / N, Y = y * f / N, xi = Math.floor(X), yi = Math.floor(Y), xf = X - xi, yf = Y - yi, u = xf * xf * (3 - 2 * xf), w = yf * yf * (3 - 2 * yf);
+                    const k = P / f, a = h(xi * k, yi * k), b = h((xi + 1) * k, yi * k), c = h(xi * k, (yi + 1) * k), e = h((xi + 1) * k, (yi + 1) * k);
+                    return a + (b - a) * u + (c - a) * w + (a - b - c + e) * u * w;
+                };
+                for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+                    const v = vn(x, y, 4) * 0.5 + vn(x, y, 8) * 0.28 + vn(x, y, 16) * 0.22, o = (y * N + x) * 4;
+                    d[o] = d[o + 1] = d[o + 2] = Math.round(v * 255); d[o + 3] = 255;
+                }
+                const gl = this.gl, t = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, t);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, N, N, 0, gl.RGBA, gl.UNSIGNED_BYTE, d);
+                gl.generateMipmap(gl.TEXTURE_2D);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+                return t;
             }
 
             _buf(arr) { const gl = this.gl, b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, arr, gl.STATIC_DRAW); return b; }
@@ -4969,6 +5058,33 @@
                     this.texAt = performance.now() / 1000;
                     this.wrap.classList.add('ready');
                 };
+                // The real satellite picture (the sharper one on phones that can take it), then the
+                // water / fields mask; the painted map is only the fallback.
+                if (this.real && !this._satFailed) {
+                    const gl = this.gl, big = gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096 && (navigator.deviceMemory || 4) >= 4;
+                    const im = new Image();
+                    im.onload = () => {
+                        upload(im);
+                        const mk = new Image();
+                        mk.onload = () => {
+                            const t = gl.createTexture();
+                            gl.bindTexture(gl.TEXTURE_2D, t);
+                            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mk);
+                            gl.generateMipmap(gl.TEXTURE_2D);
+                            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                            this.maskTex = t;
+                        };
+                        mk.src = IRAQ_ASSETS.mask;
+                        if (big) {
+                            const hi = new Image();
+                            hi.onload = () => { const old = this.tex; upload(hi); this.texAt = -1e9; if (old) gl.deleteTexture(old); };
+                            setTimeout(() => { hi.src = IRAQ_ASSETS.sat4; }, 1500);
+                        }
+                    };
+                    im.onerror = () => { this._satFailed = true; this._building = false; this.buildTexture(); };
+                    im.src = IRAQ_ASSETS.sat2;
+                    return;
+                }
                 // The painted map is kept on the device, so later visits open instantly.
                 let cached = null;
                 try { cached = localStorage.getItem(KEY); } catch (e) {}
@@ -5030,6 +5146,7 @@
                 const pr = [f / aspect, 0, 0, 0, 0, f, 0, 0, 0, 0, (fr + nr) / (nr - fr), -1, 0, 0, (2 * fr * nr) / (nr - fr), 0];
                 const t = this.target, cp = Math.cos(this.pitch);
                 const e = [t[0] + Math.sin(this.yawNow) * cp * this.dist, t[1] + Math.sin(this.pitch) * this.dist, t[2] + Math.cos(this.yawNow) * cp * this.dist];
+                this.eye = e;
                 const zx = e[0] - t[0], zy = e[1] - t[1], zz = e[2] - t[2], zl = Math.hypot(zx, zy, zz);
                 const z = [zx / zl, zy / zl, zz / zl];
                 let x = [z[2], 0, -z[0]]; const xl = Math.hypot(x[0], x[2]); x = [x[0] / xl, 0, x[2] / xl];
@@ -5149,16 +5266,28 @@
                     gl.useProgram(this.pTer);
                     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
                     gl.depthMask(true);
-                    const ap = gl.getAttribLocation(this.pTer, 'p'), at = gl.getAttribLocation(this.pTer, 't');
+                    const P = this.pTer, U = (n) => gl.getUniformLocation(P, n);
+                    const ap = gl.getAttribLocation(P, 'p'), at = gl.getAttribLocation(P, 't'), aq = gl.getAttribLocation(P, 'q');
                     gl.bindBuffer(gl.ARRAY_BUFFER, this.bPos); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 3, gl.FLOAT, false, 0, 0);
                     gl.bindBuffer(gl.ARRAY_BUFFER, this.bUv); gl.enableVertexAttribArray(at); gl.vertexAttribPointer(at, 2, gl.FLOAT, false, 0, 0);
-                    gl.uniformMatrix4fv(gl.getUniformLocation(this.pTer, 'm'), false, M);
-                    gl.uniform1f(gl.getUniformLocation(this.pTer, 'r'), this.reveal);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bNrm); gl.enableVertexAttribArray(aq); gl.vertexAttribPointer(aq, 3, gl.FLOAT, false, 0, 0);
+                    gl.uniformMatrix4fv(U('m'), false, M);
+                    gl.uniform1f(U('r'), this.reveal);
+                    gl.uniform1f(U('T'), now % 1000);
+                    gl.uniform2fv(U('W'), this.wind);
+                    gl.uniform3fv(U('E'), this.eye);
+                    gl.uniform3fv(U('L'), this.sun);
+                    gl.uniform1f(U('Q'), this.maskTex ? 1 : 0);
                     gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.tex);
-                    gl.uniform1i(gl.getUniformLocation(this.pTer, 's'), 0);
+                    gl.uniform1i(U('s'), 0);
+                    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.maskTex || this.noiseTex);
+                    gl.uniform1i(U('k'), 1);
+                    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, this.noiseTex);
+                    gl.uniform1i(U('z'), 2);
+                    gl.activeTexture(gl.TEXTURE0);
                     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.bIdx);
                     gl.drawElements(gl.TRIANGLES, this.nIdx, this.idxType, 0);
-                    gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(at);
+                    gl.disableVertexAttribArray(ap); gl.disableVertexAttribArray(at); gl.disableVertexAttribArray(aq);
                 }
                 this._M = M;
                 this._solids(M, h, now);
@@ -5218,10 +5347,10 @@
         }
 
         // ===== غابة العراق =====
-        // The war map's satellite terrain with a forest growing on every governorate. Trees are
-        // shaded spheres (palms in the south, pines in the north, round trees in between); the
-        // settled forest sits in a static buffer and sways in the shader, only growing trees and
-        // the student's own sapling are rebuilt each frame.
+        // The war map's real satellite terrain with a forest growing on every governorate: date
+        // palms in the south, pines in the north, round broadleaf trees in between. Trees are real
+        // meshes (bark, fronds, leaf clusters) drawn instanced; the wind bends them in the shader
+        // as gusts of the north-westerly shamal sweep across Iraq.
         class IraqForest3D extends GovWar3D {
             constructor(wrap, onPick) {
                 super(wrap, onPick);
@@ -5230,24 +5359,58 @@
                 this.home = this.target.slice();
                 this.camT = this.home.slice(); this.homeZ = 1; this.camZ = 1; this.zoom = 1;
                 this.govs = {}; this.live = {}; this.shown = {}; this.anims = []; this.fx = [];
-                this.sel = ''; this.selAt = 0; this.sess = null; this.outl = {}; this.dirty = true;
+                this.sel = ''; this.selAt = 0; this.sess = null; this.outl = {};
+                this.leaves = []; this.streaks = [];
+                this._riverField();
                 this.slots = {};
                 Object.keys(IRAQ_GEO.g).forEach((g) => { this.slots[g] = this._makeSlots(g); });
+                // small shaded balls: leaves blown off the trees
                 this.pSol = this._prog(
-                    'attribute vec3 p;attribute vec3 c;attribute vec3 z;uniform mat4 m;uniform float k;uniform float T;varying vec3 q;void main(){vec3 o=p;o.x+=sin(T*1.3+z.z)*z.y*.07;o.z+=cos(T*1.1+z.z)*z.y*.035;vec4 w=m*vec4(o,1.);gl_Position=w;gl_PointSize=max(1.,z.x*k/w.w);q=c;}',
-                    'precision mediump float;varying vec3 q;uniform float S;void main(){vec2 d=gl_PointCoord*2.-1.;float r=dot(d,d);if(r>1.)discard;if(S>.5){gl_FragColor=vec4(0.,0.,0.,(1.-r)*.38);return;}vec3 n=vec3(d.x,-d.y,sqrt(1.-r));float l=max(dot(n,normalize(vec3(-.45,.75,.5))),0.);float h=fract(sin(dot(floor(gl_PointCoord*5.),vec2(12.9898,78.233)))*43758.5453);vec3 c=q*(.42+.85*l)*(.86+.28*h)+vec3(.05,.08,.02)*pow(1.-n.z,3.);gl_FragColor=vec4(c,1.);}');
-                const B = (n) => ({ a: new Float32Array(9 * n), n: 0, cap: n, b: this.gl.createBuffer() });
-                this.bT = B(32000); this.bTd = B(4000); this.bS = B(900); this.bSd = B(120);
+                    'attribute vec3 p;attribute vec3 c;attribute vec3 z;uniform mat4 m;uniform float k;varying vec3 q;void main(){vec4 w=m*vec4(p,1.);gl_Position=w;gl_PointSize=max(1.,z.x*k/w.w);q=c;}',
+                    'precision mediump float;varying vec3 q;void main(){vec2 d=gl_PointCoord*2.-1.;d.y*=1.9;float r=dot(d,d);if(r>1.)discard;gl_FragColor=vec4(q*(.75+.35*(1.-r)),1.);}');
+                this.bL = { a: new Float32Array(9 * 400), n: 0, cap: 400, b: this.gl.createBuffer() };
+                this._treeSetup();
                 this._bindTap();
             }
 
-            // Tree spots inside each governorate, nearest to its centre first, so a growing
-            // forest spreads outwards from the middle.
+            // Distance to the nearest river (chamfer distance on a coarse grid), so the palm groves
+            // line the Tigris and the Euphrates like the real ones.
+            _riverField() {
+                const C = 5, GW = Math.ceil(this.sx * 100 / C) + 1, GH = Math.ceil(this.sy * 100 / C) + 1, D = new Float32Array(GW * GH).fill(1e9);
+                IRAQ_GEO.rv.forEach((r) => {
+                    const p = r.p;
+                    for (let i = 0; i + 3 < p.length; i += 2) {
+                        const n = Math.max(1, Math.ceil(Math.hypot(p[i + 2] - p[i], p[i + 3] - p[i + 1]) / 2));
+                        for (let k = 0; k <= n; k++) {
+                            const x = p[i] + (p[i + 2] - p[i]) * k / n, y = p[i + 1] + (p[i + 3] - p[i + 1]) * k / n;
+                            const gx = Math.round(x / C), gy = Math.round(y / C);
+                            if (gx >= 0 && gy >= 0 && gx < GW && gy < GH) D[gy * GW + gx] = 0;
+                        }
+                    }
+                });
+                const at = (x, y) => D[y * GW + x];
+                for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+                    let v = at(x, y);
+                    if (x) v = Math.min(v, at(x - 1, y) + 1); if (y) v = Math.min(v, at(x, y - 1) + 1);
+                    if (x && y) v = Math.min(v, at(x - 1, y - 1) + 1.414); if (y && x < GW - 1) v = Math.min(v, at(x + 1, y - 1) + 1.414);
+                    D[y * GW + x] = v;
+                }
+                for (let y = GH - 1; y >= 0; y--) for (let x = GW - 1; x >= 0; x--) {
+                    let v = at(x, y);
+                    if (x < GW - 1) v = Math.min(v, at(x + 1, y) + 1); if (y < GH - 1) v = Math.min(v, at(x, y + 1) + 1);
+                    if (x < GW - 1 && y < GH - 1) v = Math.min(v, at(x + 1, y + 1) + 1.414); if (y < GH - 1 && x) v = Math.min(v, at(x - 1, y + 1) + 1.414);
+                    D[y * GW + x] = v;
+                }
+                this.riverD = (x, y) => { const gx = Math.max(0, Math.min(GW - 1, Math.round(x / C))), gy = Math.max(0, Math.min(GH - 1, Math.round(y / C))); return D[gy * GW + gx] * C; };
+            }
+
+            // Tree spots inside each governorate: near its rivers and centre first, so a growing
+            // forest spreads out along the water.
             _makeSlots(g) {
                 const gd = IRAQ_GEO.g[g], rings = gd.r || [], c = gd.c, seed = g.length * 131 + g.charCodeAt(0) * 7 + g.charCodeAt(g.length - 1);
-                const inside = (x, y) => {
+                const inPoly = (rs, x, y) => {
                     let inn = false;
-                    rings.forEach((r) => {
+                    rs.forEach((r) => {
                         for (let i = 0, j = r.length - 2; i < r.length; j = i, i += 2) {
                             const xi = r[i], yi = r[i + 1], xj = r[j], yj = r[j + 1];
                             if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) inn = !inn;
@@ -5255,17 +5418,19 @@
                     });
                     return inn;
                 };
-                const ok = rings.length ? (x, y) => inside(x, y) && inside(x + 4, y) && inside(x - 4, y) && inside(x, y + 4) && inside(x, y - 4) : (x, y) => Math.hypot(x - c[0], y - c[1]) < 13;
+                const inside = (x, y) => inPoly(rings, x, y);
+                const lakes = IRAQ_GEO.lk || [];
+                const ok = rings.length ? (x, y) => inside(x, y) && inside(x + 4, y) && inside(x - 4, y) && inside(x, y + 4) && inside(x, y - 4) && !inPoly(lakes, x, y) : (x, y) => Math.hypot(x - c[0], y - c[1]) < 13;
                 let x0 = c[0] - 14, x1 = c[0] + 14, y0 = c[1] - 14, y1 = c[1] + 14;
                 rings.forEach((r) => { for (let i = 0; i < r.length; i += 2) { x0 = Math.min(x0, r[i]); x1 = Math.max(x1, r[i]); y0 = Math.min(y0, r[i + 1]); y1 = Math.max(y1, r[i + 1]); } });
                 const cand = [];
                 for (let k = 0; k < 2600 && cand.length < 700; k++) {
                     const x = x0 + this._hash(k, seed) * (x1 - x0), y = y0 + this._hash(seed, k + 7) * (y1 - y0);
-                    if (ok(x, y)) cand.push([x, y, Math.hypot(x - c[0], (y - c[1]) * 1.15) * (0.85 + 0.3 * this._hash(k, seed + 3))]);
+                    if (ok(x, y)) cand.push([x, y, Math.hypot(x - c[0], (y - c[1]) * 1.15) * 0.4 + Math.min(120, this.riverD(x, y)) * 0.8 + this._hash(k, seed + 3) * 12]);
                 }
                 cand.sort((a, b) => a[2] - b[2]);
                 let pts = [];
-                for (let sp = 10; sp >= 3.5; sp *= 0.8) {
+                for (let sp = 9; sp >= 3.5; sp *= 0.8) {
                     pts = [];
                     for (const q of cand) { if (pts.every((o) => Math.hypot(o[0] - q[0], o[1] - q[1]) >= sp)) pts.push(q); if (pts.length > this.MAXT) break; }
                     if (pts.length > this.MAXT) break;
@@ -5273,129 +5438,412 @@
                 const north = ['دهوك', 'أربيل', 'السليمانية', 'حلبجة'].indexOf(g) !== -1, mid = ['نينوى', 'كركوك', 'صلاح الدين', 'ديالى', 'الأنبار'].indexOf(g) !== -1;
                 return pts.slice(0, this.MAXT + 1).map(([x, y], i) => {
                     const t = this._uv(x, y), w = this._world(t[0], t[1]), r = this._hash(i + 3, seed + 5);
-                    const type = north ? (r < 0.6 ? 'pine' : 'oak') : mid ? (r < 0.45 ? 'palm' : r < 0.8 ? 'oak' : 'pine') : (r < 0.75 ? 'palm' : 'oak');
-                    return { w, type, s: 0.85 + this._hash(seed + 9, i) * 0.4, ph: this._hash(i, seed + 21) * 6.283, lean: this._hash(i + 11, seed) * 6.283 };
+                    const type = north ? (r < 0.55 ? 'pine' : 'oak') : mid ? (r < 0.5 ? 'palm' : r < 0.82 ? 'oak' : 'pine') : (r < 0.8 ? 'palm' : 'oak');
+                    const nv = type === 'pine' ? 2 : 3;
+                    return { w, type, key: type + Math.floor(this._hash(i + 5, seed + 13) * nv), s: 0.85 + this._hash(seed + 9, i) * 0.4, ph: this._hash(i, seed + 21) * 6.283, yaw: this._hash(i + 11, seed) * 6.283 };
                 });
             }
 
-            // Tree shapes -------------------------------------------------------------------
-            // put(x, y, z, colour, size, sway weight, phase); gr = growth 0..1, wt = withering
-            // 0..1 (turns brown), fall = 0..1 (tips over).
-            _tree(put, sl, gr, wt, fall) {
-                const [bx, by, bz] = sl.w, s = sl.s * gr, ph = sl.ph;
-                if (s <= 0.001) return;
-                const dry = [0.42, 0.3, 0.17];
-                const C = (c) => (wt ? [c[0] + (dry[0] - c[0]) * wt, c[1] + (dry[1] - c[1]) * wt, c[2] + (dry[2] - c[2]) * wt] : c);
-                const fx = Math.cos(sl.lean), fz = Math.sin(sl.lean);
-                const P = (dx, dy, dz, col, size) => {
-                    const y = dy * (1 - fall * 0.55);
-                    put(bx + dx + fx * dy * fall * 0.9, by + y, bz + dz + fz * dy * fall * 0.9, C(col), size, dy * (1 - fall), ph);
-                };
-                if (sl.type === 'palm') {
-                    const H = 0.19 * s, lx = Math.cos(sl.lean) * 0.03 * s, lz = Math.sin(sl.lean) * 0.03 * s;
-                    for (let k = 0; k <= 6; k++) { const f = k / 6; P(lx * f * f, H * f, lz * f * f, [0.45, 0.33, 0.2], 0.024 * s * (1.1 - 0.35 * f)); }
-                    for (let j = 0; j < 7; j++) {
-                        const a = (j / 7) * 6.283 + ph, ca = Math.cos(a), sa = Math.sin(a);
-                        for (let i = 1; i <= 4; i++) {
-                            const rr = i * 0.027 * s, dy = (0.018 * i - 0.0085 * i * i) * s;
-                            P(lx + ca * rr, H + dy, lz + sa * rr, i > 2 ? [0.36, 0.56, 0.2] : [0.2, 0.42, 0.14], (0.032 - i * 0.004) * s);
-                        }
-                    }
-                    P(lx + 0.012 * s, H - 0.018 * s, lz, [0.8, 0.47, 0.12], 0.02 * s);
-                    P(lx - 0.01 * s, H - 0.02 * s, lz + 0.01 * s, [0.72, 0.4, 0.1], 0.018 * s);
-                } else if (sl.type === 'pine') {
-                    P(0, 0.012 * s, 0, [0.3, 0.2, 0.12], 0.024 * s); P(0, 0.035 * s, 0, [0.3, 0.2, 0.12], 0.022 * s);
-                    const N = [7, 6, 5, 4];
-                    for (let j = 0; j < 4; j++) {
-                        const y = (0.055 + j * 0.034) * s, rad = (0.05 - j * 0.011) * s, col = j % 2 ? [0.14, 0.38, 0.2] : [0.1, 0.31, 0.17];
-                        P(0, y + 0.006 * s, 0, col, (0.07 - j * 0.012) * s);
-                        for (let i = 0; i < N[j]; i++) { const a = (i / N[j]) * 6.283 + ph + j; P(Math.cos(a) * rad, y, Math.sin(a) * rad, col, (0.042 - j * 0.006) * s); }
-                    }
-                    P(0, 0.2 * s, 0, [0.16, 0.42, 0.22], 0.028 * s);
-                } else {
-                    for (let k = 0; k < 3; k++) P(0, (0.015 + k * 0.03) * s, 0, [0.34, 0.23, 0.13], 0.026 * s);
-                    const g1 = [0.22, 0.47, 0.16], g2 = [0.34, 0.58, 0.2], g3 = [0.18, 0.4, 0.14];
-                    P(0, 0.125 * s, 0, g3, 0.1 * s);
-                    for (let i = 0; i < 6; i++) { const a = (i / 6) * 6.283 + ph; P(Math.cos(a) * 0.045 * s, (0.115 + 0.012 * Math.sin(a * 3)) * s, Math.sin(a) * 0.045 * s, i % 2 ? g1 : g3, 0.068 * s); }
-                    for (let i = 0; i < 3; i++) { const a = (i / 3) * 6.283 + ph + 0.5; P(Math.cos(a) * 0.024 * s, 0.16 * s, Math.sin(a) * 0.024 * s, g2, 0.062 * s); }
-                    P(0, 0.19 * s, 0, g2, 0.05 * s);
-                }
+            // Trees -----------------------------------------------------------------------------
+            _treeSetup() {
+                const gl = this.gl;
+                this.inst = gl.getExtension('ANGLE_instanced_arrays');
+                this.atlas = this._treeAtlas();
+                this.meshes = this._treeMeshes();
+                this.pTree = this._prog(
+                    'attribute vec3 p;attribute vec3 n;attribute vec4 t;attribute vec3 c;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform float T;uniform vec2 W;'
+                    + 'varying vec2 vt;varying vec3 vn;varying vec3 vc;varying float vm;varying float vw;varying float vh;varying vec3 vp;'
+                    + 'float gust(vec2 a){return pow(.5+.5*sin(dot(a,W)*.55-T*.9),3.)*(.7+.3*sin(dot(a,vec2(-W.y,W.x))*1.3+T*.3));}'
+                    + 'void main(){float s=ia.x*ib.x,cy=cos(ia.y),sy=sin(ia.y);vec3 q=vec3(p.x*cy-p.z*sy,p.y,p.x*sy+p.z*cy);vec3 nn=vec3(n.x*cy-n.z*sy,n.y,n.x*sy+n.z*cy);'
+                    + 'if(ib.z>0.){vec2 fd=vec2(cos(ia.z),sin(ia.z));float a=ib.z*1.45,ca=cos(a),sa=sin(a),h=dot(q.xz,fd);float nh=h*ca+q.y*sa;q.y=-h*sa+q.y*ca;q.xz+=fd*(nh-h);}'
+                    + 'float g=gust(ip.xz),b=t.z*t.z;float sw=sin(T*1.7+ia.z)*.22+sin(T*3.3+ia.z*1.7)*.07+g*1.05;'
+                    + 'q.xz+=W*sw*b*.1+vec2(-W.y,W.x)*sin(T*2.1+ia.z)*b*.025;q.y-=abs(sw)*b*.025;'
+                    + 'if(t.w>1.5){q+=nn*sin(T*11.+ia.z*5.+p.x*23.+p.z*17.+p.y*31.)*.018*(.35+g*1.8)*t.z;}'
+                    + 'vec3 w=ip+q*s;gl_Position=m*vec4(w,1.);vt=t.xy;vn=nn;vc=c*(.9+.2*fract(ia.z*7.13));vm=t.w;vw=ib.y;vh=p.y;vp=w;}',
+                    'precision mediump float;uniform sampler2D A;uniform vec3 L;uniform vec3 E;varying vec2 vt;varying vec3 vn;varying vec3 vc;varying float vm;varying float vw;varying float vh;varying vec3 vp;'
+                    + 'void main(){vec2 uv;if(vm<.5)uv=vec2(.5+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<1.5)uv=vec2(.75+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<2.5)uv=vec2(vt.x*.5,vt.y*.5);else if(vm<3.5)uv=vec2(.5+vt.x*.5,vt.y*.5);else uv=vec2(vt.x*.5,.5+vt.y*.5);'
+                    + 'vec4 tx=texture2D(A,uv);if(tx.a<.45)discard;vec3 N=normalize(vn);if(vm<2.5&&!gl_FrontFacing)N=-N;'
+                    + 'float dif=max(dot(N,L),0.),lf=step(1.5,vm),tr=max(dot(-N,L),0.)*.5*lf;vec3 amb=mix(vec3(.3,.26,.2),vec3(.55,.66,.8),N.y*.5+.5)*.62;float ao=.5+.5*clamp(vh*1.25,0.,1.);'
+                    + 'vec3 col=tx.rgb*vc*(amb+vec3(1.,.93,.8)*(dif*.95+tr))*ao;col=mix(col,vec3(.45,.32,.19)*(.45+.55*dif),vw);col=mix(col,vec3(.55,.62,.66),smoothstep(10.,30.,length(E-vp))*.28);gl_FragColor=vec4(col,1.);}');
+                // soft ground shadows cast away from the sun
+                this.pShd = this._prog(
+                    'attribute vec2 o;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform vec3 L;varying vec2 vo;varying float va;'
+                    + 'void main(){float s=ia.x*ib.x*(1.-ib.z*.6);vec2 sd=-normalize(L.xz),pd=vec2(-sd.y,sd.x);vec2 xz=ip.xz+(sd*(o.y*.5+.32)+pd*o.x*.3)*s;gl_Position=m*vec4(xz.x,ip.y+.003,xz.y,1.);vo=o;va=1.-ib.y*.6;}',
+                    'precision mediump float;varying vec2 vo;varying float va;void main(){float r=dot(vo,vo);if(r>1.)discard;gl_FragColor=vec4(0.,.02,0.,(1.-r)*(1.-r)*.45*va);}');
+                this.bQuad = this._buf(new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]));
+                this.iBuf = {};
+                Object.keys(this.meshes).forEach((k) => { this.iBuf[k] = { a: new Float32Array(9 * 900), n: 0, b: gl.createBuffer() }; });
             }
 
-            _push(B, x, y, z, c, size, sw, ph) {
-                if (B.n >= B.cap) return;
-                const o = B.n * 9, a = B.a;
-                a[o] = x; a[o + 1] = y; a[o + 2] = z; a[o + 3] = c[0]; a[o + 4] = c[1]; a[o + 5] = c[2]; a[o + 6] = size; a[o + 7] = sw; a[o + 8] = ph;
-                B.n++;
+            // Texture atlas painted once: palm frond, leaf cluster, pine branch, palm bark, bark.
+            // Every mip level gets its leaf coverage boosted so far-away trees stay full.
+            _treeAtlas() {
+                const S = 1024, cv = document.createElement('canvas');
+                cv.width = cv.height = S;
+                const x = cv.getContext('2d');
+                let sd = 7;
+                const r = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+                // frond: rachis down the middle (top = trunk end), leaflets sweeping to the tip
+                x.save(); x.beginPath(); x.rect(0, 0, 512, 512); x.clip(); x.lineCap = 'round';
+                for (let yy = 6; yy < 505; yy += 4.2) {
+                    const t = yy / 512, len = 250 * Math.sin(Math.PI * Math.min(1, 0.1 + t * 0.95)) * (0.8 + r() * 0.3);
+                    for (const sg of [-1, 1]) {
+                        const ang = 0.5 + r() * 0.25, x1 = 256 + sg * Math.sin(ang) * len, y1 = yy + Math.cos(ang) * len * 0.5;
+                        const gg = 95 + r() * 55;
+                        x.strokeStyle = `rgb(${Math.round(48 + r() * 35)},${Math.round(gg + 18)},${Math.round(30 + r() * 25)})`;
+                        x.lineWidth = 6 * (1 - t * 0.45);
+                        x.beginPath(); x.moveTo(256, yy); x.quadraticCurveTo((256 + x1) / 2 + sg * 8, (yy + y1) / 2 - 10, x1, y1); x.stroke();
+                        x.strokeStyle = 'rgba(205,220,130,.32)'; x.lineWidth = 1.6; x.stroke();
+                    }
+                }
+                x.strokeStyle = '#9a9656'; x.lineWidth = 8; x.beginPath(); x.moveTo(256, 0); x.lineTo(256, 512); x.stroke();
+                x.restore();
+                // leaf cluster
+                x.save(); x.beginPath(); x.rect(512, 0, 512, 512); x.clip(); x.translate(768, 256);
+                for (let i = 0; i < 1500; i++) {
+                    const a = r() * 6.283, rr = Math.sqrt(r()) * 238, px = Math.cos(a) * rr, py = Math.sin(a) * rr;
+                    if (rr > 200 && r() < 0.55) continue;
+                    const top = 0.5 - py / 476;
+                    x.fillStyle = `hsl(${Math.round(85 + r() * 32)},${Math.round(36 + r() * 24)}%,${Math.round(20 + r() * 16 + top * 12)}%)`;
+                    x.beginPath(); x.ellipse(px, py, 8 + r() * 8, 3.8 + r() * 3.5, r() * 6.283, 0, 6.283); x.fill();
+                }
+                x.restore();
+                // pine branch (top = trunk end)
+                x.save(); x.beginPath(); x.rect(0, 512, 512, 512); x.clip(); x.translate(256, 512); x.lineCap = 'round';
+                x.strokeStyle = '#5b4632'; x.lineWidth = 9; x.beginPath(); x.moveTo(0, 0); x.lineTo(0, 505); x.stroke();
+                for (let i = 0; i < 2600; i++) {
+                    const t = r(), yy = t * 500, wmax = 235 * (1 - t * 0.7), sg = r() < 0.5 ? -1 : 1, ox = sg * r() * wmax * 0.55;
+                    const len = (26 + r() * 40) * (1 - t * 0.35), ang = 0.8 + r() * 0.6;
+                    x.strokeStyle = `hsl(${Math.round(118 + r() * 30)},${Math.round(28 + r() * 22)}%,${Math.round(14 + r() * 17)}%)`;
+                    x.lineWidth = 2.4;
+                    x.beginPath(); x.moveTo(ox, yy); x.lineTo(ox + sg * Math.sin(ang) * len, yy + Math.cos(ang) * len * 0.7); x.stroke();
+                }
+                x.restore();
+                // palm bark: overlapping leaf-base scales
+                x.fillStyle = '#6a5136'; x.fillRect(512, 512, 256, 512);
+                for (let row = 0; row < 26; row++) for (let k = -1; k < 5; k++) {
+                    const cx = 512 + k * 64 + (row % 2) * 32, cy = 512 + row * 20;
+                    x.fillStyle = `rgb(${Math.round(92 + r() * 30)},${Math.round(70 + r() * 20)},${Math.round(46 + r() * 16)})`;
+                    x.beginPath(); x.moveTo(cx - 34, cy); x.quadraticCurveTo(cx, cy + 30, cx + 34, cy); x.lineTo(cx + 30, cy - 6); x.quadraticCurveTo(cx, cy + 18, cx - 30, cy - 6); x.closePath(); x.fill();
+                    x.strokeStyle = 'rgba(30,20,10,.55)'; x.lineWidth = 2; x.stroke();
+                }
+                // bark
+                x.fillStyle = '#58483a'; x.fillRect(768, 512, 256, 512);
+                for (let i = 0; i < 260; i++) {
+                    const px = 768 + r() * 256, w = 2 + r() * 6;
+                    x.fillStyle = r() < 0.5 ? `rgba(30,22,16,${0.25 + r() * 0.3})` : `rgba(140,120,100,${0.15 + r() * 0.2})`;
+                    x.fillRect(px, 512 + r() * 512, w, 20 + r() * 120);
+                }
+                const gl = this.gl, t = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, t);
+                let src = cv, size = S, lvl = 0;
+                while (size >= 1) {
+                    let c = src;
+                    if (lvl) {
+                        c = document.createElement('canvas'); c.width = c.height = size;
+                        const cx = c.getContext('2d');
+                        cx.drawImage(src, 0, 0, size, size);
+                        if (size >= 4) {
+                            const id = cx.getImageData(0, 0, size, size), d = id.data;
+                            for (let i = 3; i < d.length; i += 4) d[i] = Math.min(255, d[i] * 1.32);
+                            cx.putImageData(id, 0, 0);
+                        }
+                    }
+                    gl.texImage2D(gl.TEXTURE_2D, lvl, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+                    src = c; size >>= 1; lvl++;
+                }
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                return t;
             }
-            _shadow(B, sl, gr) { const w = sl.w; this._push(B, w[0] + 0.03 * sl.s * gr, w[1] + 0.004, w[2] - 0.02 * sl.s * gr, [0, 0, 0], 0.15 * sl.s * gr, 0, 0); }
+
+            // Tree meshes, about 1 unit tall. Vertex: position, normal, (u, v, bend 0..1, material), tint.
+            // Materials: 0 palm bark, 1 bark, 2 palm frond, 3 leaf cluster, 4 pine branch.
+            _treeMeshes() {
+                let sd = 1;
+                const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+                const norm = (a) => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+                const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+                const add = (a, b, k) => [a[0] + b[0] * (k === undefined ? 1 : k), a[1] + b[1] * (k === undefined ? 1 : k), a[2] + b[2] * (k === undefined ? 1 : k)];
+                const V = (M, p, n, u, v, bend, mat, c) => { M.v.push(p[0], p[1], p[2], n[0], n[1], n[2], u, v, Math.max(0, Math.min(1, bend)), mat, c[0], c[1], c[2]); return M.v.length / 13 - 1; };
+                const tube = (M, path, rad, sides, rings, mat, col, vrep) => {
+                    const base = M.v.length / 13;
+                    for (let j = 0; j <= rings; j++) {
+                        const t = j / rings, c = path(t), c2 = path(Math.min(1, t + 0.01)), c1 = path(Math.max(0, t - 0.01));
+                        const tg = norm([c2[0] - c1[0], c2[1] - c1[1], c2[2] - c1[2]]);
+                        let ax = cross(tg, [0, 0, 1]);
+                        ax = Math.hypot(ax[0], ax[1], ax[2]) < 0.1 ? [1, 0, 0] : norm(ax);
+                        const ay = norm(cross(tg, ax)), rr = rad(t);
+                        for (let k = 0; k <= sides; k++) {
+                            const a = (k / sides) * Math.PI * 2, ca = Math.cos(a), sa = Math.sin(a);
+                            const n = [ax[0] * ca + ay[0] * sa, ax[1] * ca + ay[1] * sa, ax[2] * ca + ay[2] * sa];
+                            V(M, add(c, n, rr), n, k / sides, t * vrep, c[1], mat, col);
+                        }
+                    }
+                    for (let j = 0; j < rings; j++) for (let k = 0; k < sides; k++) {
+                        const a = base + j * (sides + 1) + k, b = a + sides + 1;
+                        M.i.push(a, b, a + 1, a + 1, b, b + 1);
+                    }
+                };
+                const card = (M, c, ax, ay, n, mat, col) => {
+                    const b = M.v.length / 13;
+                    [[0, 0], [1, 0], [1, 1], [0, 1]].forEach(([u, v]) => { const p = add(add(c, ax, u - 0.5), ay, v - 0.5); V(M, p, n, u, v, p[1], mat, col); });
+                    M.i.push(b, b + 1, b + 2, b, b + 2, b + 3);
+                };
+                const palm = (seed) => {
+                    sd = seed; const M = { v: [], i: [] };
+                    const lean = 0.05 + rnd() * 0.09, th = 0.72 + rnd() * 0.1, path = (t) => [lean * t * t, th * t, 0];
+                    tube(M, path, (t) => 0.036 * (1.12 - 0.3 * t), 7, 12, 0, [1, 1, 1], 7);
+                    const top = add(path(1), [0, 0.012, 0]), NF = 15;
+                    for (let f = 0; f < NF + 5; f++) {
+                        const dead = f >= NF, az = f * 2.39996 + rnd() * 0.3;
+                        const el = dead ? -1.1 - rnd() * 0.3 : 1.1 - (f / NF) * 1.3 + (rnd() - 0.5) * 0.2;
+                        const len = dead ? 0.3 + rnd() * 0.08 : 0.42 + rnd() * 0.12, segs = 6, W = dead ? 0.11 : 0.22;
+                        const dirH = [Math.cos(az), 0, Math.sin(az)], side = [-Math.sin(az), 0, Math.cos(az)];
+                        const col = dead ? [0.9, 0.62, 0.36] : [0.92 + rnd() * 0.14, 1.02 + rnd() * 0.1 - (f / NF) * 0.14, 0.88 + rnd() * 0.12];
+                        let p = top;
+                        const base = M.v.length / 13;
+                        for (let k = 0; k <= segs; k++) {
+                            const e = el - (dead ? 0.05 : 0.22 + 0.1 * f / NF) * k;
+                            const d = norm([dirH[0] * Math.cos(e), Math.sin(e), dirH[2] * Math.cos(e)]);
+                            if (k) p = add(p, d, len / segs);
+                            const up = norm(cross(side, d)), w = W * (k === 0 ? 0.3 : 1) / 2, fold = W * 0.17, bnd = 0.85 + 0.15 * k / segs;
+                            V(M, add(add(p, side, -w), up, fold), norm(add(up, side, 0.45)), 0, k / segs, bnd, 2, col);
+                            V(M, p, up, 0.5, k / segs, bnd, 2, col);
+                            V(M, add(add(p, side, w), up, fold), norm(add(up, side, -0.45)), 1, k / segs, bnd, 2, col);
+                        }
+                        for (let k = 0; k < segs; k++) { const a = base + k * 3; M.i.push(a, a + 3, a + 1, a + 1, a + 3, a + 4, a + 1, a + 4, a + 2, a + 2, a + 4, a + 5); }
+                    }
+                    for (let q = 0; q < 3; q++) {
+                        const az = q * 2.1 + rnd(), c = add(top, [Math.cos(az) * 0.06, -0.075, Math.sin(az) * 0.06]), s = 0.1;
+                        card(M, c, [s * Math.cos(az + 1.57), 0, s * Math.sin(az + 1.57)], [0, s * 1.2, 0], [Math.cos(az), 0.3, Math.sin(az)], 3, [1.5, 0.78, 0.3]);
+                        card(M, c, [s * Math.cos(az), 0, s * Math.sin(az)], [0, s * 1.2, 0], [Math.cos(az + 1.57), 0.3, Math.sin(az + 1.57)], 3, [1.45, 0.72, 0.28]);
+                    }
+                    return M;
+                };
+                const broad = (seed, cy, rx, ry) => {
+                    sd = seed; const M = { v: [], i: [] };
+                    const tx = (rnd() - 0.5) * 0.06, th = cy - ry * 0.5;
+                    tube(M, (t) => [tx * t * t, th * t, 0], (t) => 0.048 * (1 - 0.45 * t), 6, 5, 1, [1, 1, 1], 2);
+                    for (let b = 0; b < 4; b++) {
+                        const az = b * 1.57 + rnd() * 0.8, st = [tx, th * (0.82 + 0.05 * b), 0], en = [tx + Math.cos(az) * rx * 0.62, cy + (rnd() - 0.3) * ry * 0.5, Math.sin(az) * rx * 0.62];
+                        tube(M, (t) => [st[0] + (en[0] - st[0]) * t, st[1] + (en[1] - st[1]) * t + Math.sin(t * 3.14) * 0.04, st[2] + (en[2] - st[2]) * t], (t) => 0.024 * (1 - 0.6 * t), 5, 3, 1, [1, 1, 1], 1);
+                    }
+                    for (let c = 0; c < 30; c++) {
+                        const d = norm([rnd() * 2 - 1, rnd() * 1.6 - 0.55, rnd() * 2 - 1]), rr = 0.58 + 0.42 * Math.sqrt(rnd());
+                        const cc = [tx + d[0] * rx * rr, cy + d[1] * ry * rr, d[2] * rx * rr], sz = 0.24 + rnd() * 0.12;
+                        const sh = 0.74 + 0.3 * (d[1] * 0.5 + 0.5), col = [sh * (0.9 + rnd() * 0.2), sh * (0.95 + rnd() * 0.12), sh * (0.85 + rnd() * 0.2)];
+                        const a = rnd() * 6.283, ax = [Math.cos(a) * sz, 0, Math.sin(a) * sz], ax2 = [-Math.sin(a) * sz, 0, Math.cos(a) * sz];
+                        const tl = [(rnd() - 0.5) * sz * 0.5, sz, (rnd() - 0.5) * sz * 0.5];
+                        card(M, cc, ax, tl, d, 3, col);
+                        card(M, cc, ax2, tl, d, 3, col);
+                        card(M, cc, ax, [ax2[0], sz * 0.3 * (rnd() - 0.5), ax2[2]], d, 3, col);
+                    }
+                    return M;
+                };
+                const pine = (seed) => {
+                    sd = seed; const M = { v: [], i: [] };
+                    tube(M, (t) => [0, 0.95 * t, 0], (t) => 0.034 * (1 - 0.8 * t), 6, 5, 1, [0.92, 0.86, 0.8], 3);
+                    const tiers = 9;
+                    for (let i = 0; i < tiers; i++) {
+                        const y = 0.2 + i * 0.085, L = 0.36 * (1 - i / (tiers + 1)) + 0.05, nb = 7 - Math.floor(i / 3);
+                        for (let b = 0; b < nb; b++) {
+                            const az = (b / nb) * 6.283 + i * 0.9 + rnd() * 0.4, d = norm([Math.cos(az), -0.28 - rnd() * 0.1, Math.sin(az)]);
+                            const side = [-Math.sin(az), 0, Math.cos(az)], w = 0.22 * (1 - i / (tiers + 3)), c0 = add([0, y, 0], d, L / 2), up = norm(cross(side, d));
+                            const col = [0.82 + rnd() * 0.25, 0.92 + rnd() * 0.2, 0.82 + rnd() * 0.2], nn = norm(add(up, d, 0.5));
+                            card(M, c0, [side[0] * w, 0, side[2] * w], [d[0] * L, d[1] * L, d[2] * L], nn, 4, col);
+                            card(M, c0, [up[0] * w * 0.6, up[1] * w * 0.6, up[2] * w * 0.6], [d[0] * L, d[1] * L, d[2] * L], nn, 4, col);
+                        }
+                    }
+                    card(M, [0, 1.0, 0], [0.1, 0, 0], [0, 0.2, 0], [0, 1, 0], 4, [1, 1.05, 1]);
+                    card(M, [0, 1.0, 0], [0, 0, 0.1], [0, 0.2, 0], [0, 1, 0], 4, [1, 1.05, 1]);
+                    return M;
+                };
+                const list = { palm0: palm(11), palm1: palm(23), palm2: palm(37), oak0: broad(5, 0.62, 0.3, 0.26), oak1: broad(9, 0.72, 0.24, 0.3), oak2: broad(13, 0.56, 0.36, 0.22), pine0: pine(3), pine1: pine(7) };
+                const gl = this.gl, out = {};
+                Object.keys(list).forEach((k) => {
+                    const M = list[k], vb = gl.createBuffer(), ib = gl.createBuffer();
+                    gl.bindBuffer(gl.ARRAY_BUFFER, vb); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(M.v), gl.STATIC_DRAW);
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(M.i), gl.STATIC_DRAW);
+                    out[k] = { vb, ib, n: M.i.length };
+                });
+                return out;
+            }
 
             _ease(x) { const c1 = 1.70158, c3 = c1 + 1; x = Math.max(0, Math.min(1, x)); return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
 
-            _buildSolids(now) {
-                const gl = this.gl;
-                const busy = {};
-                this.anims = this.anims.filter((a) => { if (a.t0 === null) a.t0 = now + a.d; if (now - a.t0 >= 1.3) { this.dirty = true; return false; } busy[a.g + '#' + a.i] = 1; return true; });
-                if (this.dirty) {
-                    this.dirty = false;
-                    this.bT.n = 0; this.bS.n = 0;
-                    Object.keys(this.slots).forEach((g) => {
-                        const sl = this.slots[g], n = Math.min(this.shown[g] || 0, sl.length);
-                        for (let i = 0; i < n; i++) {
-                            if (busy[g + '#' + i]) continue;
-                            this._tree((x, y, z, c, sz, sw, ph) => this._push(this.bT, x, y, z, c, sz, sw, ph), sl[i], 1, 0, 0);
-                            this._shadow(this.bS, sl[i], 1);
-                        }
-                    });
-                    [this.bT, this.bS].forEach((B) => { gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.STATIC_DRAW); });
-                }
-                const D = this.bTd, DS = this.bSd, put = (x, y, z, c, sz, sw, ph) => this._push(D, x, y, z, c, sz, sw, ph);
-                D.n = 0; DS.n = 0;
-                this.anims.forEach((a) => {
-                    const sl = this.slots[a.g][a.i], u = (now - a.t0) / 1.3;
-                    if (!sl || u < 0) return;
-                    const gr = this._ease(u);
-                    this._tree(put, sl, gr, 0, 0); this._shadow(DS, sl, Math.min(1, gr));
+            // Per-tree data for this frame: position, size, turn, phase, growth, withering, falling.
+            _fillInstances(now) {
+                Object.keys(this.iBuf).forEach((k) => { this.iBuf[k].n = 0; });
+                const put = (sl, sc, gr, wt, fall) => {
+                    const B = this.iBuf[sl.key];
+                    if (!B || gr <= 0.001 || B.n >= 900) return;
+                    const o = B.n * 9, a = B.a;
+                    a[o] = sl.w[0]; a[o + 1] = sl.w[1]; a[o + 2] = sl.w[2]; a[o + 3] = 0.21 * sl.s * sc; a[o + 4] = sl.yaw; a[o + 5] = sl.ph; a[o + 6] = gr; a[o + 7] = wt; a[o + 8] = fall;
+                    B.n++;
+                };
+                const grow = {};
+                this.anims = this.anims.filter((a) => { if (a.t0 === null) a.t0 = now + a.d; if (now - a.t0 >= 1.3) return false; grow[a.g + '#' + a.i] = Math.max(0, this._ease((now - a.t0) / 1.3)); return true; });
+                Object.keys(this.slots).forEach((g) => {
+                    const sl = this.slots[g], n = Math.min(this.shown[g] || 0, sl.length);
+                    for (let i = 0; i < n; i++) { const k = g + '#' + i; put(sl[i], 1, k in grow ? grow[k] : 1, 0, 0); }
                 });
-                const S = this.sess;
-                if (S) {
-                    const sl0 = this.slots[S.g] && this.slots[S.g][S.idx], sl = sl0 && Object.assign({}, sl0, { s: sl0.s * 1.5 });
-                    if (sl) {
-                        const u = now - S.t;
-                        let gr = 0.1 + 0.9 * (1 - Math.pow(1 - S.p, 1.6)), wt = 0, fall = 0;
-                        if (S.state === 'done') gr = 1 + 0.18 * Math.sin(Math.min(1, u / 0.9) * Math.PI) * Math.exp(-u);
-                        if (S.state === 'fail') { wt = Math.min(1, u / 1.2); fall = Math.max(0, Math.min(1, (u - 1.0) / 1.2)); fall = fall * fall; gr *= 1 - Math.max(0, (u - 2.1) / 0.6); if (u > 2.7) { this.sess = null; gr = 0; } }
-                        if (gr > 0) { this._tree(put, sl, gr, wt, fall); if (fall < 0.5) this._shadow(DS, sl, gr); }
-                    }
+                const S = this.sess, sl = S && this.slots[S.g] && this.slots[S.g][S.idx];
+                if (sl) {
+                    const u = now - S.t;
+                    let gr = 0.1 + 0.9 * (1 - Math.pow(1 - S.p, 1.6)), wt = 0, fall = 0;
+                    if (S.state === 'done') gr = 1 + 0.18 * Math.sin(Math.min(1, u / 0.9) * Math.PI) * Math.exp(-u);
+                    if (S.state === 'fail') { wt = Math.min(1, u / 1.2); fall = Math.max(0, Math.min(1, (u - 1.0) / 1.2)); fall *= fall; gr *= 1 - Math.max(0, (u - 2.1) / 0.6); if (u > 2.7) { this.sess = null; gr = 0; } }
+                    put(sl, 1.5, gr, wt, fall);
                 }
-                [D, DS].forEach((B) => { gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.DYNAMIC_DRAW); });
+            }
+
+            _bindInstanced(P, B, locs) {
+                const gl = this.gl, X = this.inst;
+                gl.bindBuffer(gl.ARRAY_BUFFER, B.b);
+                gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.DYNAMIC_DRAW);
+                [['ip', 0], ['ia', 12], ['ib', 24]].forEach(([nm, off]) => {
+                    const l = locs[nm];
+                    if (l < 0) return;
+                    gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 3, gl.FLOAT, false, 36, off);
+                    if (X) X.vertexAttribDivisorANGLE(l, 1);
+                });
+            }
+            _unbindInstanced(locs) {
+                const gl = this.gl, X = this.inst;
+                ['ip', 'ia', 'ib'].forEach((nm) => { const l = locs[nm]; if (l < 0) return; if (X) X.vertexAttribDivisorANGLE(l, 0); gl.disableVertexAttribArray(l); });
+            }
+            // Without instancing each tree is its own draw call, its data set as constant attributes.
+            _drawEach(B, locs, draw) {
+                const gl = this.gl, a = B.a;
+                ['ip', 'ia', 'ib'].forEach((nm) => { if (locs[nm] >= 0) gl.disableVertexAttribArray(locs[nm]); });
+                for (let i = 0; i < B.n; i++) {
+                    const o = i * 9;
+                    gl.vertexAttrib3f(locs.ip, a[o], a[o + 1], a[o + 2]); gl.vertexAttrib3f(locs.ia, a[o + 3], a[o + 4], a[o + 5]); gl.vertexAttrib3f(locs.ib, a[o + 6], a[o + 7], a[o + 8]);
+                    draw();
+                }
             }
 
             _solids(M, h, now) {
                 if (!this.tex) return;
-                this._buildSolids(now);
+                this._fillInstances(now);
+                const gl = this.gl, X = this.inst, T = now % 1000;
+                const loc = (P, n) => gl.getAttribLocation(P, n), un = (P, n) => gl.getUniformLocation(P, n);
+                // shadows
+                let P = this.pShd;
+                gl.useProgram(P);
+                gl.uniformMatrix4fv(un(P, 'm'), false, M); gl.uniform3fv(un(P, 'L'), this.sun);
+                const ls = { o: loc(P, 'o'), ip: loc(P, 'ip'), ia: loc(P, 'ia'), ib: loc(P, 'ib') };
+                gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.DEPTH_TEST);
+                Object.keys(this.iBuf).forEach((k) => {
+                    const B = this.iBuf[k];
+                    if (!B.n) return;
+                    gl.bindBuffer(gl.ARRAY_BUFFER, this.bQuad); gl.enableVertexAttribArray(ls.o); gl.vertexAttribPointer(ls.o, 2, gl.FLOAT, false, 0, 0);
+                    if (X) { this._bindInstanced(P, B, ls); X.drawArraysInstancedANGLE(gl.TRIANGLES, 0, 6, B.n); this._unbindInstanced(ls); }
+                    else this._drawEach(B, ls, () => gl.drawArrays(gl.TRIANGLES, 0, 6));
+                    gl.disableVertexAttribArray(ls.o);
+                });
+                gl.enable(gl.DEPTH_TEST);
+                // trees
+                P = this.pTree;
+                gl.useProgram(P);
+                gl.uniformMatrix4fv(un(P, 'm'), false, M); gl.uniform1f(un(P, 'T'), T); gl.uniform2fv(un(P, 'W'), this.wind);
+                gl.uniform3fv(un(P, 'L'), this.sun); gl.uniform3fv(un(P, 'E'), this.eye);
+                gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.atlas); gl.uniform1i(un(P, 'A'), 0);
+                const lt = { p: loc(P, 'p'), n: loc(P, 'n'), t: loc(P, 't'), c: loc(P, 'c'), ip: loc(P, 'ip'), ia: loc(P, 'ia'), ib: loc(P, 'ib') };
+                gl.disable(gl.BLEND); gl.depthMask(true);
+                Object.keys(this.iBuf).forEach((k) => {
+                    const B = this.iBuf[k], ms = this.meshes[k];
+                    if (!B.n) return;
+                    gl.bindBuffer(gl.ARRAY_BUFFER, ms.vb);
+                    [['p', 3, 0], ['n', 3, 12], ['t', 4, 24], ['c', 3, 40]].forEach(([nm, sz, off]) => { gl.enableVertexAttribArray(lt[nm]); gl.vertexAttribPointer(lt[nm], sz, gl.FLOAT, false, 52, off); });
+                    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ms.ib);
+                    if (X) { this._bindInstanced(P, B, lt); X.drawElementsInstancedANGLE(gl.TRIANGLES, ms.n, gl.UNSIGNED_SHORT, 0, B.n); this._unbindInstanced(lt); }
+                    else this._drawEach(B, lt, () => gl.drawElements(gl.TRIANGLES, ms.n, gl.UNSIGNED_SHORT, 0));
+                    ['p', 'n', 't', 'c'].forEach((nm) => gl.disableVertexAttribArray(lt[nm]));
+                });
+                // leaves torn off by the gusts
+                this._leaves(now, M, h);
+            }
+
+            _gust(x, z, now) {
+                const W = this.wind, T = now % 1000;
+                return Math.pow(0.5 + 0.5 * Math.sin((x * W[0] + z * W[1]) * 0.55 - T * 0.9), 3) * (0.7 + 0.3 * Math.sin((-x * W[1] + z * W[0]) * 1.3 + T * 0.3));
+            }
+            _hAt(x, z) { return this._h(Math.max(0, Math.min(1, x / this.W + 0.5)), Math.max(0, Math.min(1, z / this.H + 0.5))) * this.HS; }
+
+            _leaves(now, M, h) {
+                const dt = Math.min(0.05, now - (this._lt || now)); this._lt = now;
+                const W = this.wind;
+                // a few trees under a strong gust lose leaves
+                if (this.leaves.length < 160) {
+                    const keys = Object.keys(this.slots);
+                    for (let k = 0; k < 6; k++) {
+                        const g = keys[Math.floor(Math.random() * keys.length)], n = Math.min(this.shown[g] || 0, this.slots[g].length);
+                        if (!n) continue;
+                        const sl = this.slots[g][Math.floor(Math.random() * n)], gu = this._gust(sl.w[0], sl.w[2], now);
+                        if (gu < 0.45 || Math.random() > gu * 0.9) continue;
+                        const s = 0.21 * sl.s, autumn = Math.random() < 0.35;
+                        this.leaves.push({ x: sl.w[0] + (Math.random() - 0.5) * s * 0.5, y: sl.w[1] + s * (0.6 + Math.random() * 0.4), z: sl.w[2] + (Math.random() - 0.5) * s * 0.5, vx: W[0] * (0.25 + Math.random() * 0.2), vz: W[1] * (0.25 + Math.random() * 0.2), vy: 0.03 + Math.random() * 0.05, t: 0, life: 2.5 + Math.random() * 2, ph: Math.random() * 6.28, c: autumn ? [0.78, 0.6, 0.2] : [0.35, 0.55, 0.18] });
+                    }
+                }
+                const B = this.bL; B.n = 0;
+                this.leaves = this.leaves.filter((l) => {
+                    l.t += dt;
+                    if (l.t > l.life) return false;
+                    const gu = this._gust(l.x, l.z, now);
+                    l.x += (l.vx * (0.6 + gu) + Math.sin(l.t * 3 + l.ph) * 0.02) * dt; l.z += (l.vz * (0.6 + gu) + Math.cos(l.t * 2.6 + l.ph) * 0.02) * dt;
+                    l.vy -= 0.035 * dt; l.y += l.vy * dt;
+                    const ground = this._hAt(l.x, l.z) + 0.004;
+                    if (l.y < ground) { l.y = ground; l.vy = 0; l.vx *= 0.9; l.vz *= 0.9; }
+                    if (B.n < B.cap) {
+                        const o = B.n * 9, a = B.a, fl = 0.7 + 0.3 * Math.sin(l.t * 9 + l.ph);
+                        a[o] = l.x; a[o + 1] = l.y; a[o + 2] = l.z; a[o + 3] = l.c[0] * fl; a[o + 4] = l.c[1] * fl; a[o + 5] = l.c[2] * fl; a[o + 6] = 0.012 * (1 - Math.max(0, l.t - l.life + 0.5) * 2); a[o + 7] = 0; a[o + 8] = 0;
+                        B.n++;
+                    }
+                    return true;
+                });
+                if (!B.n) return;
                 const gl = this.gl, P = this.pSol;
                 gl.useProgram(P);
-                const lp = gl.getAttribLocation(P, 'p'), lc = gl.getAttribLocation(P, 'c'), lz = gl.getAttribLocation(P, 'z');
                 gl.uniformMatrix4fv(gl.getUniformLocation(P, 'm'), false, M);
                 gl.uniform1f(gl.getUniformLocation(P, 'k'), h / 2 / Math.tan((40 * Math.PI / 180) / 2));
-                gl.uniform1f(gl.getUniformLocation(P, 'T'), now % 1000);
-                const uS = gl.getUniformLocation(P, 'S');
-                gl.enableVertexAttribArray(lp); gl.enableVertexAttribArray(lc); gl.enableVertexAttribArray(lz);
-                const draw = (B, sh) => {
-                    if (!B.n) return;
-                    gl.bindBuffer(gl.ARRAY_BUFFER, B.b);
-                    gl.vertexAttribPointer(lp, 3, gl.FLOAT, false, 36, 0);
-                    gl.vertexAttribPointer(lc, 3, gl.FLOAT, false, 36, 12);
-                    gl.vertexAttribPointer(lz, 3, gl.FLOAT, false, 36, 24);
-                    gl.uniform1f(uS, sh);
-                    gl.drawArrays(gl.POINTS, 0, B.n);
-                };
-                gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false);
-                draw(this.bS, 1); draw(this.bSd, 1);
-                gl.disable(gl.BLEND); gl.depthMask(true);
-                draw(this.bT, 0); draw(this.bTd, 0);
+                gl.bindBuffer(gl.ARRAY_BUFFER, B.b); gl.bufferData(gl.ARRAY_BUFFER, B.a.subarray(0, B.n * 9), gl.DYNAMIC_DRAW);
+                const lp = gl.getAttribLocation(P, 'p'), lc = gl.getAttribLocation(P, 'c'), lz = gl.getAttribLocation(P, 'z');
+                gl.enableVertexAttribArray(lp); gl.vertexAttribPointer(lp, 3, gl.FLOAT, false, 36, 0);
+                gl.enableVertexAttribArray(lc); gl.vertexAttribPointer(lc, 3, gl.FLOAT, false, 36, 12);
+                gl.enableVertexAttribArray(lz); gl.vertexAttribPointer(lz, 3, gl.FLOAT, false, 36, 24);
+                gl.drawArrays(gl.POINTS, 0, B.n);
                 gl.disableVertexAttribArray(lp); gl.disableVertexAttribArray(lc); gl.disableVertexAttribArray(lz);
+            }
+
+            // Wind streaks: thin white trails flowing with the shamal, brighter inside a gust.
+            _windStreaks(add, now) {
+                const W = this.wind, P = [-W[1], W[0]], bx = this.box;
+                const spawn = (s, any) => {
+                    const t = any ? Math.random() : 0;
+                    // start somewhere up-wind of the map and cross it
+                    const cx = (bx[0] + bx[1]) / 2, cz = (bx[2] + bx[3]) / 2, span = 7;
+                    const o = (Math.random() - 0.5) * span * 1.6, back = -span * 0.75 + t * span * 1.5;
+                    s.x = cx + P[0] * o + W[0] * back; s.z = cz + P[1] * o + W[1] * back;
+                    s.v = 0.9 + Math.random() * 0.6; s.ph = Math.random() * 6.28; s.amp = 0.03 + Math.random() * 0.05; s.len = 34 + Math.floor(Math.random() * 26);
+                    s.t = 0; s.life = 2.5 + Math.random() * 2.5; s.hy = 0.1 + Math.random() * 0.25;
+                    return s;
+                };
+                if (!this.streaks.length) for (let i = 0; i < 36; i++) this.streaks.push(spawn({}, true));
+                const dt = Math.min(0.05, now - (this._st || now)); this._st = now;
+                this.streaks.forEach((s) => {
+                    s.t += dt; s.x += W[0] * s.v * dt; s.z += W[1] * s.v * dt;
+                    if (s.t > s.life) spawn(s, true);
+                    const life = Math.sin(Math.PI * s.t / s.life), g = this._gust(s.x, s.z, now), A = life * (0.22 + 1.1 * g);
+                    if (A < 0.02) return;
+                    for (let j = 0; j < s.len; j++) {
+                        const f = j / s.len, wob = Math.sin(j * 0.15 + s.ph + now * 2.2) * s.amp;
+                        const x = s.x - W[0] * j * 0.02 + P[0] * wob, z = s.z - W[1] * j * 0.02 + P[1] * wob;
+                        add(x, this._hAt(x, z) + s.hy + Math.sin(j * 0.2 + s.ph) * 0.02, z, [0.92, 0.97, 1], Math.min(1, A * (1 - f) * (j ? 0.42 : 1)), (j ? 0.03 : 0.05) * (1 - f * 0.5));
+                    }
+                });
             }
 
             // Data ----------------------------------------------------------------------------
@@ -5419,7 +5867,7 @@
                     }
                     this.shown[g] = want;
                 });
-                this._fed = true; this.dirty = true;
+                this._fed = true;
                 const rows = Object.keys(this.slots).map((g) => ({ g, t: numOr0(this.govs[g] && this.govs[g].t), l: this.live[g] || 0 }));
                 const top = rows.slice().sort((a, b) => b.t - a.t)[0];
                 this.leader = top && top.t ? top.g : '';
@@ -5432,6 +5880,20 @@
             }
 
             _labelY() { return 0.3; }
+
+            frame(ts) {
+                super.frame(ts);
+                if (this.windEl && ts - (this._wAt || 0) > 150) { this._wAt = ts; this._windHud(ts / 1000); }
+            }
+            // Wind gauge: the arrow follows the shamal's direction on screen, the speed rises in a gust.
+            _windHud(now) {
+                const t = this.target, a = this._scr(t[0], t[1], t[2]), b = this._scr(t[0] + this.wind[0], t[1], t[2] + this.wind[1]);
+                if (!a || !b) return;
+                const g = this._gust(t[0], t[2], now);
+                this.windEl.style.setProperty('--a', (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI).toFixed(1) + 'deg');
+                this.windEl.classList.toggle('gust', g > 0.4);
+                if (this.windKm) this.windKm.textContent = Math.round(12 + 34 * g);
+            }
 
             // Camera ----------------------------------------------------------------------------
             _camera() {
@@ -5622,8 +6084,8 @@
                     const head = now * (BL / 22) + c * (BL / 2);
                     for (let j = 0; j < 30; j++) { const q = bp(head - j * 0.05); add(q[0], q[1], q[2], [0.55, 1, 0.7], (1 - j / 30) * 0.8, j ? 0.1 : 0.24); }
                 }
-                // pollen in the air
-                this.dust.forEach((d) => { const y = ((d[1] + now * 0.03 * d[3]) % 1); add(d[0], 0.2 + y * 2.2, d[2], [0.85, 1, 0.7], 0.3 * Math.sin(y * Math.PI), 0.04); });
+                // the wind itself
+                this._windStreaks(add, now);
             }
         }
 
@@ -7992,9 +8454,13 @@
                 this.listenForForest();
                 this.switchView('forestView');
                 const wrap = document.getElementById('fr3d');
-                if (wrap && !this._f3d && !this._f3dFail) {
+                if (wrap && !this._f3d && !this._f3dFail && IRAQ_DEM === null) {
+                    loadIraqDem().then(() => { if (this.currentView === 'forestView') this.goToForest(); });
+                } else if (wrap && !this._f3d && !this._f3dFail) {
                     try {
                         this._f3d = new IraqForest3D(wrap, (g) => this.pickForestGov(g));
+                        this._f3d.windEl = document.getElementById('frWind');
+                        this._f3d.windKm = document.getElementById('frWindKm');
                     } catch (e) {
                         console.warn('3D forest unavailable:', e);
                         this._f3dFail = true;
@@ -8012,6 +8478,7 @@
                 requestAnimationFrame(() => {
                     const sh = document.getElementById('frSheet'), H = window.innerHeight || 800;
                     if (this._f3d) this._f3d.offT = Math.max(0, ((sh ? sh.offsetHeight + 12 : 0) - 70) / H);
+                    document.getElementById('frRoot')?.style.setProperty('--sh', (sh ? sh.offsetHeight + 12 : 0) + 'px');
                 });
             },
 
@@ -9327,6 +9794,10 @@
             _gw3dSync(rows, mine, leader, max) {
                 const wrap = document.getElementById('gw3d');
                 if (!wrap) return;
+                if (!this._gw3d && !this._gw3dFail && IRAQ_DEM === null) {
+                    loadIraqDem().then(() => { if (this.currentView === 'govWarView') this.renderGovWar(); });
+                    return;
+                }
                 if (!this._gw3d && !this._gw3dFail) {
                     try {
                         this._gw3d = new GovWar3D(wrap, (g) => this.pickGov(g));
