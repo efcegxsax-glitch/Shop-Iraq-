@@ -1035,6 +1035,22 @@
                     <button class="btn mt-4" id="fb_save">حفظ</button>
                     <p class="fb-note">يدرسون أكثر بالعصر والليل حسب توقيت العراق، ويتوزعون على المحافظات حسب عدد سكانها. الأشجار اللي يزرعونها تبقى بالغابة حتى لو طفيتهم.</p>
                 </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="cloud-sun"></i></div>
+                        <div>
+                            <h3>الطقس بالغابة</h3>
+                            <p>حقيقي: الغيوم والمطر والعواصف والرياح والحرارة حسب الطقس الحقيقي لكل محافظة هسه. عرض: دورة عواصف ومطر وغبار كل 4 دقايق للعرض والتجربة.</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <select id="fw_mode">
+                            <option value="real">طقس حقيقي (يتحدث كل 15 دقيقة)</option>
+                            <option value="show">عرض: عواصف ومطر وغبار كل 4 دقايق</option>
+                        </select>
+                    </div>
+                    <button class="btn" id="fw_save">حفظ</button>
+                </div>
             </div>
 
             <div id="sec-dreams" class="hidden">
@@ -2369,6 +2385,14 @@
 
         // ---------- Forest companions ----------
         let botsCfg = null;
+        function loadForestWeather() {
+            onValue(ref(db, 'forestConfig/weather'), (snap) => { const v = snap.val(); el('fw_mode').value = (v && v.mode) || 'real'; });
+            el('fw_save').addEventListener('click', () => {
+                set(ref(db, 'forestConfig/weather'), { mode: el('fw_mode').value, at: Date.now() })
+                    .then(() => toast(el('fw_mode').value === 'real' ? 'الغابة هسه على الطقس الحقيقي' : 'الغابة هسه بوضع العرض'))
+                    .catch(() => toast('فشل الحفظ', false));
+            });
+        }
         function loadForestBots() {
             const on = el('fb_on'), n = el('fb_n'), lvl = el('fb_lvl');
             n.addEventListener('input', () => { el('fb_nv').textContent = n.value; });
@@ -2566,6 +2590,7 @@
         loadPolls();
         loadDreamsAdmin();
         loadForestBots();
+        loadForestWeather();
     </script>
 </body>
 </html>

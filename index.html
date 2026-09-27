@@ -1554,6 +1554,7 @@
         .fr-wind.gust .fr-wind-ar i { animation: frGust .5s ease-in-out infinite alternate; }
         @keyframes frGust { from { width: 18px; } to { width: 22px; margin-left: -11px; } }
         .fr-dim { position: absolute; inset: 0; z-index: 2; pointer-events: none; opacity: 0; background: radial-gradient(120% 90% at 50% 40%, rgba(10,16,28,.35), rgba(3,6,12,.9)); transition: opacity 1.5s ease; }
+        .fr-dim.night { background: radial-gradient(120% 90% at 50% 40%, rgba(8,14,40,.45), rgba(2,4,14,.92)); }
         .fr-dim.dust { background: radial-gradient(120% 90% at 50% 40%, rgba(150,100,40,.35), rgba(80,50,20,.85)); }
         .fr-flash { position: absolute; inset: 0; z-index: 3; pointer-events: none; opacity: 0; background: radial-gradient(90% 70% at 50% 40%, rgba(225,232,255,.95), rgba(200,210,255,.4)); }
         .fr-wx { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 116px); left: 14px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 6px 11px 6px 7px; border-radius: 14px; background: rgba(2,14,10,.62); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); max-width: 60%; }
@@ -1581,6 +1582,12 @@
         .fr-gov-s b { display: block; font-size: 19px; font-weight: 900; color: #BBF7D0; font-variant-numeric: tabular-nums; }
         .fr-gov-s span { font-size: 10.5px; font-weight: 700; color: rgba(236,253,245,.65); }
         .fr-gov-s .on b { color: #FCD34D; }
+        .fr-gov-w { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 9px 11px; border-radius: 13px; background: rgba(125,211,252,.08); border: 1px solid rgba(125,211,252,.18); }
+        .fr-gov-w span { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.08); color: #FDE68A; flex-shrink: 0; }
+        .fr-gov-w span svg { width: 17px; height: 17px; }
+        .fr-gov-w b { font-size: 13px; font-weight: 900; }
+        .fr-gov-w em { font-style: normal; font-size: 15px; font-weight: 900; color: #FDE68A; }
+        .fr-gov-w small { margin-inline-start: auto; font-size: 10.5px; font-weight: 700; color: rgba(236,253,245,.65); }
         .fr-sheet { position: absolute; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 12px); z-index: 6; padding: 16px 16px 14px; border-radius: 24px; background: linear-gradient(170deg, rgba(8,44,30,.9), rgba(3,16,11,.94)); border: 1px solid rgba(134,239,172,.24); box-shadow: 0 -10px 40px -12px rgba(0,0,0,.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); animation: frUp .5s cubic-bezier(.2,1.2,.4,1); }
         @keyframes frUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
         .fr-head b { display: block; font-size: 16px; font-weight: 900; }
@@ -4843,6 +4850,52 @@
             return out;
         }
 
+        // Real weather over Iraq from Open-Meteo (free, no key): one request for the centres of all
+        // 19 governorates, plus dust from its air-quality service. Kept on the device for 15 minutes.
+        const IRAQ_WX_KEY = 'isp_wx_v1';
+        function iraqGovCenters() {
+            const b = IRAQ_GEO.b;
+            return Object.keys(IRAQ_GEO.g).map((g) => { const c = IRAQ_GEO.g[g].c; return [g, +(b[2] + c[1] / 100).toFixed(2), +(b[0] + c[0] / 100).toFixed(2)]; });
+        }
+        async function loadIraqWeather(force) {
+            if (!force) {
+                try { const c = JSON.parse(localStorage.getItem(IRAQ_WX_KEY) || 'null'); if (c && Date.now() - c.at < 15 * 60000) return c; } catch (e) {}
+            }
+            const pts = iraqGovCenters(), lat = pts.map((p) => p[1]).join(','), lon = pts.map((p) => p[2]).join(',');
+            const get = (u) => {
+                const ac = typeof AbortController !== 'undefined' ? new AbortController() : null;
+                const tm = setTimeout(() => ac && ac.abort(), 12000);
+                return fetch(u, ac ? { signal: ac.signal } : {}).then((r) => { clearTimeout(tm); if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+            };
+            const [a, q] = await Promise.all([
+                get('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,cloud_cover,cloud_cover_low,wind_speed_10m,wind_direction_10m,is_day&timezone=Asia%2FBaghdad'),
+                get('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon + '&current=dust,pm10').catch(() => null)
+            ]);
+            const arr = Array.isArray(a) ? a : [a], aq = q ? (Array.isArray(q) ? q : [q]) : [], govs = {};
+            pts.forEach(([g], i) => {
+                const c = (arr[i] && arr[i].current) || {}, d = (aq[i] && aq[i].current) || {};
+                govs[g] = { code: Number(c.weather_code) || 0, cc: Number(c.cloud_cover) || 0, low: Number(c.cloud_cover_low) || 0, pr: Number(c.precipitation) || 0, t: Number(c.temperature_2m) || 0, rh: Number(c.relative_humidity_2m) || 0, ws: Number(c.wind_speed_10m) || 0, wd: Number(c.wind_direction_10m) || 0, day: c.is_day !== 0, dust: Number(d.dust) || 0, pm: Number(d.pm10) || 0 };
+            });
+            const out = { at: Date.now(), govs, night: govs['بغداد'] ? !govs['بغداد'].day : false };
+            try { localStorage.setItem(IRAQ_WX_KEY, JSON.stringify(out)); } catch (e) {}
+            return out;
+        }
+        // [lucide icon, Arabic label] for a governorate's real weather.
+        function wxCodeInfo(v) {
+            const c = v.code, dusty = Math.max(v.dust || 0, (v.pm || 0) * 0.5);
+            if (dusty > 320) return ['wind', 'عاصفة ترابية'];
+            if (c >= 95) return ['cloud-lightning', 'عاصفة رعدية'];
+            if ((c >= 71 && c <= 77) || c === 85 || c === 86) return ['cloud-snow', 'ثلج'];
+            if (c >= 80) return ['cloud-rain', 'زخات مطر'];
+            if (c >= 61) return ['cloud-rain', 'مطر'];
+            if (c >= 51) return ['cloud-drizzle', 'رذاذ'];
+            if (c === 45 || c === 48) return ['cloud-fog', 'ضباب'];
+            if (dusty > 140) return ['wind', 'غبار'];
+            if (c === 3) return ['cloudy', 'غائم'];
+            if (c === 2) return ['cloud-sun', 'غائم جزئياً'];
+            return [v.day === false ? 'moon' : 'sun', c === 1 ? 'صحو غالباً' : 'صحو'];
+        }
+
         const IRAQ_ASSETS = { dem: 'assets/iraq-dem.png', sat2: 'assets/iraq-sat-2k.jpg', sat4: 'assets/iraq-sat-4k.jpg', mask: 'assets/iraq-mask.png', clouds: 'assets/clouds.png' };
         let IRAQ_DEM = null;
         function loadIraqDem() {
@@ -5965,11 +6018,56 @@
                 return w.dust > 0.3 ? ['wind', 'عاصفة ترابية'] : w.thunder > 0.25 ? ['cloud-lightning', 'عاصفة رعدية'] : w.rain > 0.3 ? ['cloud-rain', 'مطر'] : w.dark > 0.3 ? ['cloud', 'غيوم سوداء'] : w.cover > 0.55 ? ['cloudy', 'غائم'] : w.cover > 0.32 ? ['cloud-sun', 'غائم جزئياً'] : ['sun', 'صحو'];
             }
 
-            _spawnCloud(type, anywhere) {
+            // Real weather of every governorate, turned into what the map shows there.
+            setRealWeather(d) {
+                this.realWx = d;
+                const out = {};
+                Object.keys((d && d.govs) || {}).forEach((g) => {
+                    const v = d.govs[g], code = v.code, snow = (code >= 71 && code <= 77) || code === 85 || code === 86;
+                    const wet = code >= 51 && code !== 45 && code !== 48;
+                    const thunder = code >= 95 ? 1 : 0;
+                    const dark = thunder ? 1 : code >= 80 ? 0.75 : code >= 61 ? 0.62 : code >= 51 ? 0.38 : v.cc > 85 && v.low > 60 ? 0.25 : 0;
+                    const dust = Math.max(0, Math.min(1, (Math.max(v.dust || 0, (v.pm || 0) * 0.5) - 110) / 450));
+                    out[g] = { cover: Math.max(v.cc / 100, wet ? 0.75 : 0), dark, rain: wet ? Math.min(1, 0.35 + (v.pr || 0) / 4) : 0, thunder, snow, dust, fog: code === 45 || code === 48 ? 1 : 0, kmh: v.ws || 0, wd: v.wd || 0, day: v.day };
+                });
+                this.govWx = out;
+                // one wind for the map: the average of all governorates (it blows from wd, degrees)
+                let vx = 0, vz = 0, sp = 0, n = 0;
+                Object.values(out).forEach((o) => { const t = (o.wd + 180) * Math.PI / 180; vx += Math.sin(t) * o.kmh; vz += -Math.cos(t) * o.kmh; sp += o.kmh; n++; });
+                if (n && Math.hypot(vx, vz) > 0.01) this.windT = [vx / Math.hypot(vx, vz), vz / Math.hypot(vx, vz)];
+                this.windKmh = n ? sp / n : 0;
+            }
+            // Governorate weather spread over the map (weighted by distance to each centre).
+            _field(x, z, key) {
+                const gw = this.govWx;
+                if (!gw) return 0;
+                let s = 0, ws = 0;
+                for (const g in gw) {
+                    const a = this.anchors[g];
+                    if (!a) continue;
+                    const d2 = (a[0] - x) * (a[0] - x) + (a[2] - z) * (a[2] - z), w = 1 / (d2 * d2 + 0.02);
+                    s += gw[g][key] * w; ws += w;
+                }
+                return ws ? s / ws : 0;
+            }
+            _realGlobal() {
+                const vals = Object.values(this.govWx || {}), n = vals.length || 1, avg = (k) => vals.reduce((s, o) => s + o[k], 0) / n, mx = (k) => vals.reduce((m, o) => Math.max(m, o[k]), 0);
+                return { kind: 'real', cover: avg('cover'), dark: avg('dark'), darkMax: mx('dark'), rain: mx('rain'), thunder: mx('thunder'), dust: avg('dust'), dustMax: mx('dust'), ws: Math.max(0.35, Math.min(2.3, (this.windKmh || 8) / 16)) };
+            }
+
+            _spawnCloud(type, anywhere, spot) {
                 const W = this.wind, P = [-W[1], W[0]], bx = this.box, C = [(bx[0] + bx[1]) / 2, (bx[2] + bx[3]) / 2];
                 const r = (a, b) => a + Math.random() * (b - a);
-                const along = anywhere ? r(-5.5, 5.5) : r(-7.5, -6.5), side = type === 'storm' ? r(-2.8, 2.8) : r(-6, 6);
-                const cl = { type, x: C[0] + W[0] * along + P[0] * side, z: C[1] + W[1] * along + P[1] * side, born: this._now || 0, die: 0, puffs: [] };
+                let x, z;
+                if (spot) { x = spot[0] + r(-0.4, 0.4); z = spot[2] + r(-0.4, 0.4); }
+                else if (this._realOn && type === 'small') {
+                    // real weather: clouds form where the governorates below are cloudy
+                    for (let k = 0; k < 10; k++) { x = r(bx[0], bx[1]); z = r(bx[2], bx[3]); if (Math.random() < Math.pow(this._field(x, z, 'cover'), 0.8)) break; }
+                } else {
+                    const along = anywhere ? r(-5.5, 5.5) : r(-7.5, -6.5), side = type === 'storm' ? r(-2.8, 2.8) : r(-6, 6);
+                    x = C[0] + W[0] * along + P[0] * side; z = C[1] + W[1] * along + P[1] * side;
+                }
+                const cl = { type, x, z, born: this._now || 0, die: 0, puffs: [], k: 1, dark: 0, rain: 0, th: 0, dust: 0 };
                 if (type === 'storm') {
                     cl.r = r(1.1, 1.6); cl.y = 0.9; cl.spd = r(0.05, 0.08);
                     const n = Math.round(34 * (0.6 + 0.4 * this.q));
@@ -5995,27 +6093,53 @@
 
             _wxStep(now) {
                 const dt = Math.min(0.1, now - (this._now || now)); this._now = now;
-                const w = this.wx = this._weatherAt(Date.now() + (this.wxShift || 0));
+                const real = this._realOn = this.wxMode !== 'show' && !!this.govWx;
+                // real weather not loaded (yet / offline): calm, fair sky instead of the show cycle
+                const calm = this.wxMode !== 'show' && !this.govWx;
+                const w = this.wx = real ? this._realGlobal() : calm ? { kind: 'calm', cover: 0.2, dark: 0, rain: 0, thunder: 0, dust: 0, ws: 0.7 } : this._weatherAt(Date.now() + (this.wxShift || 0));
                 this.ws = w.ws;
-                const W = this.wind, bx = this.box, C = [(bx[0] + bx[1]) / 2, (bx[2] + bx[3]) / 2], first = !this._wxInit;
-                this._wxInit = true;
-                const want = { small: Math.round((3 + 15 * w.cover) * this.q), storm: w.dark > 0.04 ? (this.q > 0.7 ? 3 : 2) : 0, dust: w.dust > 0.05 ? Math.round(14 * this.q) : 0 };
+                if (real && this.windT) { const k = Math.min(1, dt * 0.5); this.wind = [this.wind[0] + (this.windT[0] - this.wind[0]) * k, this.wind[1] + (this.windT[1] - this.wind[1]) * k]; const l = Math.hypot(this.wind[0], this.wind[1]) || 1; this.wind = [this.wind[0] / l, this.wind[1] / l]; }
+                const W = this.wind, bx = this.box, C = [(bx[0] + bx[1]) / 2, (bx[2] + bx[3]) / 2], first = !this._wxInit || this._wxWas !== real;
+                this._wxInit = true; this._wxWas = real;
+                // storms: in real weather one cell over each rainy / stormy governorate (the 4 strongest)
+                const spots = real ? Object.keys(this.govWx).filter((g) => this.govWx[g].dark >= 0.35 && this.anchors[g]).sort((a, b) => this.govWx[b].dark - this.govWx[a].dark).slice(0, this.q > 0.7 ? 4 : 2) : null;
+                const want = {
+                    small: Math.round((real ? 2 + 20 * w.cover : 3 + 15 * w.cover) * this.q),
+                    storm: real ? 0 : (w.dark > 0.04 ? (this.q > 0.7 ? 3 : 2) : 0),
+                    dust: (real ? w.dustMax > 0.05 : w.dust > 0.05) ? Math.round(14 * this.q * (real ? Math.min(1, w.dust * 2 + 0.3) : 1)) : 0
+                };
                 ['small', 'storm', 'dust'].forEach((t) => {
-                    const alive = this.clouds.filter((c) => c.type === t && !c.die);
-                    for (let i = alive.length; i < want[t]; i++) this._spawnCloud(t, first || t === 'storm');
+                    const alive = this.clouds.filter((c) => c.type === t && !c.die && !c.gov);
+                    for (let i = alive.length; i < want[t]; i++) {
+                        let spot = null;
+                        if (real && t === 'dust') { const dg = Object.keys(this.govWx).filter((g) => this.govWx[g].dust > 0.05 && this.anchors[g]); if (!dg.length) break; spot = this.anchors[dg[Math.floor(Math.random() * dg.length)]]; }
+                        this._spawnCloud(t, first || t === 'storm', spot);
+                    }
                     for (let i = want[t]; i < alive.length; i++) alive[i].die = now;
                 });
+                if (real) {
+                    spots.forEach((g) => { if (!this.clouds.some((c) => c.gov === g && !c.die)) { const c = this._spawnCloud('storm', true, this.anchors[g]); c.gov = g; } });
+                    this.clouds.forEach((c) => { if (c.gov && !c.die && spots.indexOf(c.gov) === -1) c.die = now; });
+                } else this.clouds.forEach((c) => { if (c.gov && !c.die) c.die = now; });
                 this.clouds = this.clouds.filter((c) => {
                     c.x += W[0] * c.spd * (0.5 + 0.5 * w.ws) * dt; c.z += W[1] * c.spd * (0.5 + 0.5 * w.ws) * dt;
                     const inF = Math.min(1, (now - c.born) / (c.type === 'storm' ? 10 : 6)), outF = c.die ? 1 - (now - c.die) / 7 : 1;
                     c.f = Math.max(0, Math.min(inF, outF));
                     if (c.die && outF <= 0) return false;
-                    if ((c.x - C[0]) * W[0] + (c.z - C[1]) * W[1] > 7.5) { if (!c.die) this._spawnCloud(c.type, false); return false; }
+                    // what this cloud looks like: the weather of the place under it, or the show cycle
+                    if (real) {
+                        if (c.gov) { const gw = this.govWx[c.gov] || {}; c.dark = gw.dark || 0; c.rain = gw.rain || 0; c.th = gw.thunder || 0; const a = this.anchors[c.gov]; if (!c.die && a && Math.hypot(c.x - a[0], c.z - a[2]) > 1.4) { c.die = now; } }
+                        else if (c.type === 'small') { const cov = this._field(c.x, c.z, 'cover'); c.k += (Math.min(1, cov * 1.6) - c.k) * Math.min(1, dt * 0.25); c.dark = this._field(c.x, c.z, 'dark') * 0.55; if (c.k < 0.05 && !c.die && now - c.born > 8) c.die = now; }
+                        else c.dust = Math.min(1, this._field(c.x, c.z, 'dust') * 1.5 + 0.1);
+                    } else {
+                        c.k = 1; c.dark = c.type === 'storm' ? w.dark : w.dark * 0.55; c.rain = c.type === 'storm' ? w.rain : 0; c.th = c.type === 'storm' ? w.thunder : 0; c.dust = w.dust;
+                    }
+                    if (!c.gov && (c.x - C[0]) * W[0] + (c.z - C[1]) * W[1] > 7.5) { if (!c.die) this._spawnCloud(c.type, real && c.type === 'small'); return false; }
                     return true;
                 });
-                // lightning
-                const storms = this.clouds.filter((c) => c.type === 'storm' && c.f > 0.5);
-                if (w.thunder > 0.05 && storms.length && Math.random() < dt * (0.25 + 1.1 * w.thunder)) {
+                // lightning from the thunderstorm cells
+                const storms = this.clouds.filter((c) => c.type === 'storm' && c.f > 0.5 && c.th > 0.05);
+                if (storms.length && Math.random() < dt * (0.25 + 1.1 * storms.reduce((m, c) => Math.max(m, c.th), 0))) {
                     const c = storms[Math.floor(Math.random() * storms.length)], a = Math.random() * 6.283, rr = Math.random() * c.r * 0.6;
                     const sx = c.x + Math.cos(a) * rr, sz = c.z + Math.sin(a) * rr, gx = sx + (Math.random() - 0.5) * 0.4, gz = sz + (Math.random() - 0.5) * 0.4;
                     this.bolts.push({ t0: now, pts: this._boltPath([sx, c.y + 0.25, sz], [gx, this._hAt(gx, gz), gz]), x: gx, z: gz, cl: c });
@@ -6030,16 +6154,17 @@
                     return true;
                 });
                 this.flash = flash;
-                // uniforms: light, dust, wind; the 12 biggest clouds' shadows and rain
-                const U = this.wxU;
-                U.wx[0] = 1 - 0.55 * w.dark - 0.35 * w.dust - 0.12 * w.cover; U.wx[1] = w.dust; U.wx[2] = 0; U.wx[3] = w.ws;
+                // uniforms: light (night and clouds dim it), dust, wind; the 12 biggest clouds' shadows and rain
+                const U = this.wxU, night = real && this.realWx && this.realWx.night;
+                U.wx[0] = (1 - 0.55 * (real ? w.dark * 0.6 + w.darkMax * 0.2 : w.dark) - 0.35 * w.dust - 0.12 * w.cover) * (night ? 0.55 : 1);
+                U.wx[1] = real ? Math.min(1, w.dust * 1.5) : w.dust; U.wx[2] = 0; U.wx[3] = w.ws;
                 U.fl[0] = fx; U.fl[1] = fz; U.fl[2] = 2.2; U.fl[3] = flash * 0.9;
                 U.cl.fill(0);
                 const L = this.sun;
-                this.clouds.filter((c) => c.type !== 'dust' && c.f > 0.02).sort((a, b) => b.r - a.r).slice(0, 12).forEach((c, i) => {
-                    const k = c.y / L[1], storm = c.type === 'storm';
+                this.clouds.filter((c) => c.type !== 'dust' && c.f * c.k > 0.02).sort((a, b) => b.r - a.r).slice(0, 12).forEach((c, i) => {
+                    const k = c.y / L[1], storm = c.type === 'storm', f = c.f * c.k;
                     U.cl[i * 4] = c.x - L[0] * k; U.cl[i * 4 + 1] = c.z - L[2] * k; U.cl[i * 4 + 2] = c.r * (storm ? 1.35 : 1.15);
-                    U.cl[i * 4 + 3] = Math.floor((storm ? w.rain * c.f : 0) * 9) + Math.min(0.95, (storm ? 0.3 + 0.35 * w.dark : 0.22 + 0.2 * w.dark) * c.f);
+                    U.cl[i * 4 + 3] = Math.floor((storm ? c.rain * f : 0) * 9) + Math.min(0.95, (storm ? 0.3 + 0.35 * c.dark : 0.22 + 0.2 * c.dark) * f);
                 });
             }
 
@@ -6075,19 +6200,19 @@
                 const list = [];
                 this.clouds.forEach((c) => {
                     const storm = c.type === 'storm', dust = c.type === 'dust';
-                    const dk = storm ? Math.min(1, 0.25 + w.dark * 0.8) : dust ? 0 : w.dark * 0.55;
+                    const dk = storm ? Math.min(1, 0.25 + c.dark * 0.8) : dust ? 0 : c.dark;
                     let cf = 0;
                     this.bolts.forEach((b) => { if (b.cl === c) cf = Math.max(cf, b.i); });
                     c.puffs.forEach((p) => {
                         const x = c.x + p.dx, z = c.z + p.dz, y = (dust ? this._hAt(x, z) : 0) + c.y + p.dy;
-                        const sz = p.s * (storm ? 1 + 0.25 * w.dark : 1);
-                        list.push([x, y, z, sz * (p.fl || 1), sz * (dust ? 0.45 : 0.62), dk, p.a * c.f * (dust ? w.dust : za), cf * (0.6 + 0.4 * Math.random()), p.v + (dust ? 10 : 0)]);
+                        const sz = p.s * (storm ? 1 + 0.25 * c.dark : 1);
+                        list.push([x, y, z, sz * (p.fl || 1), sz * (dust ? 0.45 : 0.62), dk, p.a * c.f * c.k * (dust ? c.dust : za), cf * (0.6 + 0.4 * Math.random()), p.v + (dust ? 10 : 0)]);
                     });
                     // rain shafts under a raining storm cell
-                    if (storm && w.rain > 0.02) {
+                    if (storm && c.rain > 0.02) {
                         for (let k = 0; k < 4; k++) {
                             const a = k * 1.7 + c.born, x = c.x + Math.cos(a) * c.r * 0.45, z = c.z + Math.sin(a) * c.r * 0.45, g = this._hAt(x, z), hh = c.y - g;
-                            list.push([x + this.wind[0] * 0.1, g + hh / 2, z + this.wind[1] * 0.1, c.r * 0.55, hh / 2, 0.4, 0.3 * w.rain * c.f * za, 0, 3]);
+                            list.push([x + this.wind[0] * 0.1, g + hh / 2, z + this.wind[1] * 0.1, c.r * 0.55, hh / 2, 0.4, 0.3 * c.rain * c.f * za, 0, 3]);
                         }
                     }
                 });
@@ -6114,12 +6239,12 @@
                     at.forEach((l) => gl.disableVertexAttribArray(l));
                 }
                 // rain streaks
-                if (w.rain > 0.02) {
+                if (this.clouds.some((c) => c.type === 'storm' && c.rain > 0.02)) {
                     const LB = this.lBuf, a = LB.a, W = this.wind;
                     let m = 0;
                     this.clouds.forEach((c) => {
-                        if (c.type !== 'storm') return;
-                        const cnt = Math.round(170 * w.rain * c.f * this.q);
+                        if (c.type !== 'storm' || c.rain <= 0.02) return;
+                        const cnt = Math.round(170 * c.rain * c.f * this.q);
                         for (let i = 0; i < cnt && m < 1400; i++) {
                             const hx = this._hash(i, 71), hz = this._hash(i, 73), ph = this._hash(i, 79);
                             const ang = hx * 6.283, rr = Math.sqrt(hz) * c.r * 0.8, x0 = c.x + Math.cos(ang) * rr, z0 = c.z + Math.sin(ang) * rr;
@@ -6164,12 +6289,12 @@
                     add(b.x, this._hAt(b.x, b.z) + 0.02, b.z, [0.8, 0.85, 1], b.i * 0.8, 0.6);
                 });
                 const w = this.wx;
-                if (w && w.rain > 0.1) {
+                if (w) {
                     this.clouds.forEach((c) => {
-                        if (c.type !== 'storm') return;
+                        if (c.type !== 'storm' || c.rain <= 0.1) return;
                         for (let i = 0; i < 22 * this.q; i++) {
                             const a = Math.random() * 6.283, rr = Math.sqrt(Math.random()) * c.r * 0.8, x = c.x + Math.cos(a) * rr, z = c.z + Math.sin(a) * rr;
-                            add(x, this._hAt(x, z) + 0.004, z, [0.8, 0.86, 0.95], 0.35 * w.rain * c.f, 0.018);
+                            add(x, this._hAt(x, z) + 0.004, z, [0.8, 0.86, 0.95], 0.35 * c.rain * c.f, 0.018);
                         }
                     });
                 }
@@ -6235,8 +6360,42 @@
                 const g = this._gust(t[0], t[2], now);
                 this.windEl.style.setProperty('--a', (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI).toFixed(1) + 'deg');
                 this.windEl.classList.toggle('gust', g > 0.4);
-                if (this.windKm) this.windKm.textContent = Math.round(8 + 30 * g + 10 * ((this.ws || 1) - 0.6));
                 const w = this.wx;
+                if (this._realOn && this.realWx) {
+                    // the governorate under the camera: its real sky, temperature, humidity and wind
+                    let gn = '', bd = 1e9;
+                    Object.keys(this.anchors).forEach((k) => { const a = this.anchors[k], d = Math.hypot(a[0] - t[0], a[2] - t[2]); if (d < bd) { bd = d; gn = k; } });
+                    const v = this.realWx.govs[gn];
+                    if (v) {
+                        if (this.windKm) this.windKm.textContent = Math.max(0, Math.round(v.ws * (0.88 + 0.35 * g / Math.max(0.35, this.ws || 1))));
+                        const dn = ['شمالية', 'شمالية شرقية', 'شرقية', 'جنوبية شرقية', 'جنوبية', 'جنوبية غربية', 'غربية', 'شمالية غربية'][Math.round((((v.wd % 360) + 360) % 360) / 45) % 8];
+                        const wl = this.windEl.querySelector('small');
+                        if (wl) wl.textContent = v.ws < 2 ? 'الهوا ساكن' : 'رياح ' + dn;
+                        const lb = wxCodeInfo(v);
+                        const key = gn + lb[1];
+                        if (key !== this._wxLb) {
+                            this._wxLb = key;
+                            this.wxEl.querySelector('.ic').innerHTML = `<i data-lucide="${lb[0]}"></i>`;
+                            this.wxEl.querySelector('b').textContent = lb[1];
+                            try { lucide.createIcons(); } catch (e) {}
+                        }
+                        this.wxEl.querySelector('small').textContent = gn + ' ' + Math.round(v.t) + '° · رطوبة ' + Math.round(v.rh || 0) + '%';
+                    }
+                    if (this.dimEl) {
+                        const night = this.realWx.night;
+                        this.dimEl.style.opacity = Math.min(0.55, (night ? 0.32 : 0) + w.dark * 0.25 + w.dust * 0.35).toFixed(3);
+                        this.dimEl.classList.toggle('dust', w.dust > w.dark && !night);
+                        this.dimEl.classList.toggle('night', !!night);
+                    }
+                    return;
+                }
+                if (this.windKm) this.windKm.textContent = Math.round(8 + 30 * g + 10 * ((this.ws || 1) - 0.6));
+                if (this.wxMode !== 'show' && this.wxEl) {
+                    if (this._wxLb !== 'wait') { this._wxLb = 'wait'; this.wxEl.querySelector('.ic').innerHTML = '<i data-lucide="cloud-sun"></i>'; this.wxEl.querySelector('b').textContent = 'الطقس'; this.wxEl.querySelector('small').textContent = 'ينتظر بيانات الطقس'; try { lucide.createIcons(); } catch (e) {} }
+                    return;
+                }
+                const wl0 = this.windEl.querySelector('small');
+                if (wl0) wl0.textContent = 'رياح شمالية غربية';
                 if (!w || !this.wxEl) return;
                 if (this.dimEl) { this.dimEl.style.opacity = Math.min(0.5, w.dark * 0.3 + w.dust * 0.35).toFixed(3); this.dimEl.classList.toggle('dust', w.dust > w.dark); }
                 const lb = this._wxLabel(w);
@@ -8771,6 +8930,7 @@
                 const { ref, onValue } = window.firebaseDbHelpers;
                 onValue(ref(window.firebaseDb, 'forest/govs'), (snap) => { this._frGovs = snap.val() || {}; this._frSync(); });
                 onValue(ref(window.firebaseDb, 'focusLive'), (snap) => { this._frLiveRaw = snap.val() || {}; this._frSync(); });
+                onValue(ref(window.firebaseDb, 'forestConfig/weather'), (snap) => { const v = snap.val(); this._frWxMode = (v && v.mode) || 'real'; if (this._f3d) this._f3d.wxMode = this._frWxMode; });
                 onValue(ref(window.firebaseDb, 'forestConfig/bots'), (snap) => { this._frBots = snap.val(); this._frSeen = Date.now(); this._frSync(); });
                 // companions finish sessions over time: refresh and announce them while the page is open
                 setInterval(() => {
@@ -8833,15 +8993,30 @@
                         this._f3d.wxEl = document.getElementById('frWx');
                         this._f3d.dimEl = document.getElementById('frDim');
                         this._f3d.flashEl = document.getElementById('frFlash');
+                        this._f3d.wxMode = this._frWxMode || 'real';
+                        if (this._wxData) this._f3d.setRealWeather(this._wxData);
                     } catch (e) {
                         console.warn('3D forest unavailable:', e);
                         this._f3dFail = true;
                     }
                 }
                 if (this._f3d) this._f3d.start(() => this.currentView === 'forestView' && !document.hidden);
+                this._frLoadWx();
                 this._frSync();
                 if (this._forest) this._frRenderRunning(); else if (!this._frResult) this._frRenderSetup();
                 lucide.createIcons();
+            },
+
+            // Real weather for the forest: loaded on opening and every 15 minutes while it is open.
+            _frLoadWx() {
+                if (this._wxLoading || (this._wxData && Date.now() - this._wxData.at < 15 * 60000)) return;
+                this._wxLoading = true;
+                loadIraqWeather().then((d) => {
+                    this._wxData = d;
+                    if (this._f3d) this._f3d.setRealWeather(d);
+                    if (this._frPick) this._frGovCard(this._frPick);
+                }).catch((e) => console.warn('Weather unavailable:', e)).finally(() => { this._wxLoading = false; });
+                if (!this._wxTimer) this._wxTimer = setInterval(() => { if (this.currentView === 'forestView') this._frLoadWx(); }, 60000);
             },
 
             // Keeps the map centred in the space between the top bar and the bottom panel.
@@ -8901,7 +9076,12 @@
                         <div><b>${t}</b><span>شجرة</span></div>
                         <div><b>${m >= 60 ? Math.round(m / 6) / 10 : m}</b><span>${m >= 60 ? 'ساعة دراسة' : 'دقيقة دراسة'}</span></div>
                         <div class="${l ? 'on' : ''}"><b>${l}</b><span>يدرسون هسه</span></div>
-                    </div>`;
+                    </div>${(() => {
+                        const v = this._wxData && this._wxData.govs[g];
+                        if (!v) return '';
+                        const lb = wxCodeInfo(v);
+                        return `<div class="fr-gov-w"><span><i data-lucide="${lb[0]}"></i></span><b>${lb[1]}</b><em>${Math.round(v.t)}°</em><small>رياح ${Math.round(v.ws)} كم/س · رطوبة ${Math.round(v.rh)}%</small></div>`;
+                    })()}`;
                 if (box.classList.contains('hidden')) { box.classList.remove('hidden'); box.classList.remove('in'); void box.offsetWidth; box.classList.add('in'); }
                 lucide.createIcons();
             },
