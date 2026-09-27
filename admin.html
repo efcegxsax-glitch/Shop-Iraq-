@@ -197,6 +197,11 @@
         .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
         .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
         /* confirmation window (instead of the browser's confirm / prompt) */
+        .fb-now { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+        .fb-now div { padding: 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); text-align: center; }
+        .fb-now b { display: block; font-size: 20px; font-weight: 800; color: #4ADE80; }
+        .fb-now span { font-size: 11.5px; color: var(--text2); }
+        .fb-note { margin: 12px 0 0; font-size: 12px; line-height: 1.7; color: var(--text2); }
         .ax-bg { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(2,6,23,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: axFade .2s ease; }
         .ax-bg.out { animation: axFadeOut .18s ease forwards; }
         .ax { width: 100%; max-width: 360px; padding: 24px 20px 18px; border-radius: 22px; text-align: center; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 30px 70px -20px rgba(0,0,0,.7); animation: axPop .32s cubic-bezier(.2,1.35,.4,1); }
@@ -250,6 +255,7 @@
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
             <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
+            <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
@@ -1003,6 +1009,34 @@
                 </div>
             </div>
 
+            <div id="sec-forest" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="trees"></i></div>
+                        <div>
+                            <h3>طلاب مرافقين بغابة العراق</h3>
+                            <p>طلاب وهميين يدرسون ويزرعون بالغابة حتى ما يحس الطالب إنه وحده. يبينون للطلاب مثل الحقيقيين، وما يدخلون بالنقاط ولا الترتيب ولا حرب المحافظات.</p>
+                        </div>
+                    </div>
+                    <label class="ds-chk"><input type="checkbox" id="fb_on"><span>شغّل الطلاب المرافقين</span></label>
+                    <div class="field" style="margin-top:14px;">
+                        <label>عددهم: <b id="fb_nv">20</b></label>
+                        <input type="range" id="fb_n" min="3" max="100" step="1" value="20" style="padding:0;">
+                    </div>
+                    <div class="field">
+                        <label>نشاطهم</label>
+                        <select id="fb_lvl">
+                            <option value="calm">هادئ (يدرسون قليل)</option>
+                            <option value="normal" selected>عادي</option>
+                            <option value="busy">نشيط (يدرسون هواية)</option>
+                        </select>
+                    </div>
+                    <div class="fb-now" id="fb_now"></div>
+                    <button class="btn mt-4" id="fb_save">حفظ</button>
+                    <p class="fb-note">يدرسون أكثر بالعصر والليل حسب توقيت العراق، ويتوزعون على المحافظات حسب عدد سكانها. الأشجار اللي يزرعونها تبقى بالغابة حتى لو طفيتهم.</p>
+                </div>
+            </div>
+
             <div id="sec-dreams" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1121,7 +1155,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'forest', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2292,6 +2326,88 @@
             update(ref(db), { ['polls/' + id]: null, ['pollVotes/' + id]: null }).then(() => toast('انحذف الاستطلاع')).catch(() => toast('فشل الحذف', false));
         };
 
+        // Forest companions: students simulated from forestConfig/bots {on, n, level, since, seed}
+        // to keep the forest lively while real numbers are small. Every device works out the same
+        // schedule from the clock (90-minute slots, more study in the evening, Iraq time), so
+        // nothing is written for them; they only show on the forest page, never in points,
+        // rankings or the governorate war.
+        const FOREST_BOT_GOVS = [['بغداد', 8.8], ['نينوى', 4], ['البصرة', 3.1], ['ذي قار', 2.2], ['بابل', 2.1], ['السليمانية', 2.2], ['أربيل', 1.9], ['الأنبار', 1.9], ['ديالى', 1.7], ['كركوك', 1.7], ['صلاح الدين', 1.6], ['النجف', 1.5], ['واسط', 1.4], ['القادسية', 1.3], ['ميسان', 1.1], ['كربلاء', 1.3], ['دهوك', 1.4], ['المثنى', 0.85], ['حلبجة', 0.3]];
+        const FOREST_BOT_NAMES = ['علي', 'حسين', 'زينب', 'مريم', 'محمد', 'فاطمة', 'أحمد', 'نور', 'عباس', 'رقية', 'حسن', 'سارة', 'مصطفى', 'زهراء', 'يوسف', 'آية', 'عمر', 'هبة', 'كرار', 'دعاء', 'سجاد', 'ملاك', 'مرتضى', 'بنين', 'آرام', 'شيلان', 'عبدالله', 'رسل', 'حيدر', 'تبارك', 'ياسر', 'غدير', 'منتظر', 'إسراء', 'زيد', 'أسماء'];
+        function forestBotSim(cfg, now) {
+            const out = { live: {}, trees: {}, mins: {}, recent: [], liveTotal: 0, treeTotal: 0 };
+            if (!cfg || !cfg.on) return out;
+            const n = Math.max(0, Math.min(100, Math.floor(Number(cfg.n) || 0))), since = Number(cfg.since) || now, seed = Math.floor(Number(cfg.seed) || 1);
+            const lvl = { calm: 0.6, normal: 1, busy: 1.45 }[cfg.level] || 1, SL = 5400000;
+            const hs = (a, b) => {
+                let x = (Math.imul(a ^ 0x9e3779b9, 374761393) + Math.imul(b, 668265263) + Math.imul(seed, 1013904223)) | 0;
+                x = Math.imul(x ^ (x >>> 13), 1274126177);
+                return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+            };
+            const tw = FOREST_BOT_GOVS.reduce((s, g) => s + g[1], 0);
+            const pHour = (t) => { const hr = Math.floor((t / 3600000 + 3) % 24); return hr < 2 ? 0.14 : hr < 7 ? 0.02 : hr < 12 ? 0.16 : hr < 16 ? 0.24 : 0.42; };
+            for (let i = 0; i < n; i++) {
+                // every companion keeps their own rhythm, so the numbers never drop together
+                const off = Math.floor(hs(i, 4) * SL), k0 = Math.floor((since - off) / SL), k1 = Math.floor((now - off) / SL);
+                let pick = hs(i, 1) * tw, g = FOREST_BOT_GOVS[0][0];
+                for (const [name, w] of FOREST_BOT_GOVS) { pick -= w; if (pick <= 0) { g = name; break; } }
+                const who = FOREST_BOT_NAMES[Math.floor(hs(i, 2) * FOREST_BOT_NAMES.length)], energy = 0.6 + 0.8 * hs(i, 3);
+                for (let k = k0; k <= k1; k++) {
+                    const ts = k * SL + off;
+                    if (hs(i * 7919 + 11, k) > pHour(ts + SL / 2) * lvl * energy) continue;
+                    const dur = [25, 45, 60][Math.floor(hs(i + 3, k * 3 + 1) * 3)], start = ts + Math.floor(hs(i + 5, k * 5 + 2) * (SL - dur * 60000)), end = start + dur * 60000;
+                    if (start < since || start > now) continue;
+                    if (now < end) { out.live[g] = (out.live[g] || 0) + 1; out.liveTotal++; }
+                    else {
+                        out.trees[g] = (out.trees[g] || 0) + 1; out.mins[g] = (out.mins[g] || 0) + dur; out.treeTotal++;
+                        if (now - end < 180000) out.recent.push({ g, n: who, m: dur, at: end, id: i + '_' + k });
+                    }
+                }
+            }
+            out.recent.sort((a, b) => a.at - b.at);
+            return out;
+        }
+
+        // ---------- Forest companions ----------
+        let botsCfg = null;
+        function loadForestBots() {
+            const on = el('fb_on'), n = el('fb_n'), lvl = el('fb_lvl');
+            n.addEventListener('input', () => { el('fb_nv').textContent = n.value; });
+            onValue(ref(db, 'forestConfig/bots'), (snap) => {
+                botsCfg = snap.val();
+                if (botsCfg) { on.checked = !!botsCfg.on; n.value = botsCfg.n || 20; el('fb_nv').textContent = n.value; lvl.value = botsCfg.level || 'normal'; }
+                renderBotsNow();
+            });
+            el('fb_save').addEventListener('click', saveForestBots);
+            setInterval(renderBotsNow, 5000);
+        }
+        function renderBotsNow() {
+            const box = el('fb_now');
+            if (!box) return;
+            const sim = forestBotSim(botsCfg, Date.now());
+            box.innerHTML = botsCfg && botsCfg.on
+                ? `<div><b>${sim.liveTotal}</b><span>يدرسون هسه</span></div><div><b>${sim.treeTotal}</b><span>شجرة من آخر حفظ</span></div>`
+                : '<div style="grid-column:1/-1"><span>مطفيين هسه</span></div>';
+        }
+        // Saving keeps what the companions planted so far (added to the real forest), then their
+        // schedule starts again from now with the new settings.
+        async function saveForestBots() {
+            const btn = el('fb_save');
+            btn.disabled = true;
+            try {
+                if (botsCfg && botsCfg.on) {
+                    const sim = forestBotSim(botsCfg, Date.now());
+                    await Promise.all(Object.keys(sim.trees).map((g) => runTransaction(ref(db, 'forest/govs/' + g), (cur) => {
+                        const c = cur || {};
+                        return { t: (Number(c.t) || 0) + sim.trees[g], m: (Number(c.m) || 0) + (sim.mins[g] || 0) };
+                    })));
+                }
+                const next = { on: el('fb_on').checked, n: Number(el('fb_n').value) || 20, level: el('fb_lvl').value, since: Date.now(), seed: (botsCfg && botsCfg.seed) || Math.floor(Math.random() * 1e9) };
+                await set(ref(db, 'forestConfig/bots'), next);
+                toast(next.on ? 'اشتغلوا الطلاب المرافقين' : 'انطفوا الطلاب المرافقين');
+            } catch (e) { console.warn(e); toast('فشل الحفظ', false); }
+            btn.disabled = false;
+        }
+
         // ---------- Dreams moderation ----------
         let dreamsData = {};
         const DREAM_CAT_NAMES = { study: 'دراسة', career: 'مهنة', family: 'عائلة', travel: 'سفر', other: 'حلم آخر' };
@@ -2449,6 +2565,7 @@
         loadAppStats();
         loadPolls();
         loadDreamsAdmin();
+        loadForestBots();
     </script>
 </body>
 </html>
