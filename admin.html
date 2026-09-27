@@ -176,6 +176,19 @@
         .ds-all { font-weight: 700; }
         .ds-chk input[type=checkbox] { width: 18px !important; min-width: 18px; height: 18px; margin: 0; padding: 0; flex-shrink: 0; }
         .ds-chk span { white-space: nowrap; }
+        .as-chart svg { display: block; width: 100%; height: auto; }
+        .as-bars { display: flex; flex-direction: column; gap: 8px; }
+        .as-bar { display: grid; grid-template-columns: 92px 1fr 56px; align-items: center; gap: 8px; font-size: 12.5px; }
+        .as-bar > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+        .as-track { height: 10px; border-radius: 4px; background: rgba(148,163,184,.15); overflow: hidden; }
+        .as-track i { display: block; height: 100%; border-radius: 4px; background: var(--primary); }
+        .as-bar b { text-align: left; font-variant-numeric: tabular-nums; }
+        .as-bar small { display: block; font-size: 10.5px; color: var(--text2); font-weight: 600; }
+        .pl-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .pl-row:last-child { border-bottom: 0; }
+        .pl-row h4 { margin: 0 0 4px; font-size: 14px; }
+        .pl-meta { font-size: 11.5px; color: var(--text2); margin-bottom: 8px; }
+        .pl-tag2 { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
         .ds-help { margin-top: 14px; padding: 12px; border-radius: 14px; border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.08); font-size: 13px; line-height: 1.8; }
         .ds-help b { display: block; margin-bottom: 6px; }
         .ds-help .cp { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
@@ -210,7 +223,7 @@
             <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span></button>
 
             <div class="nav-group-label">الإحصائيات</div>
-            <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="users"></i></span><span>المستخدمون</span></button>
+            <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
 
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
@@ -218,6 +231,7 @@
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
+            <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
             <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إشعارات</span></button>
@@ -382,6 +396,42 @@
 
             <!-- Users / Analytics -->
             <div id="sec-users" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="smartphone"></i></div>
+                        <div>
+                            <h3>استخدام التطبيق</h3>
+                            <p>كل جهاز فتح المنصة، حتى بدون تسجيل دخول. يتحدث مباشرة</p>
+                        </div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-tile"><div class="stat-value" id="as_devices">—</div><div class="stat-label">أجهزة فتحت التطبيق</div></div>
+                        <div class="stat-tile"><div class="stat-value" id="as_today" style="color:#16A34A;">—</div><div class="stat-label">فتحوه اليوم</div></div>
+                        <div class="stat-tile"><div class="stat-value" id="as_installed" style="color:var(--primary);">—</div><div class="stat-label">ثبّتوه كتطبيق</div></div>
+                        <div class="stat-tile"><div class="stat-value" id="as_push" style="color:#D97706;">—</div><div class="stat-label">مفعّلين الإشعارات</div></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="calendar-days"></i></div>
+                        <div><h3>فتح التطبيق آخر 14 يوم</h3><p>عدد الأجهزة اللي فتحته كل يوم</p></div>
+                    </div>
+                    <div id="asChart"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="map"></i></div>
+                        <div><h3>المحافظات</h3><p>الأجهزة النشطة آخر 7 أيام، والمسجلين بكل محافظة</p></div>
+                    </div>
+                    <div id="asGovs"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="newspaper"></i></div>
+                        <div><h3>أكثر الأخبار قراءة</h3><p>كل جهاز ينحسب مرة وحدة لكل خبر</p></div>
+                    </div>
+                    <div id="asNews"></div>
+                </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="users"></i></div>
@@ -892,6 +942,48 @@
             </div>
 
             <!-- Ban Student -->
+            <div id="sec-polls" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="vote"></i></div>
+                        <div>
+                            <h3>استطلاع جديد</h3>
+                            <p>يطلع للطلاب بالرئيسية لحد ما يصوتون، والنتيجة تتحدث مباشرة</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label>السؤال *</label>
+                        <input type="text" id="pl_q" maxlength="200" placeholder="مثال: شنو أصعب مادة عليك هالسنة؟">
+                    </div>
+                    <div class="field">
+                        <label>الخيارات * (من 2 إلى 5)</label>
+                        <div id="pl_opts" style="display:flex;flex-direction:column;gap:8px;">
+                            <input type="text" class="pl-opt-in" maxlength="80" placeholder="الخيار 1">
+                            <input type="text" class="pl-opt-in" maxlength="80" placeholder="الخيار 2">
+                        </div>
+                        <button type="button" class="btn-sm" id="pl_add" style="margin-top:8px;">إضافة خيار</button>
+                    </div>
+                    <div class="field">
+                        <label>مدة الاستطلاع</label>
+                        <select id="pl_dur">
+                            <option value="0">بدون نهاية (تنهيه بيدك)</option>
+                            <option value="1">يوم واحد</option>
+                            <option value="3">3 أيام</option>
+                            <option value="7" selected>أسبوع</option>
+                        </select>
+                    </div>
+                    <label class="ds-chk" style="margin-top:4px;"><input type="checkbox" id="pl_notify" checked><span>أرسل إشعار للطلاب</span></label>
+                    <button class="btn mt-4" id="pl_publish">نشر الاستطلاع</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="chart-bar"></i></div>
+                        <div><h3>الاستطلاعات والنتائج</h3></div>
+                    </div>
+                    <div id="plList"></div>
+                </div>
+            </div>
+
             <div id="sec-auction" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -996,7 +1088,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -1765,6 +1857,7 @@
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
+                if (typeof renderAppStats === 'function') renderAppStats();
             });
             onValue(ref(db, 'presence'), (snap) => {
                 presenceData = snap.exists() ? snap.val() : {};
@@ -1989,6 +2082,148 @@
             remove(ref(db, 'dayStatus/' + d + '/' + k)).then(() => toast('انحذف الإعلان')).catch(() => toast('فشل الحذف', false));
         };
 
+        // ---------- App statistics ----------
+        // devices/{id} (one record per phone/browser), stats/daily/{date}/opens and newsViews/{newsId}
+        // are written by the student app; usersData / presence come from the existing users stats.
+        const GOV_NAMES = Object.fromEntries(Object.entries(GOV_CODES).map(([n, c]) => [c, n]));
+        let devData = {}, dailyData = {}, newsViewsData = {}, newsTitles = {};
+        const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        function loadAppStats() {
+            onValue(ref(db, 'devices'), (s) => { devData = s.val() || {}; renderAppStats(); });
+            onValue(ref(db, 'stats/daily'), (s) => { dailyData = s.val() || {}; renderAppStats(); });
+            onValue(ref(db, 'newsViews'), (s) => { newsViewsData = s.val() || {}; renderAppStats(); });
+            onValue(ref(db, 'news'), (s) => {
+                const v = s.val() || {};
+                newsTitles = {};
+                Object.keys(v).forEach((k) => { if (v[k]) { newsTitles[k] = v[k].title || ''; if (v[k].id) newsTitles[String(v[k].id)] = v[k].title || ''; } });
+                renderAppStats();
+            });
+        }
+
+        function renderAppStats() {
+            const devs = Object.values(devData).filter((d) => d && typeof d === 'object');
+            const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+            const today = t0.getTime(), week = today - 6 * 86400000;
+            const set = (id, v) => { const e = el(id); if (e) e.textContent = Number(v).toLocaleString('en-US'); };
+            set('as_devices', devs.length);
+            set('as_today', devs.filter((d) => Number(d.last) >= today).length);
+            set('as_installed', devs.filter((d) => d.installed).length);
+            set('as_push', devs.filter((d) => d.push === 'granted').length);
+
+            // Opens per day, last 14 days (single series: one colour, value on today and the highest day)
+            const days = [];
+            for (let i = 13; i >= 0; i--) { const d = new Date(today - i * 86400000); days.push({ d, v: Number((dailyData[dayKey(d)] || {}).opens) || 0 }); }
+            const max = Math.max(1, ...days.map((x) => x.v));
+            const W = 560, H = 170, bw = W / days.length;
+            const chart = el('asChart');
+            if (chart) {
+                const peak = days.reduce((a, b, i) => (b.v > days[a].v ? i : a), 0);
+                chart.className = 'as-chart';
+                chart.innerHTML = `<svg viewBox="0 0 ${W} ${H + 24}" role="img" aria-label="فتح التطبيق آخر 14 يوم">
+                    <line x1="0" x2="${W}" y1="${H}" y2="${H}" stroke="rgba(148,163,184,.35)"/>
+                    ${days.map((x, i) => {
+                        const h = Math.round((x.v / max) * (H - 26)), xx = W - (i + 1) * bw + bw * 0.18, w = bw * 0.64;
+                        const label = i === days.length - 1 || i === peak;
+                        return `<g><title>${x.d.getDate()}/${x.d.getMonth() + 1}: ${x.v} جهاز</title>
+                            <rect x="${xx.toFixed(1)}" y="${H - h}" width="${w.toFixed(1)}" height="${Math.max(h, x.v ? 3 : 0)}" rx="4" fill="${i === days.length - 1 ? '#16A34A' : 'var(--primary)'}"/>
+                            ${label && x.v ? `<text x="${(xx + w / 2).toFixed(1)}" y="${H - h - 6}" text-anchor="middle" font-size="12" font-weight="800" fill="currentColor">${x.v}</text>` : ''}
+                            <text x="${(xx + w / 2).toFixed(1)}" y="${H + 17}" text-anchor="middle" font-size="10.5" fill="#94A3B8">${i === days.length - 1 ? 'اليوم' : x.d.getDate()}</text></g>`;
+                    }).join('')}
+                </svg>`;
+            }
+
+            // Governorates: active devices this week (bar) + registered users (text)
+            const reg = {};
+            Object.values(usersData || {}).forEach((u) => { const g = String((u && u.governorate) || '').trim(); if (g) reg[g] = (reg[g] || 0) + 1; });
+            const act = {};
+            devs.filter((d) => Number(d.last) >= week && d.gov).forEach((d) => { const n = GOV_NAMES[d.gov]; if (n) act[n] = (act[n] || 0) + 1; });
+            const rows = Object.keys(GOV_CODES).map((n) => ({ n, a: act[n] || 0, r: reg[n] || 0 })).filter((x) => x.a || x.r).sort((x, y) => y.a - x.a || y.r - x.r);
+            const amax = Math.max(1, ...rows.map((r) => r.a));
+            const gbox = el('asGovs');
+            if (gbox) gbox.innerHTML = rows.length ? `<div class="as-bars">${rows.map((r) => `
+                <div class="as-bar"><span>${escapeHtml(r.n)}</span><span class="as-track"><i style="width:${(r.a / amax) * 100}%"></i></span><b>${r.a}<small>مسجل ${r.r}</small></b></div>`).join('')}</div>`
+                : '<p class="list-empty">ماكو بيانات بعد. تبدي تتجمع أول ما الطلاب يفتحون النسخة الجديدة</p>';
+
+            // Most read news
+            const top = Object.keys(newsViewsData).map((k) => ({ k, v: Number(newsViewsData[k]) || 0 })).filter((x) => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 7);
+            const nmax = Math.max(1, ...top.map((x) => x.v));
+            const nbox = el('asNews');
+            if (nbox) nbox.innerHTML = top.length ? `<div class="as-bars">${top.map((x) => `
+                <div class="as-bar" style="grid-template-columns: 1fr 90px 44px;"><span title="${escapeHtml(newsTitles[x.k] || '')}">${escapeHtml(newsTitles[x.k] || 'خبر محذوف')}</span><span class="as-track"><i style="width:${(x.v / nmax) * 100}%"></i></span><b>${x.v}</b></div>`).join('')}</div>`
+                : '<p class="list-empty">ماكو قراءات مسجلة بعد</p>';
+        }
+
+        // ---------- Polls ----------
+        let pollsData = {};
+        function loadPolls() {
+            el('pl_add').addEventListener('click', () => {
+                const box = el('pl_opts');
+                if (box.children.length >= 5) { toast('الحد الأعلى 5 خيارات', false); return; }
+                const inp = document.createElement('input');
+                inp.type = 'text'; inp.className = 'pl-opt-in'; inp.maxLength = 80; inp.placeholder = 'الخيار ' + (box.children.length + 1);
+                box.appendChild(inp);
+            });
+            el('pl_publish').addEventListener('click', publishPoll);
+            onValue(ref(db, 'polls'), (s) => { pollsData = s.val() || {}; renderPollsAdmin(); });
+        }
+
+        async function publishPoll() {
+            const q = val('pl_q');
+            const opts = Array.from(document.querySelectorAll('.pl-opt-in')).map((i) => i.value.trim()).filter(Boolean);
+            if (!q) { toast('اكتب السؤال', false); return; }
+            if (opts.length < 2) { toast('لازم خيارين على الأقل', false); return; }
+            if (new Set(opts).size !== opts.length) { toast('أكو خيارين متشابهين', false); return; }
+            const days = Number(val('pl_dur')) || 0;
+            const id = 'p' + Date.now();
+            const btn = el('pl_publish');
+            btn.disabled = true;
+            try {
+                await set(ref(db, 'polls/' + id), { id, q, opts, counts: {}, createdAt: Date.now(), endsAt: days ? Date.now() + days * 86400000 : 0, closed: false });
+                if (el('pl_notify').checked) {
+                    const nid = Date.now();
+                    await set(ref(db, 'notifications/' + nid), { id: nid, title: 'استطلاع جديد: ' + q, description: 'شاركنا رأيك من الصفحة الرئيسية', time: 'الآن', read: false, type: 'announcement', createdAt: serverTimestamp() });
+                }
+                toast('انتشر الاستطلاع');
+                el('pl_q').value = '';
+                el('pl_opts').innerHTML = '<input type="text" class="pl-opt-in" maxlength="80" placeholder="الخيار 1"><input type="text" class="pl-opt-in" maxlength="80" placeholder="الخيار 2">';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل النشر', false);
+            }
+            btn.disabled = false;
+        }
+
+        function renderPollsAdmin() {
+            const box = el('plList');
+            if (!box) return;
+            const list = Object.values(pollsData).filter((p) => p && p.id && Array.isArray(p.opts)).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            if (!list.length) { box.innerHTML = '<p class="list-empty">ماكو استطلاعات بعد</p>'; return; }
+            box.innerHTML = list.map((p) => {
+                const counts = p.counts || {};
+                const total = p.opts.reduce((s, _, i) => s + (Number(counts[i]) || 0), 0);
+                const open = !p.closed && (!p.endsAt || p.endsAt > Date.now());
+                const max = Math.max(1, ...p.opts.map((_, i) => Number(counts[i]) || 0));
+                return `<div class="pl-row">
+                    <h4>${escapeHtml(p.q)}</h4>
+                    <div class="pl-meta"><span class="pl-tag2" style="background:${open ? '#16A34A' : '#64748B'}">${open ? 'مفتوح' : 'منتهي'}</span> · ${total} صوت${p.endsAt ? ' · ينتهي ' + new Date(p.endsAt).toLocaleDateString('en-GB') : ''}</div>
+                    <div class="as-bars">${p.opts.map((o, i) => { const c = Number(counts[i]) || 0; const pct = total ? Math.round((c / total) * 100) : 0;
+                        return `<div class="as-bar" style="grid-template-columns: 110px 1fr 70px;"><span>${escapeHtml(o)}</span><span class="as-track"><i style="width:${(c / max) * 100}%"></i></span><b>${pct}%<small>${c} صوت</small></b></div>`; }).join('')}</div>
+                    <div style="display:flex;gap:8px;margin-top:10px;">
+                        ${open ? `<button class="btn-sm" onclick="closePoll(${jsArg(p.id)})">إنهاء الآن</button>` : ''}
+                        <button class="del" onclick="deletePoll(${jsArg(p.id)})">حذف</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        window.closePoll = (id) => {
+            update(ref(db, 'polls/' + id), { closed: true }).then(() => toast('انتهى الاستطلاع')).catch(() => toast('فشل', false));
+        };
+        window.deletePoll = (id) => {
+            if (!confirm('تحذف الاستطلاع ونتائجه؟')) return;
+            update(ref(db), { ['polls/' + id]: null, ['pollVotes/' + id]: null }).then(() => toast('انحذف الاستطلاع')).catch(() => toast('فشل الحذف', false));
+        };
+
         // ---------- Points auction ----------
         // auction/current is what students see; auctionBids/{id}/top is the highest bid (its
         // points are already held from that student). Ending keeps the winner in auctionHistory;
@@ -2118,6 +2353,8 @@
         loadLists();
         loadAuction();
         loadDayStatus();
+        loadAppStats();
+        loadPolls();
     </script>
 </body>
 </html>

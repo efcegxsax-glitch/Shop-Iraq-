@@ -13,8 +13,9 @@
     <meta name="theme-color" content="#F1F5F3" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)">
     <meta name="format-detection" content="telephone=no">
-    <link rel="apple-touch-icon" href="https://i.postimg.cc/kGn7bhGL/images-(14).jpg">
-    <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%20%22%D9%85%D9%86%D8%B5%D8%A9%20%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22short_name%22%3A%20%22%D8%A7%D9%84%D8%B7%D8%A7%D9%84%D8%A8%20%D8%A7%D9%84%D8%B9%D8%B1%D8%A7%D9%82%D9%8A%22%2C%20%22start_url%22%3A%20%22.%22%2C%20%22display%22%3A%20%22standalone%22%2C%20%22orientation%22%3A%20%22portrait%22%2C%20%22background_color%22%3A%20%22%23F8FAFC%22%2C%20%22theme_color%22%3A%20%22%232563EB%22%2C%20%22lang%22%3A%20%22ar%22%2C%20%22dir%22%3A%20%22rtl%22%2C%20%22icons%22%3A%20%5B%7B%22src%22%3A%20%22https%3A//i.postimg.cc/kGn7bhGL/images-%2814%29.jpg%22%2C%20%22sizes%22%3A%20%22512x512%22%2C%20%22type%22%3A%20%22image/jpeg%22%2C%20%22purpose%22%3A%20%22any%22%7D%5D%7D">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="manifest" href="manifest.webmanifest">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1460,6 +1461,32 @@
         .ds-push { display: flex; align-items: center; gap: 8px; width: 100%; margin-top: 8px; padding: 8px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 800; text-align: right; cursor: pointer; }
         .ds-push.on { cursor: default; font-weight: 700; }
         .ds-push svg { width: 17px; height: 17px; flex-shrink: 0; }
+        .inb, .inb * { box-sizing: border-box; }
+        .inb { position: fixed; left: 12px; right: 12px; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); box-shadow: 0 16px 36px -14px rgba(0,0,0,.35); font-size: 11.5px; color: var(--text2); animation: cardIn .35s var(--ease-out) both; }
+        .inb img { width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0; }
+        .inb span { flex: 1; min-width: 0; line-height: 1.5; }
+        .inb b { display: block; font-size: 13px; font-weight: 900; color: var(--text); }
+        .inb-go { flex-shrink: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 11px; font: inherit; font-size: 12.5px; font-weight: 800; color: #fff; background: rgb(var(--p)); cursor: pointer; }
+        .inb-x { flex-shrink: 0; width: 30px; height: 30px; border: 0; border-radius: 10px; display: grid; place-items: center; background: var(--input-bg); color: var(--text2); cursor: pointer; }
+        /* ===== Polls (استطلاع رأي) ===== */
+        .pl, .pl * { box-sizing: border-box; }
+        .pl { margin-bottom: 10px; padding: 12px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); }
+        .pl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .pl-head small { font-size: 11px; font-weight: 700; color: var(--text2); }
+        .pl-tag { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #7C3AED; background: rgba(124,58,237,.1); }
+        .pl-tag.off { color: var(--text2); background: var(--input-bg); }
+        .pl-tag svg { width: 13px; height: 13px; }
+        .pl-q { display: block; margin: 8px 2px 10px; font-size: 14.5px; font-weight: 900; line-height: 1.6; color: var(--text); }
+        .pl-body { display: flex; flex-direction: column; gap: 6px; }
+        .pl-opt { width: 100%; min-height: 40px; padding: 8px 12px; border-radius: 12px; border: 1px solid rgba(124,58,237,.3); background: rgba(124,58,237,.05); color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-align: right; cursor: pointer; }
+        .pl-res { position: relative; display: flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 12px; border-radius: 12px; background: var(--input-bg); overflow: hidden; font-size: 13px; font-weight: 700; color: var(--text); }
+        .pl-res i { position: absolute; inset: 0 0 0 auto; width: var(--w); background: rgba(124,58,237,.16); transform-origin: right; animation: hpGrow .8s var(--ease-out) both; }
+        .pl-res.top i { background: rgba(124,58,237,.28); }
+        .pl-res span, .pl-res b { position: relative; }
+        .pl-res span { flex: 1; min-width: 0; display: inline-flex; align-items: center; gap: 5px; }
+        .pl-res.me span { color: #6D28D9; }
+        .pl-res b { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+        .pl-all { display: block; margin: 8px auto 0; border: 0; background: none; font: inherit; font-size: 11.5px; font-weight: 700; color: var(--text2); cursor: pointer; }
         #bottomNav .nav-dot { position: absolute; top: 1px; right: 5px; width: 9px; height: 9px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #EF4444; animation: hpBlink 1.1s ease-in-out infinite; }
         #bottomNav .nav-dot.amber { background: #F59E0B; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #F59E0B; }
 
@@ -1971,6 +1998,10 @@
                 <div class="hl-viewport tip-card" id="dailyTipViewport" role="region" aria-label="نصيحة اليوم">
                     <div class="hl-track tip-track" id="dailyTipList"></div>
                 </div>
+            </section>
+
+            <section class="px-4 py-2 hidden" id="pollSection">
+                <div id="pollCard"></div>
             </section>
 
             <div id="contentArea" class="px-4 py-2">
@@ -2655,6 +2686,17 @@
                     <div class="flex-1">
                         <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز — لا تلمس الهاتف</div>
                         <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بدون ما تطلع من التطبيق واكسب نقاط، وإذا طلعت تنكسر الجلسة</div>
+                    </div>
+                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
+                </button>
+
+                <button onclick="app.goToPolls()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #7C3AED 12%, transparent);">
+                        <i data-lucide="vote" class="w-5 h-5" style="color: #7C3AED;"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="font-bold theme-transition" style="color: var(--text);">الاستطلاعات</div>
+                        <div class="text-xs theme-transition" style="color: var(--text2);">صوّت على أسئلة الإدارة وشوف النتيجة مباشرة</div>
                     </div>
                     <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
                 </button>
@@ -3449,6 +3491,19 @@
                 </div>
             </div>
             <div id="focusContent" class="fc"></div>
+        </div>
+
+        <div id="pollsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="font-bold theme-transition" style="color: var(--text);">الاستطلاعات</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">صوّت وشوف رأي طلاب العراق</div>
+                </div>
+            </div>
+            <div id="pollsContent" class="lv"></div>
         </div>
 
         <!-- ===== LIVE PAGES: governorate war, study twin, wasted time, points auction ===== -->
@@ -4602,6 +4657,10 @@
                 this.listenForExamSchedule();
                 this.listenForHolidays();
                 this.listenForDayStatus();
+                this.initWebPush();
+                this.listenForPolls();
+                setTimeout(() => this.pingDevice(), 3000);
+                this.initInstallBar();
                 setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
                 this.listenForForumThreads();
                 this.listenForLeaderboard();
@@ -5589,6 +5648,7 @@
                 const news = newsData.find(n => n.id === id);
                 if (!news) return;
                 this.currentNewsId = id;
+                this._countNewsView(id);
                 news.isRead = true;
                 this.saveReadState(id);
                 this.renderNews();
@@ -6770,6 +6830,272 @@
                 lucide.createIcons();
             },
 
+            // ===== Usage signal for the admin statistics =====
+            // Once per app start each device updates devices/{deviceId} (governorate code, installed,
+            // notifications permission, last open) and, once a day, adds 1 to stats/daily/{date}/opens.
+            // No name, phone or content is sent.
+            _deviceId() {
+                let d = '';
+                try { d = localStorage.getItem('isp_device_id') || ''; } catch (e) {}
+                if (!/^[a-z0-9]{8,32}$/.test(d)) {
+                    d = Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+                    try { localStorage.setItem('isp_device_id', d); } catch (e) {}
+                }
+                return d;
+            },
+
+            pingDevice() {
+                if (!window.firebaseDb) return;
+                const { ref, update, runTransaction } = window.firebaseDbHelpers;
+                const id = this._deviceId(), today = this.localDateStr();
+                const gov = this._myGov() || this._dsGov();
+                const standalone = !!((window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone);
+                const w = this._wtn();
+                update(ref(window.firebaseDb, 'devices/' + id), {
+                    gov: this.GOV_CODES[gov] || '',
+                    last: Date.now(),
+                    installed: standalone || !!w,
+                    push: 'Notification' in window ? Notification.permission : 'na',
+                    app: w ? w.os : (standalone ? 'pwa' : 'web'),
+                    member: this.isLoggedIn ? 1 : 0
+                }).catch(() => {});
+                let last = '';
+                try { last = localStorage.getItem('isp_ping_day') || ''; } catch (e) {}
+                if (last !== today) {
+                    try { localStorage.setItem('isp_ping_day', today); } catch (e) {}
+                    runTransaction(ref(window.firebaseDb, 'stats/daily/' + today + '/opens'), (c) => numOr0(c) + 1).catch(() => {});
+                }
+            },
+
+            // One view per device per news item, for "most read" in the admin panel.
+            _countNewsView(id) {
+                if (!window.firebaseDb) return;
+                const key = String(id).replace(/[.#$\[\]\/]/g, '_');
+                let seen = [];
+                try { seen = JSON.parse(localStorage.getItem('isp_news_seen') || '[]'); } catch (e) {}
+                if (!Array.isArray(seen)) seen = [];
+                if (seen.indexOf(key) !== -1) return;
+                seen.push(key);
+                try { localStorage.setItem('isp_news_seen', JSON.stringify(seen.slice(-300))); } catch (e) {}
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                runTransaction(ref(window.firebaseDb, 'newsViews/' + key), (c) => numOr0(c) + 1).catch(() => {});
+            },
+
+            // ===== Polls (استطلاع رأي) =====
+            // polls/{id} = { q, opts[], counts{i}, createdAt, endsAt (0 = open), closed } is written by the
+            // admin; one vote per student (uid, or the device id when not signed in) in pollVotes/{id}/{key}.
+            listenForPolls() {
+                if (!window.firebaseDb || this._pollsListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._pollsListener = onValue(ref(window.firebaseDb, 'polls'), (snap) => {
+                    const v = snap.val() || {};
+                    this._polls = Object.keys(v).map((k) => v[k]).filter((p) => p && typeof p.q === 'string' && Array.isArray(p.opts) && p.opts.length >= 2 && /^[A-Za-z0-9_-]{1,40}$/.test(String(p.id || '')))
+                        .map((p) => ({ id: String(p.id), q: p.q.slice(0, 200), opts: p.opts.slice(0, 5).map((o) => String(o).slice(0, 80)), counts: p.counts || {}, createdAt: numOr0(p.createdAt), endsAt: numOr0(p.endsAt), closed: !!p.closed }))
+                        .sort((a, b) => b.createdAt - a.createdAt);
+                    this.renderPollCard();
+                    if (this.currentView === 'pollsView') this.renderPolls();
+                });
+            },
+
+            _pollOpen(p) { return !p.closed && (!p.endsAt || p.endsAt > Date.now()); },
+            _pollVotes() { try { const v = JSON.parse(localStorage.getItem('isp_poll_votes') || '{}'); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } },
+            _pollTotal(p) { return p.opts.reduce((s, _, i) => s + numOr0(p.counts[i]), 0); },
+
+            _pollResultsHtml(p, mine) {
+                const total = this._pollTotal(p);
+                const max = Math.max(0, ...p.opts.map((_, i) => numOr0(p.counts[i])));
+                return p.opts.map((o, i) => {
+                    const c = numOr0(p.counts[i]), pct = total ? Math.round((c / total) * 100) : 0;
+                    return `<div class="pl-res${i === mine ? ' me' : ''}${c === max && c > 0 ? ' top' : ''}"><i style="--w:${pct}%"></i><span>${i === mine ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>' : ''}${escapeHtml(o)}</span><b>${pct}%</b></div>`;
+                }).join('');
+            },
+
+            _pollHtml(p, compact) {
+                const votes = this._pollVotes();
+                const mine = votes[p.id];
+                const open = this._pollOpen(p);
+                const showResults = mine !== undefined || !open;
+                const total = this._pollTotal(p);
+                const left = open && p.endsAt ? Math.max(0, Math.ceil((p.endsAt - Date.now()) / 3600000)) : 0;
+                const status = !open ? 'انتهى' : left ? (left >= 24 ? 'باقي ' + Math.ceil(left / 24) + ' يوم' : 'باقي ' + left + ' ساعة') : 'مفتوح';
+                return `
+                    <div class="pl${compact ? ' compact' : ''}">
+                        <div class="pl-head"><span class="pl-tag${open ? '' : ' off'}"><i data-lucide="vote"></i>استطلاع · ${status}</span><small>${total} صوت</small></div>
+                        <b class="pl-q">${escapeHtml(p.q)}</b>
+                        <div class="pl-body">${showResults ? this._pollResultsHtml(p, mine) : p.opts.map((o, i) => `<button class="pl-opt btn-press" onclick="app.votePoll(${jsArg(p.id)}, ${i})">${escapeHtml(o)}</button>`).join('')}</div>
+                        ${compact ? `<button class="pl-all" onclick="app.goToPolls()">${showResults ? 'النتيجة تتحدث مباشرة · كل الاستطلاعات' : 'كل الاستطلاعات'}</button>` : ''}
+                    </div>`;
+            },
+
+            // Home: the newest open poll the student hasn't answered (or just answered, to show the result).
+            renderPollCard() {
+                const sec = document.getElementById('pollSection'), box = document.getElementById('pollCard');
+                if (!sec || !box) return;
+                const votes = this._pollVotes();
+                const p = (this._polls || []).find((x) => this._pollOpen(x) && (votes[x.id] === undefined || x.id === this._pollJust));
+                sec.classList.toggle('hidden', !p);
+                box.innerHTML = p ? this._pollHtml(p, true) : '';
+                if (p) lucide.createIcons();
+            },
+
+            goToPolls() {
+                this.renderPolls();
+                this.switchView('pollsView');
+            },
+
+            renderPolls() {
+                const box = document.getElementById('pollsContent');
+                if (!box) return;
+                const list = this._polls || [];
+                const open = list.filter((p) => this._pollOpen(p)), done = list.filter((p) => !this._pollOpen(p));
+                box.innerHTML = list.length ? `
+                    ${open.length ? `<div class="lv-sec">مفتوحة<small>${open.length}</small></div>${open.map((p) => this._pollHtml(p, false)).join('')}` : ''}
+                    ${done.length ? `<div class="lv-sec">منتهية<small>${done.length}</small></div>${done.map((p) => this._pollHtml(p, false)).join('')}` : ''}`
+                    : '<div class="lv-empty"><i data-lucide="vote"></i><b>ماكو استطلاعات بعد</b>أول ما تنشر الإدارة استطلاع يطلعلك هنا وبالرئيسية</div>';
+                lucide.createIcons();
+            },
+
+            votePoll(pid, i) {
+                const p = (this._polls || []).find((x) => x.id === pid);
+                if (!p || !this._pollOpen(p) || !(i >= 0 && i < p.opts.length) || !window.firebaseDb) return;
+                const votes = this._pollVotes();
+                if (votes[pid] !== undefined) return;
+                const voter = this.isLoggedIn && this.authUid ? String(this.authUid) : 'd_' + this._deviceId();
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                const save = (idx) => {
+                    votes[pid] = idx;
+                    try { localStorage.setItem('isp_poll_votes', JSON.stringify(votes)); } catch (e) {}
+                    this._pollJust = pid;
+                    this.renderPollCard();
+                    if (this.currentView === 'pollsView') this.renderPolls();
+                };
+                runTransaction(ref(window.firebaseDb, 'pollVotes/' + pid + '/' + voter), (cur) => (cur === null || cur === undefined ? i : undefined))
+                    .then((res) => {
+                        if (!res.committed) { const prev = res.snapshot.val(); save(typeof prev === 'number' ? prev : i); this.showToast('صوّتت قبل بهذا الاستطلاع'); return; }
+                        save(i);
+                        return runTransaction(ref(window.firebaseDb, 'polls/' + pid + '/counts/' + i), (c) => numOr0(c) + 1);
+                    }).catch(() => this.showToast('تعذر التصويت، حاول مرة ثانية'));
+            },
+
+            // ===== Web push (OneSignal) and "install the app" (PWA) =====
+            // On the https site (and the app installed from it) notifications come from OneSignal's
+            // free web push. The student is tagged like in the native app (gov=<code>, gov_name),
+            // so one governorate can be targeted from the OneSignal dashboard.
+            ONESIGNAL_APP_ID: '6ab91884-6fd7-43a1-a318-a4975260944e',
+
+            _webPushOk() {
+                return (location.protocol === 'https:' || location.hostname === 'localhost') && 'Notification' in window && 'serviceWorker' in navigator && !this._wtn();
+            },
+
+            initWebPush() {
+                if (this._osInit || !this._webPushOk()) return;
+                this._osInit = true;
+                const base = location.pathname.replace(/[^/]*$/, ''); // e.g. /Shop-Iraq-/
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                window.OneSignalDeferred.push(async (OneSignal) => {
+                    try {
+                        await OneSignal.init({
+                            appId: this.ONESIGNAL_APP_ID,
+                            serviceWorkerPath: base.replace(/^\//, '') + 'OneSignalSDKWorker.js',
+                            serviceWorkerParam: { scope: base },
+                            notifyButton: { enable: false },
+                            welcomeNotification: { title: 'منصة الطالب العراقي', message: 'تفعّلت الإشعارات، يوصلك خبر العطلة أول بأول' },
+                            promptOptions: { slidedown: { prompts: [{ type: 'push', autoPrompt: false, text: { actionMessage: 'تريد يوصلك خبر العطلة والأخبار المهمة حتى لو التطبيق مسدود؟', acceptButton: 'نعم، فعّلها', cancelButton: 'لاحقاً' } }] } }
+                        });
+                        this._os = OneSignal;
+                        OneSignal.Notifications.addEventListener('permissionChange', () => {
+                            this.syncWebPush();
+                            if (this.currentView === 'holidaysView') this.renderDayStatus();
+                        });
+                        this.syncWebPush();
+                        if (this.currentView === 'holidaysView') this.renderDayStatus();
+                        this._maybePromptPush();
+                    } catch (e) {
+                        console.warn('OneSignal init failed:', e);
+                    }
+                });
+                const sc = document.createElement('script');
+                sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
+                sc.defer = true;
+                document.head.appendChild(sc);
+            },
+
+            syncWebPush() {
+                const OS = this._os;
+                if (!OS) return;
+                const gov = this._myGov() || this._dsGov();
+                try {
+                    if (this.isLoggedIn && this.authUid) Promise.resolve(OS.login(String(this.authUid))).catch(() => {});
+                    OS.User.addTags({ gov: this.GOV_CODES[gov] || '', gov_name: gov || '', member: this.isLoggedIn ? '1' : '0' });
+                } catch (e) {
+                    console.warn('OneSignal tags failed:', e);
+                }
+            },
+
+            // Asks once, a little after the visit starts, and not again for a week if dismissed.
+            _maybePromptPush() {
+                if (!this._os || Notification.permission !== 'default') return;
+                let asked = 0;
+                try { asked = Number(localStorage.getItem('isp_push_asked')) || 0; } catch (e) {}
+                if (Date.now() - asked < 7 * 86400000) return;
+                setTimeout(() => {
+                    if (!this._os || Notification.permission !== 'default') return;
+                    try { localStorage.setItem('isp_push_asked', String(Date.now())); } catch (e) {}
+                    Promise.resolve(this._os.Slidedown.promptPush()).catch(() => {});
+                }, 25000);
+            },
+
+            enableWebPush() {
+                if (!this._os) { this.showToast('الإشعارات تشتغل من رابط الموقع أو من التطبيق المثبت'); return; }
+                Promise.resolve(this._os.Notifications.requestPermission()).then(() => {
+                    this.syncWebPush();
+                    this.renderDayStatus();
+                }).catch(() => {});
+            },
+
+            // "Install" bar: Android / Chrome show the real install dialog; iPhone Safari has no such
+            // dialog, so it gets a one-line hint (Share, then Add to Home Screen).
+            initInstallBar() {
+                const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone;
+                if (standalone || this._wtn()) return;
+                let later = 0;
+                try { later = Number(localStorage.getItem('isp_install_later')) || 0; } catch (e) {}
+                if (Date.now() - later < 14 * 86400000) return;
+                window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this._installEvt = e; this.showInstallBar(false); });
+                window.addEventListener('appinstalled', () => { this.hideInstallBar(); this.showToast('تثبّت التطبيق على شاشتك'); });
+                const ua = navigator.userAgent;
+                if (/iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua) && location.protocol === 'https:') {
+                    setTimeout(() => this.showInstallBar(true), 8000);
+                }
+            },
+
+            showInstallBar(ios) {
+                if (document.getElementById('installBar')) return;
+                const x = '<button class="inb-x" onclick="app.installLater()" aria-label="إغلاق"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+                const bar = document.createElement('div');
+                bar.id = 'installBar';
+                bar.className = 'inb';
+                bar.innerHTML = ios
+                    ? `<img src="icons/icon-192.png" alt=""><span><b>ثبّت منصة الطالب</b>اضغط زر المشاركة، بعدين "إضافة إلى الشاشة الرئيسية"</span>${x}`
+                    : `<img src="icons/icon-192.png" alt=""><span><b>ثبّت منصة الطالب</b>تنفتح أسرع ويوصلك إشعار العطل</span><button class="inb-go btn-press" onclick="app.installApp()">تثبيت</button>${x}`;
+                document.body.appendChild(bar);
+            },
+
+            hideInstallBar() { document.getElementById('installBar')?.remove(); },
+
+            installApp() {
+                const e = this._installEvt;
+                if (!e) return;
+                this._installEvt = null;
+                e.prompt();
+                Promise.resolve(e.userChoice).then(() => this.hideInstallBar()).catch(() => this.hideInstallBar());
+            },
+
+            installLater() {
+                try { localStorage.setItem('isp_install_later', String(Date.now())); } catch (e) {}
+                this.hideInstallBar();
+            },
+
             // ===== Push in the native app (WebToNative) =====
             // Inside the Android / iPhone app built with WebToNative, web push doesn't exist; the
             // app's own OneSignal or Firebase does it. This tells whichever one is enabled who the
@@ -6788,6 +7114,8 @@
             },
 
             syncNativePush() {
+                this.syncWebPush();
+                this.pingDevice();
                 const w = this._wtn();
                 if (!w) return;
                 const gov = this._myGov() || this._dsGov();
@@ -6820,24 +7148,10 @@
 
             // Push notifications need https, a supported browser and the VAPID key in the config.
             _dsPushRow() {
-                const key = window.FIREBASE_VAPID_KEY || '';
-                if (!('Notification' in window) || !('serviceWorker' in navigator) || !window.isSecureContext || !key || key.indexOf('ضع') === 0) return '';
-                if (Notification.permission === 'granted') return this._pushOn ? '<div class="ds-push on"><i data-lucide="bell-ring"></i>الإشعارات مفعّلة: يوصلك خبر العطلة حتى لو التطبيق مسدود</div>' : '';
+                if (!this._webPushOk()) return '';
+                if (Notification.permission === 'granted') return '<div class="ds-push on"><i data-lucide="bell-ring"></i>الإشعارات مفعّلة: يوصلك خبر العطلة حتى لو التطبيق مسدود</div>';
                 if (Notification.permission === 'denied') return '<div class="ds-push"><i data-lucide="bell-off"></i>الإشعارات مسدودة. فعّلها من إعدادات المتصفح حتى يوصلك خبر العطلة</div>';
-                return '<button class="ds-push btn-press" onclick="app.enableDayPush()"><i data-lucide="bell-plus"></i>فعّل الإشعارات حتى يوصلك خبر العطلة أول بأول</button>';
-            },
-
-            enableDayPush() {
-                // Asked from the tap itself: iPhone (and more browsers) only allow it from a user gesture.
-                Notification.requestPermission().then((perm) => {
-                    if (perm === 'granted') {
-                        if (window.firebaseMessaging) this.registerPushToken(window.FIREBASE_VAPID_KEY);
-                        this.showToast('تفعّلت الإشعارات');
-                    } else {
-                        this.showToast('ما تفعّلت الإشعارات');
-                    }
-                    this.renderDayStatus();
-                }).catch(() => this.showToast('تعذر تفعيل الإشعارات'));
+                return '<button class="ds-push btn-press" onclick="app.enableWebPush()"><i data-lucide="bell-plus"></i>فعّل الإشعارات حتى يوصلك خبر العطلة أول بأول</button>';
             },
 
             // A pulsing dot on the "العطل" button when the coming day is an announced / calendar
@@ -9187,6 +9501,7 @@
 
             // ==================== PUSH TOKEN REGISTRATION ====================
             initPushNotifications() {
+                if (this._webPushOk()) return; // OneSignal handles web push on the site
                 if (!window.firebaseMessaging || !('Notification' in window) || !('serviceWorker' in navigator)) return;
                 const vapidKey = window.FIREBASE_VAPID_KEY || '';
                 if (!vapidKey || vapidKey.indexOf('ضع') === 0) return;
@@ -14912,7 +15227,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
