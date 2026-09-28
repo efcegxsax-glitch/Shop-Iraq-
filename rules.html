@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" translate="no" class="notranslate">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <meta name="robots" content="noindex">
+    <title>قواعد الحماية</title>
+    <style>
+        body { margin: 0; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #0F172A; color: #F1F5F9; }
+        main { max-width: 560px; margin: 0 auto; padding: 20px 16px 40px; }
+        h1 { font-size: 20px; margin: 6px 0 8px; }
+        p { color: #94A3B8; font-size: 14px; line-height: 1.8; margin: 0 0 14px; }
+        button { width: 100%; padding: 16px; border: 0; border-radius: 14px; background: #2563EB; color: #fff; font-size: 17px; font-weight: 800; font-family: inherit; }
+        button.done { background: #16A34A; }
+        #msg { min-height: 22px; margin: 10px 0; text-align: center; font-weight: 700; font-size: 14px; }
+        pre { direction: ltr; text-align: left; background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 12px; font-size: 11px; max-height: 45vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+<main>
+    <h1>قواعد الحماية</h1>
+    <p>اضغط الزر، وبعدين بفايربيس (Realtime Database ثم Rules) امسح كل القديم، والصق، واضغط Publish.</p>
+    <button id="copy" type="button">نسخ القواعد</button>
+    <div id="msg"></div>
+    <pre id="rules" translate="no" class="notranslate">جاري التحميل...</pre>
+</main>
+<script>
+    let text = '';
+    const msg = (t, ok) => { const m = document.getElementById('msg'); m.textContent = t; m.style.color = ok ? '#4ADE80' : '#FCA5A5'; };
+    fetch('database.rules.json', { cache: 'no-store' }).then((r) => r.text()).then((t) => {
+        JSON.parse(t);
+        text = t;
+        document.getElementById('rules').textContent = t;
+    }).catch(() => msg('تعذر تحميل القواعد، حدّث الصفحة', false));
+    document.getElementById('copy').addEventListener('click', async () => {
+        if (!text) return;
+        try {
+            await navigator.clipboard.writeText(text);
+        } catch (e) {
+            const ta = document.createElement('textarea');
+            ta.value = text; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); ta.remove();
+        }
+        const b = document.getElementById('copy');
+        b.textContent = 'انتسخت'; b.classList.add('done');
+        msg('انتسخت القواعد، روح الصقها بفايربيس', true);
+    });
+</script>
+</body>
+</html>
