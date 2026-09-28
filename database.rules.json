@@ -68,9 +68,39 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
+    "voiceNote": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
+    "voiceNoteAudio": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
     "bannedStudents": {
       ".read": "auth != null",
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
+    "voiceNoteStats": {
+      ".read": true,
+      "$id": {
+        "plays": {
+          ".write": true,
+          ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || newData.isNumber() && newData.val() >= (data.exists() ? data.val() : 0) && newData.val() <= (data.exists() ? data.val() : 0) + 1)"
+        },
+        "done": {
+          ".write": true,
+          ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || newData.isNumber() && newData.val() >= (data.exists() ? data.val() : 0) && newData.val() <= (data.exists() ? data.val() : 0) + 1)"
+        }
+      }
+    },
+    "voiceListeners": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        "$uid": {
+          ".write": "(auth != null && auth.uid == $uid)",
+          ".validate": "newData.child('n').isString() && newData.child('n').val().length <= 60 && newData.child('at').isNumber()"
+        }
+      }
     },
     "users": {
       ".read": "auth != null",

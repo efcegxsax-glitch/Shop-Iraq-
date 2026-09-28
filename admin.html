@@ -68,6 +68,20 @@
         .card-head p { font-size: 11.5px; color: var(--text2); margin: 3px 0 0; line-height: 1.5; }
 
         .field { margin-bottom: 14px; }
+        .vn-rec { display: flex; align-items: center; gap: 14px; padding: 12px; border-radius: 16px; background: var(--panel-2); border: 1px solid var(--border); }
+        .vn-rec-btn { width: 64px; height: 64px; flex: none; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #E11D48; border: 0; cursor: pointer; transition: transform .15s; }
+        .vn-rec-btn.on { background: #111827; box-shadow: 0 0 0 6px rgba(225,29,72,.25); animation: vnRecP 1.2s ease-in-out infinite; }
+        @keyframes vnRecP { 50% { box-shadow: 0 0 0 12px rgba(225,29,72,.1); } }
+        .vn-rec-btn svg { width: 28px; height: 28px; }
+        .vn-rec-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+        .vn-rec-info b { font-size: 14px; }
+        .vn-rec-info span { font-size: 12px; opacity: .7; direction: ltr; text-align: right; }
+        .vn-meter { height: 8px; border-radius: 99px; background: rgba(127,127,127,.2); overflow: hidden; }
+        .vn-meter i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #22C55E, #EAB308 70%, #EF4444); transition: width .08s; }
+        .vn-stats b { color: #60A5FA; }
+        .vn-who { margin-top: 10px; font-size: 13px; }
+        .vn-who summary { cursor: pointer; font-weight: 700; }
+        .vn-who div div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
         .un-a-h { font-size: 14px; font-weight: 800; margin: 18px 0 8px; }
         .un-a-grid { display: grid; gap: 8px; grid-template-columns: 1fr; }
         @media (min-width: 640px) { .un-a-grid { grid-template-columns: 1fr 1fr; } }
@@ -314,6 +328,7 @@
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
             <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
+            <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
@@ -1190,6 +1205,37 @@
                 </div>
             </div>
 
+            <div id="sec-voice" class="hidden">
+                <div class="card" id="vnNowCard" style="display:none">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="radio"></i></div>
+                        <div><h3>البصمة المنشورة هسه</h3><p id="vnNowTitle"></p></div>
+                    </div>
+                    <button type="button" class="btn" id="vnLoad" style="background:var(--panel-2);color:inherit;border:1px solid var(--border);margin-bottom:10px">اسمع البصمة المنشورة</button>
+                    <audio id="vnNowAudio" controls style="width:100%;margin-bottom:10px;display:none"></audio>
+                    <div class="fb-now vn-stats"><div><b id="vnPlays">0</b><span>شغّلوها</span></div><div><b id="vnDone">0</b><span>سمعوها للآخر</span></div></div>
+                    <details class="vn-who"><summary>منو سمعها (من المسجلين)</summary><div id="vnWho"></div></details>
+                    <button class="btn btn-danger mt-4" id="vnDelete">احذف البصمة (تختفي من عند الكل)</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="mic"></i></div>
+                        <div><h3>بصمة صوتية جديدة</h3><p>تطلع للطلاب تحت الشريط الإخباري. التسجيل ينظّف الصوت من الضوضاء ويوزن علوّه حتى يطلع واضح. أقصى طول 3 دقايق. البصمة الجديدة تحل محل القديمة.</p></div>
+                    </div>
+                    <div class="vn-rec">
+                        <button type="button" id="vnRecBtn" class="vn-rec-btn" aria-label="سجّل"><i data-lucide="mic"></i></button>
+                        <div class="vn-rec-info"><b id="vnRecState">دوس حتى تسجل</b><span id="vnRecTime">0:00 / 3:00</span><div class="vn-meter"><i id="vnMeter"></i></div></div>
+                    </div>
+                    <div class="field" style="margin-top:12px"><label>أو ارفع ملف صوتي (أقل من 2 ميغا)</label><input type="file" id="vnFile" accept="audio/*"></div>
+                    <div id="vnPreviewBox" style="display:none">
+                        <audio id="vnPreview" controls style="width:100%;margin:8px 0"></audio>
+                        <div class="field"><label>عنوان قصير (اختياري)</label><input type="text" id="vnTitle" maxlength="60" placeholder="مثلاً: تنبيه مهم حول الامتحانات"></div>
+                        <label class="ds-chk"><input type="checkbox" id="vnNotify" checked><span>أرسل إشعار للطلاب</span></label>
+                        <button class="btn mt-4" id="vnPublish">انشر البصمة</button>
+                    </div>
+                </div>
+            </div>
+
             <div id="sec-uni" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1337,7 +1383,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2733,6 +2779,145 @@
             });
         }
 
+        // ---------- Voice note (voiceNote + voiceNoteAudio/{id}, stats in voiceNoteStats/{id}) ----------
+        // Recorded through a clean-up chain (low cut, compressor, level) into Opus/AAC at 48 kb/s,
+        // so speech stays clear and a minute is about 360 KB.
+        const VN_MAX = 180;
+        let vnBlob = null, vnDur = 0, vnPeaks = [], vnRec = null, vnCur = null, vnStatsUnsub = null, vnWhoUnsub = null;
+        function vnFmt(t) { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); }
+        function vnMime() {
+            const list = ['audio/mp4;codecs=mp4a.40.2', 'audio/mp4', 'audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm'];
+            return list.find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) || '';
+        }
+        async function vnAnalyze(blob) {
+            // length and a 48-bar waveform, from the decoded sound
+            const Ctx = window.AudioContext || window.webkitAudioContext, ctx = new Ctx();
+            try {
+                const buf = await ctx.decodeAudioData(await blob.arrayBuffer());
+                const ch = buf.getChannelData(0), n = 48, step = Math.floor(ch.length / n) || 1, peaks = [];
+                for (let i = 0; i < n; i++) { let m = 0; for (let j = i * step; j < Math.min(ch.length, (i + 1) * step); j += 16) m = Math.max(m, Math.abs(ch[j])); peaks.push(m); }
+                const top = Math.max(...peaks) || 1;
+                return { dur: buf.duration, peaks: peaks.map((p) => Math.round(p / top * 100) / 100) };
+            } finally { try { ctx.close(); } catch (e) {} }
+        }
+        async function vnSetBlob(blob) {
+            try {
+                const a = await vnAnalyze(blob);
+                if (a.dur > VN_MAX + 2) { toast('البصمة أطول من 3 دقايق', false); return; }
+                vnBlob = blob; vnDur = Math.round(a.dur * 10) / 10; vnPeaks = a.peaks;
+                el('vnPreview').src = URL.createObjectURL(blob);
+                el('vnPreviewBox').style.display = '';
+                el('vnRecState').textContent = 'جاهزة (' + vnFmt(vnDur) + '، ' + Math.round(blob.size / 1024) + ' KB). اسمعها وانشرها';
+            } catch (e) { console.warn(e); toast('ما كدرت أقرا الصوت، جرب ملف ثاني', false); }
+        }
+        async function vnStartRec() {
+            if (!navigator.mediaDevices || !window.MediaRecorder) { toast('المتصفح ما يدعم التسجيل، ارفع ملف', false); return; }
+            let stream;
+            try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1, sampleRate: 48000 } }); }
+            catch (e) { toast('اسمح للمتصفح يستخدم المايك', false); return; }
+            const Ctx = window.AudioContext || window.webkitAudioContext, ctx = new Ctx({ sampleRate: 48000 });
+            const src = ctx.createMediaStreamSource(stream);
+            const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 85;
+            const pres = ctx.createBiquadFilter(); pres.type = 'peaking'; pres.frequency.value = 3000; pres.Q.value = 1; pres.gain.value = 3;
+            const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -26; comp.knee.value = 12; comp.ratio.value = 3.5; comp.attack.value = 0.004; comp.release.value = 0.2;
+            const gain = ctx.createGain(); gain.gain.value = 1.6;
+            const an = ctx.createAnalyser(); an.fftSize = 512;
+            const dest = ctx.createMediaStreamDestination();
+            src.connect(hp); hp.connect(pres); pres.connect(comp); comp.connect(gain); gain.connect(an); gain.connect(dest);
+            const mime = vnMime(), chunks = [];
+            const mr = new MediaRecorder(dest.stream, Object.assign({ audioBitsPerSecond: 48000 }, mime ? { mimeType: mime } : {}));
+            mr.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+            const t0 = Date.now(), data = new Uint8Array(an.fftSize);
+            vnRec = { mr, stream, ctx, timer: setInterval(() => {
+                const t = (Date.now() - t0) / 1000;
+                el('vnRecTime').textContent = vnFmt(t) + ' / ' + vnFmt(VN_MAX);
+                an.getByteTimeDomainData(data);
+                let m = 0; for (let i = 0; i < data.length; i++) m = Math.max(m, Math.abs(data[i] - 128));
+                el('vnMeter').style.width = Math.min(100, m / 128 * 140) + '%';
+                if (t >= VN_MAX) vnStopRec();
+            }, 80) };
+            mr.onstop = () => {
+                clearInterval(vnRec.timer);
+                stream.getTracks().forEach((tr) => tr.stop());
+                try { ctx.close(); } catch (e) {}
+                el('vnMeter').style.width = '0';
+                el('vnRecBtn').classList.remove('on');
+                el('vnRecBtn').innerHTML = '<i data-lucide="mic"></i>'; lucide.createIcons();
+                vnRec = null;
+                vnSetBlob(new Blob(chunks, { type: (mr.mimeType || mime || 'audio/webm').split(';')[0] }));
+            };
+            mr.start(250);
+            el('vnRecBtn').classList.add('on');
+            el('vnRecBtn').innerHTML = '<i data-lucide="square"></i>'; lucide.createIcons();
+            el('vnRecState').textContent = 'دا يسجل... دوس حتى توكف';
+            el('vnPreviewBox').style.display = 'none';
+        }
+        function vnStopRec() { if (vnRec && vnRec.mr.state !== 'inactive') vnRec.mr.stop(); }
+        function vnToDataUrl(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); }); }
+        async function vnPublish() {
+            if (!vnBlob) return;
+            const btn = el('vnPublish');
+            btn.disabled = true; btn.textContent = 'دا تنرفع...';
+            try {
+                const id = 'v' + Date.now().toString(36), data = await vnToDataUrl(vnBlob);
+                const type = (vnBlob.type || 'audio/webm').split(';')[0];
+                const url = data.replace(/^data:[^;,]*/, 'data:' + type);
+                const title = el('vnTitle').value.trim().slice(0, 60);
+                const old = vnCur && vnCur.id;
+                await set(ref(db, 'voiceNoteAudio/' + id), url);
+                await set(ref(db, 'voiceNote'), { id, title, dur: vnDur, peaks: vnPeaks, mime: type, at: Date.now() });
+                if (old) { remove(ref(db, 'voiceNoteAudio/' + old)).catch(() => {}); }
+                if (el('vnNotify').checked) {
+                    const nid = Date.now();
+                    await set(ref(db, 'notifications/' + nid), { id: nid, title: 'بصمة صوتية جديدة من الإدارة', description: title || 'اسمعها من الصفحة الرئيسية', time: 'الآن', read: false, type: 'announcement', createdAt: serverTimestamp() });
+                }
+                toast('انتشرت البصمة' + (el('vnNotify').checked ? ' ووصل الإشعار' : ''));
+                vnBlob = null; el('vnPreviewBox').style.display = 'none'; el('vnTitle').value = ''; el('vnFile').value = '';
+                el('vnRecState').textContent = 'دوس حتى تسجل'; el('vnRecTime').textContent = '0:00 / 3:00';
+            } catch (e) { console.warn(e); toast('فشل النشر', false); }
+            btn.disabled = false; btn.textContent = 'انشر البصمة';
+        }
+        function loadVoiceAdmin() {
+            el('vnRecBtn').addEventListener('click', () => (vnRec ? vnStopRec() : vnStartRec()));
+            el('vnFile').addEventListener('change', (e) => {
+                const f = e.target.files && e.target.files[0];
+                if (!f) return;
+                if (f.size > 2 * 1024 * 1024) { toast('الملف أكبر من 2 ميغا', false); e.target.value = ''; return; }
+                vnSetBlob(f);
+            });
+            el('vnPublish').addEventListener('click', vnPublish);
+            el('vnLoad').addEventListener('click', async () => {
+                if (!vnCur) return;
+                const d = await get(ref(db, 'voiceNoteAudio/' + vnCur.id)), a = el('vnNowAudio');
+                a.src = d.val() || ''; a.style.display = ''; el('vnLoad').style.display = 'none';
+                a.play().catch(() => {});
+            });
+            el('vnDelete').addEventListener('click', async () => {
+                if (!vnCur || !confirm('تحذف البصمة؟ تختفي من عند كل الطلاب.')) return;
+                const id = vnCur.id;
+                try {
+                    await update(ref(db), { voiceNote: null, ['voiceNoteAudio/' + id]: null, ['voiceNoteStats/' + id]: null, ['voiceListeners/' + id]: null });
+                    toast('انحذفت البصمة');
+                } catch (e) { toast('فشل الحذف', false); }
+            });
+            onValue(ref(db, 'voiceNote'), async (snap) => {
+                vnCur = snap.val();
+                if (vnStatsUnsub) { vnStatsUnsub(); vnStatsUnsub = null; }
+                if (vnWhoUnsub) { vnWhoUnsub(); vnWhoUnsub = null; }
+                el('vnNowCard').style.display = vnCur ? '' : 'none';
+                if (!vnCur) return;
+                el('vnNowTitle').textContent = (vnCur.title || 'بدون عنوان') + ' . ' + vnFmt(vnCur.dur) + ' . ' + new Date(vnCur.at).toLocaleString('en-GB');
+                vnStatsUnsub = onValue(ref(db, 'voiceNoteStats/' + vnCur.id), (s) => { const v = s.val() || {}; el('vnPlays').textContent = v.plays || 0; el('vnDone').textContent = v.done || 0; });
+                vnWhoUnsub = onValue(ref(db, 'voiceListeners/' + vnCur.id), (s) => {
+                    const v = s.val() || {}, list = Object.values(v).sort((a, b) => (b.at || 0) - (a.at || 0));
+                    el('vnWho').innerHTML = list.length ? list.map((x) => `<div><span>${escapeHtml(x.n || 'طالب')}</span><span>${x.done ? 'للآخر' : 'بدأها'}</span></div>`).join('') : '<div><span>بعد محد</span></div>';
+                });
+                const a = el('vnNowAudio');
+                a.removeAttribute('src'); a.style.display = 'none';
+                el('vnLoad').style.display = '';
+            });
+        }
+
         // ---------- Admission calculator (admission/{outside, note, base, off}) ----------
         let uniCfg = null;
         function loadUniAdmin() {
@@ -2952,6 +3137,7 @@
             loadWarBots();
             loadUniAdmin();
             loadYtKey();
+            loadVoiceAdmin();
             loadForestWeather();
             loadVerified();
             loadErrors();

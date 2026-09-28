@@ -612,6 +612,7 @@
                 this.loadResourcesFromDatabase();
                 this.listenForResources();
                 this.listenForTicker();
+                this.listenForVoiceNote();
                 this.listenForSiteConfig();
                 this.listenForAdminNotifications();
                 this.listenForSiteImages();
@@ -2548,6 +2549,141 @@
                 if ($('tkLabel')) $('tkLabel').textContent = (t.label || '').trim() || 'عاجل';
                 if (this._tk) this._tk.key = ''; // force the marquee to pick up new speed/label settings
                 this.renderNewsTicker();
+            },
+
+            // ===== Voice note from the admin (بصمة صوتية), shown under the news ticker =====
+            // voiceNote = {id, title, dur, peaks[], mime, at}; the audio itself (a base64 data URL)
+            // is in voiceNoteAudio/{id}, fetched in the background as soon as the note appears and
+            // kept in the browser cache, so the play button answers at once. Plays and full
+            // listens are counted in voiceNoteStats/{id}, and signed-in listeners in voiceListeners.
+            listenForVoiceNote() {
+                if (!window.firebaseDb || this._vnListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                this._vnListener = onValue(ref(window.firebaseDb, 'voiceNote'), (snap) => {
+                    const v = snap.val();
+                    const note = v && v.id && v.dur ? v : null;
+                    if (this._vn && (!note || note.id !== this._vn.id)) this._vnStop(true);
+                    this._vn = note ? Object.assign({}, note, { peaks: Array.isArray(note.peaks) ? note.peaks : [] }) : null;
+                    this._vnRender();
+                    if (note) this._vnPrefetch(note);
+                    else this._vnCacheClear();
+                }, () => {});
+            },
+
+            async _vnPrefetch(note) {
+                if (this._vnSrc && this._vnSrc.id === note.id) return;
+                const key = '/voice-note/' + note.id;
+                let blob = null;
+                try {
+                    if (window.caches) { const c = await caches.open('isp-voice'); const hit = await c.match(key); if (hit) blob = await hit.blob(); }
+                } catch (e) {}
+                if (!blob) {
+                    try {
+                        const { ref, get } = window.firebaseDbHelpers;
+                        const snap = await get(ref(window.firebaseDb, 'voiceNoteAudio/' + note.id));
+                        const data = String(snap.val() || '');
+                        const m = data.match(/^data:(audio\/[a-z0-9.+-]+)(?:;[^,]*)?;base64,(.+)$/i);
+                        if (!m) return;
+                        const bin = atob(m[2]), buf = new Uint8Array(bin.length);
+                        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+                        blob = new Blob([buf], { type: m[1] });
+                        try { if (window.caches) { const c = await caches.open('isp-voice'); await c.put(key, new Response(blob, { headers: { 'Content-Type': m[1] } })); } } catch (e) {}
+                    } catch (e) { console.warn('voice note download failed', e); return; }
+                }
+                if (!this._vn || this._vn.id !== note.id) return;
+                if (this._vnSrc) URL.revokeObjectURL(this._vnSrc.url);
+                this._vnSrc = { id: note.id, url: URL.createObjectURL(blob) };
+                const a = this._vnAudio || (this._vnAudio = new Audio());
+                a.preload = 'auto';
+                a.src = this._vnSrc.url;
+                a.load();
+                a.ontimeupdate = () => this._vnTick();
+                a.onended = () => { this._vnTick(true); this._vnStop(); };
+                this._vnRender();
+            },
+
+            _vnCacheClear() {
+                try { if (window.caches) caches.delete('isp-voice'); } catch (e) {}
+            },
+
+            _vnRender() {
+                const sec = document.getElementById('voiceSection'), card = document.getElementById('vnCard'), n = this._vn;
+                if (!sec || !card) return;
+                sec.classList.toggle('hidden', !n);
+                if (!n) { card.innerHTML = ''; return; }
+                let heard = {};
+                try { heard = JSON.parse(localStorage.getItem('isp_vn_heard') || '{}') || {}; } catch (e) {}
+                const ready = this._vnSrc && this._vnSrc.id === n.id, playing = this._vnAudio && !this._vnAudio.paused && ready;
+                const peaks = n.peaks.length ? n.peaks : Array.from({ length: 40 }, () => 0.4);
+                const fmt = (t) => Math.floor(t / 60) + ':' + String(Math.floor(t % 60)).padStart(2, '0');
+                card.classList.toggle('new', !heard[n.id]);
+                card.classList.toggle('playing', !!playing);
+                card.innerHTML = `
+                    <button class="vn-play btn-press" onclick="app.vnToggle()" aria-label="${playing ? 'إيقاف' : 'تشغيل'}" ${ready ? '' : 'data-wait="1"'}>
+                        ${ready ? (playing ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>' : '<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.2-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>') : '<span class="vn-spin"></span>'}
+                    </button>
+                    <div class="vn-body">
+                        <div class="vn-top"><b>${escapeHtml(n.title || 'بصمة صوتية من الإدارة')}</b>${heard[n.id] ? '' : '<em>جديد</em>'}</div>
+                        <div class="vn-wave" onclick="app.vnSeek(event)">${peaks.map((p, i) => `<i style="height:${Math.round(18 + Math.max(0, Math.min(1, p)) * 82)}%" data-i="${i}"></i>`).join('')}</div>
+                        <div class="vn-foot"><span id="vnTime">${fmt(this._vnAudio && ready ? this._vnAudio.currentTime : 0)} / ${fmt(n.dur)}</span><button class="vn-rate" onclick="app.vnRate()">${(this._vnRateV || 1)}x</button></div>
+                    </div>`;
+                this._vnTick();
+            },
+
+            vnToggle() {
+                const n = this._vn, a = this._vnAudio;
+                if (!n) return;
+                if (!this._vnSrc || this._vnSrc.id !== n.id || !a) { this.showToast('دا تتحمل البصمة، ثواني'); this._vnPrefetch(n); return; }
+                if (!a.paused) { a.pause(); this._vnRender(); return; }
+                a.playbackRate = this._vnRateV || 1;
+                a.play().then(() => {
+                    this._vnRender();
+                    this._vnCount('plays');
+                }).catch(() => this.showToast('ما اشتغلت البصمة، حاول مرة ثانية'));
+            },
+            vnRate() {
+                const r = [1, 1.5, 2], i = r.indexOf(this._vnRateV || 1);
+                this._vnRateV = r[(i + 1) % r.length];
+                if (this._vnAudio) this._vnAudio.playbackRate = this._vnRateV;
+                this._vnRender();
+            },
+            vnSeek(e) {
+                const n = this._vn, a = this._vnAudio, w = e.currentTarget;
+                if (!n || !a || !this._vnSrc) return;
+                const r = w.getBoundingClientRect(), frac = Math.max(0, Math.min(1, (r.right - e.clientX) / r.width));
+                a.currentTime = frac * n.dur;
+                if (a.paused) this.vnToggle(); else this._vnTick();
+            },
+            _vnStop(reset) {
+                const a = this._vnAudio;
+                if (a) { try { a.pause(); if (reset) a.removeAttribute('src'); } catch (e) {} }
+                if (reset && this._vnSrc) { URL.revokeObjectURL(this._vnSrc.url); this._vnSrc = null; }
+                this._vnRender();
+            },
+            // the waveform fills as it plays; a full listen is counted once per device
+            _vnTick(ended) {
+                const n = this._vn, a = this._vnAudio;
+                if (!n || !a) return;
+                const t = ended ? n.dur : a.currentTime || 0, frac = Math.min(1, t / n.dur);
+                const bars = document.querySelectorAll('#vnCard .vn-wave i'), lit = Math.round(frac * bars.length);
+                bars.forEach((b, i) => b.classList.toggle('on', i < lit));
+                const tm = document.getElementById('vnTime');
+                if (tm) { const f = (x) => Math.floor(x / 60) + ':' + String(Math.floor(x % 60)).padStart(2, '0'); tm.textContent = f(t) + ' / ' + f(n.dur); }
+                if (frac >= 0.9) this._vnCount('done');
+            },
+            _vnCount(kind) {
+                const n = this._vn;
+                if (!n || !window.firebaseDb) return;
+                let heard = {};
+                try { heard = JSON.parse(localStorage.getItem('isp_vn_heard') || '{}') || {}; } catch (e) {}
+                const h = heard[n.id] || (heard[n.id] = {});
+                if (h[kind]) return;
+                h[kind] = 1;
+                try { localStorage.setItem('isp_vn_heard', JSON.stringify(heard)); } catch (e) {}
+                const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                runTransaction(ref(window.firebaseDb, 'voiceNoteStats/' + n.id + '/' + kind), (c) => numOr0(c) + 1).catch(() => {});
+                if (this.authUid && this.currentUser) set(ref(window.firebaseDb, 'voiceListeners/' + n.id + '/' + this.authUid), { n: String(this.currentUser.fullName || 'طالب').slice(0, 60), at: Date.now(), done: kind === 'done' || !!h.done }).catch(() => {});
+                if (kind === 'plays') { const c = document.getElementById('vnCard'); if (c) { c.classList.remove('new'); c.querySelector('.vn-top em')?.remove(); } }
             },
 
             listenForTicker() {
