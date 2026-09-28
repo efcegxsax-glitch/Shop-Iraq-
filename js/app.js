@@ -586,6 +586,7 @@
                 this.loadUserData();
                 this.checkInterruptedFocus();
                 this.checkInterruptedForest();
+                this.checkInterruptedGarden();
                 this.checkInterruptedGovWar();
                 this.loadNotifPrefs();
                 this.watchAuthState();
@@ -3225,7 +3226,7 @@
                 if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
                 const gov = this._myGov();
                 if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
-                if (this._focus || this._gwar) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
+                if (this._focus || this._gwar || this._garden) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
                 this._starting = true;
                 const free = await this._sessionFree();
                 this._starting = false;
@@ -3440,6 +3441,23 @@
                 try { localStorage.removeItem(this.FOREST_KEY); } catch (e) {}
                 const u = this.currentUser || {};
                 this.saveFocusStats({ forestDead: numOr0(u.forestDead) + 1 });
+                setTimeout(() => this.showToast('ذبلت شجرتك لأن التطبيق انسد قبل ما تخلص الجلسة'), 1500);
+            },
+
+            // ===== شجرتي: a solo focus timer with a 3D tree (js/gardenui.js + js/garden.js) =====
+            goToGarden() {
+                this.switchView('gardenView');
+                if (this._withPart('gardenui', () => typeof this.gdOpen === 'function', 'gardenView', () => this.goToGarden())) return;
+                this.gdOpen();
+            },
+            // a session still saved at start-up means the app was closed during it
+            checkInterruptedGarden() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem('isp_garden_session') || 'null'); } catch (e) {}
+                if (!saved) return;
+                try { localStorage.removeItem('isp_garden_session'); } catch (e) {}
+                const u = this.currentUser || {};
+                this.saveFocusStats({ gardenDead: numOr0(u.gardenDead) + 1 });
                 setTimeout(() => this.showToast('ذبلت شجرتك لأن التطبيق انسد قبل ما تخلص الجلسة'), 1500);
             },
 
@@ -4111,7 +4129,7 @@
 
             async startFocus() {
                 if (this._focus || this._starting) return;
-                if (this._gwar || this._forest) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
+                if (this._gwar || this._forest || this._garden) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
                 this._starting = true;
                 const free = await this._sessionFree();
                 this._starting = false;
@@ -4641,7 +4659,7 @@
                 if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
                 const gov = this._myGov();
                 if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
-                if (this._focus || this._forest) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
+                if (this._focus || this._forest || this._garden) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
                 this._starting = true;
                 const free = await this._sessionFree();
                 this._starting = false;
@@ -7012,6 +7030,7 @@
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
                 { id: 'res', fn: 'goToResources', t: 'الملازم', d: 'ملازم رسمية لكل المراحل', ic: 'book-open', c: '#2563EB', g: 'study' },
+                { id: 'garden', fn: 'goToGarden', t: 'شجرتي', d: 'ازرع بذرة وادرس لحد ما تثمر', ic: 'sprout', c: '#15803D', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
@@ -7038,7 +7057,7 @@
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
             MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
-            MORE_DEFAULT_FAVS: ['uni', 'bio', 'cards', 'forest'],
+            MORE_DEFAULT_FAVS: ['garden', 'uni', 'bio', 'forest'],
 
             _moreState() {
                 if (this._mr) return this._mr;
@@ -12635,6 +12654,8 @@
 
             switchView(viewId) {
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
+                if (this._garden && viewId !== 'gardenView' && this.gdFail) this.gdFail('طلعت من صفحة شجرتي', true);
+                if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
