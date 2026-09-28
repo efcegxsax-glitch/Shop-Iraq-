@@ -12,7 +12,14 @@
 //              /chat/{id} {u, n, m, at, k?, s?}       k + s = a mark at a moment of a video
 // ytInvites/{uid}/{rid} {from, fn, t, at}
 (function () {
-    const MAX_MEMBERS = 12, RECENT_KEY = 'isp_yr_recent', DONE_AT = 0.95, POINTS = 10;
+    const MAX_MEMBERS = 12, RECENT_KEY = 'isp_yr_recent', DONE_AT = 0.95;
+    // Points: EVERY seconds of real watching pays PER, finishing a video pays DONE_PTS, the
+    // whole room finishing pays GROUP_PTS, at most DAY_CAP a day. "Real" = playing, screen on,
+    // sound on, not skipped ahead, one tab only, not already counted for that video today,
+    // and passing the random "tap the number" checks.
+    const EVERY = 300, PER = 10, DONE_PTS = 15, GROUP_PTS = 10, DAY_CAP = 250, CHECK_MIN = 240, CHECK_MAX = 420, FREEZE = 20 * 60000;
+    const TAB_ID = Math.random().toString(36).slice(2);
+    const today = () => { const d = new Date(); return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(); };
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const R = (p) => H().ref(window.firebaseDb, p);
@@ -163,6 +170,7 @@
                         ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')" aria-label="${REACTS[k][1]}"><i data-lucide="${REACTS[k][0]}"></i></button>`).join('')}
                         <button class="q" onclick="app.yrMark()" aria-label="ما فهمت هنا"><i data-lucide="hand"></i></button>
                         <small id="yrRailN"></small>
+                        <small id="yrRailCoin" class="coin"></small>
                     </div>
                     <div id="yrMarks" class="yr-marks"></div>
                 </div>
@@ -174,6 +182,7 @@
                     ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')"><i data-lucide="${REACTS[k][0]}"></i>${REACTS[k][1]}</button>`).join('')}
                     <button class="yr-speed-b sp" onclick="app.yrSpeed()"><i data-lucide="gauge"></i><b class="yr-speed-t">1x</b></button>
                 </div>
+                <div id="yrEarn" class="yr-earn"></div>
                 <div id="yrNow"></div>
                 <div class="yr-tabs">${[['people', 'users', 'الطلاب'], ['list', 'list-video', 'الفيديوهات'], ['chat', 'message-circle', 'الدردشة']].map(([k, ic, t]) => `<button data-t="${k}" class="${k === 'people' ? 'on' : ''}" onclick="app.yrTab('${k}')"><i data-lucide="${ic}"></i>${t}<em id="yrBadge_${k}"></em></button>`).join('')}</div>
                 <div id="yrPanel"></div>`;
@@ -200,7 +209,7 @@
                 this._yrPaint();
             });
             on('ytRooms/' + rid + '/prog', (v) => { y.prog = v || {}; this._yrPaint(); });
-            on('ytRooms/' + rid + '/done', (v) => { y.done = v || {}; this._yrPaint(); });
+            on('ytRooms/' + rid + '/done', (v) => { y.done = v || {}; this._yrPaint(); this._yrGroupBonus(); });
             const h = H();
             on('ytRooms/' + rid + '/chat', (v) => {
                 const list = Object.keys(v || {}).map((id) => Object.assign({ id }, v[id])).sort((a, b) => (a.at || 0) - (b.at || 0));
@@ -242,6 +251,8 @@
             this._yrSend(true);
             y.subs.forEach((u) => { try { u(); } catch (e) {} });
             clearInterval(y.tick);
+            clearTimeout(y.checkTimer);
+            if (this._yrL) this._yrLedgerSave();
             window.removeEventListener('resize', y.onRot);
             document.removeEventListener('fullscreenchange', y.onRot);
             document.removeEventListener('visibilitychange', y.onVis);
@@ -265,7 +276,7 @@
             if (!item) return;
             if (y.key === k && y.player) return;
             this._yrSend(true);
-            y.key = k; y.watched = 0; y.lastState = -2;
+            y.key = k; y.lastState = -2; y.lastPos = null;
             const mine = y.prog[this.authUid], start = mine && mine.k === k && !(y.done[this.authUid] || {})[k] ? Math.max(0, (mine.t || 0) - 3) : 0;
             document.getElementById('yrEmpty')?.classList.add('hidden');
             ytApi().then(() => {
@@ -287,14 +298,14 @@
         _yrState() {
             const p = this._yr && this._yr.player;
             if (!p || !p.getCurrentTime) return null;
-            try { return { t: p.getCurrentTime() || 0, d: p.getDuration() || 0, s: p.getPlayerState() }; } catch (e) { return null; }
+            try { return { t: p.getCurrentTime() || 0, d: p.getDuration() || 0, s: p.getPlayerState(), mute: (p.isMuted && p.isMuted()) || (p.getVolume && p.getVolume() === 0) }; } catch (e) { return null; }
         },
 
         _yrTick() {
             const y = this._yr, st = this._yrState();
             if (!y || !st) return;
+            this._yrEarnTick(st);
             if (st.s === 1 && !document.hidden) {
-                y.watched += y.rate || 1;
                 if (!y.wl && navigator.wakeLock && navigator.wakeLock.request) {
                     y.wl = 1;
                     navigator.wakeLock.request('screen').then((l) => { if (this._yr === y) y.wl = l; else l.release(); }).catch(() => {});
@@ -325,14 +336,156 @@
             if (!k || k.indexOf('x') === 0 || (y.done[this.authUid] || {})[k] || y.doneBusy === k) return;
             y.doneBusy = k;
             const st = this._yrState() || { d: 0 };
+            // the bonus only for a video of two minutes or more, most of it really watched
+            // (recorded before the done mark goes out, so the room-wide bonus can see it)
+            const L = this._yrLedger(), item = y.queue[k], seen = item ? (L.vids[item.v] || 0) : 0, tag = y.rid + '/' + k;
+            const earned = st.d >= 120 && seen >= st.d * 0.7 && !L.done[tag];
+            if (earned) { L.done[tag] = 1; y.legit = y.legit || {}; y.legit[k] = 1; this._yrPay(DONE_PTS, 'خلصت الفيديو'); }
+            else this.showToast(st.d >= 120 && !L.done[tag] ? 'خلصت الفيديو. مكافأة الإكمال تحتاج تشوف أغلبه فعلاً' : 'خلصت الفيديو');
             H().set(R('ytRooms/' + y.rid + '/done/' + this.authUid + '/' + k), true).catch(() => {});
-            // points only for real watching: most of a video at least two minutes long
-            if (st.d >= 120 && y.watched >= st.d * 0.6) {
-                this.addPointsAtomic(POINTS).then(() => {
-                    this.logDailyActivity({ points: POINTS });
-                    this.showToast('خلصت الفيديو (+' + POINTS + ' نقاط)');
-                }).catch(() => {});
-            } else this.showToast('خلصت الفيديو');
+            setTimeout(() => this._yrGroupBonus(), 1500);
+        },
+
+        // ---------- points and the checks against cheating ----------
+        _yrLedger() {
+            const key = 'isp_yrp_' + (this.authUid || '');
+            // kept in memory; storage is read once per account and day
+            if (this._yrL && this._yrL.day === today() && this._yrLUid === this.authUid) return this._yrL;
+            this._yrLUid = this.authUid;
+            let L = null;
+            try { L = JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) {}
+            if (!L || L.day !== today()) L = { day: today(), earned: 0, vids: {}, fails: 0, frozen: L && L.frozen > Date.now() ? L.frozen : 0, done: {}, grp: {}, pend: 0 };
+            this._yrL = L;
+            return L;
+        },
+        _yrLedgerSave() { try { localStorage.setItem('isp_yrp_' + (this.authUid || ''), JSON.stringify(this._yrL)); } catch (e) {} },
+
+        // why points are (or aren't) counting this second
+        _yrEarnWhy(st) {
+            const y = this._yr, L = this._yrLedger(), now = Date.now();
+            if (!this.authUid) return 'سجّل دخولك حتى تنحسب نقاط';
+            if (L.earned >= DAY_CAP) return 'وصلت حد نقاط اليوم (' + DAY_CAP + ')';
+            if (L.frozen > now) return 'ما جاوبت التحقق، النقاط ترجع الساعة ' + (() => { const d = new Date(L.frozen), h = d.getHours() % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0'); })();
+            if (L.fails >= 2) return 'النقاط واكفة اليوم لأن ما جاوبت التحقق مرتين';
+            if (!st || st.s !== 1) return 'شغّل الفيديو حتى تنحسب نقاط';
+            if (document.hidden) return 'رجع للتطبيق حتى تنحسب نقاط';
+            if (st.mute) return 'افتح الصوت حتى تنحسب نقاط';
+            if (y.check) return 'جاوب التحقق';
+            if (!y.lockOk) return 'أكو مشاهدة ثانية شغالة بحسابك، النقاط تنحسب لوحدة بس';
+            const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null);
+            if (item && st.d && (L.vids[item.v] || 0) >= st.d) return 'هذا الفيديو خلصت نقاطه اليوم';
+            if (y.jumped) return 'قدّمت الفيديو، النقاط تنحسب على المشاهدة بس';
+            return '';
+        },
+
+        _yrEarnTick(st) {
+            const y = this._yr, L = this._yrLedger(), now = Date.now();
+            // one tab or window of this account earns at a time
+            let lock = null;
+            try { lock = JSON.parse(localStorage.getItem('isp_yr_lock') || 'null'); } catch (e) {}
+            y.lockOk = !lock || lock.id === TAB_ID || now - lock.at > 4000;
+            if (y.lockOk && st && st.s === 1) try { localStorage.setItem('isp_yr_lock', JSON.stringify({ id: TAB_ID, at: now })); } catch (e) {}
+            // skipping ahead: the position moved more than playing could move it
+            const dt = y.lastTickAt ? (now - y.lastTickAt) / 1000 : 1, rate = y.rate || 1;
+            y.jumped = !!(st && y.lastPos != null && st.s === 1 && st.t - y.lastPos > rate * dt + 2);
+            y.lastPos = st ? st.t : null; y.lastTickAt = now;
+            const why = this._yrEarnWhy(st);
+            y.earnWhy = why;
+            if (!why) {
+                const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null);
+                const sec = Math.min(rate, 2);
+                if (item) L.vids[item.v] = (L.vids[item.v] || 0) + sec;
+                L.pend = (L.pend || 0) + sec;
+                y.sinceCheck = (y.sinceCheck || 0) + 1;
+                if (!y.nextCheck) y.nextCheck = CHECK_MIN + Math.random() * (CHECK_MAX - CHECK_MIN);
+                if (y.sinceCheck >= y.nextCheck) this._yrCheck();
+                if (L.pend >= EVERY) { L.pend -= EVERY; this._yrPay(PER, 'مشاهدة 5 دقايق'); }
+                if (now - (y.ledgerSaved || 0) > 5000) { y.ledgerSaved = now; this._yrLedgerSave(); }
+            }
+            this._yrEarnPaint();
+        },
+
+        _yrPay(n, why) {
+            const L = this._yrLedger();
+            n = Math.min(n, DAY_CAP - L.earned);
+            if (n <= 0) return;
+            L.earned += n;
+            this._yrLedgerSave();
+            this.addPointsAtomic(n).then((r) => {
+                if (r == null) return;
+                this.logDailyActivity({ points: n });
+                this.showToast(why + ' (+' + n + ' نقطة)');
+                const f = document.getElementById('yrFloat');
+                if (f) { const el = document.createElement('span'); el.className = 'yr-coin'; el.textContent = '+' + n; f.appendChild(el); setTimeout(() => el.remove(), 2200); }
+            }).catch(() => {});
+            this._yrEarnPaint();
+        },
+
+        // "tap the number": shown over the video, 30 seconds to answer
+        _yrCheck() {
+            const y = this._yr, stage = document.getElementById('yrStage');
+            if (!y || y.check || !stage) return;
+            const want = 1 + Math.floor(Math.random() * 9);
+            const opts = [want];
+            while (opts.length < 4) { const n = 1 + Math.floor(Math.random() * 9); if (opts.indexOf(n) === -1) opts.push(n); }
+            opts.sort(() => Math.random() - 0.5);
+            const el = document.createElement('div');
+            el.id = 'yrCheck';
+            el.className = 'yr-check';
+            el.innerHTML = `<div class="yr-check-c"><b>تأكيد إنك تشاهد</b><p>دوس على الرقم <strong>${want}</strong></p>
+                <div class="yr-check-o">${opts.map((n) => `<button onclick="app._yrCheckAns(${n})">${n}</button>`).join('')}</div>
+                <div class="yr-check-t"><i id="yrCheckBar"></i></div></div>`;
+            stage.appendChild(el);
+            y.check = { want, until: Date.now() + 30000 };
+            y.checkTimer = setTimeout(() => this._yrCheckAns(-1), 30000);
+            requestAnimationFrame(() => { const b = document.getElementById('yrCheckBar'); if (b) b.style.width = '0%'; });
+        },
+        _yrCheckAns(n) {
+            const y = this._yr, L = this._yrLedger();
+            if (!y || !y.check) return;
+            clearTimeout(y.checkTimer);
+            const ok = n === y.check.want;
+            y.check = null;
+            document.getElementById('yrCheck')?.remove();
+            y.sinceCheck = 0;
+            y.nextCheck = CHECK_MIN + Math.random() * (CHECK_MAX - CHECK_MIN);
+            if (ok) { this.showToast('تمام، كمّل'); return; }
+            // a missed check: the unpaid minutes are lost and points stop for a while
+            L.pend = 0;
+            L.fails = (L.fails || 0) + 1;
+            L.frozen = Date.now() + FREEZE;
+            this._yrLedgerSave();
+            this.showToast(L.fails >= 2 ? 'ما جاوبت التحقق مرتين، النقاط واكفة لباجر' : 'ما جاوبت التحقق، النقاط واكفة 20 دقيقة');
+            this._yrEarnPaint();
+        },
+
+        // the whole room finished the group video: a bonus to each one who really watched it
+        _yrGroupBonus() {
+            const y = this._yr, cur = y && y.meta && y.meta.cur;
+            if (!cur || y.solo) return;
+            const mids = Object.keys(y.members);
+            if (mids.length < 2 || !mids.every((u) => (y.done[u] || {})[cur])) return;
+            const L = this._yrLedger(), tag = y.rid + '/' + cur;
+            if (L.grp[tag] || !(L.done[tag] || (y.legit && y.legit[cur]))) return;
+            L.grp[tag] = 1;
+            this._yrPay(GROUP_PTS, 'كلكم خلصتوا الفيديو، مكافأة الجماعة');
+        },
+
+        _yrEarnPaint() {
+            const y = this._yr, box = document.getElementById('yrEarn'), L = this._yrL;
+            if (!y || !box || !L) return;
+            // built once; each second only the text and the bar change (keeps the icon)
+            if (!box.firstChild) {
+                box.innerHTML = '<span class="yr-earn-i"><i data-lucide="coins"></i></span><div><b></b><div class="yr-prog"><i></i></div></div><em><span dir="ltr"></span><small>/' + DAY_CAP + ' اليوم</small></em>';
+                lucide.createIcons();
+            }
+            const why = y.earnWhy, pct = Math.min(100, (L.pend || 0) / EVERY * 100), left = Math.max(1, Math.ceil((EVERY - (L.pend || 0)) / 60));
+            box.classList.toggle('off', !!why);
+            box.querySelector('b').textContent = why || ('تنحسب نقاط . باقي ' + left + ' د للـ +' + PER);
+            box.querySelector('.yr-prog i').style.width = pct + '%';
+            box.querySelector('em span').textContent = '+' + L.earned;
+            const rc = document.getElementById('yrRailCoin');
+            if (rc) { rc.textContent = '+' + L.earned; rc.classList.toggle('off', !!why); }
         },
 
         // ---------- controls ----------
