@@ -5048,6 +5048,17 @@
                 return null;
             },
 
+            // ===== Review cards (بطاقات المراجعة) — the engine is in js/cards.js =====
+            goToCards() {
+                this.switchView('cardsView');
+                if (this._withPart('cards', () => typeof this.kdOpen === 'function', 'cardsView', () => this.goToCards())) {
+                    const box = document.getElementById('cardsContent');
+                    if (box) box.innerHTML = '<div class="kd-loading"><span></span><span></span><span></span></div>';
+                    return;
+                }
+                this.kdOpen();
+            },
+
             goToGrades() {
                 const g = this._gradesLoad();
                 if (!this.gradesSubject || g.subjects.indexOf(this.gradesSubject) === -1) {
@@ -11839,13 +11850,14 @@
 
             switchView(viewId) {
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
+                if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
                 if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
