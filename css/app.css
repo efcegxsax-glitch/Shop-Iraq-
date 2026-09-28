@@ -2657,3 +2657,34 @@ body.yr-mini-on #yrContent { padding-top: 14px; }
 .yr-sug span { font-size: 12px; font-weight: 700; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .yr-sug-a { display: flex; gap: 6px; margin-top: 6px; }
 .yr-msg .yr-sug-a button { margin-top: 0; color: var(--text); background: var(--input-bg); }
+
+/* landscape view, reactions, speed */
+.yr-rail { display: none; }
+.yr-float { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.yr-fr-r { position: absolute; bottom: 18%; right: 14%; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--c); animation: yrRise 2.6s ease-out forwards; }
+.yr-fr-r svg { width: 34px; height: 34px; padding: 7px; border-radius: 50%; color: #fff; background: var(--c); box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+.yr-fr-r small { font-size: 11px; font-weight: 900; color: #fff; padding: 1px 7px; border-radius: 99px; background: rgba(0,0,0,.55); white-space: nowrap; }
+@keyframes yrRise { 0% { opacity: 0; transform: translate(0, 20px) scale(.6); } 15% { opacity: 1; transform: translate(calc(var(--x) * .3), 0) scale(1.1); } 100% { opacity: 0; transform: translate(var(--x), -150px) scale(.9); } }
+.yr-fr-m { position: relative; width: fit-content; max-width: 55%; direction: rtl; text-align: right; margin: 8px 10px 0 auto; padding: 6px 10px; border-radius: 12px; font-size: 12.5px; line-height: 1.5; color: #fff; background: rgba(0,0,0,.6); backdrop-filter: blur(6px); animation: yrMsgIn 6s ease forwards; }
+.yr-fr-m b { display: block; font-size: 11px; color: #FDA4AF; }
+@keyframes yrMsgIn { 0% { opacity: 0; transform: translateX(-20px); } 8%, 85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.yr-reacts { display: flex; gap: 6px; margin: 0 0 8px; }
+.yr-reacts button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 0; border-radius: 12px; font-size: 12px; font-weight: 900; color: var(--c); background: color-mix(in srgb, var(--c) 12%, transparent); transition: transform .15s; }
+.yr-reacts button:active { transform: scale(.92); }
+.yr-reacts button svg { width: 15px; height: 15px; }
+.yr-reacts button.sp { --c: #475569; flex: .8; }
+.dark .yr-reacts button.sp { --c: #CBD5E1; }
+.yr-stage.land { position: fixed; z-index: 95; top: 0; left: 0; width: 100vw; height: 100vh; height: 100dvh; margin: 0; display: flex; flex-direction: row; direction: ltr; background: #000; }
+.yr-stage.land.rot { width: 100vh; width: 100dvh; height: 100vw; transform-origin: 0 0; transform: rotate(90deg) translateY(-100%); }
+.yr-stage.land .yr-frame { flex: 1; height: 100%; aspect-ratio: auto; }
+.yr-stage.land .yr-marks { display: none; }
+.yr-stage.land .yr-rail { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; width: 58px; padding: 8px 0; background: #0b0b0b; }
+.yr-rail button { width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.1); }
+.yr-rail button[style] { color: var(--c); background: color-mix(in srgb, var(--c) 22%, transparent); }
+.yr-rail button.q { color: #FCD34D; background: rgba(245,158,11,.22); }
+.yr-rail button svg { width: 19px; height: 19px; }
+.yr-rail b { font-size: 12px; font-weight: 900; }
+.yr-rail small { font-size: 11px; font-weight: 900; color: #93C5FD; }
+body.yr-land-on { overflow: hidden; }
+body.yr-land-on nav, body.yr-land-on .yr-pop { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .yr-fr-r, .yr-fr-m { animation-duration: .01s; } }

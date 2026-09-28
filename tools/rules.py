@@ -353,6 +353,8 @@ rules = {
                 ".validate": "!newData.exists() || (newData.child('t').isNumber() && newData.child('d').isNumber() && newData.child('at').isNumber())",
             }},
             "done": {"$uid": {"$k": {".write": ands(OWNER, YR_MEMBER), ".validate": "newData.val() === true"}}},
+            "react": {"$uid": {".write": ors(ands(OWNER, YR_MEMBER), ands(OWNER, "!newData.exists()"), ands(YR_HOST, "!newData.exists()")),
+                               ".validate": "!newData.exists() || (" + s_max("newData.child('r')", 8) + " && newData.child('at').isNumber())"}},
             "chat": {"$id": {
                 ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", YR_MEMBER),
                               ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
