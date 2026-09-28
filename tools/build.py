@@ -29,7 +29,8 @@ v = {
     'css/tw.css': h('css/tw.css'),
     'js/app.js': h('js/app.js'),
 }
-v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js')
+import glob
+v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', *sorted(glob.glob('js/bio/*.js')))
 
 with open('index.html', encoding='utf-8') as f:
     s = f.read()

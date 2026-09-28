@@ -5363,6 +5363,121 @@
                 return null;
             },
 
+            // ===== 3D biology diagrams (رسومات الأحياء) =====
+            // The engine (three.js) and the models load only when this page opens:
+            // js/bio/viewer.js and one file per chapter in js/bio/.
+            BIO_CHAPTERS: [
+                { f: 'cell', t: 'الخلية', c: '#10B981', icon: 'microscope', ids: ['bacteria', 'plant', 'animal', 'membrane', 'chromosome', 'chloroplast', 'mito'] }
+            ],
+
+            _bioImport(name) {
+                this._bioMods = this._bioMods || {};
+                if (!this._bioMods[name]) {
+                    this._bioMods[name] = import(new URL('js/bio/' + name + '.js?v=' + (window.APP_VER || '1'), document.baseURI).href).catch((e) => { delete this._bioMods[name]; throw e; });
+                }
+                return this._bioMods[name];
+            },
+
+            goToBio() {
+                this.switchView('bioView');
+                this._bioScr = { s: 'list' };
+                this._bioRender();
+            },
+
+            bioBack() {
+                if (this._bioScr && this._bioScr.s === 'view') { this._bioClose(); this._bioScr = { s: 'list' }; this._bioRender(); return; }
+                this.goBack();
+            },
+
+            _bioClose() {
+                if (this._b3) { this._b3.dispose(); this._b3 = null; }
+                document.body.classList.remove('b3-on');
+            },
+
+            async _bioRender() {
+                const box = document.getElementById('bioContent');
+                if (!box) return;
+                const scr = this._bioScr || { s: 'list' };
+                const t = document.getElementById('bioTitle'), sub = document.getElementById('bioSub');
+                if (scr.s === 'list') {
+                    if (t) t.textContent = 'رسومات الأحياء 3D';
+                    if (sub) sub.textContent = 'السادس العلمي · اختار رسمة';
+                    box.innerHTML = '<div class="b3-list"><div class="kd-loading"><span></span><span></span><span></span></div></div>';
+                    let mods;
+                    try { mods = await Promise.all(this.BIO_CHAPTERS.map((c) => this._bioImport(c.f))); }
+                    catch (e) { box.innerHTML = '<p class="b3-err">ما انحملت الرسومات، تأكد من النت وحاول مرة ثانية</p>'; return; }
+                    if (this.currentView !== 'bioView' || this._bioScr !== scr) return;
+                    box.innerHTML = `<div class="b3-list">
+                        <div class="b3-hero"><i data-lucide="rotate-3d"></i><div><b>كل رسمة مجسّمة</b><small>دوّرها بإصبعك، قرّب وبعّد، واضغط على أي جزء حتى تعرف اسمه ووظيفته. وبوضع "اختبر نفسك" تنخفي الأسماء وإنت تتذكرها.</small></div></div>
+                        ${this.BIO_CHAPTERS.map((c, ci) => {
+                            const list = mods[ci].MODELS;
+                            return `<div class="b3-ch" style="--c:${c.c}"><b><i data-lucide="${c.icon}"></i>${escapeHtml(c.t)}</b><span>${list.length} رسمة</span></div>
+                            <div class="b3-grid">${list.map((m, i) => `<button class="b3-card" style="--c:${c.c};--i:${i}" onclick="app.bioOpen(${jsArg(c.f)}, ${jsArg(m.id)})"><span class="b3-card-ic"><i data-lucide="${m.icon || 'box'}"></i></span><b>${escapeHtml(m.title)}</b><em><i data-lucide="rotate-3d"></i>3D</em></button>`).join('')}</div>`;
+                        }).join('')}
+                        <p class="b3-soon">باقي فصول الكتاب تنضاف تباعاً</p>
+                    </div>`;
+                    lucide.createIcons();
+                    return;
+                }
+                // viewer
+                const mod = await this._bioImport(scr.f).catch(() => null);
+                const model = mod && mod.MODELS.find((m) => m.id === scr.id);
+                if (!model) { this._bioScr = { s: 'list' }; this._bioRender(); return; }
+                if (t) t.textContent = model.title;
+                if (sub) sub.textContent = 'دوّرها بإصبعك واضغط على أي جزء';
+                document.body.classList.add('b3-on');
+                box.innerHTML = `<div class="b3-wrap">
+                    <div class="b3" id="b3Root"><canvas></canvas><svg class="b3-lines"></svg><div class="b3-labels"></div><div class="b3-load"><div class="kd-loading"><span></span><span></span><span></span></div></div></div>
+                    <div class="b3-bar">
+                        <button id="b3Lb" class="on" onclick="app.bioTool('labels')"><i data-lucide="tag"></i>الأسماء</button>
+                        <button id="b3Ex" onclick="app.bioTool('exam')"><i data-lucide="brain"></i>اختبر نفسك</button>
+                        <button onclick="app.bioTool('reset')"><i data-lucide="rotate-ccw"></i>إعادة</button>
+                    </div>
+                    <div class="b3-info" id="b3Info"><i data-lucide="hand"></i><span>اضغط على أي جزء أو اسم حتى تعرف وظيفته</span></div>
+                </div>`;
+                lucide.createIcons();
+                let V;
+                try { V = await this._bioImport('viewer'); } catch (e) { box.innerHTML = '<p class="b3-err">ما انحمل العارض، تأكد من النت وحاول مرة ثانية</p>'; return; }
+                if (this.currentView !== 'bioView' || this._bioScr !== scr) return;
+                const host = document.getElementById('b3Root');
+                try {
+                    this._b3 = new V.Bio3D(host, (l) => this._bioInfo(l));
+                    this._b3.show(model);
+                } catch (e) {
+                    console.warn('3D viewer failed:', e);
+                    host.innerHTML = '<p class="b3-err">جهازك ما يدعم العرض ثلاثي الأبعاد</p>';
+                    return;
+                }
+                host.querySelector('.b3-load')?.remove();
+            },
+
+            bioOpen(f, id) {
+                this._bioClose();
+                this._bioScr = { s: 'view', f, id };
+                this._bioRender();
+            },
+
+            bioTool(k) {
+                const v = this._b3;
+                if (!v) return;
+                if (k === 'labels') { v.setLabels(!v.showLabels); document.getElementById('b3Lb')?.classList.toggle('on', v.showLabels); }
+                else if (k === 'exam') {
+                    v.setExam(!v.examMode);
+                    document.getElementById('b3Ex')?.classList.toggle('on', v.examMode);
+                    if (v.examMode && !v.showLabels) { v.setLabels(true); document.getElementById('b3Lb')?.classList.add('on'); }
+                    this._bioInfo(null, v.examMode ? 'الأسماء مخفية. اضغط على أي رقم وتذكر اسمه، بعدها يطلعلك الجواب' : null);
+                }
+                else if (k === 'reset') { v.reset(); if (v.sel >= 0) v.select(v.sel); }
+            },
+
+            _bioInfo(l, msg) {
+                const el = document.getElementById('b3Info');
+                if (!el) return;
+                el.classList.toggle('on', !!l);
+                el.innerHTML = l ? `<b>${escapeHtml(l.name)}</b><span>${escapeHtml(l.desc)}</span>` : `<i data-lucide="${msg ? 'brain' : 'hand'}"></i><span>${escapeHtml(msg || 'اضغط على أي جزء أو اسم حتى تعرف وظيفته')}</span>`;
+                if (!l) lucide.createIcons();
+            },
+
             // ===== Review cards (بطاقات المراجعة) — the engine is in js/cards.js =====
             goToCards() {
                 this.switchView('cardsView');
@@ -12167,6 +12282,7 @@
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
+                if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
                 if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
                 if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
@@ -12174,7 +12290,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
