@@ -108,7 +108,7 @@ export const MODELS = [
             const wall = k.mesh(roundedBox(T, 1.9, 2.5, 1.05, 0.12), k.mat(0x7A2E3A, { clip: [k.cut(0, 0, 1, 0.3)], side: D, rough: 0.75 }));
             const memb = k.mesh(roundedBox(T, 1.74, 2.34, 0.9, 0.1), k.mat(0xD9607A, { clip: [k.cut(0, 0, 1, 0.2)], side: D }));
             const cyto = k.mesh(roundedBox(T, 1.7, 2.3, 0.86, 0.09), k.mat(0xF6E4B4, { opacity: 0.42, clip: [k.cut(0, 0, 1, 0.1)], side: D }));
-            const vac = k.mesh(k.blob(0.55, 0.28, 2.2, 56, 3), k.mat(0x8CCB86, { opacity: 0.82, coat: 0.9, rough: 0.2 }));
+            const vac = k.mesh(k.blob(0.55, 0.28, 2.2, 56, 3), k.mat(0x5DBB5A, { clear: true, opacity: 0.62, bump: 0.3 }));
             k.at(vac, 0.18, -0.12, -0.12, 0, 0, 0, [1.05, 1.45, 0.55]);
             const nuc = k.mesh(new T.SphereGeometry(0.27, 40, 30), k.mat(0x2B6A9E, { clip: [k.cut(0, 0, 1, 0.12)], side: D }));
             k.at(nuc, -0.5, 0.3, -0.02);
@@ -166,7 +166,7 @@ export const MODELS = [
             const wedge = (d) => [k.cut(1, 0, 0, d), k.cut(0, 0, 1, d)];
             const memb = k.mesh(new T.SphereGeometry(1, 72, 54), k.mat(0xE3A06E, { clip: wedge(0.02), clipAll: true, side: D, sheen: 0.5 }));
             memb.scale.set(1, 1.2, 0.9);
-            const cyto = k.mesh(new T.SphereGeometry(0.97, 64, 48), k.mat(0xF7E2A6, { opacity: 0.4, clip: wedge(0), clipAll: true, side: D }));
+            const cyto = k.mesh(new T.SphereGeometry(0.97, 64, 48), k.mat(0xF2D48A, { glass: true, thick: 0.5, atten: 2.2, clip: wedge(0), clipAll: true, side: D }));
             cyto.scale.set(1, 1.2, 0.9);
             const nuc = k.mesh(new T.SphereGeometry(0.3, 44, 34), k.mat(0x2D5E68, { clip: wedge(0.05), clipAll: true, side: D }));
             const nucIn = k.mesh(new T.SphereGeometry(0.29, 40, 30), k.mat(0x4F8A92, { opacity: 0.6, clip: wedge(0.04), clipAll: true, side: D }));
@@ -306,7 +306,7 @@ export const MODELS = [
             outer.scale.set(1.35, 0.7, 0.72);
             const inner = k.mesh(new T.SphereGeometry(0.95, 72, 54), k.mat(0xB8D86A, { clip: [k.cut(0, 0, 1, 0.02)], side: D }));
             inner.scale.set(1.35, 0.7, 0.72);
-            const stroma = k.mesh(new T.SphereGeometry(0.92, 60, 44), k.mat(0xF3EC8C, { opacity: 0.5, clip: [k.cut(0, 0, 1, -0.02)], side: D }));
+            const stroma = k.mesh(new T.SphereGeometry(0.92, 60, 44), k.mat(0xF3EC8C, { glass: true, thick: 0.6, atten: 1.2, clip: [k.cut(0, 0, 1, -0.02)], side: D }));
             stroma.scale.set(1.35, 0.7, 0.72);
             const grana = k.group(), gm = k.mat(0x2E6B2D, { coat: 0.6 }), lam = k.group(), lm = k.mat(0x76B253);
             const rows = [[-0.28, [-0.85, -0.35, 0.2, 0.75]], [0.08, [-0.6, -0.05, 0.5]], [0.38, [-0.8, -0.2, 0.35, 0.85]]];
@@ -345,7 +345,7 @@ export const MODELS = [
             outer.rotation.z = Math.PI / 2;
             const inner = k.mesh(new T.CapsuleGeometry(0.43, 1.5, 20, 60), k.mat(0xF0A763, { clip: [k.cut(0, 0, 1, 0.05)], side: D }));
             inner.rotation.z = Math.PI / 2;
-            const matrix = k.mesh(new T.CapsuleGeometry(0.41, 1.48, 16, 48), k.mat(0x93C17E, { opacity: 0.55, clip: [k.cut(0, 0, 1, 0.0)], side: D }));
+            const matrix = k.mesh(new T.CapsuleGeometry(0.41, 1.48, 16, 48), k.mat(0x93C17E, { glass: true, thick: 0.6, atten: 1.1, clip: [k.cut(0, 0, 1, 0.0)], side: D }));
             matrix.rotation.z = Math.PI / 2;
             const cr = k.group(), cm = k.mat(0xF0A763, { coat: 0.5 });
             for (let i = 0; i < 9; i++) {

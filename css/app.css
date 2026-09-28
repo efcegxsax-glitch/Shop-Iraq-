@@ -2320,3 +2320,13 @@ body.b3-on #mainContent { padding-bottom: 0 !important; }
 .b3-info.on { display: block; border-color: #F59E0B; box-shadow: 0 0 0 3px rgba(245, 158, 11, .15); animation: kdPop .35s ease; }
 .b3-info.on b { display: block; margin-bottom: 2px; font-size: 14.5px; font-weight: 900; color: var(--text); }
 @media (prefers-reduced-motion: reduce) { .b3-hero > svg, .b3-card { animation: none; } }
+.b3-steps { display: flex; align-items: center; gap: 8px; padding: 10px 12px 0; }
+.b3-steps > button { width: 42px; height: 42px; flex-shrink: 0; border: 0; border-radius: 14px; display: grid; place-items: center; background: #8B5CF6; color: #fff; }
+.b3-steps > button:disabled { background: var(--input-bg); color: var(--text2); }
+.b3-steps > button svg { width: 20px; height: 20px; }
+.b3-steps-tx { flex: 1; min-width: 0; text-align: center; }
+.b3-steps-tx b { display: block; font-size: 14px; font-weight: 900; color: var(--text); }
+.b3-steps-tx span { display: flex; justify-content: center; gap: 5px; margin-top: 5px; }
+.b3-steps-tx span i { width: 8px; height: 8px; border-radius: 50%; background: var(--input-bg); cursor: pointer; transition: all .25s; }
+.b3-steps-tx span i.done { background: color-mix(in srgb, #8B5CF6 45%, transparent); }
+.b3-steps-tx span i.on { width: 20px; border-radius: 99px; background: #8B5CF6; }

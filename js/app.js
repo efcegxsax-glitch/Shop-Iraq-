@@ -5367,7 +5367,9 @@
             // The engine (three.js) and the models load only when this page opens:
             // js/bio/viewer.js and one file per chapter in js/bio/.
             BIO_CHAPTERS: [
-                { f: 'cell', t: 'الخلية', c: '#10B981', icon: 'microscope', ids: ['bacteria', 'plant', 'animal', 'membrane', 'chromosome', 'chloroplast', 'mito'] }
+                { f: 'cell', t: 'الخلية', c: '#10B981', icon: 'microscope' },
+                { f: 'transport', t: 'نقل المواد عبر الغشاء', c: '#0EA5E9', icon: 'arrow-left-right' },
+                { f: 'division', t: 'الانقسام الخيطي', c: '#8B5CF6', icon: 'git-fork' }
             ],
 
             _bioImport(name) {
@@ -5449,6 +5451,27 @@
                     return;
                 }
                 host.querySelector('.b3-load')?.remove();
+                if (this._b3.steps) {
+                    const bar = document.createElement('div');
+                    bar.className = 'b3-steps';
+                    bar.id = 'b3Steps';
+                    host.parentNode.insertBefore(bar, host.nextSibling);
+                    this.bioStep(0, true);
+                }
+            },
+
+            // Models with stages: previous / next and a dot per stage.
+            bioStep(d, abs) {
+                const v = this._b3, bar = document.getElementById('b3Steps');
+                if (!v || !v.steps || !bar) return;
+                v.setStep(abs ? d : v.step + d);
+                const i = v.step, st = v.steps[i];
+                bar.innerHTML = `<button onclick="app.bioStep(-1)" ${i ? '' : 'disabled'} aria-label="السابق"><i data-lucide="chevron-right"></i></button>
+                    <div class="b3-steps-tx"><b>${escapeHtml(st[0])}</b><span>${v.steps.map((_, j) => `<i class="${j === i ? 'on' : j < i ? 'done' : ''}" onclick="app.bioStep(${j}, true)"></i>`).join('')}</span></div>
+                    <button onclick="app.bioStep(1)" ${i < v.steps.length - 1 ? '' : 'disabled'} aria-label="التالي"><i data-lucide="chevron-left"></i></button>`;
+                lucide.createIcons();
+                const el = document.getElementById('b3Info');
+                if (el && v.sel < 0) { el.classList.remove('on'); el.innerHTML = `<i data-lucide="info"></i><span><b style="display:inline;color:var(--text)">${escapeHtml(st[0])}: </b>${escapeHtml(st[1])}</span>`; lucide.createIcons(); }
             },
 
             bioOpen(f, id) {
