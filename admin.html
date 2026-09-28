@@ -79,6 +79,7 @@
         .vn-meter { height: 8px; border-radius: 99px; background: rgba(127,127,127,.2); overflow: hidden; }
         .vn-meter i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #22C55E, #EAB308 70%, #EF4444); transition: width .08s; }
         .vn-stats b { color: #60A5FA; }
+        .vn-warn { margin-bottom: 12px; padding: 12px; border-radius: 12px; font-size: 13px; line-height: 1.7; font-weight: 700; color: #FECACA; background: rgba(220,38,38,.18); border: 1px solid rgba(220,38,38,.5); }
         .vn-who { margin-top: 10px; font-size: 13px; }
         .vn-who summary { cursor: pointer; font-weight: 700; }
         .vn-who div div { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
@@ -1211,6 +1212,7 @@
                         <div class="ic"><i data-lucide="radio"></i></div>
                         <div><h3>البصمة المنشورة هسه</h3><p id="vnNowTitle"></p></div>
                     </div>
+                    <div id="vnRulesWarn" class="vn-warn" style="display:none">الطلاب بعدهم ما يشوفونها: قاعدة البيانات ترفض قراءتها لأن قواعد الحماية الجديدة ما منشورة. افتح صفحة rules.html وانسخ القواعد وانشرها بـ Firebase، وبعدها تطلع البصمة عند الكل فوراً.</div>
                     <button type="button" class="btn" id="vnLoad" style="background:var(--panel-2);color:inherit;border:1px solid var(--border);margin-bottom:10px">اسمع البصمة المنشورة</button>
                     <audio id="vnNowAudio" controls style="width:100%;margin-bottom:10px;display:none"></audio>
                     <div class="fb-now vn-stats"><div><b id="vnPlays">0</b><span>شغّلوها</span></div><div><b id="vnDone">0</b><span>سمعوها للآخر</span></div></div>
@@ -2906,6 +2908,10 @@
                 if (vnWhoUnsub) { vnWhoUnsub(); vnWhoUnsub = null; }
                 el('vnNowCard').style.display = vnCur ? '' : 'none';
                 if (!vnCur) return;
+                // can a student (no sign-in) read it? if not, the new rules aren't published
+                fetch(firebaseConfig.databaseURL.replace(/\/$/, '') + '/voiceNote.json?shallow=true', { cache: 'no-store' })
+                    .then((r) => { el('vnRulesWarn').style.display = r.status === 401 || r.status === 403 ? '' : 'none'; })
+                    .catch(() => {});
                 el('vnNowTitle').textContent = (vnCur.title || 'بدون عنوان') + ' . ' + vnFmt(vnCur.dur) + ' . ' + new Date(vnCur.at).toLocaleString('en-GB');
                 vnStatsUnsub = onValue(ref(db, 'voiceNoteStats/' + vnCur.id), (s) => { const v = s.val() || {}; el('vnPlays').textContent = v.plays || 0; el('vnDone').textContent = v.done || 0; });
                 vnWhoUnsub = onValue(ref(db, 'voiceListeners/' + vnCur.id), (s) => {
