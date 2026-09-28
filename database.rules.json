@@ -64,6 +64,10 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
+    "admission": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
     "bannedStudents": {
       ".read": "auth != null",
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
