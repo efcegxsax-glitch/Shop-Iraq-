@@ -1980,3 +1980,31 @@
 /* ===== بدون نت ===== */
 .offline-bar { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; padding: calc(env(safe-area-inset-top, 0px) + 6px) 14px 6px; text-align: center; font-size: 11.5px; font-weight: 700; color: #FFF7ED; background: linear-gradient(90deg, #B45309, #D97706); box-shadow: 0 4px 14px -6px rgba(0,0,0,.4); }
 body.is-offline .offline-bar { display: block; }
+
+/* ===== الساعة الذهبية ===== */
+.gold-bar { position: relative; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; overflow: hidden; border: 1px solid rgba(217,160,40,.35); background: linear-gradient(120deg, rgba(251,191,36,.12), rgba(245,158,11,.06)); }
+.gold-bar .gold-ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; flex-shrink: 0; color: #fff; background: linear-gradient(135deg, #FBBF24, #D97706); box-shadow: 0 6px 16px -6px rgba(217,119,6,.8); }
+.gold-bar .gold-ic svg { width: 19px; height: 19px; }
+.gold-bar .gold-tx { flex: 1; min-width: 0; }
+.gold-bar .gold-tx b { display: block; font-size: 13.5px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; }
+.gold-bar .gold-tx small { display: block; margin-top: 2px; font-size: 11px; line-height: 1.5; color: var(--text2); }
+.gold-bar.after { opacity: .75; border-color: rgba(148,163,184,.3); background: rgba(148,163,184,.08); }
+.gold-bar.after .gold-ic { background: linear-gradient(135deg, #94A3B8, #64748B); box-shadow: none; }
+.gold-bar.soon { animation: goldPulse 1.6s ease-in-out infinite; }
+.gold-bar.on { border-color: #F59E0B; background: linear-gradient(120deg, #FDE68A, #FBBF24 45%, #F59E0B); box-shadow: 0 10px 28px -12px rgba(217,119,6,.9); }
+.gold-bar.on .gold-tx b { color: #422006; }
+.gold-bar.on .gold-tx small { color: #713F12; }
+.gold-bar.on .gold-ic { background: #422006; color: #FDE68A; }
+.gold-bar.on::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent); animation: goldShine 2.6s ease-in-out infinite; pointer-events: none; }
+.gold-go { flex-shrink: 0; height: 36px; padding: 0 14px; border: 0; border-radius: 11px; background: #422006; color: #FDE68A; font: inherit; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+@keyframes goldShine { 0% { left: -40%; } 60%, 100% { left: 110%; } }
+@keyframes goldPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245,158,11,.0); } 50% { box-shadow: 0 0 0 5px rgba(245,158,11,.22); } }
+.gold-x2, .gold-hint { display: none; }
+body.golden-on .gold-x2 { display: inline-block; margin-top: 3px; padding: 1px 8px; border-radius: 99px; font-style: normal; font-size: 10.5px; font-weight: 900; color: #422006; background: linear-gradient(135deg, #FDE68A, #F59E0B); }
+body.golden-on .gold-hint { display: flex; align-items: center; gap: 7px; margin-top: 10px; padding: 8px 11px; border-radius: 12px; font-size: 11.5px; font-weight: 800; color: #FDE68A; background: rgba(245,158,11,.14); border: 1px solid rgba(251,191,36,.4); }
+.gold-hint svg { width: 15px; height: 15px; flex-shrink: 0; }
+body.golden-on .fr-ring .fg { stroke: #FBBF24; filter: drop-shadow(0 0 6px rgba(251,191,36,.9)); }
+body.golden-on #fcArc { stroke: #F59E0B; }
+.gold-t { color: #D97706; font-weight: 800; }
+.fr .gold-t { color: #FCD34D; }
+@media (prefers-reduced-motion: reduce) { .gold-bar.on::after, .gold-bar.soon { animation: none; } }

@@ -618,6 +618,8 @@
                 this.initWebPush();
                 this.listenForPolls();
                 this.listenForVerified();
+                this._clockSync();
+                this.initGolden();
                 setTimeout(() => this.pingDevice(), 3000);
                 this.initInstallBar();
                 setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
@@ -2848,6 +2850,7 @@
                 const { ref, onValue } = window.firebaseDbHelpers;
                 onValue(ref(window.firebaseDb, 'forest/govs'), (snap) => { this._frGovs = snap.val() || {}; this._frSync(); });
                 onValue(ref(window.firebaseDb, 'focusLive'), (snap) => { this._frLiveRaw = snap.val() || {}; this._frSync(); });
+                onValue(ref(window.firebaseDb, 'forest/gold'), (snap) => { this._frGold = snap.val() || {}; if (this._f3d) this._f3d.setGold(this._frGold); });
                 onValue(ref(window.firebaseDb, 'forestConfig/weather'), (snap) => { const v = snap.val(); this._frWxMode = (v && v.mode) || 'real'; if (this._f3d) this._f3d.wxMode = this._frWxMode; });
                 onValue(ref(window.firebaseDb, 'forestConfig/bots'), (snap) => { this._frBots = snap.val(); this._frSeen = Date.now(); this._frSync(); });
                 // companions finish sessions over time: refresh and announce them while the page is open
@@ -2915,6 +2918,8 @@
                         this._f3d.compassEl = document.getElementById('frCompass');
                         this._f3d.onUserMove = () => { if (!this._forest && !this._frResult && !this._frMini) this.frSheetToggle(false); };
                         this._f3d.wxMode = this._frWxMode || 'real';
+                        this._f3d.setGold(this._frGold || {});
+                        this._f3d.goldNow = this.goldenState().active;
                         if (this._wxData) this._f3d.setRealWeather(this._wxData);
                     } catch (e) {
                         console.warn('3D forest unavailable:', e);
@@ -3047,6 +3052,7 @@
                 } else {
                     body = `
                         <div class="fr-head"><b>ازرع شجرة ب${escapeHtml(gov)}</b><small>ادرس بهاي الصفحة لحد ما يخلص الوقت، وشجرتك تكبر قدامك على الخارطة</small></div>
+                        <div class="gold-hint"><i data-lucide="sparkles"></i>الساعة الذهبية شغالة: كل دقيقة بنقطتين وشجرتك تطلع ذهبية</div>
                         <div class="fr-durs">${this.FOREST_DURS.map((m) => `<button class="${m === this.forestMinutes ? 'on' : ''}" onclick="app.setForestMinutes(${jsNum(m)})"><b>${m}</b><span>دقيقة</span><em>+${m} نقطة</em></button>`).join('')}</div>
                         <button class="fr-go" onclick="app.startForest()"><i data-lucide="sprout"></i>ابدأ وازرع</button>
                         <div class="fr-rules">
@@ -3073,13 +3079,17 @@
                 setTimeout(() => this._frFit(), 320);
             },
 
-            startForest() {
-                if (this._forest) return;
+            async startForest() {
+                if (this._forest || this._starting) return;
                 if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
                 const gov = this._myGov();
                 if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
                 if (this._focus) { this.showToast('عندك جلسة تركيز شغالة، كمّلها أول'); return; }
-                const minutes = this.forestMinutes, now = Date.now();
+                this._starting = true;
+                const free = await this._sessionFree();
+                this._starting = false;
+                if (!free || this._forest) return;
+                const minutes = this.forestMinutes, now = this.trueNow();
                 this._forest = { start: now, dur: minutes * 60000, minutes, g: gov, next: now + this._frGap(true), check: null };
                 try { localStorage.setItem(this.FOREST_KEY, JSON.stringify({ start: now, dur: minutes * 60000 })); } catch (e) {}
                 this._frResult = null;
@@ -3096,7 +3106,8 @@
             },
 
             // Minutes until the next "still studying?" check: the first comes sooner.
-            _frGap(first) { return (first ? 4 + Math.random() * 4 : 6 + Math.random() * 5) * 60000; },
+            // (more often during the golden hour, when minutes are worth double)
+            _frGap(first) { return (this.goldenState().active ? 4 + Math.random() * 3 : first ? 4 + Math.random() * 4 : 6 + Math.random() * 5) * 60000; },
 
             _frStage(p) { return p < 0.1 ? 'بذرة' : p < 0.35 ? 'برعم' : p < 0.7 ? 'شتلة' : p < 1 ? 'شجرة صغيرة' : 'شجرة'; },
 
@@ -3110,7 +3121,7 @@
                     <div class="fr-run">
                         <div class="fr-ring">
                             <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="bg"/><circle cx="50" cy="50" r="44" class="fg" id="frArc" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg>
-                            <div><b id="frClock" dir="ltr">--:--</b><span id="frStage">بذرة</span></div>
+                            <div><b id="frClock" dir="ltr">--:--</b><span id="frStage">بذرة</span><em class="gold-x2">×2</em></div>
                         </div>
                         <div class="fr-run-tx">
                             <b>شجرتك تكبر ب${escapeHtml(f.g)}</b>
@@ -3127,7 +3138,7 @@
             _frTick() {
                 const f = this._forest;
                 if (!f) return;
-                const now = Date.now();
+                const now = this.trueNow();
                 if (f.hiddenAt) return;
                 if (f.check && now > f.check.until) { this.failForest('ما رديت على سؤال "لسه تدرس؟"'); return; }
                 const left = f.start + f.dur - now;
@@ -3157,7 +3168,7 @@
                 if (!f) return;
                 const words = this.FOREST_WORDS.slice().sort(() => Math.random() - 0.5).slice(0, 3);
                 const right = words[Math.floor(Math.random() * 3)];
-                f.check = { until: Date.now() + this.FOREST_CHECK_SECS * 1000, right };
+                f.check = { until: this.trueNow() + this.FOREST_CHECK_SECS * 1000, right };
                 const box = document.getElementById('frCheck');
                 if (box) {
                     const C = 2 * Math.PI * 30;
@@ -3183,7 +3194,7 @@
                     return;
                 }
                 f.check = null;
-                f.next = Date.now() + this._frGap(false);
+                f.next = this.trueNow() + this._frGap(false);
                 document.getElementById('frCheck')?.classList.add('hidden');
                 this.showToast('تمام، كمّل دراستك');
             },
@@ -3200,9 +3211,9 @@
                 document.addEventListener('visibilitychange', () => {
                     const f = this._forest;
                     if (!f) return;
-                    if (document.hidden) { f.hiddenAt = Date.now(); return; }
+                    if (document.hidden) { f.hiddenAt = performance.now(); f.hiddenWall = Date.now(); return; }
                     if (!f.hiddenAt) return;
-                    const away = Date.now() - f.hiddenAt;
+                    const away = Math.max(performance.now() - f.hiddenAt, Date.now() - (f.hiddenWall || 0));
                     delete f.hiddenAt;
                     if (away > this.FOREST_GRACE_MS) this.failForest('طلعت من التطبيق أثناء الجلسة');
                     else { this._requestWakeLock(); this._frTick(); }
@@ -3228,14 +3239,20 @@
                 if (this._f3d) this._f3d.finish(true);
                 this.playNotifySound();
                 const u = this.currentUser || {};
+                f.golden = this._goldenCredit(f);
+                const pts = f.minutes + f.golden;
                 this.saveFocusStats({ forestTrees: numOr0(u.forestTrees) + 1, forestMinutes: numOr0(u.forestMinutes) + f.minutes });
-                this.addPointsAtomic(f.minutes).then(() => this.logDailyActivity({ points: f.minutes, studySessions: 1 }));
+                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1 }));
                 this._govWarAdd(f.minutes);
                 if (window.firebaseDb) {
                     const { ref, runTransaction, set } = window.firebaseDbHelpers;
                     runTransaction(ref(window.firebaseDb, 'forest/govs/' + f.g), (cur) => {
                         const c = cur || {};
                         return { t: numOr0(c.t) + 1, m: numOr0(c.m) + f.minutes };
+                    }).then((res) => {
+                        // a tree planted with golden minutes stays golden on the map
+                        const t = res && res.committed && res.snapshot.val() ? numOr0(res.snapshot.val().t) : 0;
+                        if (f.golden && t) set(ref(window.firebaseDb, 'forest/gold/' + f.g + '/' + (t - 1)), true).catch(() => {});
                     }).catch((e) => console.warn('Forest update failed:', e));
                     const first = String(u.fullName || '').trim().split(/\s+/)[0] || '';
                     set(ref(window.firebaseDb, 'forest/last'), { g: f.g, n: filterBadWords(first).clean.slice(0, 20), m: f.minutes, at: Date.now(), u: this.authUid || '' }).catch(() => {});
@@ -3264,7 +3281,7 @@
                 box.innerHTML = r.ok ? `
                     <span class="fr-res-ic"><i data-lucide="trees"></i></span>
                     <b class="fr-res-t">انزرعت شجرتك ب${escapeHtml(r.f.g)}</b>
-                    <p class="fr-res-p">كملت ${r.f.minutes} دقيقة دراسة وكسبت <em>+${r.f.minutes} نقطة</em>. شجرتك صارت جزء من غابة العراق.</p>
+                    <p class="fr-res-p">كملت ${r.f.minutes} دقيقة دراسة وكسبت <em>+${r.f.minutes + (r.f.golden || 0)} نقطة</em>${r.f.golden ? ` (منها <em class="gold-t">${r.f.golden} نقطة ذهبية</em>، وشجرتك طلعت ذهبية)` : ''}. شجرتك صارت جزء من غابة العراق.</p>
                     <button class="fr-go" onclick="app._frResult = null; app._frRenderSetup()"><i data-lucide="sprout"></i>ازرع شجرة ثانية</button>` : `
                     <span class="fr-res-ic"><i data-lucide="leaf"></i></span>
                     <b class="fr-res-t">ذبلت شجرتك</b>
@@ -3950,10 +3967,14 @@
                 lucide.createIcons();
             },
 
-            startFocus() {
-                if (this._focus) return;
+            async startFocus() {
+                if (this._focus || this._starting) return;
+                this._starting = true;
+                const free = await this._sessionFree();
+                this._starting = false;
+                if (!free || this._focus) return;
                 const minutes = this.focusMinutes;
-                this._focus = { start: Date.now(), dur: minutes * 60000, minutes };
+                this._focus = { start: this.trueNow(), dur: minutes * 60000, minutes };
                 try { localStorage.setItem(this.FOCUS_KEY, JSON.stringify(this._focus)); } catch (e) {}
                 document.body.classList.add('focus-mode');
                 this._requestWakeLock();
@@ -3977,7 +3998,7 @@
                                 <circle class="bg" cx="130" cy="130" r="116" fill="none" stroke-width="14"/>
                                 <circle class="fg" id="fcArc" cx="130" cy="130" r="116" fill="none" stroke-width="14" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"/>
                             </svg>
-                            <div class="fc-time"><b id="fcClock" dir="ltr">--:--</b><span>متبقي من ${this._focus.minutes} دقيقة</span></div>
+                            <div class="fc-time"><b id="fcClock" dir="ltr">--:--</b><span>متبقي من ${this._focus.minutes} دقيقة</span><em class="gold-x2">×2 ذهبية</em></div>
                         </div>
                         <h3>ركّز… الهاتف على جنب</h3>
                         <p>كمّل الجلسة وتكسب <b>${this._focus.minutes} نقطة</b>. التطبيق مفتوح لحد ما يخلص الوقت.</p>
@@ -3991,7 +4012,7 @@
             _focusTick() {
                 const f = this._focus;
                 if (!f) return;
-                const left = f.start + f.dur - Date.now();
+                const left = f.start + f.dur - this.trueNow();
                 if (left <= 0) { this.completeFocus(); return; }
                 const secs = Math.ceil(left / 1000);
                 const clock = document.getElementById('fcClock');
@@ -4022,19 +4043,21 @@
                 const st = this.focusStats();
                 this.saveFocusStats({ focusDone: st.done + 1, focusMinutes: st.minutes + f.minutes });
                 this.playNotifySound();
+                let golden = 0;
                 if (this.isLoggedIn && this.currentUser) {
-                    this.addPointsAtomic(f.minutes).then(() => {
-                        this.logDailyActivity({ points: f.minutes, studySessions: 1 });
+                    golden = this._goldenCredit(f);
+                    this.addPointsAtomic(f.minutes + golden).then(() => {
+                        this.logDailyActivity({ points: f.minutes + golden, studySessions: 1 });
                     });
                     this._govWarAdd(f.minutes);
                 }
-                this.renderFocusResult(true, f.minutes, f.minutes);
+                this.renderFocusResult(true, f.minutes, f.minutes, null, golden);
             },
 
             breakFocus(reason) {
                 const f = this._stopFocus();
                 if (!f) return;
-                const done = Math.max(0, Math.floor((Date.now() - f.start) / 60000));
+                const done = Math.max(0, Math.floor((this.trueNow() - f.start) / 60000));
                 const st = this.focusStats();
                 this.saveFocusStats({ focusBroken: st.broken + 1 });
                 this.renderFocusResult(false, f.minutes, done, reason);
@@ -4046,7 +4069,7 @@
                 this.breakFocus('أنهيت الجلسة قبل وقتها');
             },
 
-            renderFocusResult(ok, minutes, done, reason) {
+            renderFocusResult(ok, minutes, done, reason, golden) {
                 const box = document.getElementById('focusContent');
                 if (!box) return;
                 box.innerHTML = ok ? `
@@ -4054,7 +4077,7 @@
                         <span class="fc-res-ic"><i data-lucide="check"></i></span>
                         <h3>أحسنت! كملت الجلسة</h3>
                         <p>ركّزت ${minutes} دقيقة بدون ما تلمس هاتفك</p>
-                        ${this.isLoggedIn ? `<span class="fc-pts">+${minutes} نقطة</span>` : '<p>سجّل دخولك المرة الجاية حتى تنحسب نقاطك</p>'}
+                        ${this.isLoggedIn ? `<span class="fc-pts">+${minutes + (golden || 0)} نقطة</span>${golden ? `<p class="gold-t">منها ${golden} نقطة ذهبية من الساعة الذهبية</p>` : ''}` : '<p>سجّل دخولك المرة الجاية حتى تنحسب نقاطك</p>'}
                         ${this.isLoggedIn && this._myGov() ? `<p class="fc-gov">+${minutes} دقيقة لمحافظة ${escapeHtml(this._myGov())} بحرب المحافظات</p>` : ''}
                         <div class="fc-res-btns"><button class="pri" onclick="app.startFocus()">جلسة ثانية</button><button onclick="app.shareFocusStory(${jsNum(minutes)})">شارك إنجازك</button></div>
                         <button class="fc-quit" style="color:var(--text2);border-color:var(--border);background:none" onclick="app.renderFocusSetup()">رجوع</button>
@@ -4085,9 +4108,9 @@
                     const f = this._focus;
                     if (!f) return;
                     if (document.hidden) {
-                        f.hiddenAt = Date.now();
+                        f.hiddenAt = performance.now(); f.hiddenWall = Date.now();
                     } else if (f.hiddenAt) {
-                        const away = Date.now() - f.hiddenAt;
+                        const away = Math.max(performance.now() - f.hiddenAt, Date.now() - (f.hiddenWall || 0));
                         delete f.hiddenAt;
                         if (away > this.FOCUS_GRACE_MS) this.breakFocus('طلعت من التطبيق أثناء الجلسة');
                         else { this._requestWakeLock(); this._focusTick(); }
@@ -4347,7 +4370,7 @@
                 if (!this._myGov() || !window.firebaseDb || !this.authUid) return;
                 const { ref, set, onDisconnect } = window.firebaseDbHelpers;
                 const r = ref(window.firebaseDb, 'focusLive/' + this.authUid);
-                set(r, { gov: this._myGov(), until: Date.now() + minutes * 60000 + 60000 }).catch(() => {});
+                set(r, { gov: this._myGov(), until: this.trueNow() + minutes * 60000 + 60000, dev: this._deviceId() }).catch(() => {});
                 try { onDisconnect(r).remove(); } catch (e) {}
             },
 
@@ -11898,6 +11921,118 @@
                 this._skipHistory = true;
                 this.switchView(target);
                 this._skipHistory = false;
+            },
+
+            // ===== Trusted clock =====
+            // Server time (Firebase's offset) carried forward by the phone's monotonic timer, so
+            // changing the phone's clock can't end a session early or move the golden hour.
+            _clockSync() {
+                if (this._clkBound || !window.firebaseDb) return;
+                this._clkBound = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, '.info/serverTimeOffset'), (s) => { this._srvOff = Number(s.val()) || 0; if (!this._focus && !this._forest) this._clk = null; });
+                document.addEventListener('visibilitychange', () => { if (!document.hidden && !this._focus && !this._forest) this._clk = null; });
+            },
+            trueNow() {
+                if (!this._clk) this._clk = { wall: Date.now() + (this._srvOff || 0), perf: performance.now() };
+                return this._clk.wall + (performance.now() - this._clk.perf);
+            },
+
+            // ===== الساعة الذهبية =====
+            // One hour a day, the same for every student, starting at a time picked from the date
+            // between 4 and 10 pm (Iraq time). Minutes of focus / forest sessions (25 minutes or
+            // longer) inside it earn double points; forest trees planted with it grow golden.
+            _goldenWin(t) {
+                const ir = new Date((t || this.trueNow()) + 3 * 3600000);
+                const y = ir.getUTCFullYear(), mo = ir.getUTCMonth(), d = ir.getUTCDate();
+                let h = (y * 372 + mo * 31 + d + 7919) | 0;
+                h = Math.imul(h ^ (h >>> 15), 2246822519); h = Math.imul(h ^ (h >>> 13), 3266489917);
+                const r = ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+                const start = Date.UTC(y, mo, d) - 3 * 3600000 + (16 * 60 + Math.floor(r * 72) * 5) * 60000;
+                return { start, end: start + 3600000, key: y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0') };
+            },
+            goldenState(t) {
+                const now = t || this.trueNow(), w = this._goldenWin(now);
+                return Object.assign(w, { now, active: now >= w.start && now < w.end, soon: now < w.start && w.start - now <= 600000, before: now < w.start, after: now >= w.end });
+            },
+            // Golden minutes in a session that ran from a to b (ms), only for sessions of 25+ minutes.
+            _goldenMinutes(a, b, minutes) {
+                if (minutes < 25) return 0;
+                const w = this._goldenWin(a);
+                return Math.max(0, Math.floor((Math.min(b, w.end) - Math.max(a, w.start)) / 60000));
+            },
+            // After a session: the golden minutes it earned, counted once a day in golden/{day}/n.
+            _goldenCredit(f) {
+                const g = this._goldenMinutes(f.start, f.start + f.dur, f.minutes);
+                if (g > 0 && window.firebaseDb) {
+                    const key = this._goldenWin(f.start).key, mark = 'isp_golden_' + key;
+                    let seen = false;
+                    try { seen = !!localStorage.getItem(mark); localStorage.setItem(mark, '1'); } catch (e) {}
+                    const { ref, runTransaction } = window.firebaseDbHelpers;
+                    if (!seen) runTransaction(ref(window.firebaseDb, 'golden/' + key + '/n'), (c) => (Number(c) || 0) + 1).catch(() => {});
+                    this._goldenToday = (this._goldenToday || 0) + g;
+                }
+                return g;
+            },
+            // The same account can't run two sessions at once (two phones = double golden points).
+            async _sessionFree() {
+                if (!window.firebaseDb || !this.authUid) return true;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const v = (await get(ref(window.firebaseDb, 'focusLive/' + this.authUid))).val();
+                    if (v && numOr0(v.until) > this.trueNow() && v.dev && v.dev !== this._deviceId()) {
+                        this.showToast('عندك جلسة شغالة بجهاز ثاني. خلّصها أو انتظرها تنتهي');
+                        return false;
+                    }
+                } catch (e) { /* offline: allow */ }
+                return true;
+            },
+            initGolden() {
+                if (this._goldT) return;
+                const tick = () => this._goldenTick();
+                this._goldT = setInterval(tick, 1000);
+                tick();
+                if (window.firebaseDb) {
+                    const { ref, onValue } = window.firebaseDbHelpers;
+                    let key = '', unsub = null;
+                    const watch = () => {
+                        const k = this._goldenWin().key;
+                        if (k === key) return;
+                        key = k;
+                        if (typeof unsub === 'function') unsub();
+                        unsub = onValue(ref(window.firebaseDb, 'golden/' + k + '/n'), (s) => { this._goldenCount = Number(s.val()) || 0; });
+                    };
+                    watch();
+                    setInterval(watch, 60000);
+                }
+            },
+            _goldenTick() {
+                const g = this.goldenState(), was = this._goldWas || '';
+                const st = g.active ? 'on' : g.soon ? 'soon' : g.before ? 'before' : 'after';
+                document.body.classList.toggle('golden-on', g.active);
+                if (this._f3d) this._f3d.goldNow = g.active;
+                // one heads-up when it is 10 minutes away and one when it starts (app open)
+                if (was && st !== was) {
+                    if (st === 'soon') { this.showToast('الساعة الذهبية تبدي بعد 10 دقايق، جهّز كتبك'); try { navigator.vibrate && navigator.vibrate([120, 80, 120]); } catch (e) {} }
+                    if (st === 'on') { this.showToast('بدت الساعة الذهبية! كل دقيقة دراسة بنقطتين'); this.playNotifySound && this.playNotifySound(); try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 300]); } catch (e) {} }
+                }
+                this._goldWas = st;
+                const sec = document.getElementById('goldenSection'), bar = document.getElementById('goldenBar');
+                if (!sec || !bar) return;
+                sec.classList.remove('hidden');
+                const clock = (ms) => { const t = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+                if (bar.dataset.st !== st) {
+                    bar.dataset.st = st;
+                    bar.className = 'gold-bar ' + st;
+                    const btn = st === 'on' ? '<button class="gold-go" onclick="app.goToForest()">ادرس هسه</button>' : '';
+                    bar.innerHTML = `<span class="gold-ic"><i data-lucide="${st === 'after' ? 'moon-star' : 'sparkles'}"></i></span><div class="gold-tx"><b></b><small></small></div>${btn}`;
+                    try { lucide.createIcons(); } catch (e) {}
+                }
+                const b = bar.querySelector('b'), sm = bar.querySelector('small'), n = this._goldenCount || 0;
+                if (st === 'on') { b.textContent = 'الساعة الذهبية شغالة · باقي ' + clock(g.end - g.now); sm.textContent = 'كل دقيقة دراسة بنقطتين، وشجرتك تطلع ذهبية' + (n ? ' · ' + n.toLocaleString('en-US') + ' طالب درسوا بيها اليوم' : ''); }
+                else if (st === 'soon') { b.textContent = 'الساعة الذهبية تبدي بعد ' + clock(g.start - g.now); sm.textContent = 'جهّز كتبك، كل دقيقة بيها بنقطتين'; }
+                else if (st === 'before') { b.textContent = 'الساعة الذهبية اليوم بين 4 العصر و11 بالليل'; sm.textContent = 'وقتها مفاجأة. نبلغك قبلها بـ 10 دقايق، وكل دقيقة دراسة بيها بنقطتين'; }
+                else { b.textContent = 'خلصت الساعة الذهبية اليوم'; sm.textContent = (this._goldenToday ? 'كسبت ' + this._goldenToday + ' نقطة ذهبية اليوم. ' : '') + 'ترجع باچر بوقت مفاجئ'; }
             },
 
             // ===== Verified accounts =====

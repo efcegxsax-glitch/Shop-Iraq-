@@ -808,11 +808,11 @@
                     + 'void main(){vec2 uv;if(vm<.5)uv=vec2(.5+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<1.5)uv=vec2(.75+fract(vt.x)*.25,.5+fract(vt.y)*.5);else if(vm<2.5)uv=vec2(vt.x*.5,vt.y*.5);else if(vm<3.5)uv=vec2(.5+vt.x*.5,vt.y*.5);else uv=vec2(vt.x*.5,.5+vt.y*.5);'
                     + 'vec4 tx=texture2D(A,uv);if(tx.a<.45)discard;vec3 N=normalize(vn);if(vm<2.5&&!gl_FrontFacing)N=-N;'
                     + 'float dif=max(dot(N,L),0.),lf=step(1.5,vm),tr=max(dot(-N,L),0.)*.5*lf;vec3 amb=mix(vec3(.3,.26,.2),vec3(.55,.66,.8),N.y*.5+.5)*.62;float ao=.5+.5*clamp(vh*1.25,0.,1.);'
-                    + 'vec3 col=tx.rgb*vc*(amb+vec3(1.,.93,.8)*(dif*.95+tr))*ao;col=mix(col,vec3(.45,.32,.19)*(.45+.55*dif),vw);col*=mix(.55,1.,I);col+=tx.rgb*vec3(.7,.75,1.)*FL.w*(.25+.9*(1.-smoothstep(0.,FL.z,length(vp.xz-FL.xy))));col=mix(col,mix(vec3(.25,.28,.32),vec3(.55,.62,.66),I),smoothstep(10.,30.,length(E-vp))*.28);gl_FragColor=vec4(col,1.);}');
+                    + 'vec3 col=tx.rgb*vc*(amb+vec3(1.,.93,.8)*(dif*.95+tr))*ao;float gd=step(vw,-.5);col=mix(col,vec3(.45,.32,.19)*(.45+.55*dif),max(vw,0.));col=mix(col,col*vec3(1.55,1.2,.32)+vec3(.2,.13,0.)*(.5+.5*dif),gd*(.35+.65*lf));col*=mix(.55,1.,I);col+=tx.rgb*vec3(.7,.75,1.)*FL.w*(.25+.9*(1.-smoothstep(0.,FL.z,length(vp.xz-FL.xy))));col=mix(col,mix(vec3(.25,.28,.32),vec3(.55,.62,.66),I),smoothstep(10.,30.,length(E-vp))*.28);gl_FragColor=vec4(col,1.);}');
                 // soft ground shadows cast away from the sun
                 this.pShd = this._prog(
                     'attribute vec2 o;attribute vec3 ip;attribute vec3 ia;attribute vec3 ib;uniform mat4 m;uniform vec3 L;uniform float I;varying vec2 vo;varying float va;'
-                    + 'void main(){float s=ia.x*ib.x*(1.-ib.z*.6);vec2 sd=-normalize(L.xz),pd=vec2(-sd.y,sd.x);vec2 xz=ip.xz+(sd*(o.y*.5+.32)+pd*o.x*.3)*s;gl_Position=m*vec4(xz.x,ip.y+.003,xz.y,1.);vo=o;va=(1.-ib.y*.6)*I;}',
+                    + 'void main(){float s=ia.x*ib.x*(1.-ib.z*.6);vec2 sd=-normalize(L.xz),pd=vec2(-sd.y,sd.x);vec2 xz=ip.xz+(sd*(o.y*.5+.32)+pd*o.x*.3)*s;gl_Position=m*vec4(xz.x,ip.y+.003,xz.y,1.);vo=o;va=(1.-max(ib.y,0.)*.6)*I;}',
                     'precision mediump float;varying vec2 vo;varying float va;void main(){float r=dot(vo,vo);if(r>1.)discard;gl_FragColor=vec4(0.,.02,0.,(1.-r)*(1.-r)*.45*va);}');
                 this.bQuad = this._buf(new Float32Array([-1, -1, 1, -1, 1, 1, -1, -1, 1, 1, -1, 1]));
                 this.iBuf = {};
@@ -1020,18 +1020,19 @@
             // Per-tree data for this frame: position, size, turn, phase, growth, withering, falling.
             _fillInstances(now) {
                 Object.keys(this.iBuf).forEach((k) => { this.iBuf[k].n = 0; });
-                const put = (sl, sc, gr, wt, fall) => {
+                const put = (sl, sc, gr, wt, fall, gold) => {
                     const B = this.iBuf[sl.key];
                     if (!B || gr <= 0.001 || B.n >= 900) return;
                     const o = B.n * 9, a = B.a;
-                    a[o] = sl.w[0]; a[o + 1] = sl.w[1]; a[o + 2] = sl.w[2]; a[o + 3] = 0.21 * sl.s * sc; a[o + 4] = sl.yaw; a[o + 5] = sl.ph; a[o + 6] = gr; a[o + 7] = wt; a[o + 8] = fall;
+                    a[o] = sl.w[0]; a[o + 1] = sl.w[1]; a[o + 2] = sl.w[2]; a[o + 3] = 0.21 * sl.s * sc; a[o + 4] = sl.yaw; a[o + 5] = sl.ph; a[o + 6] = gr; a[o + 7] = gold && !wt ? -1 : wt; a[o + 8] = fall;
                     B.n++;
                 };
                 const grow = {};
                 this.anims = this.anims.filter((a) => { if (a.t0 === null) a.t0 = now + a.d; if (now - a.t0 >= 1.3) return false; grow[a.g + '#' + a.i] = Math.max(0, this._ease((now - a.t0) / 1.3)); return true; });
                 Object.keys(this.slots).forEach((g) => {
                     const sl = this.slots[g], n = Math.min(this.shown[g] || 0, sl.length);
-                    for (let i = 0; i < n; i++) { const k = g + '#' + i; put(sl[i], 1, k in grow ? grow[k] : 1, 0, 0); }
+                    const gd = this.gold && this.gold[g];
+                    for (let i = 0; i < n; i++) { const k = g + '#' + i; put(sl[i], 1, k in grow ? grow[k] : 1, 0, 0, gd && gd[i]); }
                 });
                 const S = this.sess, sl = S && this.slots[S.g] && this.slots[S.g][S.idx];
                 if (sl) {
@@ -1039,7 +1040,7 @@
                     let gr = 0.1 + 0.9 * (1 - Math.pow(1 - S.p, 1.6)), wt = 0, fall = 0;
                     if (S.state === 'done') gr = 1 + 0.18 * Math.sin(Math.min(1, u / 0.9) * Math.PI) * Math.exp(-u);
                     if (S.state === 'fail') { wt = Math.min(1, u / 1.2); fall = Math.max(0, Math.min(1, (u - 1.0) / 1.2)); fall *= fall; gr *= 1 - Math.max(0, (u - 2.1) / 0.6); if (u > 2.7) { this.sess = null; gr = 0; } }
-                    put(sl, 1.5, gr, wt, fall);
+                    put(sl, 1.5, gr, wt, fall, S.state !== 'fail' && (this.goldNow || S.gold));
                 }
             }
 
@@ -1548,6 +1549,9 @@
 
             _labelY() { return 0.3; }
 
+            // Trees planted with golden-hour minutes: forest/gold/{gov}/{tree index}.
+            setGold(map) { this.gold = map || {}; }
+
             frame(ts) {
                 this._adapt(ts);
                 this._wxStep(ts / 1000);
@@ -1810,7 +1814,7 @@
                 const S = this.sess;
                 if (!S || S.state !== 'grow') return;
                 const now = performance.now() / 1000, q = this.slots[S.g][S.idx].w;
-                S.state = ok ? 'done' : 'fail'; S.t = now;
+                S.state = ok ? 'done' : 'fail'; S.t = now; S.gold = ok && this.goldNow;
                 if (ok) { S.p = 1; this.fx.push({ k: 'glory', q, t0: now }); this.fx.push({ k: 'burst', q: [q[0], q[1] + 0.12, q[2]], t0: now, c: [1, 0.85, 0.3], n: 60 }); }
                 else this.fx.push({ k: 'ash', q, t0: now + 0.6 });
                 setTimeout(() => { if (!this.sel && !this.userMoved) this.flyTo(''); }, ok ? 4200 : 3000);
@@ -1904,6 +1908,17 @@
                         for (let s = 0; s < 28; s++) { const an = s / 28 * 6.283, rad = 0.05 + pu * 0.4; add(p[0] + Math.cos(an) * rad, p[1] + 0.02, p[2] + Math.sin(an) * rad, [1, 0.75, 0.3], 0.45 * (1 - pu), 0.05); }
                     }
                 });
+                // golden trees sparkle
+                let gc = 0;
+                for (const g in this.gold || {}) {
+                    const sl = this.slots[g], n = Math.min(this.shown[g] || 0, sl ? sl.length : 0);
+                    for (const i in this.gold[g]) {
+                        if (gc > 60 || +i >= n) continue;
+                        gc++;
+                        const q = sl[+i].w, s = 0.21 * sl[+i].s, ph = sl[+i].ph, tw = Math.sin(now * 2.6 + ph * 5);
+                        if (tw > 0.55) add(q[0] + Math.sin(ph * 3) * s * 0.3, q[1] + s * (0.7 + 0.3 * Math.cos(ph)), q[2] + Math.cos(ph * 2) * s * 0.3, [1, 0.86, 0.35], (tw - 0.55) * 2, 0.05);
+                    }
+                }
                 // the student's governorate (soft gold) and the tapped one (bright, flowing)
                 if (this.mine && this.mine !== this.sel) this._outlinePts(this.mine).forEach((w, i) => add(w[0], w[1], w[2], [1, 0.75, 0.3], 0.16 + 0.12 * Math.sin(i * 0.3 - now * 3), 0.035));
                 if (this.sel) {
