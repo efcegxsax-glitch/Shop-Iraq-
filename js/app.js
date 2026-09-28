@@ -11992,20 +11992,21 @@
                 this._goldWas = st;
                 const sec = document.getElementById('goldenSection'), bar = document.getElementById('goldenBar');
                 if (!sec || !bar) return;
-                sec.classList.remove('hidden');
+                // on the home page only from 10 minutes before it starts until it ends
+                const show = st === 'soon' || st === 'on';
+                sec.classList.toggle('hidden', !show);
+                if (!show) { bar.dataset.st = ''; return; }
                 const clock = (ms) => { const t = Math.max(0, Math.ceil(ms / 1000)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
                 if (bar.dataset.st !== st) {
                     bar.dataset.st = st;
                     bar.className = 'gold-bar ' + st;
                     const btn = st === 'on' ? '<button class="gold-go" onclick="app.goToForest()">ادرس هسه</button>' : '';
-                    bar.innerHTML = `<span class="gold-ic"><i data-lucide="${st === 'after' ? 'moon-star' : 'sparkles'}"></i></span><div class="gold-tx"><b></b><small></small></div>${btn}`;
+                    bar.innerHTML = `<span class="gold-ic"><i data-lucide="sparkles"></i></span><div class="gold-tx"><b></b><small></small></div>${btn}`;
                     try { lucide.createIcons(); } catch (e) {}
                 }
                 const b = bar.querySelector('b'), sm = bar.querySelector('small'), n = this._goldenCount || 0;
                 if (st === 'on') { b.textContent = 'الساعة الذهبية شغالة · باقي ' + clock(g.end - g.now); sm.textContent = 'كل دقيقة دراسة بنقطتين، وشجرتك تطلع ذهبية' + (n ? ' · ' + n.toLocaleString('en-US') + ' طالب درسوا بيها اليوم' : ''); }
-                else if (st === 'soon') { b.textContent = 'الساعة الذهبية تبدي بعد ' + clock(g.start - g.now); sm.textContent = 'جهّز كتبك، كل دقيقة بيها بنقطتين'; }
-                else if (st === 'before') { b.textContent = 'الساعة الذهبية اليوم بين 4 العصر و11 بالليل'; sm.textContent = 'وقتها مفاجأة. نبلغك قبلها بـ 10 دقايق، وكل دقيقة دراسة بيها بنقطتين'; }
-                else { b.textContent = 'خلصت الساعة الذهبية اليوم'; sm.textContent = (this._goldenToday ? 'كسبت ' + this._goldenToday + ' نقطة ذهبية اليوم. ' : '') + 'ترجع باچر بوقت مفاجئ'; }
+                else { b.textContent = 'الساعة الذهبية تبدي بعد ' + clock(g.start - g.now); sm.textContent = 'جهّز كتبك، كل دقيقة بيها بنقطتين'; }
             },
 
             // ===== Verified accounts =====
