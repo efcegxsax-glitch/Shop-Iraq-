@@ -2628,3 +2628,7 @@ body.yr-mini-on #yrContent { padding-top: 14px; }
 .yr-pop button svg { width: 16px; height: 16px; }
 @keyframes yrDrop { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .yr-acts button.go, .yr-pop, .yr-inv, .yr-stage.sm { animation: none; } }
+
+.yr-spin { width: 16px; height: 16px; border-radius: 50%; border: 2.5px solid rgba(255,255,255,.35); border-top-color: #fff; animation: yrSpin .8s linear infinite; }
+@keyframes yrSpin { to { transform: rotate(360deg); } }
+.yr-btn:disabled { opacity: .85; }
