@@ -539,10 +539,29 @@
                         }
                         if (Math.sin(now * 7.3 + gi * 3.1) > 0.97) add(p[0], p[1] + hh + 0.05, p[2], [0.8, 1, 0.85], 1, 0.9);
                     }
+                    // the student's own governorate while they study: shock rings and a burning core
+                    if (this.attacking === g) {
+                        for (let q = 0; q < 3; q++) {
+                            const age = ((now * 0.8 + q / 3) % 1), rad = 0.1 + age * 1.3, A = 0.9 * (1 - age);
+                            for (let s = 0; s < 40; s++) { const an = (s / 40) * Math.PI * 2 + now * 0.3; add(p[0] + Math.cos(an) * rad, p[1] + 0.05, p[2] + Math.sin(an) * rad, [1, 0.35 + 0.3 * (1 - age), 0.12], A, 0.09); }
+                        }
+                        const fl = 0.8 + 0.2 * Math.sin(now * 17) * Math.sin(now * 5.3);
+                        add(p[0], p[1] + hh * 0.5, p[2], [1, 0.45, 0.1], 0.5 * fl, 1.1);
+                        for (let k = 0; k < 10; k++) { const f = ((now * 0.9 + k / 10) % 1); add(p[0] + Math.sin(k * 7.7 + now) * 0.06, p[1] + hh * f * 1.15, p[2] + Math.cos(k * 3.1 + now) * 0.06, [1, 0.6 + 0.4 * (1 - f), 0.2], (1 - f) * 0.9, 0.16 * (1 - f) + 0.05); }
+                    }
                 });
+                // a finished attack: a flash and a wave across the map from the student's governorate
+                if (this.victory && this.anchors[this.victory.g]) {
+                    const a = (now - this.victory.t0) / 2.6, p = this.anchors[this.victory.g];
+                    if (a >= 1 || a < 0) this.victory = null;
+                    else {
+                        add(p[0], p[1] + 0.3, p[2], [1, 0.95, 0.7], (1 - a) * (1 - a), 3.2 * (1 - a * 0.4));
+                        for (let w = 0; w < 2; w++) { const aa = Math.max(0, a - w * 0.12), rad = 0.2 + aa * 6, A = (1 - aa) * 0.8; for (let s = 0; s < 72; s++) { const an = (s / 72) * Math.PI * 2; add(p[0] + Math.cos(an) * rad, p[1] + 0.06, p[2] + Math.sin(an) * rad, [1, 0.78, 0.3], A, 0.12); } }
+                    }
+                }
                 // missiles: stronger / live governorates fire more
                 if (now > this.nextShot && this.missiles.length < 16) {
-                    const pool = names.map((g) => { const r = this.byName[g]; return [g, 0.15 + (r && this.max ? r.m / this.max : 0) + (r ? r.l * 0.6 : 0)]; });
+                    const pool = names.map((g) => { const r = this.byName[g]; return [g, 0.15 + (r && this.max ? r.m / this.max : 0) + (r ? r.l * 0.6 : 0) + (g === this.attacking ? 2.5 : 0)]; });
                     const tot = pool.reduce((s, x) => s + x[1], 0); let pick = Math.random() * tot, a = pool[0][0];
                     for (const [g, wgt] of pool) { pick -= wgt; if (pick <= 0) { a = g; break; } }
                     this._fire(a, now);

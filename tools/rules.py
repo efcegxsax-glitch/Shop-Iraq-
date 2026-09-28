@@ -137,7 +137,7 @@ rules = {
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
-                                  "forestConfig", "auctionHistory"]},
+                                  "forestConfig", "govWarConfig", "auctionHistory"]},
     "bannedStudents": signed_admin,
 
     # ----- students -----

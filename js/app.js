@@ -584,6 +584,7 @@
                 this.loadUserData();
                 this.checkInterruptedFocus();
                 this.checkInterruptedForest();
+                this.checkInterruptedGovWar();
                 this.loadNotifPrefs();
                 this.watchAuthState();
                 this.hydrateNewsCache();
@@ -3084,7 +3085,7 @@
                 if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
                 const gov = this._myGov();
                 if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
-                if (this._focus) { this.showToast('عندك جلسة تركيز شغالة، كمّلها أول'); return; }
+                if (this._focus || this._gwar) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
                 this._starting = true;
                 const free = await this._sessionFree();
                 this._starting = false;
@@ -3970,6 +3971,7 @@
 
             async startFocus() {
                 if (this._focus || this._starting) return;
+                if (this._gwar || this._forest) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
                 this._starting = true;
                 const free = await this._sessionFree();
                 this._starting = false;
@@ -4155,6 +4157,7 @@
 
             goToGovWar() {
                 this._gwAttach();
+                this._gwListenBots();
                 this.renderGovWar();
                 this.switchView('govWarView');
                 this._liveTick(() => {
@@ -4230,13 +4233,20 @@
                             <div class="gw3d-hud"><span class="gw3d-rec"><i></i>بث مباشر</span><span>القمر الصناعي · العراق</span></div>
                             <div class="gw3d-foot"><span class="gw3d-coord"></span><span>اسحب لتدوير الخريطة</span></div>
                             <div class="gw3d-load"><span class="gw3d-radar"></span><b>جاري الاتصال بالقمر الصناعي...</b></div>
+                            <div class="gw-ticker" id="gwTicker"></div>
+                            <div class="gw-attack-hud" id="gwHud"></div>
                         </div>
-                        <div id="gwBottom"></div>`;
+                        <div id="gwBattle"></div>
+                        <div id="gwBottom"></div>
+                        <div class="fr-check gw-check hidden" id="gwCheck"></div>`;
+                    this._gwRenderBattle();
                 }
                 const data = this._gwData || {};
                 const live = this._gwLiveCounts();
                 const mine = this._myGov();
-                const rows = IRAQ_GOVERNORATES.map((g) => ({ g, m: numOr0(data[g] && data[g].minutes), s: numOr0(data[g] && data[g].sessions), l: live.c[g] || 0 }))
+                const sim = this._gwSimNow();
+                this._gwSeenReal(data);
+                const rows = IRAQ_GOVERNORATES.map((g) => ({ g, m: numOr0(data[g] && data[g].minutes) + numOr0(sim.mins[g]), s: numOr0(data[g] && data[g].sessions) + numOr0(sim.trees[g]), l: (live.c[g] || 0) + numOr0(sim.live[g]) }))
                     .sort((a, b) => b.m - a.m || b.l - a.l || a.g.localeCompare(b.g, 'ar'));
                 const max = rows[0].m;
                 const leader = max > 0 ? rows[0] : null;
@@ -4246,8 +4256,8 @@
                 const endMs = ws.getTime() + 7 * 86400000;
                 let lastWin = null;
                 if (this._gwLast) {
-                    const ld = this._gwLast.data;
-                    const lr = Object.keys(ld).filter((g) => IRAQ_GOVERNORATES.indexOf(g) !== -1).map((g) => ({ g, m: numOr0(ld[g] && ld[g].minutes) })).sort((a, b) => b.m - a.m)[0];
+                    const ld = this._gwLast.data, ls = this._gwSimLast();
+                    const lr = IRAQ_GOVERNORATES.map((g) => ({ g, m: numOr0(ld[g] && ld[g].minutes) + numOr0(ls.mins[g]) })).sort((a, b) => b.m - a.m)[0];
                     if (lr && lr.m > 0) lastWin = lr;
                 }
                 const took = lastWin && numOr0(this._gwMine && this._gwMine[this._gwLast.key]) > 0;
@@ -4257,7 +4267,7 @@
 
                 document.getElementById('gwTop').innerHTML = `
                     <section class="gw-hero">
-                        <div class="gw-hero-top"><span class="gw-live"><i></i>${live.total} طالب يركز هسه</span><span class="gw-clock">تنتهي الجولة بعد <b id="gwClock">${this._fmtLeft(endMs - Date.now())}</b></span></div>
+                        <div class="gw-hero-top"><span class="gw-live"><i></i>${live.total + numOr0(sim.liveTotal)} طالب يحارب هسه</span><span class="gw-clock">تنتهي الجولة بعد <b id="gwClock">${this._fmtLeft(endMs - Date.now())}</b></span></div>
                         <div class="gw-lead">
                             <span class="gw-crown"><i data-lucide="crown"></i></span>
                             <div>${leader ? `<small>المتصدرة هالأسبوع</small><b>${escapeHtml(leader.g)}</b><em>${hrs(leader.m)} تركيز · ${leader.s} جلسة</em>` : '<small>الجولة بدت</small><b>ولا محافظة سجلت بعد</b><em>أول جلسة تكمّلها تحط محافظتك بالصدارة</em>'}</div>
@@ -4267,6 +4277,10 @@
                     <div class="lv-sec">ساحة المعركة<small>العمود يطول ويا دقائق التركيز</small></div>`;
 
                 this._gw3dSync(rows, mine, leader ? leader.g : '', max);
+                // the attack panel only changes with the student's state (signed in, governorate)
+                const sig = [this.isLoggedIn ? 1 : 0, mine, this._gwar ? 1 : 0, this._gwResult ? 1 : 0].join('|');
+                if (!this._gwar && sig !== this._gwSig) this._gwRenderBattle();
+                this._gwSig = sig;
 
                 document.getElementById('gwBottom').innerHTML = `
                     <div class="gw3d-legend">
@@ -4286,8 +4300,7 @@
                     <section class="gw-me">
                         ${!this.isLoggedIn ? '<p>سجّل دخولك حتى تحارب لمحافظتك</p><button class="lv-btn btn-press" onclick="app.goToAuth(\'login\')"><i data-lucide="log-in"></i>تسجيل الدخول</button>'
                         : !mine ? '<p>حدد محافظتك بالملف الشخصي حتى تنحسب دقائقك إلها</p><button class="lv-btn btn-press" onclick="app.openEditProfileModal()"><i data-lucide="map-pin"></i>تحديد المحافظة</button>'
-                        : `<div class="gw-me-row"><span class="gw-me-rank">${rankOf(mine)}</span><div><b>محافظتك: ${escapeHtml(mine)}</b><small>المركز ${rankOf(mine)} من ${rows.length} · مساهمتك هالأسبوع ${myWeek} دقيقة</small></div></div>
-                           <button class="lv-btn btn-press" onclick="app.goToFocus()"><i data-lucide="swords"></i>ابدأ جلسة تركيز لمحافظتك</button>`}
+                        : `<div class="gw-me-row"><span class="gw-me-rank">${rankOf(mine)}</span><div><b>محافظتك: ${escapeHtml(mine)}</b><small>المركز ${rankOf(mine)} من ${rows.length} · مساهمتك هالأسبوع ${myWeek} دقيقة</small></div></div>`}
                     </section>
 
                     <div class="lv-sec">الترتيب<small>${ws.getDate()} ${IRAQI_MONTHS[ws.getMonth()]} - ${we.getDate()} ${IRAQI_MONTHS[we.getMonth()]}</small></div>
@@ -4304,7 +4317,8 @@
                     <button class="gw-more btn-press" onclick="app._gwAll = !app._gwAll; app.renderGovWar()">${this._gwAll ? 'عرض أول 5 بس' : 'عرض كل المحافظات (' + rows.length + ')'}</button>
 
                     <div class="lv-rules">
-                        <div><i data-lucide="timer"></i>كل دقيقة بجلسة تركيز تكمّلها تنحسب لمحافظتك، والجلسة المنكسرة ما تنحسب</div>
+                        <div><i data-lucide="swords"></i>ابدأ هجوم بهاي الصفحة: كل دقيقة دراسة تكمّلها تنحسب لمحافظتك، والهجوم اللي ينقطع ما ينحسب</div>
+                        <div><i data-lucide="timer"></i>جلسات وضع التركيز وغابة العراق هم تنحسب لمحافظتك</div>
                         <div><i data-lucide="calendar-range"></i>الجولة من السبت للجمعة، وكل سبت تبدي جولة جديدة</div>
                         <div><i data-lucide="gift"></i>طلاب المحافظة الفائزة اللي شاركوا ياخذون ${this.GOV_WAR_PRIZE} نقطة</div>
                     </div>
@@ -4352,6 +4366,307 @@
                 this._gw3d.start(() => this.currentView === 'govWarView' && !document.hidden);
             },
 
+
+            // ===== War companions: students simulated from govWarConfig/bots (set in the admin
+            // panel) so the war never feels empty. Same schedule engine as the forest companions
+            // (forestBotSim), counted from the start of each week; nothing is written for them.
+            _gwListenBots() {
+                if (this._gwBotsOn || !window.firebaseDb) return;
+                this._gwBotsOn = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, 'govWarConfig/bots'), (snap) => {
+                    this._gwBots = snap.val();
+                    this._gwSimLastCache = null;
+                    this._gwSeen = Date.now();
+                    if (this.currentView === 'govWarView') this.renderGovWar();
+                });
+                setInterval(() => {
+                    if (this.currentView !== 'govWarView' || !this._gwBots || !this._gwBots.on) return;
+                    this.renderGovWar();
+                    const ev = (this._gwSim && this._gwSim.recent || []).filter((e) => e.at > (this._gwSeen || 0));
+                    if (ev.length) { const e = ev[ev.length - 1]; this._gwSeen = e.at; this._gwTicker(e.g, e.m, e.n); }
+                }, 6000);
+            },
+            _gwSimFor(from, to) {
+                const cfg = this._gwBots;
+                if (!cfg || !cfg.on || typeof forestBotSim !== 'function' || to <= from) return { live: {}, trees: {}, mins: {}, recent: [], liveTotal: 0 };
+                return forestBotSim(Object.assign({}, cfg, { since: Math.max(numOr0(cfg.since), from) }), to);
+            },
+            _gwSimNow() {
+                this._gwSim = this._gwSimFor(this._weekStart().getTime(), Date.now());
+                return this._gwSim;
+            },
+            _gwSimLast() {
+                const ws = this._weekStart().getTime();
+                if (!this._gwSimLastCache || this._gwSimLastCache.ws !== ws) this._gwSimLastCache = { ws, sim: this._gwSimFor(this._weekStart(ws - 86400000).getTime(), ws) };
+                return this._gwSimLastCache.sim;
+            },
+            // A real governorate's minutes going up = someone finished an attack: announce it.
+            _gwSeenReal(data) {
+                const prev = this._gwPrevReal;
+                this._gwPrevReal = {};
+                IRAQ_GOVERNORATES.forEach((g) => { this._gwPrevReal[g] = numOr0(data[g] && data[g].minutes); });
+                if (!prev || prev._wk !== this._gwWeek) { this._gwPrevReal._wk = this._gwWeek; return; }
+                this._gwPrevReal._wk = this._gwWeek;
+                IRAQ_GOVERNORATES.forEach((g) => {
+                    const d = this._gwPrevReal[g] - numOr0(prev[g]);
+                    if (d > 0 && !(this._gwJustDone && g === this._myGov())) this._gwTicker(g, d);
+                });
+                this._gwJustDone = false;
+            },
+            _gwTicker(g, m, who) {
+                const el = document.getElementById('gwTicker');
+                if (!el) return;
+                el.innerHTML = `<i data-lucide="flame"></i><span>${who ? escapeHtml(who) + ' من ' : ''}<b>${escapeHtml(g)}</b> نفّذ${who ? '' : 'ت'} هجوم بـ ${numOr0(m)} دقيقة دراسة</span>`;
+                try { lucide.createIcons(); } catch (e) {}
+                el.classList.remove('on'); void el.offsetWidth; el.classList.add('on');
+                clearTimeout(this._gwTickT);
+                this._gwTickT = setTimeout(() => el.classList.remove('on'), 5200);
+                if (this._gw3d) for (let i = 0; i < 4; i++) this._gw3d.salvo.push([g, i * 0.2]);
+            },
+
+            // ===== Attack mode: a study session right on the war page =====
+            // Same rules as the forest: stay on the page (leaving the app for more than a few
+            // seconds ends it), answer "still studying?" in time, and only a finished session
+            // counts. While it runs your governorate keeps firing at the others on the map.
+            GW_KEY: 'isp_gwar_session',
+            GW_DURS: [25, 45, 60, 90],
+            gwMinutes: 25,
+
+            _gwRenderBattle() {
+                const box = document.getElementById('gwBattle');
+                if (!box) return;
+                const gov = this._myGov(), w = this._gwar, r = this._gwResult;
+                document.body.classList.toggle('gw-running', !!w);
+                this._gwSig = [this.isLoggedIn ? 1 : 0, gov, w ? 1 : 0, r ? 1 : 0].join('|');
+                if (!this.isLoggedIn || !this.currentUser || !gov) { box.innerHTML = ''; return; }
+                if (w) {
+                    const C = 2 * Math.PI * 44;
+                    box.innerHTML = `
+                        <section class="gw-bt run">
+                            <div class="gw-bt-run">
+                                <div class="gw-ring">
+                                    <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="bg"/><circle cx="50" cy="50" r="44" class="fg" id="gwArc" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}"/></svg>
+                                    <div><b id="gwClockRun" dir="ltr">--:--</b><span id="gwStage">تجهيز</span><em class="gold-x2">×2</em></div>
+                                </div>
+                                <div class="gw-bt-tx">
+                                    <b>${escapeHtml(w.g)} تهاجم</b>
+                                    <small>ابقَ بهاي الصفحة. بالنهاية تنضاف <em>${w.minutes} دقيقة</em> لمحافظتك و<em>+${w.minutes} نقطة</em> إلك</small>
+                                    <div class="gw-power"><i id="gwPower"></i></div>
+                                    <div class="gw-bt-warn"><i data-lucide="shield-alert"></i>الطلعة من الصفحة توقف الهجوم</div>
+                                </div>
+                            </div>
+                            <button class="gw-quit" onclick="app.quitGovWar()">انسحاب</button>
+                        </section>`;
+                } else if (r) {
+                    box.innerHTML = r.ok ? `
+                        <section class="gw-bt res ok">
+                            <span class="gw-res-ic"><i data-lucide="trophy"></i></span>
+                            <b class="gw-res-t">نجح الهجوم!</b>
+                            <p>انضافت <em>${r.w.minutes} دقيقة</em> ${escapeHtml(this._li(r.w.g))} وكسبت <em>+${r.w.minutes + (r.w.golden || 0)} نقطة</em>${r.w.golden ? ` (منها <em class="gold-t">${r.w.golden} ذهبية</em>)` : ''}.</p>
+                            <button class="gw-go" onclick="app._gwResult = null; app._gwRenderBattle()"><i data-lucide="swords"></i>هجوم جديد</button>
+                        </section>` : `
+                        <section class="gw-bt res bad">
+                            <span class="gw-res-ic"><i data-lucide="flag"></i></span>
+                            <b class="gw-res-t">انقطع الهجوم</b>
+                            <p>${escapeHtml(r.reason || '')}. ما انحسبت دقائق هالهجوم.</p>
+                            <button class="gw-go" onclick="app._gwResult = null; app._gwRenderBattle()"><i data-lucide="rotate-ccw"></i>حاول مرة ثانية</button>
+                        </section>`;
+                } else {
+                    box.innerHTML = `
+                        <section class="gw-bt">
+                            <div class="gw-bt-h"><span class="gw-bt-ic"><i data-lucide="swords"></i></span><div><b>هاجم ${escapeHtml(this._li(gov))}</b><small>ادرس بهاي الصفحة، ومحافظتك تقصف المحافظات طول ما إنت تدرس</small></div></div>
+                            <div class="gold-hint"><i data-lucide="sparkles"></i>الساعة الذهبية شغالة: كل دقيقة بنقطتين</div>
+                            <div class="gw-durs">${this.GW_DURS.map((m) => `<button class="${m === this.gwMinutes ? 'on' : ''}" onclick="app.gwMinutes = ${jsNum(m)}; app._gwRenderBattle()"><b>${m}</b><span>دقيقة</span><em>+${m} نقطة</em></button>`).join('')}</div>
+                            <button class="gw-go" onclick="app.startGovWar()"><i data-lucide="crosshair"></i>ابدأ الهجوم</button>
+                            <div class="gw-bt-rules"><span><i data-lucide="log-out"></i>تطلع من الصفحة أو التطبيق؟ يوكف الهجوم وما ينحسب</span><span><i data-lucide="hand"></i>كل شوية يسألك "لسه تدرس؟" وعندك دقيقة ترد</span></div>
+                        </section>`;
+                }
+                try { lucide.createIcons(); } catch (e) {}
+                this._gwHud();
+            },
+
+            // "ل" + name, joining "ال" the Arabic way (للبصرة, not لالبصرة)
+            _li(g) { g = String(g || ''); return g.indexOf('ال') === 0 ? 'لل' + g.slice(2) : 'ل' + g; },
+
+            _gwHud() {
+                const el = document.getElementById('gwHud'), w = this._gwar;
+                if (!el) return;
+                el.classList.toggle('on', !!w);
+                if (w) el.innerHTML = `<span class="gw-hud-dot"></span><b>${escapeHtml(w.g)}</b><span>تقصف هسه</span>`;
+            },
+
+            async startGovWar() {
+                if (this._gwar || this._starting) return;
+                if (!this.isLoggedIn || !this.currentUser) { this.goToAuth('login'); return; }
+                const gov = this._myGov();
+                if (!gov) { this.showToast('حدد محافظتك من حسابك أول'); return; }
+                if (this._focus || this._forest) { this.showToast('عندك جلسة شغالة، كمّلها أول'); return; }
+                this._starting = true;
+                const free = await this._sessionFree();
+                this._starting = false;
+                if (!free || this._gwar) return;
+                const minutes = this.gwMinutes, now = this.trueNow();
+                this._gwar = { start: now, dur: minutes * 60000, minutes, g: gov, next: now + this._frGap(true), check: null, shot: 0 };
+                try { localStorage.setItem(this.GW_KEY, JSON.stringify({ start: now, dur: minutes * 60000 })); } catch (e) {}
+                this._gwResult = null;
+                this._bindGwEvents();
+                this._requestWakeLock();
+                this._govLiveJoin(minutes);
+                if (this._gw3d) { this._gw3d.attacking = gov; for (let i = 0; i < 6; i++) this._gw3d.salvo.push([gov, i * 0.15]); }
+                this._gwRenderBattle();
+                document.getElementById('gw3d')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                clearInterval(this._gwTimer);
+                this._gwTimer = setInterval(() => this._gwTickRun(), 500);
+                this._gwTickRun();
+                try { navigator.vibrate && navigator.vibrate([60, 40, 120]); } catch (e) {}
+            },
+
+            _gwStageName(p) { return p < 0.15 ? 'تجهيز' : p < 0.4 ? 'قصف' : p < 0.75 ? 'تقدّم' : p < 1 ? 'اقتحام' : 'نصر'; },
+
+            _gwTickRun() {
+                const w = this._gwar;
+                if (!w || w.hiddenAt) return;
+                const now = this.trueNow();
+                if (w.check && now > w.check.until) { this.failGovWar('ما رديت على سؤال "لسه تدرس؟"'); return; }
+                const left = w.start + w.dur - now;
+                if (left <= 0) { this.completeGovWar(); return; }
+                if (!w.check && now >= w.next && left > 60000) this._gwAsk();
+                const p = 1 - left / w.dur, secs = Math.ceil(left / 1000);
+                // the longer you study, the heavier the fire
+                if (this._gw3d && now >= w.shot) {
+                    const n = 1 + Math.floor(p * 3);
+                    for (let i = 0; i < n; i++) this._gw3d.salvo.push([w.g, i * 0.22]);
+                    w.shot = now + (7000 - p * 4000) * (0.7 + Math.random() * 0.6);
+                }
+                const clock = document.getElementById('gwClockRun');
+                if (clock) clock.textContent = String(Math.floor(secs / 60)).padStart(2, '0') + ':' + String(secs % 60).padStart(2, '0');
+                const st = document.getElementById('gwStage');
+                if (st) st.textContent = this._gwStageName(p);
+                const arc = document.getElementById('gwArc');
+                if (arc) arc.setAttribute('stroke-dashoffset', (2 * Math.PI * 44 * (1 - p)).toFixed(1));
+                const pw = document.getElementById('gwPower');
+                if (pw) pw.style.width = Math.max(4, p * 100).toFixed(1) + '%';
+                if (w.check) {
+                    const s = Math.max(0, Math.ceil((w.check.until - now) / 1000));
+                    const el = document.getElementById('gwCkSec');
+                    if (el) el.textContent = s;
+                    const ring = document.getElementById('gwCkArc');
+                    if (ring) ring.setAttribute('stroke-dashoffset', (2 * Math.PI * 30 * (1 - s / this.FOREST_CHECK_SECS)).toFixed(1));
+                }
+            },
+
+            _gwAsk() {
+                const w = this._gwar;
+                if (!w) return;
+                const words = ['قلعة', 'راية', 'درع', 'سيف', 'حصن', 'نجمة', 'نسر', 'برج'].sort(() => Math.random() - 0.5).slice(0, 3);
+                const right = words[Math.floor(Math.random() * 3)];
+                w.check = { until: this.trueNow() + this.FOREST_CHECK_SECS * 1000, right };
+                const box = document.getElementById('gwCheck');
+                if (box) {
+                    const C = 2 * Math.PI * 30;
+                    box.innerHTML = `
+                        <div class="fr-ck gw-ck">
+                            <div class="fr-ck-ring"><svg viewBox="0 0 70 70" aria-hidden="true"><circle cx="35" cy="35" r="30" class="bg"/><circle cx="35" cy="35" r="30" class="fg" id="gwCkArc" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="0"/></svg><b id="gwCkSec">${this.FOREST_CHECK_SECS}</b></div>
+                            <b class="fr-ck-t">لسه تدرس؟</b>
+                            <p>اضغط على كلمة <em>${escapeHtml(right)}</em> حتى يستمر الهجوم</p>
+                            <div class="fr-ck-btns" style="flex-direction:${Math.random() < 0.5 ? 'row' : 'row-reverse'}">${words.map((x, i) => `<button style="margin-top:${[0, 18, 8][i]}px" onclick="app.answerGwCheck(this, ${jsArg(x)})">${escapeHtml(x)}</button>`).join('')}</div>
+                        </div>`;
+                    box.classList.remove('hidden');
+                }
+                this.playNotifySound();
+                try { navigator.vibrate && navigator.vibrate([220, 120, 220]); } catch (e) {}
+            },
+
+            answerGwCheck(btn, x) {
+                const w = this._gwar;
+                if (!w || !w.check) return;
+                if (x !== w.check.right) { btn.classList.remove('no'); void btn.offsetWidth; btn.classList.add('no'); return; }
+                w.check = null;
+                w.next = this.trueNow() + this._frGap(false);
+                document.getElementById('gwCheck')?.classList.add('hidden');
+                this.showToast('تمام، الهجوم مستمر');
+            },
+
+            async quitGovWar() {
+                if (!this._gwar) return;
+                if (!(await this.ask({ icon: 'flag', title: 'تنسحب من الهجوم؟', text: 'إذا انسحبت هسه ما تنحسب دقائق هالهجوم ولا نقاطه.', ok: 'انسحب', cancel: 'أكمل الهجوم' }))) return;
+                this.failGovWar('انسحبت قبل ما يخلص الوقت');
+            },
+
+            async govWarBack() {
+                if (this._gwar) {
+                    if (!(await this.ask({ icon: 'flag', title: 'تطلع من ساحة الحرب؟', text: 'إذا طلعت هسه يوكف الهجوم وما ينحسب.', ok: 'اطلع', cancel: 'أكمل الهجوم' }))) return;
+                    this.failGovWar('طلعت من صفحة الحرب', true);
+                }
+                this._gwResult = null;
+                this.goBack();
+            },
+
+            _bindGwEvents() {
+                if (this._gwBound) return;
+                this._gwBound = true;
+                document.addEventListener('visibilitychange', () => {
+                    const w = this._gwar;
+                    if (!w) return;
+                    if (document.hidden) { w.hiddenAt = performance.now(); w.hiddenWall = Date.now(); return; }
+                    if (!w.hiddenAt) return;
+                    const away = Math.max(performance.now() - w.hiddenAt, Date.now() - (w.hiddenWall || 0));
+                    delete w.hiddenAt;
+                    if (away > this.FOREST_GRACE_MS) this.failGovWar('طلعت من التطبيق أثناء الهجوم');
+                    else { this._requestWakeLock(); this._gwTickRun(); }
+                });
+            },
+
+            _gwStop() {
+                clearInterval(this._gwTimer);
+                this._gwTimer = null;
+                try { localStorage.removeItem(this.GW_KEY); } catch (e) {}
+                if (this._wakeLock) { this._wakeLock.release().catch(() => {}); this._wakeLock = null; }
+                this._govLiveLeave();
+                document.getElementById('gwCheck')?.classList.add('hidden');
+                if (this._gw3d) this._gw3d.attacking = '';
+                const w = this._gwar;
+                this._gwar = null;
+                return w;
+            },
+
+            completeGovWar() {
+                const w = this._gwStop();
+                if (!w) return;
+                this.playNotifySound();
+                if (this._gw3d) { for (let i = 0; i < 16; i++) this._gw3d.salvo.push([w.g, i * 0.12]); this._gw3d.victory = { g: w.g, t0: performance.now() / 1000 }; }
+                const u = this.currentUser || {};
+                w.golden = this._goldenCredit(w);
+                const pts = w.minutes + w.golden;
+                this.saveFocusStats({ warWins: numOr0(u.warWins) + 1, warMinutes: numOr0(u.warMinutes) + w.minutes });
+                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1 }));
+                this._gwJustDone = true;
+                this._govWarAdd(w.minutes);
+                try { navigator.vibrate && navigator.vibrate([100, 60, 100, 60, 300]); } catch (e) {}
+                this._gwResult = { ok: true, w };
+                this._gwRenderBattle();
+                if (this.currentView !== 'govWarView') this.showToast('نجح هجومك! +' + pts + ' نقطة');
+            },
+
+            failGovWar(reason, away) {
+                const w = this._gwStop();
+                if (!w) return;
+                const u = this.currentUser || {};
+                this.saveFocusStats({ warLost: numOr0(u.warLost) + 1 });
+                try { navigator.vibrate && navigator.vibrate(400); } catch (e) {}
+                this._gwResult = { ok: false, w, reason };
+                this._gwRenderBattle();
+                if (away || this.currentView !== 'govWarView') this.showToast('انقطع الهجوم: ' + reason);
+            },
+
+            checkInterruptedGovWar() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem(this.GW_KEY) || 'null'); } catch (e) {}
+                if (!saved) return;
+                try { localStorage.removeItem(this.GW_KEY); } catch (e) {}
+                setTimeout(() => this.showToast('انقطع هجومك بحرب المحافظات لأن التطبيق انسد قبل ما يخلص'), 1800);
+            },
 
             claimGovWar() {
                 if (!this._gwLast || !this.authUid || !window.firebaseDb) return;
@@ -11850,6 +12165,8 @@
 
             switchView(viewId) {
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
+                if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
+                if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
                 if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);

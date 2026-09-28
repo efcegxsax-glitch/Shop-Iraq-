@@ -311,6 +311,7 @@
             <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
             <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
+            <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
@@ -1139,6 +1140,34 @@
                 </div>
             </div>
 
+            <div id="sec-war" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="swords"></i></div>
+                        <div>
+                            <h3>مقاتلين وهميين بحرب المحافظات</h3>
+                            <p>طلاب وهميين يهاجمون لمحافظاتهم حتى تبقى الحرب حامية ويتحمس الطالب. دقائقهم تنحسب بترتيب المحافظات وتطلع هجماتهم على الخارطة، بس ما ياخذون نقاط.</p>
+                        </div>
+                    </div>
+                    <label class="ds-chk"><input type="checkbox" id="wb_on"><span>شغّل المقاتلين الوهميين</span></label>
+                    <div class="field" style="margin-top:14px;">
+                        <label>عددهم: <b id="wb_nv">20</b></label>
+                        <input type="range" id="wb_n" min="3" max="100" step="1" value="20" style="padding:0;">
+                    </div>
+                    <div class="field">
+                        <label>نشاطهم</label>
+                        <select id="wb_lvl">
+                            <option value="calm">هادئ (يهاجمون قليل)</option>
+                            <option value="normal" selected>عادي</option>
+                            <option value="busy">نشيط (يهاجمون هواية)</option>
+                        </select>
+                    </div>
+                    <div class="fb-now" id="wb_now"></div>
+                    <button class="btn mt-4" id="wb_save">حفظ</button>
+                    <p class="fb-note">يهاجمون أكثر بالعصر والليل حسب توقيت العراق، ويتوزعون على المحافظات حسب عدد سكانها. الدقائق اللي سجلوها لحد هسه تبقى بالترتيب حتى لو غيرت الإعدادات أو طفيتهم.</p>
+                </div>
+            </div>
+
             <div id="sec-dreams" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1257,7 +1286,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2594,6 +2623,54 @@
             btn.disabled = false;
         }
 
+        // ---------- War companions (govWarConfig/bots) ----------
+        // Same engine as the forest companions, counted per week in the student app. Saving
+        // adds what they fought so far this week to the real govWar data, then restarts them
+        // from now with the new settings, so the standings never jump.
+        let warBotsCfg = null;
+        function gwWeekStart(t) { const x = new Date(t); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x; }
+        function gwWeekKey(t) { const d = gwWeekStart(t), p = (n) => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); }
+        function warSim(from, to) { return !warBotsCfg || !warBotsCfg.on || to <= from ? { live: {}, trees: {}, mins: {}, liveTotal: 0, treeTotal: 0 } : forestBotSim(Object.assign({}, warBotsCfg, { since: Math.max(Number(warBotsCfg.since) || 0, from) }), to); }
+        function loadWarBots() {
+            const on = el('wb_on'), n = el('wb_n'), lvl = el('wb_lvl');
+            n.addEventListener('input', () => { el('wb_nv').textContent = n.value; });
+            onValue(ref(db, 'govWarConfig/bots'), (snap) => {
+                warBotsCfg = snap.val();
+                if (warBotsCfg) { on.checked = !!warBotsCfg.on; n.value = warBotsCfg.n || 20; el('wb_nv').textContent = n.value; lvl.value = warBotsCfg.level || 'normal'; }
+                renderWarBotsNow();
+            });
+            el('wb_save').addEventListener('click', saveWarBots);
+            setInterval(renderWarBotsNow, 5000);
+        }
+        function renderWarBotsNow() {
+            const box = el('wb_now');
+            if (!box) return;
+            const now = Date.now(), sim = warSim(gwWeekStart(now).getTime(), now);
+            const mins = Object.values(sim.mins).reduce((a, b) => a + b, 0);
+            box.innerHTML = warBotsCfg && warBotsCfg.on
+                ? `<div><b>${sim.liveTotal}</b><span>يهاجمون هسه</span></div><div><b>${mins >= 60 ? Math.round(mins / 6) / 10 + ' س' : mins + ' د'}</b><span>هالأسبوع من آخر حفظ</span></div>`
+                : '<div style="grid-column:1/-1"><span>مطفيين هسه</span></div>';
+        }
+        async function saveWarBots() {
+            const btn = el('wb_save');
+            btn.disabled = true;
+            try {
+                if (warBotsCfg && warBotsCfg.on) {
+                    const now = Date.now(), ws = gwWeekStart(now).getTime(), lws = gwWeekStart(ws - 86400000).getTime();
+                    const bake = async (key, sim) => Promise.all(Object.keys(sim.mins).map((g) => runTransaction(ref(db, 'govWar/' + key + '/' + g), (cur) => {
+                        const c = cur || {};
+                        return { minutes: (Number(c.minutes) || 0) + (sim.mins[g] || 0), sessions: (Number(c.sessions) || 0) + (sim.trees[g] || 0) };
+                    })));
+                    await bake(gwWeekKey(now), warSim(ws, now));
+                    if ((Number(warBotsCfg.since) || now) < ws) await bake(gwWeekKey(lws), warSim(lws, ws));
+                }
+                const next = { on: el('wb_on').checked, n: Number(el('wb_n').value) || 20, level: el('wb_lvl').value, since: Date.now(), seed: (warBotsCfg && warBotsCfg.seed) || Math.floor(Math.random() * 1e9) };
+                await set(ref(db, 'govWarConfig/bots'), next);
+                toast(next.on ? 'اشتغلوا المقاتلين الوهميين' : 'انطفوا المقاتلين الوهميين');
+            } catch (e) { console.warn(e); toast('فشل الحفظ', false); }
+            btn.disabled = false;
+        }
+
         // ---------- Dreams moderation ----------
         let dreamsData = {};
         const DREAM_CAT_NAMES = { study: 'دراسة', career: 'مهنة', family: 'عائلة', travel: 'سفر', other: 'حلم آخر' };
@@ -2763,6 +2840,7 @@
             loadPolls();
             loadDreamsAdmin();
             loadForestBots();
+            loadWarBots();
             loadForestWeather();
             loadVerified();
             loadErrors();
