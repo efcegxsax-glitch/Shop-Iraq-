@@ -345,6 +345,18 @@
 
                 <div class="card">
                     <div class="card-head">
+                        <div class="ic"><i data-lucide="search"></i></div>
+                        <div>
+                            <h3>بحث يوتيوب بغرف المشاهدة</h3>
+                            <p>البحث يستخدم مفتاح Firebase تلقائياً بعد ما تفعّل YouTube Data API v3 بمشروعك. إذا تريد مفتاح منفصل حطه هنا، وإذا تتركه فارغ يرجع لمفتاح Firebase.</p>
+                        </div>
+                    </div>
+                    <div class="field"><input type="text" id="ytk_key" placeholder="مفتاح YouTube (اختياري)" dir="ltr" autocomplete="off"></div>
+                    <button class="btn" id="ytk_save">حفظ</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
                         <div class="ic"><i data-lucide="house"></i></div>
                         <div>
                             <h3>أقسام الواجهة الرئيسية</h3>
@@ -2711,6 +2723,16 @@
             btn.disabled = false;
         }
 
+        // ---------- YouTube search key for the study rooms (siteConfig/ytKey) ----------
+        function loadYtKey() {
+            onValue(ref(db, 'siteConfig/ytKey'), (snap) => { if (document.activeElement !== el('ytk_key')) el('ytk_key').value = snap.val() || ''; });
+            el('ytk_save').addEventListener('click', async () => {
+                const v = el('ytk_key').value.trim();
+                if (v && !/^[A-Za-z0-9_-]{20,60}$/.test(v)) { toast('المفتاح مو صحيح', false); return; }
+                try { await set(ref(db, 'siteConfig/ytKey'), v || null); toast(v ? 'انحفظ المفتاح' : 'رجع لمفتاح Firebase'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+        }
+
         // ---------- Admission calculator (admission/{outside, note, base, off}) ----------
         let uniCfg = null;
         function loadUniAdmin() {
@@ -2929,6 +2951,7 @@
             loadForestBots();
             loadWarBots();
             loadUniAdmin();
+            loadYtKey();
             loadForestWeather();
             loadVerified();
             loadErrors();

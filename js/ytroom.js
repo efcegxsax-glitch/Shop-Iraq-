@@ -221,7 +221,7 @@
             const y = this._yr;
             if (!y) return;
             const k = key || (y.meta && y.meta.cur) || '';
-            const item = k && y.queue[k];
+            const item = k && (y.queue[k] || (y.adhoc && y.adhoc.k === k ? y.adhoc : null));
             if (!item) return;
             if (y.key === k && y.player) return;
             this._yrSend(true);
@@ -276,7 +276,7 @@
 
         _yrDone() {
             const y = this._yr, k = y && y.key;
-            if (!k || (y.done[this.authUid] || {})[k] || y.doneBusy === k) return;
+            if (!k || k.indexOf('x') === 0 || (y.done[this.authUid] || {})[k] || y.doneBusy === k) return;
             y.doneBusy = k;
             const st = this._yrState() || { d: 0 };
             H().set(R('ytRooms/' + y.rid + '/done/' + this.authUid + '/' + k), true).catch(() => {});
@@ -357,17 +357,104 @@
             H().set(R('ytRooms/' + y.rid + '/chat/' + newId()), Object.assign({ u: this.authUid, n: String(u.fullName || 'طالب').slice(0, 40), m, at: Date.now() }, extra || {})).catch(() => this.showToast('ما انرسلت'));
         },
 
-        yrAdd() {
-            const y = this._yr, inp = document.getElementById('yrAddUrl');
+        // one box: a YouTube link, or words to search YouTube for
+        yrFind() {
+            const y = this._yr, inp = document.getElementById('yrQ');
             if (!y || !inp) return;
-            const v = this.extractYoutubeId(inp.value);
-            if (!v) { this.showToast('الرابط مو رابط يوتيوب'); return; }
+            const q = String(inp.value || '').trim();
+            if (!q) return;
+            const v = this.extractYoutubeId(q);
+            if (v) {
+                inp.value = '';
+                if (y.meta.host === this.authUid) this.yrAddVideo(v, '', !y.meta.cur);
+                else this.yrSolo(v, '');
+                return;
+            }
+            this._yrSearch(q);
+        },
+
+        _yrKey() {
+            const c = this.siteConfig || {};
+            if (c.ytKey) return String(c.ytKey);
+            try { return window.firebaseDb.app.options.apiKey || ''; } catch (e) { return ''; }
+        },
+
+        async _yrSearch(q) {
+            const y = this._yr;
+            if (!y) return;
+            const norm = q.replace(/\s+/g, ' ').toLowerCase();
+            let cache = {};
+            try { cache = JSON.parse(localStorage.getItem('isp_yts') || '{}') || {}; } catch (e) {}
+            if (cache[norm] && Date.now() - cache[norm].at < 86400000) { y.res = { q, items: cache[norm].items }; this._yrPaint(); return; }
+            y.res = { q, loading: 1 };
+            this._yrPaint();
+            const key = this._yrKey(), base = 'https://www.googleapis.com/youtube/v3/';
+            try {
+                const r = await fetch(base + 'search?part=snippet&type=video&videoEmbeddable=true&safeSearch=strict&maxResults=12&relevanceLanguage=ar&regionCode=IQ&q=' + encodeURIComponent(q) + '&key=' + encodeURIComponent(key));
+                const j = await r.json();
+                if (j.error) throw j.error;
+                const dec = (t) => { const d = document.createElement('textarea'); d.innerHTML = t || ''; return d.value; };
+                const items = (j.items || []).filter((x) => x.id && x.id.videoId).map((x) => ({ v: x.id.videoId, t: dec(x.snippet.title).slice(0, 100), c: dec(x.snippet.channelTitle).slice(0, 40) }));
+                // lengths come from a second, cheap call
+                if (items.length) {
+                    try {
+                        const d = await (await fetch(base + 'videos?part=contentDetails&id=' + items.map((x) => x.v).join(',') + '&key=' + encodeURIComponent(key))).json();
+                        const len = {};
+                        (d.items || []).forEach((x) => { const m = String(x.contentDetails && x.contentDetails.duration || '').match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/); if (m) len[x.id] = (+m[1] || 0) * 3600 + (+m[2] || 0) * 60 + (+m[3] || 0); });
+                        items.forEach((x) => { if (len[x.v]) x.d = len[x.v]; });
+                    } catch (e) {}
+                }
+                cache[norm] = { at: Date.now(), items };
+                const ks = Object.keys(cache).sort((a, b) => cache[b].at - cache[a].at).slice(0, 30), keep = {};
+                ks.forEach((k) => { keep[k] = cache[k]; });
+                try { localStorage.setItem('isp_yts', JSON.stringify(keep)); } catch (e) {}
+                if (this._yr === y) { y.res = { q, items }; this._yrPaint(); }
+            } catch (e) {
+                const why = String((e && e.errors && e.errors[0] && e.errors[0].reason) || (e && e.status) || e && e.message || '');
+                console.warn('YouTube search', why, e);
+                const msg = /quota|dailyLimit|rateLimit/i.test(why) ? 'خلص حد البحث لليوم. الصق رابط الفيديو بداله'
+                    : /accessNotConfigured|SERVICE_DISABLED|BLOCKED|forbidden|PERMISSION|keyInvalid|API_KEY/i.test(why) ? 'بحث يوتيوب بعده ما مفعّل. الصق رابط الفيديو بداله'
+                    : 'ما اشتغل البحث، تأكد من النت';
+                if (this._yr === y) { y.res = { q, err: msg }; this._yrPaint(); }
+            }
+        },
+
+        yrClearRes() { const y = this._yr; if (!y) return; y.res = null; const i = document.getElementById('yrQ'); if (i) i.value = ''; this._yrPaint(); },
+
+        // host: add a video to the room's list (and play it for everyone if asked)
+        yrAddVideo(v, t, playNow) {
+            const y = this._yr;
+            if (!y || y.meta.host !== this.authUid) return;
             if (Object.keys(y.queue).length >= 30) { this.showToast('القائمة مليانة'); return; }
             const now = Date.now(), k = 'q' + now.toString(36);
-            H().set(R('ytRooms/' + y.rid + '/queue/' + k), { v, t: '', by: this.authUid, at: now }).then(() => {
-                inp.value = '';
-                if (!y.meta.cur) this.yrPlayAll(k);
+            H().set(R('ytRooms/' + y.rid + '/queue/' + k), { v, t: String(t || '').slice(0, 100), by: this.authUid, at: now }).then(() => {
+                this.showToast(playNow ? 'انشغل للكل' : 'انضاف للقائمة');
+                if (playNow) this.yrPlayAll(k);
             }).catch(() => this.showToast('ما انضاف'));
+        },
+        // a student: watch a video that isn't in the list, on your own
+        yrSolo(v, t) {
+            const y = this._yr;
+            if (!y) return;
+            y.adhoc = { k: 'x' + v, v, t: String(t || '') };
+            y.solo = true;
+            this._yrFollow(y.adhoc.k);
+            document.getElementById('yrStage')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        },
+        yrSuggest(v, t) {
+            this._yrPost('اقترح هذا الفيديو', { sv: v, st: String(t || 'فيديو يوتيوب').slice(0, 100) });
+            this.showToast('وصل اقتراحك للمضيف بالدردشة');
+        },
+        _yrResult(x) {
+            const y = this._yr, host = y.meta.host === this.authUid, v = jsArg(x.v), t = jsArg(x.t || '');
+            return `<div class="yr-r">
+                <div class="yr-v-m"><img src="${thumb(x.v)}" alt="" loading="lazy">${x.d ? `<span class="yr-len">${clock(x.d)}</span>` : ''}</div>
+                <div class="yr-r-b"><b>${esc(x.t || 'فيديو يوتيوب')}</b>${x.c ? `<small>${esc(x.c)}</small>` : ''}
+                    <div class="yr-r-a">${host
+                        ? `<button class="go" onclick="app.yrAddVideo(${v}, ${t}, true)"><i data-lucide="play"></i>شغّل للكل</button><button onclick="app.yrAddVideo(${v}, ${t}, false)"><i data-lucide="plus"></i>للقائمة</button>`
+                        : `<button class="go" onclick="app.yrSolo(${v}, ${t})"><i data-lucide="play"></i>شوفه لوحدك</button><button onclick="app.yrSuggest(${v}, ${t})"><i data-lucide="send"></i>اقترح</button>`}</div>
+                </div>
+            </div>`;
         },
 
         // host: play this for everyone; a student: watch it on your own for now
@@ -487,9 +574,9 @@
             const y = this._yr, panel = document.getElementById('yrPanel');
             if (!y || !y.meta || !panel) return;
             // others' progress repaints this every few seconds: keep what's being typed and the chat scroll
-            const ae = document.activeElement, typing = ae && (ae.id === 'yrMsg' || ae.id === 'yrAddUrl') ? { id: ae.id, s: ae.selectionStart } : null;
+            const ae = document.activeElement, typing = ae && (ae.id === 'yrMsg' || ae.id === 'yrQ') ? { id: ae.id, s: ae.selectionStart } : null;
             const kept = {};
-            ['yrMsg', 'yrAddUrl'].forEach((id) => { const e = document.getElementById(id); if (e && e.value) kept[id] = e.value; });
+            ['yrMsg', 'yrQ'].forEach((id) => { const e = document.getElementById(id); if (e && e.value) kept[id] = e.value; });
             const cl = document.getElementById('yrChatList'), clTop = cl ? cl.scrollTop : 0, atBottom = !cl || cl.scrollHeight - cl.scrollTop - cl.clientHeight < 40;
             const host = y.meta.host === this.authUid, cur = y.meta.cur, keys = Object.keys(y.queue).sort();
             const mids = Object.keys(y.members).sort((a, b) => (a === y.meta.host ? -1 : b === y.meta.host ? 1 : (y.members[a].j || 0) - (y.members[b].j || 0)));
@@ -499,7 +586,7 @@
             ['list', 'chat', 'people'].forEach((t) => { const b = document.getElementById('yrBadge_' + t); if (b) b.textContent = t === 'chat' && y.unread ? y.unread : ''; });
 
             // strip under the player: what's on, who finished, and the buttons that matter now
-            const item = y.queue[y.key], now = document.getElementById('yrNow');
+            const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null), now = document.getElementById('yrNow');
             const hp = y.prog[y.meta.host], behind = !host && hp && hp.k === y.key && this._yrState() && Math.abs(hp.t - this._yrState().t) > 20;
             if (now) now.innerHTML = item ? `
                 <div class="yr-now">
@@ -533,8 +620,14 @@
                 <button class="yr-invite-btn" onclick="app.yrInvite()"><i data-lucide="user-plus"></i>ادعُ أصدقاء للغرفة</button>`;
             } else if (y.tab === 'list') {
                 panel.innerHTML = `
-                    ${host ? `<div class="yr-card row"><input id="yrAddUrl" placeholder="الصق رابط فيديو يوتيوب" dir="ltr"><button class="yr-btn" onclick="app.yrAdd()">ضيف</button></div>`
-                        : '<p class="yr-muted">المضيف يختار شنو ينشغل للكل. تكدر تدوس على أي فيديو وتشوفه لوحدك.</p>'}
+                    <div class="yr-find"><i data-lucide="search"></i><input id="yrQ" type="search" enterkeyhint="search" placeholder="دوّر بيوتيوب أو الصق رابط" onkeydown="if(event.key==='Enter'){event.preventDefault();app.yrFind()}"><button class="yr-btn" onclick="app.yrFind()">دوّر</button></div>
+                    ${y.res ? `<div class="yr-res">
+                        <div class="yr-res-h"><b>نتائج: ${esc(y.res.q)}</b><button onclick="app.yrClearRes()"><i data-lucide="x"></i>سد</button></div>
+                        ${y.res.loading ? '<div class="kd-loading"><span></span><span></span><span></span></div>'
+                            : y.res.err ? `<p class="yr-muted">${esc(y.res.err)}</p>`
+                            : y.res.items && y.res.items.length ? y.res.items.map((x) => this._yrResult(x)).join('') : '<p class="yr-muted">ما لكيت فيديوهات، جرّب كلمات ثانية</p>'}
+                    </div>` : ''}
+                    <div class="yr-h">${host ? '<i data-lucide="list-video"></i>قائمة الغرفة' : '<i data-lucide="list-video"></i>قائمة الغرفة (المضيف يختار شنو ينشغل للكل)'}</div>
                     ${keys.length ? keys.map((k, i) => {
                         const q = y.queue[k], all = mids.length, dn = mids.filter((u) => (y.done[u] || {})[k]).length;
                         return `<div class="yr-v${k === cur ? ' cur' : ''}${k === y.key ? ' me' : ''}">
@@ -542,7 +635,7 @@
                             <div class="yr-v-b" onclick="app.yrPick(${jsArg(k)})"><b>${esc(q.t || 'فيديو يوتيوب')}</b><small>${k === cur ? '<em>شغال للكل</em> . ' : ''}خلصوه ${dn} من ${all}</small><div class="yr-prog"><i style="width:${all ? dn / all * 100 : 0}%"></i></div></div>
                             ${host ? `<button class="yr-x" onclick="app.yrRemove(${jsArg(k)})" aria-label="شيل"><i data-lucide="trash-2"></i></button>` : ''}
                         </div>`;
-                    }).join('') : '<p class="yr-muted">القائمة فارغة.</p>'}`;
+                    }).join('') : `<p class="yr-muted">${host ? 'القائمة فارغة. دوّر على شرح وضيفه.' : 'القائمة فارغة.'}</p>`}`;
             } else {
                 const list = y.chat.slice(-60);
                 panel.innerHTML = `<div id="yrChatList" class="yr-chat">${list.length ? list.map((c) => {
@@ -550,6 +643,7 @@
                     return `<div class="yr-msg${mine ? ' mine' : ''}${c.s != null ? ' mark' : ''}">
                         ${mine ? '' : `<small>${esc(c.n)}</small>`}
                         <p>${esc(c.m)}</p>
+                        ${c.sv ? `<div class="yr-sug"><img src="${thumb(c.sv)}" alt="" loading="lazy"><span>${esc(c.st || 'فيديو يوتيوب')}</span></div><div class="yr-sug-a">${host ? `<button onclick="app.yrAddVideo(${jsArg(c.sv)}, ${jsArg(c.st || '')}, false)"><i data-lucide="plus"></i>ضيفه للقائمة</button>` : ''}<button onclick="app.yrSolo(${jsArg(c.sv)}, ${jsArg(c.st || '')})"><i data-lucide="play"></i>شوفه</button></div>` : ''}
                         ${c.s != null && q ? `<button onclick="app.yrSeek(${Number(c.s) || 0}, ${jsArg(c.k)})"><i data-lucide="play"></i>${clock(c.s)}${c.k !== y.key ? ' . ' + esc((q.t || 'فيديو').slice(0, 24)) : ''}</button>` : ''}
                     </div>`;
                 }).join('') : '<p class="yr-muted">اكتبوا هنا، أو دوسوا "ما فهمت هنا" بنص الفيديو حتى تطلع علامة بالدقيقة.</p>'}</div>
