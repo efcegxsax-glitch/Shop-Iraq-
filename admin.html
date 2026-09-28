@@ -229,6 +229,20 @@
         .fb-now b { display: block; font-size: 20px; font-weight: 800; color: #4ADE80; }
         .fb-now span { font-size: 11.5px; color: var(--text2); }
         .fb-note { margin: 12px 0 0; font-size: 12px; line-height: 1.7; color: var(--text2); }
+        /* ---------- Sign-in gate ---------- */
+        #gate { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: center; justify-content: center; padding: 20px; background: radial-gradient(120% 80% at 50% 0%, #1E3A8A 0%, var(--bg) 60%); }
+        #gate.hidden { display: none; }
+        .gate-card { width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 26px 22px; box-shadow: 0 30px 60px -20px rgba(0,0,0,.6); }
+        .gate-ic { width: 58px; height: 58px; margin: 0 auto 14px; border-radius: 18px; display: grid; place-items: center; background: var(--primary); color: #fff; }
+        .gate-ic svg { width: 28px; height: 28px; }
+        .gate-card h2 { margin: 0 0 6px; text-align: center; font-size: 19px; }
+        .gate-card p { margin: 0 0 18px; text-align: center; color: var(--text2); font-size: 13px; line-height: 1.7; }
+        .gate-card .f { margin-bottom: 12px; }
+        .gate-btn { width: 100%; padding: 12px; border: 0; border-radius: 12px; background: var(--primary); color: #fff; font-weight: 800; font-size: 15px; font-family: inherit; cursor: pointer; }
+        .gate-btn:disabled { opacity: .6; }
+        .gate-err { min-height: 20px; margin-top: 10px; text-align: center; color: #FCA5A5; font-size: 12.5px; font-weight: 700; }
+        .gate-out.hidden { display: none; }
+        .gate-out { position: fixed; left: 14px; bottom: 14px; z-index: 50; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text2); font-family: inherit; font-size: 12.5px; cursor: pointer; }
         .ax-bg { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 22px; background: rgba(2,6,23,.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: axFade .2s ease; }
         .ax-bg.out { animation: axFadeOut .18s ease forwards; }
         .ax { width: 100%; max-width: 360px; padding: 24px 20px 18px; border-radius: 22px; text-align: center; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 30px 70px -20px rgba(0,0,0,.7); animation: axPop .32s cubic-bezier(.2,1.35,.4,1); }
@@ -249,6 +263,19 @@
     </style>
 </head>
 <body>
+
+    <div id="gate">
+        <form class="gate-card" onsubmit="event.preventDefault(); gateSignIn();">
+            <div class="gate-ic"><i data-lucide="shield-check"></i></div>
+            <h2>دخول لوحة التحكم</h2>
+            <p>سجّل بحسابك بالمنصة (الإيميل وكلمة السر). أول حساب يدخل هنا يصير هو المدير، وبعدها محد غيره يكدر يدخل.</p>
+            <div class="f"><label for="g_email">الإيميل</label><input id="g_email" type="email" autocomplete="username" dir="ltr" required></div>
+            <div class="f"><label for="g_pass">كلمة السر</label><input id="g_pass" type="password" autocomplete="current-password" dir="ltr" required></div>
+            <button id="g_btn" class="gate-btn" type="submit">دخول</button>
+            <div id="g_err" class="gate-err"></div>
+        </form>
+    </div>
+    <button id="gateOut" class="gate-out hidden" onclick="gateSignOut()">تسجيل خروج</button>
 
     <header class="topbar">
         <div class="topbar-inner">
@@ -1266,6 +1293,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -2715,16 +2743,68 @@
         // `let tickerData`, `let siteConfig`, ... declarations it writes to. It only worked
         // because the first snapshot happens to arrive asynchronously; a cached snapshot
         // would hit the temporal dead zone and throw. Calling it last removes that risk.
-        loadLists();
-        loadAuction();
-        loadDayStatus();
-        loadAppStats();
-        loadPolls();
-        loadDreamsAdmin();
-        loadForestBots();
-        loadForestWeather();
-        loadVerified();
-        loadErrors();
+        // Sign-in gate. The database rules only let accounts listed in admins/{uid} read and
+        // change the panel's data. The first account to sign in here when admins/ is still
+        // empty becomes the admin; after that every other account is turned away.
+        const auth = getAuth(app);
+        let panelStarted = false;
+        function startPanel() {
+            if (panelStarted) return;
+            panelStarted = true;
+            loadLists();
+            loadAuction();
+            loadDayStatus();
+            loadAppStats();
+            loadPolls();
+            loadDreamsAdmin();
+            loadForestBots();
+            loadForestWeather();
+            loadVerified();
+            loadErrors();
+        }
+        function gateMsg(t) { el('g_err').textContent = t || ''; }
+        async function isAdmin(uid) {
+            const mine = await get(ref(db, 'admins/' + uid));
+            if (mine.val() === true) return true;
+            const any = await get(ref(db, 'admins'));
+            if (any.exists()) return false;
+            await set(ref(db, 'admins/' + uid), true);
+            toast('صار هذا الحساب هو المدير');
+            return true;
+        }
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { el('gate').classList.remove('hidden'); el('gateOut').classList.add('hidden'); try { lucide.createIcons(); } catch (e) {} return; }
+            gateMsg('جاري التحقق من الصلاحية...');
+            let ok = false;
+            try { ok = await isAdmin(user.uid); } catch (e) { console.warn('Admin check failed:', e); }
+            if (!ok) {
+                gateMsg('هذا الحساب ما عنده صلاحية المدير');
+                el('g_btn').disabled = false;
+                await signOut(auth).catch(() => {});
+                return;
+            }
+            gateMsg('');
+            el('gate').classList.add('hidden');
+            el('gateOut').classList.remove('hidden');
+            startPanel();
+        });
+        window.gateSignIn = async () => {
+            const email = val('g_email'), pass = el('g_pass').value;
+            if (!email || !pass) { gateMsg('اكتب الإيميل وكلمة السر'); return; }
+            el('g_btn').disabled = true;
+            gateMsg('');
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch (e) {
+                const c = String(e && e.code || '');
+                gateMsg(c.includes('invalid') || c.includes('wrong') || c.includes('not-found') ? 'الإيميل أو كلمة السر غلط' : c.includes('too-many') ? 'محاولات كثيرة، انتظر شوية' : 'تعذر الدخول، تأكد من الإنترنت');
+                el('g_btn').disabled = false;
+            }
+        };
+        window.gateSignOut = async () => {
+            await signOut(auth).catch(() => {});
+            location.reload();
+        };
     </script>
 </body>
 </html>

@@ -753,7 +753,7 @@
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
-                    '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
+                    '_incomingListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -767,6 +767,7 @@
             listenForOwnUserRecord() {
                 if (!window.firebaseDb || !this.authUid || this._ownUserListener) return;
                 this._twinAttach();
+                this.listenForIncoming();
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._ownUserListener = onValue(ref(window.firebaseDb, 'users/' + this.authUid), (snap) => {
                     if (!snap.exists() || !this.currentUser) return;
@@ -950,20 +951,9 @@
                     }
                     try {
                         const { ref, get } = window.firebaseDbHelpers;
-                        const snap = await get(ref(window.firebaseDb, 'users'));
-                        let foundEmail = null;
-                        if (snap.exists()) {
-                            const users = snap.val();
-                            const normalized = identifier.replace(/\s+/g, '');
-                            Object.keys(users).some((k) => {
-                                const u = users[k];
-                                if (u && u.phone && String(u.phone).replace(/\s+/g, '') === normalized && u.email) {
-                                    foundEmail = u.email;
-                                    return true;
-                                }
-                                return false;
-                            });
-                        }
+                        const pk = this._phoneKey(identifier);
+                        const snap = pk ? await get(ref(window.firebaseDb, 'phoneIndex/' + pk)) : null;
+                        const foundEmail = snap && snap.exists() && snap.val() && typeof snap.val().e === 'string' ? snap.val().e : null;
                         if (!foundEmail) {
                             this.showToast('لا يوجد حساب مرتبط برقم الهاتف هذا، جرّب البريد الإلكتروني');
                             return;
@@ -2078,9 +2068,10 @@
                     lastLoginDate: this.currentUser.lastLoginDate || '',
                     updatedAt: serverTimestamp()
                 };
+                // Only for a record that doesn't exist yet: the rules let a new record start at 0.
                 if (includeCounters) {
-                    payload.points = numOr0(this.currentUser.points);
-                    payload.balance = numOr0(this.currentUser.balance);
+                    payload.points = 0;
+                    payload.balance = 0;
                 }
                 const userWrite = update(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
                     console.log('User synced to Realtime Database');
@@ -2089,16 +2080,25 @@
                     console.warn('Realtime Database sync failed:', err);
                     return false;
                 });
-                update(ref(window.firebaseDb, 'leaderboard/' + uid), {
-                    name: payload.fullName,
-                    avatar: payload.avatar,
-                    grade: payload.grade,
-                    points: numOr0(this.currentUser.points),
-                    weeklyChange: payload.weeklyChange
-                }).catch((err) => {
+                // Points on the leaderboard are written together with users/{uid}/points
+                // (addPointsAtomic); here only the profile part, and 0 for a new record.
+                const lb = { name: payload.fullName, avatar: payload.avatar, grade: payload.grade, weeklyChange: payload.weeklyChange };
+                if (includeCounters) lb.points = 0;
+                userWrite.then((ok) => ok && update(ref(window.firebaseDb, 'leaderboard/' + uid), lb)).catch((err) => {
                     console.warn('Leaderboard sync failed:', err);
                 });
+                // Phone -> email, so signing in with a phone number doesn't need to read every
+                // student's record. Each number can only be claimed by one account.
+                const pk = this._phoneKey(payload.phone);
+                if (pk && payload.email && window.firebaseAuth && window.firebaseAuth.currentUser) {
+                    update(ref(window.firebaseDb, 'phoneIndex/' + pk), { e: payload.email, u: uid }).catch(() => {});
+                }
                 return userWrite;
+            },
+
+            _phoneKey(p) {
+                const d = String(p || '').replace(/[^0-9]/g, '');
+                return d.length >= 7 && d.length <= 20 ? d : '';
             },
 
             async loadUserFromDatabase(uid) {
@@ -3324,6 +3324,7 @@
             _drClose() { ['drSheet', 'drView', 'drMine'].forEach((id) => document.getElementById(id)?.classList.add('hidden')); this._drMineOpen = false; },
 
             openDreamWriter() {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى تطلق حلمك'); this.goToAuth('login'); return; }
                 this._drClose();
                 const mine = (this._dreams || []).filter((d) => d.o === this._dreamOwner());
                 const box = document.getElementById('drSheet');
@@ -4860,12 +4861,26 @@
                 });
             },
 
+            // When someone outbids me, their bid leaves my points in auctionBids/{id}/refunds/{me}/{amount};
+            // I add them back to my own points myself, once each (the rules check the claim).
             _auRefundCheck() {
-                const r = this._auBids && this._auBids.refunds && this.authUid && this._auBids.refunds[this.authUid];
-                if (!r) return;
-                this.showToast('أحد زايد أعلى منك، رجعتلك ' + numOr0(r.amount) + ' نقطة');
+                const mine = this._auBids && this._auBids.refunds && this.authUid && this._auBids.refunds[this.authUid];
+                if (!mine || typeof mine !== 'object') return;
+                const id = this._auBidsId, me = this.authUid;
                 const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'auctionBids/' + this._auBidsId + '/refunds/' + this.authUid), null).catch(() => {});
+                if (typeof mine.amount === 'number') { set(ref(window.firebaseDb, 'auctionBids/' + id + '/refunds/' + me), null).catch(() => {}); return; }
+                this._auClaiming = this._auClaiming || {};
+                Object.keys(mine).forEach((k) => {
+                    const r = mine[k], amt = numOr0(r && r.amount);
+                    if (!r || r.c || amt <= 0 || this._auClaiming[id + '/' + k]) return;
+                    this._auClaiming[id + '/' + k] = true;
+                    const path = 'auctionBids/' + id + '/refunds/' + me + '/' + k;
+                    this.addPointsAtomic(amt, { claim: true, extra: { [path + '/c']: true, ['users/' + me + '/pc']: path } }).then((np) => {
+                        if (np === null) return;
+                        this.addWalletTransaction({ title: 'إرجاع مزايدة', amount: '+' + amt + ' نقطة', isNegative: false, icon: 'undo-2', iconColor: '#10B981', iconBg: 'bg-success/10' });
+                        this.showToast('أحد زايد أعلى منك، رجعتلك ' + amt + ' نقطة');
+                    });
+                });
             },
 
             _auName(n) {
@@ -4951,72 +4966,48 @@
 
             async placeBid() {
                 if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
-                const { a, top, step, minNext } = this._auState();
+                const { a, step, minNext } = this._auState();
                 if (!a || Date.now() >= numOr0(a.endsAt)) { this.showToast('المزاد منتهي'); return; }
                 if (this._auBusy) return;
                 const amount = Math.floor(numOr0(this._auAmount));
                 if (amount < minNext) { this.showToast('أقل مزايدة ' + minNext + ' نقطة'); return; }
                 const me = this.authUid, id = a.id, db = window.firebaseDb;
-                const held = top && top.uid === me ? numOr0(top.amount) : 0;
-                const charge = amount - held;
-                const { ref, runTransaction, set } = window.firebaseDbHelpers;
+                const { ref, get, runTransaction, set } = window.firebaseDbHelpers;
                 const name = String((this.currentUser && this.currentUser.fullName) || 'طالب').slice(0, 40);
                 this._auBusy = true;
                 const btn = document.getElementById('auGo');
                 if (btn) btn.disabled = true;
-                let charged = false;
                 try {
-                    const left = await this.addPointsAtomic(-charge, { reject: true });
-                    if (left === null) { this.showToast('نقاطك ما تكفي لهاي المزايدة'); return; }
-                    charged = true;
-                    let prev = null;
-                    const res = await runTransaction(ref(db, 'auctionBids/' + id + '/top'), (cur) => {
-                        prev = cur;
-                        if (Date.now() >= numOr0(a.endsAt)) return undefined;
-                        if (cur && numOr0(cur.amount) > 0) {
-                            if (amount < numOr0(cur.amount) + step) return undefined;
-                            if ((cur.uid === me ? numOr0(cur.amount) : 0) !== held) return undefined;
-                        }
-                        return { uid: me, name, num: String((this.currentUser && this.currentUser.studentNumber) || ''), amount, at: Date.now() };
-                    });
-                    if (!res.committed) {
-                        await this.addPointsAtomic(charge);
-                        charged = false;
-                        this.showToast('في واحد زايد قبلك، شوف السعر الجديد وحاول مرة ثانية');
-                        return;
+                    // My points, the new top bid and the previous bidder's refund go in one write,
+                    // so the rules can check that the bid is paid for and nobody loses points.
+                    let ok = null;
+                    for (let i = 0; i < 3 && ok === null; i++) {
+                        const cur = (await get(ref(db, 'auctionBids/' + id + '/top'))).val();
+                        const curAmt = cur && numOr0(cur.amount) > 0 ? numOr0(cur.amount) : 0;
+                        if (curAmt && amount < curAmt + step) { ok = 'outbid'; break; }
+                        const heldNow = cur && cur.uid === me ? curAmt : 0;
+                        const extra = { ['auctionBids/' + id + '/top']: { uid: me, name, num: String((this.currentUser && this.currentUser.studentNumber) || ''), amount, at: Date.now() } };
+                        if (curAmt && cur.uid && cur.uid !== me) extra['auctionBids/' + id + '/refunds/' + cur.uid + '/' + curAmt] = { amount: curAmt, at: Date.now() };
+                        const left = await this.addPointsAtomic(-(amount - heldNow), { reject: true, spend: 'a:' + id + ':' + amount, extra });
+                        if (left !== null) { ok = amount - heldNow; break; }
+                        if (numOr0(this.currentUser && this.currentUser.points) < amount - heldNow) { ok = 'poor'; break; }
                     }
-                    charged = false;
-                    if (prev && prev.uid && prev.uid !== me && numOr0(prev.amount) > 0) this._auRefund(id, prev);
-                    else if (!prev && held) this.addPointsAtomic(held);
+                    if (ok === 'poor' || ok === null) { this.showToast(ok === 'poor' ? 'نقاطك ما تكفي لهاي المزايدة' : 'تعذرت المزايدة، حاول مرة ثانية'); return; }
+                    if (ok === 'outbid') { this.showToast('في واحد زايد قبلك، شوف السعر الجديد وحاول مرة ثانية'); return; }
                     set(ref(db, 'auctionBids/' + id + '/log/' + Date.now() + '_' + me.slice(0, 6)), { uid: me, name, amount, at: Date.now() }).catch(() => {});
                     if (numOr0(a.endsAt) - Date.now() < 120000) {
                         runTransaction(ref(db, 'auction/current/endsAt'), (cur) => Math.max(numOr0(cur), Date.now() + 120000)).catch(() => {});
                     }
-                    this.addWalletTransaction({ title: 'مزايدة: ' + String(a.title || '').slice(0, 40), amount: '-' + charge + ' نقطة', isNegative: true, icon: 'gavel', iconColor: '#F59E0B', iconBg: 'bg-warning/10' });
+                    this.addWalletTransaction({ title: 'مزايدة: ' + String(a.title || '').slice(0, 40), amount: '-' + ok + ' نقطة', isNegative: true, icon: 'gavel', iconColor: '#F59E0B', iconBg: 'bg-warning/10' });
                     this.showToast('صرت الأعلى بـ ' + amount + ' نقطة');
                 } catch (e) {
                     console.warn('Bid failed:', e);
-                    if (charged) this.addPointsAtomic(charge);
                     this.showToast('تعذرت المزايدة');
                 } finally {
                     this._auBusy = false;
                     this._auAmount = 0;
                     this.renderAuction();
                 }
-            },
-
-            _auRefund(id, prev) {
-                const { ref, runTransaction, set } = window.firebaseDbHelpers;
-                const db = window.firebaseDb, amt = numOr0(prev.amount);
-                runTransaction(ref(db, 'users/' + prev.uid + '/points'), (cur) => numOr0(cur) + amt).then((r) => {
-                    if (r.committed) set(ref(db, 'leaderboard/' + prev.uid + '/points'), r.snapshot.val()).catch(() => {});
-                }).catch((e) => console.warn('Auction refund failed:', e));
-                set(ref(db, 'auctionBids/' + id + '/refunds/' + prev.uid), { amount: amt, at: Date.now() }).catch(() => {});
-                const now = new Date(), pad = (n) => String(n).padStart(2, '0'), rid = Date.now();
-                set(ref(db, 'walletTransactions/' + prev.uid + '/' + rid), {
-                    id: rid, title: 'إرجاع مزايدة', amount: '+' + amt + ' نقطة', isNegative: false, icon: 'undo-2', iconColor: '#10B981', iconBg: 'bg-success/10',
-                    date: now.getFullYear() + '/' + pad(now.getMonth() + 1) + '/' + pad(now.getDate()) + ' - ' + pad(now.getHours()) + ':' + pad(now.getMinutes())
-                }).catch(() => {});
             },
 
             // ===== Grades progress (تطور درجاتي) =====
@@ -6998,7 +6989,7 @@
                 }
                 const btn = document.getElementById('topupRedeemBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
-                const { ref, get, update, runTransaction } = window.firebaseDbHelpers;
+                const { ref, get } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const codeRef = ref(window.firebaseDb, 'topupCodes/' + code);
                 let codeValueIqd = 0;
@@ -7013,25 +7004,21 @@
                         return Promise.reject('handled');
                     }
                     codeValueIqd = Number(data.value) || 0;
-                    return runTransaction(ref(window.firebaseDb, 'topupCodes/' + code + '/used'), (current) => {
-                        if (current === true) return;
-                        return true;
-                    });
-                }).then((result) => {
-                    if (!result || !result.committed) {
-                        this.showToast('هذا الكود مستخدم مسبقاً');
-                        if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
-                        return;
-                    }
-                    update(codeRef, { usedBy: uid, usedAt: Date.now() }).catch(() => {});
                     const usdAmount = codeValueIqd / 1325;
-                    // FIX: the balance used to be "local balance + amount" written back with a
-                    // full-record set(), racing with transfers/withdrawals. It's atomic now,
-                    // and if crediting fails the code is released instead of being burned.
-                    return this.addBalanceAtomic(usdAmount).then((newBalance) => {
+                    // The code is marked used and the balance credited in the same write; the
+                    // rules only accept the credit when this code was unused a moment before.
+                    return this.addBalanceAtomic(usdAmount, {
+                        claim: ['bt', code],
+                        extra: {
+                            ['topupCodes/' + code + '/used']: true,
+                            ['topupCodes/' + code + '/usedBy']: uid,
+                            ['topupCodes/' + code + '/usedAt']: Date.now()
+                        }
+                    }).then((newBalance) => {
                         if (newBalance === null) {
-                            update(codeRef, { used: false, usedBy: null, usedAt: null }).catch(() => {});
-                            return Promise.reject(new Error('balance-credit-failed'));
+                            this.showToast('هذا الكود مستخدم مسبقاً أو تعذر التحقق منه');
+                            if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; }
+                            return undefined;
                         }
                         return usdAmount;
                     });
@@ -7560,7 +7547,7 @@
                     this.showToast('ابحث عن الطالب أولاً');
                     return;
                 }
-                const amount = parseFloat(amountInput.value);
+                const amount = Math.round(parseFloat(amountInput.value) * 100) / 100;
                 if (isNaN(amount) || amount <= 0) {
                     this.showToast('أدخل مبلغاً صحيحاً أكبر من صفر');
                     return;
@@ -7579,10 +7566,8 @@
                     this.showToast('لا يوجد اتصال موثوق بقاعدة البيانات');
                     return;
                 }
-                const { ref, set, serverTimestamp, runTransaction } = window.firebaseDbHelpers;
+                const { serverTimestamp } = window.firebaseDbHelpers;
                 const transactionId = 'tr_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-                const round2 = (n) => Math.round(n * 100) / 100;
-                let senderDeducted = false;
                 content.innerHTML = `
                     <div class="flex flex-col items-center justify-center py-6 text-center">
                         <i data-lucide="loader-2" class="w-10 h-10 animate-spin mb-3" style="color: rgb(var(--p));"></i>
@@ -7591,92 +7576,43 @@
                 lucide.createIcons();
 
                 const finishFailure = (err) => {
-                    console.warn('Transfer failed:', err);
-                    const finalize = () => {
-                        content.innerHTML = `
+                    if (err) console.warn('Transfer failed:', err);
+                    content.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-6 text-center">
                             <div class="w-14 h-14 rounded-full bg-error/10 flex items-center justify-center mb-3">
                                 <i data-lucide="alert-triangle" class="w-7 h-7 text-error"></i>
                             </div>
                             <h4 class="font-bold mb-1 theme-transition" style="color: var(--text);">فشل التحويل</h4>
-                            <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">حدث خطأ أثناء التحويل، لم يُخصم أي مبلغ</p>
+                            <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">${err ? 'حدث خطأ أثناء التحويل، لم يُخصم أي مبلغ' : 'رصيدك غير كافٍ لهذا التحويل'}</p>
                             <button onclick="app.closeWalletModal()" class="px-10 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">إغلاق</button>
                         </div>`;
-                        lucide.createIcons();
-                    };
-                    if (senderDeducted) {
-                        runTransaction(ref(window.firebaseDb, 'users/' + senderUid), (cur) => {
-                            if (cur) {
-                                cur.balance = round2(((typeof cur.balance === 'number') ? cur.balance : 0) + amount);
-                                cur.updatedAt = serverTimestamp();
-                            }
-                            return cur;
-                        }).catch((refundErr) => {
-                            console.warn('Transfer refund failed:', refundErr);
-                        }).finally(finalize);
-                    } else {
-                        finalize();
-                    }
+                    lucide.createIcons();
                 };
 
-                let senderTxResult = null;
-                // FIX: both transactions used to abort when the handler's first (cached)
-                // call got `null` — which is always the case for the receiver's record — so
-                // every transfer failed. Returning `null` for `null` lets Firebase re-run
-                // the handler with the server value; a record that is really missing is
-                // caught by the exists() checks below.
-                runTransaction(ref(window.firebaseDb, 'users/' + senderUid), (current) => {
-                    if (current === null) return null;
-                    const balance = (typeof current.balance === 'number') ? current.balance : 0;
-                    if (balance < amount) return;
-                    current.balance = round2(balance - amount);
-                    current.updatedAt = serverTimestamp();
-                    return current;
-                }).then((result) => {
-                    if (!result.committed || !result.snapshot.exists()) throw new Error('insufficient-balance');
-                    senderDeducted = true;
-                    senderTxResult = result.snapshot.val();
-                    return runTransaction(ref(window.firebaseDb, 'users/' + receiver.uid), (current) => {
-                        if (current === null) return null;
-                        current.balance = round2(((typeof current.balance === 'number') ? current.balance : 0) + amount);
-                        current.updatedAt = serverTimestamp();
-                        return current;
+                // The sender only takes money out of their own balance and, in the same write,
+                // leaves it in incoming/{receiver}; the receiver's app adds it to their own
+                // balance (claimIncoming), so nobody ever writes someone else's balance.
+                const senderName = String(this.currentUser.fullName || 'طالب').slice(0, 60);
+                this.addBalanceAtomic(-amount, {
+                    reject: true,
+                    extra: {
+                        ['incoming/' + receiver.uid + '/' + transactionId]: { from: senderUid, name: senderName, amount, at: Date.now(), claimed: false },
+                        ['transfers/' + transactionId]: { from: senderUid, to: receiver.uid, amount, createdAt: serverTimestamp() },
+                        ['users/' + senderUid + '/bs']: transactionId
+                    }
+                }).then((newBalance) => {
+                    if (newBalance === null) { finishFailure(null); return; }
+                    this.addWalletTransaction({
+                        title: 'تحويل إلى ' + (receiver.data.fullName || 'طالب'),
+                        amount: '-$' + amount.toFixed(2),
+                        isNegative: true,
+                        icon: 'send',
+                        iconColor: 'text-error',
+                        iconBg: 'bg-error/10'
                     });
-                }).then((receiverResult) => {
-                    if (!receiverResult.committed || !receiverResult.snapshot.exists()) throw new Error('receiver-update-failed');
-                    const receiverData = receiverResult.snapshot.val();
-                    return set(ref(window.firebaseDb, 'transfers/' + transactionId), {
-                        from: senderUid,
-                        to: receiver.uid,
-                        amount: amount,
-                        createdAt: serverTimestamp()
-                    }).then(() => {
-                        const sender = this.currentUser;
-                        if (senderTxResult) {
-                            sender.balance = senderTxResult.balance;
-                        } else {
-                            sender.balance = round2(((typeof sender.balance === 'number') ? sender.balance : 0) - amount);
-                        }
-                        this.saveUserData();
-                        this.syncUserToDatabase();
-                        set(ref(window.firebaseDb, 'leaderboard/' + receiver.uid), {
-                            name: receiverData.fullName || '',
-                            avatar: receiverData.avatar || '',
-                            grade: receiverData.grade || 'scientific',
-                            points: receiverData.points || 0,
-                            weeklyChange: receiverData.weeklyChange || 0
-                        }).catch((err) => { console.warn('Receiver leaderboard sync failed:', err); });
-                        this.addWalletTransaction({
-                            title: 'تحويل إلى ' + (receiver.data.fullName || 'طالب'),
-                            amount: '-$' + amount.toFixed(2),
-                            isNegative: true,
-                            icon: 'send',
-                            iconColor: 'text-error',
-                            iconBg: 'bg-error/10'
-                        });
-                        this.renderWalletBalance();
-                        this.transferReceiver = null;
-                        content.innerHTML = `
+                    this.renderWalletBalance();
+                    this.transferReceiver = null;
+                    content.innerHTML = `
                         <div class="flex flex-col items-center justify-center py-6 text-center">
                             <div class="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center mb-3">
                                 <i data-lucide="check" class="w-7 h-7 text-success"></i>
@@ -7685,11 +7621,36 @@
                             <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">تم خصم $${amount.toFixed(2)} من رصيدك وإضافتها إلى ${escapeHtml(receiver.data.fullName || 'الطالب')}</p>
                             <button onclick="app.closeWalletModal()" class="px-10 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">حسناً</button>
                         </div>`;
-                        lucide.createIcons();
-                        this.showToast('تم التحويل بنجاح');
+                    lucide.createIcons();
+                    this.showToast('تم التحويل بنجاح');
+                }).catch((err) => finishFailure(err || 'error'));
+            },
+
+            // Adds transfers waiting in incoming/{me} to my balance, each one once.
+            listenForIncoming() {
+                if (!window.firebaseDb || !this.authUid || this._incomingListener) return;
+                const { ref, onChildAdded } = window.firebaseDbHelpers;
+                const me = this.authUid;
+                this._incomingListener = onChildAdded(ref(window.firebaseDb, 'incoming/' + me), (snap) => {
+                    const t = snap.val(), id = snap.key;
+                    if (!t || t.claimed || !(numOr0(t.amount) > 0)) return;
+                    this._incomingBusy = this._incomingBusy || {};
+                    if (this._incomingBusy[id]) return;
+                    this._incomingBusy[id] = true;
+                    const amount = numOr0(t.amount);
+                    this.addBalanceAtomic(amount, { claim: ['bi', id], extra: { ['incoming/' + me + '/' + id + '/claimed']: true } }).then((nb) => {
+                        if (nb === null || this.authUid !== me) return;
+                        this.addWalletTransaction({
+                            title: 'تحويل من ' + String(t.name || 'طالب').slice(0, 60),
+                            amount: '+$' + amount.toFixed(2),
+                            isNegative: false,
+                            icon: 'download',
+                            iconColor: 'text-success',
+                            iconBg: 'bg-success/10'
+                        });
+                        if (this.currentView === 'walletView') this.renderWalletBalance();
+                        this.showToast('وصلك تحويل $' + amount.toFixed(2) + ' من ' + String(t.name || 'طالب').slice(0, 60));
                     });
-                }).catch((err) => {
-                    finishFailure(err);
                 });
             },
 
@@ -8569,21 +8530,78 @@
                 this.searchAddFriendStudent();
             },
 
-            // FIX: shared helper for atomic points changes. checkoutStoreCart, buyProductNow,
-            // redeemPointsOffer, completeStudyTimer, confirmYoutubePresence, checkDailyStreak
-            // and failYoutubePresenceCheck used to read `this.currentUser.points` from the
-            // local in-memory/localStorage cache and write back `points ± x` with a plain
-            // fire-and-forget `set()` — two tabs, a double click, or a dropped connection
-            // right after a purchase could double-spend or silently roll back a completed
-            // purchase/reward. Every points mutation now goes through a single
-            // `runTransaction` on `users/{uid}/points`, which reads-and-writes atomically
-            // against the server value; `reject: true` aborts the whole transaction (nothing
-            // is written, caller sees `null`) instead of clamping when a spend would go
-            // negative, so purchases can't overdraw a balance a concurrent tab already spent.
+            // Points and wallet balance. Each change is one multi-path update that the database
+            // rules (database.rules.json) can check against what is really stored: the value is
+            // read fresh from the server and written together with whatever justifies it.
+            // Spending is always allowed down to 0. Points may only go up by at most 200 per
+            // write and one write per 20 seconds (users/{uid}/pAt), unless an auction refund is
+            // being claimed (users/{uid}/pc). The balance may only go up through a top-up code
+            // (bt), an incoming transfer (bi) or a points redemption in the same write.
+            // Changes from this device run one after another so they never race each other.
+            _walletQueue(fn) {
+                const p = (this._wq || Promise.resolve()).then(fn, fn);
+                this._wq = p.catch(() => {});
+                return p;
+            },
+
+            // build(cur) gets the fresh {points, balance, pAt} and returns {upd, points?, balance?},
+            // {wait: ms} to try again later, or null to give up.
+            async _walletWrite(build) {
+                const { ref, get, update } = window.firebaseDbHelpers;
+                const db = window.firebaseDb, base = 'users/' + this.authUid + '/';
+                let tries = 0, waits = 0;
+                while (tries < 4) {
+                    const [p, b, a] = await Promise.all(['points', 'balance', 'pAt'].map((k) => get(ref(db, base + k)).then((s) => s.val())));
+                    const plan = build({ points: numOr0(p), balance: numOr0(b), pAt: numOr0(a) });
+                    if (!plan) return null;
+                    if (plan.wait) {
+                        if (++waits > 3) return null;
+                        await new Promise((r) => setTimeout(r, Math.min(25000, plan.wait)));
+                        continue;
+                    }
+                    try {
+                        await update(ref(db), plan.upd);
+                        if ('points' in plan) this.currentUser.points = plan.points;
+                        if ('balance' in plan) this.currentUser.balance = plan.balance;
+                        this.saveUserData();
+                        return plan;
+                    } catch (e) {
+                        if (++tries >= 4) throw e;
+                        await new Promise((r) => setTimeout(r, 400 * tries));
+                    }
+                }
+                return null;
+            },
+
+            _pointsPlan(cur, delta, opts) {
+                const min = typeof opts.min === 'number' ? opts.min : 0;
+                const uid = this.authUid;
+                let next = cur.points + delta;
+                if (next < min) {
+                    if (opts.reject) return null;
+                    next = Math.max(min, Math.min(cur.points, next));
+                }
+                const upd = Object.assign({}, opts.extra || {});
+                upd['users/' + uid + '/points'] = next;
+                upd['leaderboard/' + uid + '/points'] = next;
+                // what the points are spent on (users/{uid}/ps), so one payment can't pay for two things
+                if (opts.spend) upd['users/' + uid + '/ps'] = opts.spend;
+                if (next > cur.points && !opts.claim) {
+                    const now = Math.round(this.trueNow()), at = Math.max(now, cur.pAt + 20000);
+                    if (at > now + 8000) return { wait: at - now - 7000 };
+                    upd['users/' + uid + '/pAt'] = at;
+                }
+                return { upd, points: next };
+            },
+
+            // options: reject (fail instead of clamping at 0), extra (more paths written in the
+            // same update), claim (the extra paths hold an auction refund claim), spend (what
+            // the points pay for: 'a:<auction>:<bid>', 'o:<order>' or 'r:<time>').
             addPointsAtomic(delta, options) {
                 const opts = options || {};
                 const reject = !!opts.reject;
                 const min = typeof opts.min === 'number' ? opts.min : 0;
+                delta = Math.round(Number(delta) || 0);
                 if (!this.currentUser) return Promise.resolve(null);
                 if (!window.firebaseDb || !this.authUid) {
                     let next = (this.currentUser.points || 0) + delta;
@@ -8595,62 +8613,32 @@
                     this.saveUserData();
                     return Promise.resolve(next);
                 }
-                const { ref, runTransaction, set } = window.firebaseDbHelpers;
-                // FIX: Firebase runs the handler first with the locally cached value, which is
-                // `null` when nothing is cached. Returning `undefined` (abort) on that first
-                // call used to reject every purchase/redeem ("نقاطك غير كافية") even with
-                // plenty of points. On `null` we now propose a harmless value so the server
-                // re-runs the handler with the real one, and only treat it as "no points"
-                // when the value on the server really is empty.
-                let lastRunOnNull = false;
-                return runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/points'), (cur) => {
-                    lastRunOnNull = (cur === null);
-                    const current = (typeof cur === 'number') ? cur : 0;
-                    let next = current + delta;
-                    if (next < min) {
-                        if (reject) return lastRunOnNull ? 0 : undefined;
-                        next = min;
-                    }
-                    return next;
-                }).then((result) => {
-                    if (!result.committed) return null;
-                    if (reject && lastRunOnNull && delta < 0) return null;
-                    const newPoints = (typeof result.snapshot.val() === 'number') ? result.snapshot.val() : 0;
-                    this.currentUser.points = newPoints;
-                    this.saveUserData();
-                    set(ref(window.firebaseDb, 'leaderboard/' + this.authUid + '/points'), newPoints).catch(() => {});
-                    return newPoints;
-                }).catch((err) => {
-                    console.warn('addPointsAtomic failed:', err);
-                    return null;
-                });
+                return this._walletQueue(() => this._walletWrite((cur) => this._pointsPlan(cur, delta, opts)))
+                    .then((r) => (r ? r.points : null))
+                    .catch((err) => {
+                        console.warn('addPointsAtomic failed:', err);
+                        return null;
+                    });
             },
 
-            // Same idea as addPointsAtomic() for the wallet `balance` (USD, 2 decimals).
-            // Every balance change now goes through a transaction instead of
-            // "local value ± x" followed by a full-record write.
+            // Same idea for the wallet balance (USD, 2 decimals). options: reject, extra, and
+            // claim: [field, value] naming what pays for an increase ('bt' code / 'bi' transfer).
             addBalanceAtomic(delta, options) {
-                const reject = !!(options && options.reject);
+                const opts = options || {};
                 const round2 = (n) => Math.round(n * 100) / 100;
                 if (!this.currentUser || !window.firebaseDb || !this.authUid) return Promise.resolve(null);
-                const { ref, runTransaction } = window.firebaseDbHelpers;
-                let lastRunOnNull = false;
-                return runTransaction(ref(window.firebaseDb, 'users/' + this.authUid + '/balance'), (cur) => {
-                    lastRunOnNull = (cur === null);
-                    const next = round2(numOr0(cur) + delta);
+                const uid = this.authUid;
+                return this._walletQueue(() => this._walletWrite((cur) => {
+                    let next = round2(cur.balance + delta);
                     if (next < 0) {
-                        if (reject) return lastRunOnNull ? 0 : undefined;
-                        return 0;
+                        if (opts.reject) return null;
+                        next = 0;
                     }
-                    return next;
-                }).then((result) => {
-                    if (!result.committed) return null;
-                    if (reject && lastRunOnNull && delta < 0) return null;
-                    const newBalance = numOr0(result.snapshot.val());
-                    this.currentUser.balance = newBalance;
-                    this.saveUserData();
-                    return newBalance;
-                }).catch((err) => {
+                    const upd = Object.assign({}, opts.extra || {});
+                    upd['users/' + uid + '/balance'] = next;
+                    if (opts.claim) upd['users/' + uid + '/' + opts.claim[0]] = opts.claim[1];
+                    return { upd, balance: next };
+                })).then((r) => (r ? r.balance : null)).catch((err) => {
                     console.warn('addBalanceAtomic failed:', err);
                     return null;
                 });
@@ -8981,20 +8969,19 @@
                     this.showToast('نقاطك غير كافية لهذا العرض');
                     return;
                 }
-                this.addPointsAtomic(-points, { reject: true }).then((newPoints) => {
-                    if (newPoints === null) {
-                        this.showToast('نقاطك غير كافية لهذا العرض');
+                if (!window.firebaseDb || !this.authUid) return;
+                // Points out and balance in, in one write, so the rules can see the points paid.
+                const uid = this.authUid, usdAmount = iqd / 1325;
+                this._walletQueue(() => this._walletWrite((cur) => {
+                    if (cur.points < points) return null;
+                    const np = cur.points - points, nb = Math.round((cur.balance + usdAmount) * 100) / 100;
+                    return { upd: { ['users/' + uid + '/points']: np, ['leaderboard/' + uid + '/points']: np, ['users/' + uid + '/balance']: nb, ['users/' + uid + '/ps']: 'r:' + Date.now() }, points: np, balance: nb };
+                })).catch((err) => { console.warn('Redeem failed:', err); return 'err'; }).then((r) => {
+                    if (!r || r === 'err') {
+                        this.showToast(r ? 'تعذر الاستبدال، حاول مجدداً' : 'نقاطك غير كافية لهذا العرض');
                         return;
                     }
-                    const usdAmount = iqd / 1325;
-                    this.addBalanceAtomic(usdAmount).then((newBalance) => {
-                        if (newBalance === null) {
-                            // Couldn't credit the wallet — give the points back.
-                            this.addPointsAtomic(points);
-                            this.showToast('تعذر إضافة الرصيد — تم إرجاع نقاطك، حاول مجدداً');
-                            return;
-                        }
-                        this.addWalletTransaction({
+                    this.addWalletTransaction({
                         title: 'استبدال ' + points.toLocaleString('en-US') + ' نقطة',
                         amount: '+$' + usdAmount.toFixed(2),
                         isNegative: false,
@@ -9002,9 +8989,8 @@
                         iconColor: 'text-warning',
                         iconBg: 'bg-warning/10'
                     });
-                        this.renderPointsStore();
-                        this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
-                    });
+                    this.renderPointsStore();
+                    this.showToast('تم استبدال النقاط بنجاح! أُضيف ' + iqd.toLocaleString('en-US') + ' د.ع لرصيدك');
                 });
             },
 
@@ -10956,26 +10942,20 @@
                 }
                 const total = live.reduce((sum, p) => sum + numOr0(p.pricePoints), 0);
                 if (total <= 0) { this.showToast('تعذر حساب سعر السلة'); return; }
-                const { ref, set } = window.firebaseDbHelpers;
                 const orderId = Date.now();
                 const items = live.map(p => ({ productId: p.id, storeId: p.storeId || '', ownerUid: p.ownerUid || '', title: p.title || '', pricePoints: numOr0(p.pricePoints) }));
-                this.addPointsAtomic(-total, { reject: true }).then((newPoints) => {
+                const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items, totalPoints: total, status: 'placed', createdAt: Date.now() };
+                // The order and the points it costs are written together.
+                this.addPointsAtomic(-total, { reject: true, spend: 'o:' + orderId, extra: { ['storeOrders/' + orderId]: order } }).then((newPoints) => {
                     if (newPoints === null) {
-                        this.showToast('نقاطك غير كافية لإتمام الشراء');
+                        this.showToast('نقاطك غير كافية أو تعذر إتمام الشراء');
                         return;
                     }
-                    const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items, totalPoints: total, status: 'placed', createdAt: Date.now() };
-                    set(ref(window.firebaseDb, 'storeOrders/' + orderId), order).then(() => {
-                        storeCart.length = 0;
-                        this.saveStoreCart();
-                        this.updateStoreCartBadge();
-                        this.showToast('تم الشراء بنجاح! خُصم ' + total.toLocaleString('en-US') + ' نقطة');
-                        this.goBack();
-                    }).catch((err) => {
-                        console.warn('Checkout order write failed:', err);
-                        this.addPointsAtomic(total);
-                        this.showToast('تعذر إتمام الشراء — تم إرجاع نقاطك، حاول مجدداً');
-                    });
+                    storeCart.length = 0;
+                    this.saveStoreCart();
+                    this.updateStoreCartBadge();
+                    this.showToast('تم الشراء بنجاح! خُصم ' + total.toLocaleString('en-US') + ' نقطة');
+                    this.goBack();
                 });
             },
 
@@ -10992,23 +10972,16 @@
                     return;
                 }
                 if (!window.firebaseDb) { this.showToast('لا يوجد اتصال بقاعدة البيانات'); return; }
-                const { ref, set } = window.firebaseDbHelpers;
                 const orderId = Date.now();
                 const price = numOr0(p.pricePoints);
                 if (price <= 0) { this.showToast('سعر المنتج غير صالح'); return; }
-                this.addPointsAtomic(-price, { reject: true }).then((newPoints) => {
+                const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items: [{ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, pricePoints: price }], totalPoints: price, status: 'placed', createdAt: Date.now() };
+                this.addPointsAtomic(-price, { reject: true, spend: 'o:' + orderId, extra: { ['storeOrders/' + orderId]: order } }).then((newPoints) => {
                     if (newPoints === null) {
-                        this.showToast('نقاطك غير كافية لشراء هذا المنتج');
+                        this.showToast('نقاطك غير كافية أو تعذر إتمام الشراء');
                         return;
                     }
-                    const order = { id: orderId, buyerUid: this.authUid, buyerName: this.currentUser.fullName || 'طالب', items: [{ productId: p.id, storeId: p.storeId, ownerUid: p.ownerUid, title: p.title, pricePoints: price }], totalPoints: price, status: 'placed', createdAt: Date.now() };
-                    set(ref(window.firebaseDb, 'storeOrders/' + orderId), order).then(() => {
-                        this.showToast('تم شراء "' + p.title + '" بنجاح!');
-                    }).catch((err) => {
-                        console.warn('Buy now order write failed:', err);
-                        this.addPointsAtomic(price);
-                        this.showToast('تعذر إتمام الشراء — تم إرجاع نقاطك، حاول مجدداً');
-                    });
+                    this.showToast('تم شراء "' + p.title + '" بنجاح!');
                 });
             },
 
