@@ -14,5 +14,6 @@
 - Points and balance only change through `addPointsAtomic` / `addBalanceAtomic` (one update the
   rules can check). Points go up at most 200 per write, one write per 20 seconds; the balance only
   goes up through a top-up code, an incoming transfer (`incoming/{uid}`) or redeeming points.
-- The admin panel needs signing in; `admins/{uid}` lists who may. The first account to sign in
-  while that list is empty becomes the admin.
+- The admin panel asks for its password: it signs in to one fixed Firebase account
+  (`panel.admin@iraqi-student-platform.app`, created with the password typed the first time).
+  The rules give that account, and anyone in `admins/{uid}`, the admin rights.

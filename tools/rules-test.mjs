@@ -6,7 +6,7 @@ import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebas
 import fs from 'fs';
 import { ref, get, set, update, runTransaction } from 'firebase/database';
 const env = await initializeTestEnvironment({ projectId: 'demo-isp', database: { host: '127.0.0.1', port: 9000, rules: fs.readFileSync(new URL('../database.rules.json', import.meta.url), 'utf8') } });
-const db = (u) => (u ? env.authenticatedContext(u) : env.unauthenticatedContext()).database();
+const db = (u) => (u === 'adm' ? env.authenticatedContext(u, { email: 'panel.admin@iraqi-student-platform.app' }) : u ? env.authenticatedContext(u) : env.unauthenticatedContext()).database();
 const seed = async (path, v) => env.withSecurityRulesDisabled(async (c) => { await set(ref(c.database(), path), v); });
 let pass = 0, fail = 0;
 const ok = async (name, p) => { try { await assertSucceeds(p); pass++; } catch (e) { fail++; console.log('SHOULD PASS:', name, String(e.message || e).slice(0, 200)); } };
@@ -16,8 +16,9 @@ const now = Date.now();
 await env.clearDatabase();
 
 // admin
-await ok('first admin claim', set(ref(db('adm'), 'admins/adm'), true));
-await no('second admin claim', set(ref(db('bob'), 'admins/bob'), true));
+await no('student makes himself admin', set(ref(db('bob'), 'admins/bob'), true));
+await ok('panel adds an admin', set(ref(db('adm'), 'admins/helper'), true));
+await ok('listed admin reads root', get(ref(db('helper'), '/')));
 await ok('admin reads root', get(ref(db('adm'), '/')));
 await no('student reads root', get(ref(db('u1'), '/')));
 await ok('admin writes news', set(ref(db('adm'), 'news/1'), { title: 'x' }));
