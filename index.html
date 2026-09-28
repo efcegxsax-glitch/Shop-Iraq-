@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = 'fea0b447b1';
+        window.APP_VER = 'cfe3cc8ef2';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,8 +130,8 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=a9f3834908">
-    <link rel="stylesheet" href="css/tw.css?v=dcff4fd5b7">
+    <link rel="stylesheet" href="css/app.css?v=47efa0a800">
+    <link rel="stylesheet" href="css/tw.css?v=83c252dfef">
 </head>
 <body class="antialiased">
     <div id="offlineBar" class="offline-bar" role="status">بدون نت: تشوف آخر نسخة محفوظة، وبعض الأشياء ترجع تشتغل لما يرجع النت</div>
@@ -816,334 +816,15 @@
         <!-- ===== MORE/MENU VIEW ===== -->
         <div id="moreView" class="hidden page-enter">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
                 <span class="font-bold flex-1 theme-transition" style="color: var(--text);">المزيد</span>
+                <button id="mrEditBtn" onclick="app.moreEdit()" class="mr-edit-btn btn-press"><i data-lucide="sliders-horizontal"></i><span>تخصيص</span></button>
             </div>
-            <div class="p-4 space-y-2">
-                <button onclick="app.goToProfile()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <i data-lucide="user" class="w-5 h-5 text-primary"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">الملف الشخصي</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">عرض وتحرير معلوماتك الشخصية</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToResources()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
-                        <i data-lucide="book-open" class="w-5 h-5 text-purple"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">الملازم المجانية</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ملازم رسمية ومعتمدة لجميع المراحل</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToSaved()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <i data-lucide="bookmark" class="w-5 h-5 text-primary"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">الأخبار المحفوظة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">الأخبار التي قمت بحفظها للاطلاع عليها لاحقاً</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToCategories()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                        <i data-lucide="layout-grid" class="w-5 h-5 text-success"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">تصنيفات الأخبار</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">استعرض الأخبار حسب التصنيف</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToForum()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <i data-lucide="message-circle" class="w-5 h-5 text-accent"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">المنتدى</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">اسأل وأجب زملاءك الطلاب حسب كل مادة</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToMessages()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
-                        <i data-lucide="mail" class="w-5 h-5 text-info"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">الرسائل الخاصة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">راسل أي طالب مباشرة عبر رقمه التعريفي</div>
-                    </div>
-                    <span id="messagesUnreadBadge" class="hidden bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToDuels()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                        <i data-lucide="swords" class="w-5 h-5 text-warning"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">تحدي مباشر</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">حدّ زميلك بمسابقة أسئلة سريعة واكسب نقاط إضافية</div>
-                    </div>
-                    <span id="duelInvitesBadge" class="hidden bg-error text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">0</span>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToMoreExtra()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
-                        <i data-lucide="layers" class="w-5 h-5 text-purple"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">المزيد</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">أدوات وإضافات إضافية</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <div class="p-4 rounded-2xl border mt-4 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="text-xs text-center leading-relaxed theme-transition" style="color: var(--text2);">
-                        <div class="font-bold mb-1 theme-transition" style="color: var(--text);">منصة الطالب العراقي</div>
-                        <div>الإصدار 1.0</div>
-                        <div class="mt-2">صُممت لطلاب العراق</div>
-                        <div class="mt-1 text-[10px] opacity-60">2024 © وزارة التربية العراقية</div>
-                    </div>
-                </div>
-            </div>
+            <div id="moreContent" class="mr"></div>
         </div>
 
-        <!-- ===== MORE EXTRA VIEW (nested "المزيد" for extra tools/additions) ===== -->
-        <div id="moreExtraView" class="hidden page-slide-rtl">
-            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
-                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
-                </button>
-                <span class="font-bold flex-1 theme-transition" style="color: var(--text);">المزيد</span>
-            </div>
-            <div class="p-4 space-y-2">
-                <button onclick="app.goToBio()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #10B981 14%, transparent);">
-                        <i data-lucide="microscope" class="w-5 h-5" style="color: #10B981;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">رسومات الأحياء ثلاثية الأبعاد</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">رسومات السادس العلمي مجسّمة، تدوّرها وتشوف كل جزء واسمه ووظيفته</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToCards()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #8B5CF6 14%, transparent);">
-                        <i data-lucide="layers" class="w-5 h-5" style="color: #8B5CF6;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">بطاقات المراجعة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">سؤال بوجه وجواب بالثاني، والتطبيق يرجعلك اللي تنساها بوقتها</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToFocus()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <i data-lucide="smartphone" class="w-5 h-5 text-primary"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">وضع التركيز — لا تلمس الهاتف</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بدون ما تطلع من التطبيق واكسب نقاط، وإذا طلعت تنكسر الجلسة</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToForest()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background: linear-gradient(135deg, rgba(16,185,129,.13), rgba(251,191,36,.12)); border-color: rgba(52,211,153,.45);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #059669, #84CC16);">
-                        <i data-lucide="trees" class="w-5 h-5" style="color: #fff;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">غابة العراق</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ادرس وازرع شجرة بمحافظتك على خارطة العراق، وشوف منو يدرس هسه</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToDreams()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background: linear-gradient(135deg, rgba(124,58,237,.12), rgba(249,168,212,.14)); border-color: rgba(167,139,250,.45);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg, #7C3AED, #EC4899);">
-                        <i data-lucide="sparkles" class="w-5 h-5" style="color: #fff;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">سما الأحلام</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">اكتب حلمك وشوف أحلام طلاب العراق تطير بالسما</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToPolls()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #7C3AED 12%, transparent);">
-                        <i data-lucide="vote" class="w-5 h-5" style="color: #7C3AED;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">الاستطلاعات</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">صوّت على أسئلة الإدارة وشوف النتيجة مباشرة</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToGovWar()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #DC2626 12%, transparent);">
-                        <i data-lucide="swords" class="w-5 h-5" style="color: #DC2626;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">حرب المحافظات</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">خريطة العراق تضوي حسب التركيز، ومحافظتك تنافس على الصدارة كل أسبوع</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToTwin()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #7C3AED 12%, transparent);">
-                        <i data-lucide="users-round" class="w-5 h-5" style="color: #7C3AED;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">توأم المذاكرة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">طالب بمرحلتك من محافظة ثانية، تشوفون تقدم بعض وتشجعون بعض</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToAuction()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #D97706 12%, transparent);">
-                        <i data-lucide="gavel" class="w-5 h-5" style="color: #D97706;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">مزاد النقاط</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">زايد بنقاطك على جائزة الأسبوع، والأعلى ياخذها</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToWaste()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background-color: color-mix(in srgb, #E5484D 12%, transparent);">
-                        <i data-lucide="hourglass" class="w-5 h-5" style="color: #E5484D;"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">حاسبة الوقت الضايع</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">شكد يروح من وقتك على الهاتف، وشكد تكدر تنجز بيه</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToGrades()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <i data-lucide="chart-line" class="w-5 h-5 text-primary"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">تطور درجاتي</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">سجّل درجاتك الشهرية وشوف تقدمك بكل مادة برسم بياني</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToCalm()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
-                        <i data-lucide="heart-handshake" class="w-5 h-5 text-purple"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">قبل الامتحان</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">مزاجك اليوم، دعاء، تمرين تنفّس وقائمة تجهيز حتى تدخل هادئ</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToStudyTimer()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-purple/10 flex items-center justify-center">
-                        <i data-lucide="timer" class="w-5 h-5 text-purple"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">مؤقت المذاكرة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ركّز بجلسات مذاكرة واكسب نقاط عند إكمالها</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToYoutubeStudy()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center">
-                        <i data-lucide="video" class="w-5 h-5 text-error"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">يوتيوب دراسة</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">ادرس بفيديو يوتيوب واكسب نقاط أثناء المشاهدة</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToPointsStore()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                        <i data-lucide="gift" class="w-5 h-5 text-warning"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">متجر النقاط</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">استبدل نقاطك برصيد بمحفظتك</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToStudyRoom()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                        <i data-lucide="users" class="w-5 h-5 text-success"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">غرفة المذاكرة الجماعية</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">شوف مين من زملاءك يذاكر الآن</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToVoiceRoom()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-error/10 flex items-center justify-center">
-                        <i data-lucide="mic" class="w-5 h-5 text-error"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">غرفة الدردشة الصوتية</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">اضغط وتكلم مباشرة مع زملائك بالصوت</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToTasks()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center">
-                        <i data-lucide="list-checks" class="w-5 h-5 text-info"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">قائمة مهامي اليومية</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">حدد مهامك ووقت إنجازها، وتوصلك تذكيرات لو تأخرت</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-
-                <button onclick="app.goToCalendar()" class="w-full flex items-center gap-3 p-4 rounded-2xl border hover:shadow-card transition-shadow text-right theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                    <div class="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <i data-lucide="calendar-days" class="w-5 h-5 text-accent"></i>
-                    </div>
-                    <div class="flex-1">
-                        <div class="font-bold theme-transition" style="color: var(--text);">التقويم الشهري</div>
-                        <div class="text-xs theme-transition" style="color: var(--text2);">تابع تقدمك يوم بيوم — نقاطك وجلسات مذاكرتك ومهامك</div>
-                    </div>
-                    <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ===== YOUTUBE STUDY VIEW ===== -->
         <div id="youtubeStudyView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);">
@@ -2038,7 +1719,7 @@
         </div>
     </nav>
 
-    <script src="js/app.js?v=2af7a41669"></script>
+    <script src="js/app.js?v=f2a22d3c59"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
