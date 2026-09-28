@@ -574,6 +574,8 @@
             init() {
                 this.initErrorReporting();
                 this.initOffline();
+                // a shared room link (?yr=...) opens that room once the student is signed in
+                try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
                 // Opened from the phone's file manager (content:// or file://) Firebase sign-in,
                 // notifications and saved data don't work — the page needs to be served over https.
                 if (!/^https?:$/.test(location.protocol)) {
@@ -754,7 +756,7 @@
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
-                    '_incomingListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
+                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -1080,6 +1082,7 @@
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
+                    this.listenForYtInvites();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -2145,6 +2148,7 @@
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
+                    this.listenForYtInvites();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -6874,6 +6878,7 @@
                 { id: 'res', fn: 'goToResources', t: 'الملازم', d: 'ملازم رسمية لكل المراحل', ic: 'book-open', c: '#2563EB', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
+                { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
                 { id: 'cal', fn: 'goToCalendar', t: 'التقويم الشهري', d: 'تقدمك يوم بيوم', ic: 'calendar-days', c: '#6366F1', g: 'study' },
@@ -9364,6 +9369,55 @@
                 } else {
                     this.showToast('أحسنت! جلسة مذاكرة مكتملة — سجّل دخولك لكسب نقاط');
                 }
+            },
+
+            // ==================== YOUTUBE STUDY ROOMS (engine in js/ytroom.js) ====================
+            goToYtRooms(rid) {
+                if (!this.isLoggedIn || !this.currentUser) {
+                    this.showToast('سجّل دخولك حتى تدخل غرف يوتيوب');
+                    this.goToAuth('login');
+                    return;
+                }
+                this.switchView('ytRoomView');
+                if (this._withPart('ytroom', () => typeof this.yrHome === 'function', 'ytRoomView', () => this.goToYtRooms(rid))) {
+                    const box = document.getElementById('yrContent');
+                    if (box) box.innerHTML = '<div class="kd-loading"><span></span><span></span><span></span></div>';
+                    return;
+                }
+                if (rid) this.yrJoin(rid); else this.yrHome();
+            },
+            yrBack() {
+                if (this._yr && this.yrHome) { this.yrHome(); return; }
+                this.goBack();
+            },
+
+            // Invites to YouTube rooms: a card pops up when a friend invites you while the app is open.
+            listenForYtInvites() {
+                if (!window.firebaseDb || !this.authUid || this._yrInvListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers, since = Date.now() - 5000;
+                this._yrInvListener = onValue(ref(window.firebaseDb, 'ytInvites/' + this.authUid), (snap) => {
+                    const v = snap.val() || {}, day = Date.now() - 86400000;
+                    this._yrInvites = Object.keys(v).map((rid) => Object.assign({ rid }, v[rid])).filter((x) => (x.at || 0) > day).sort((a, b) => (b.at || 0) - (a.at || 0));
+                    const fresh = this._yrInvites.find((x) => (x.at || 0) > since && !(this._yrShown || {})[x.rid]);
+                    if (fresh && !(this._yr && this._yr.rid === fresh.rid)) this._yrInviteCard(fresh);
+                    if (this.currentView === 'ytRoomView' && !this._yr && this.yrHome) this.yrHome();
+                }, () => {});
+                if (this._yrPending) { const rid = this._yrPending; this._yrPending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => this.goToYtRooms(rid), 800); }
+            },
+            _yrInviteCard(x) {
+                this._yrShown = this._yrShown || {};
+                this._yrShown[x.rid] = 1;
+                document.getElementById('yrInvCard')?.remove();
+                const el = document.createElement('div');
+                el.id = 'yrInvCard';
+                el.className = 'yr-pop';
+                el.innerHTML = `<i data-lucide="tv"></i><div><b>${escapeHtml(x.fn || 'صديقك')} يدعوك</b><small>${escapeHtml(x.t || 'غرفة يوتيوب')}</small></div>
+                    <button class="go" onclick="document.getElementById('yrInvCard').remove(); app.goToYtRooms(${jsArg(x.rid)})">ادخل</button>
+                    <button onclick="document.getElementById('yrInvCard').remove()" aria-label="بعدين"><i data-lucide="x"></i></button>`;
+                document.body.appendChild(el);
+                lucide.createIcons();
+                this.playNotifySound && this.playNotifySound();
+                setTimeout(() => el.remove(), 20000);
             },
 
             // ==================== YOUTUBE STUDY ====================
@@ -12450,12 +12504,13 @@
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
                 if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
                 if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
+                if (this.currentView === 'ytRoomView' && viewId !== 'ytRoomView' && this._yrLeaveView) this._yrLeaveView();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'uniView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'uniView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'ytRoomView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);

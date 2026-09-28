@@ -123,6 +123,11 @@ def own_write(extra=None):
 
 
 public_admin = {".read": True, ".write": ADMIN}
+
+# YouTube rooms, from a node under ytRooms/$rid
+YR_HOST = "(auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid)"
+YR_MEMBER = "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"
+YR_MEMBER_NEW = "newData.parent().parent().child('members/' + auth.uid).exists()"
 signed_admin = {".read": SIGNED, ".write": ADMIN}
 
 rules = {
@@ -322,6 +327,45 @@ rules = {
     "twins": {
         ".read": SIGNED,
         "$pid": {".write": ors(ADMIN, "auth != null && (data.exists() ? data.child('members/' + auth.uid).exists() : newData.child('members/' + auth.uid).exists())")},
+    },
+    # ----- YouTube study rooms: the host runs the room, each student writes only their own rows -----
+    "ytRooms": {
+        "$rid": {
+            ".read": SIGNED,
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('meta/host').val() == auth.uid",
+                                      "newData.child('members/' + auth.uid).exists()"), ands(YR_HOST, "!newData.exists()")),
+            "meta": {
+                ".write": YR_HOST,
+                ".validate": ands("newData.child('host').val() == (data.exists() ? data.child('host').val() : auth.uid)",
+                                  s_max("newData.child('title')", 60), "newData.child('at').isNumber()"),
+                "cur": {".validate": "newData.isString() && newData.val().length <= 20"},
+            },
+            "queue": {"$k": {".write": YR_HOST, ".validate": "!newData.exists() || (" + s_max("newData.child('v')", 11) + " && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
+                             "t": {".validate": s_max("newData", 100)}}},
+            "members": {"$uid": {
+                ".write": ors(ADMIN, ands(OWNER, "root.child('ytRooms/' + $rid + '/meta').exists()", "!root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists()"),
+                              ands(YR_HOST, "!newData.exists()")),
+                ".validate": "!newData.exists() || (" + s_max("newData.child('n')", 60) + ")",
+            }},
+            "kicked": {"$uid": {".write": YR_HOST}},
+            "prog": {"$uid": {
+                ".write": ors(ands(OWNER, YR_MEMBER_NEW), ands(YR_HOST, "!newData.exists()"), ands(OWNER, "!newData.exists()")),
+                ".validate": "!newData.exists() || (newData.child('t').isNumber() && newData.child('d').isNumber() && newData.child('at').isNumber())",
+            }},
+            "done": {"$uid": {"$k": {".write": ands(OWNER, YR_MEMBER), ".validate": "newData.val() === true"}}},
+            "chat": {"$id": {
+                ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", YR_MEMBER),
+                              ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
+                ".validate": "!newData.exists() || (" + s_max("newData.child('m')", 200) + " && newData.child('at').isNumber())",
+            }},
+        },
+    },
+    "ytInvites": {
+        "$to": {
+            ".read": "auth != null && auth.uid == $to",
+            "$rid": {".write": ors(ADMIN, "auth != null && auth.uid == $to && !newData.exists()",
+                                   ands(SIGNED, "newData.child('from').val() == auth.uid", "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"))},
+        },
     },
     "voiceRoom": {
         "participants": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},

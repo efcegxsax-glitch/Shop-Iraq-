@@ -184,6 +184,33 @@ await ok('read own cards', get(ref(db('u1'), 'userCards/u1')));
 await no('read other cards', get(ref(db('u2'), 'userCards/u1')));
 await no('write other cards', set(ref(db('u2'), 'userCards/u1/cards/c2'), { f: 'x' }));
 
+// YouTube rooms
+const room = { meta: { host: 'h1', title: 'فيزياء', at: now }, members: { h1: { n: 'H', j: now } } };
+await no('create room for someone else', set(ref(db('x1'), 'ytRooms/r1'), room));
+await ok('host creates room', set(ref(db('h1'), 'ytRooms/r1'), room));
+await ok('host adds video', set(ref(db('h1'), 'ytRooms/r1/queue/q1'), { v: 'dQw4w9WgXcQ', t: '', by: 'h1', at: now }));
+await no('bad video id', set(ref(db('h1'), 'ytRooms/r1/queue/q2'), { v: 'bad', by: 'h1', at: now }));
+await ok('host plays for all', set(ref(db('h1'), 'ytRooms/r1/meta/cur'), 'q1'));
+await no('member plays for all', set(ref(db('m1'), 'ytRooms/r1/meta/cur'), 'q1'));
+await no('stranger writes progress before joining', set(ref(db('m1'), 'ytRooms/r1/prog/m1'), { k: 'q1', t: 1, d: 100, p: 1, at: now }));
+await ok('student joins', set(ref(db('m1'), 'ytRooms/r1/members/m1'), { n: 'M', j: now }));
+await no('student adds another member', set(ref(db('m1'), 'ytRooms/r1/members/m9'), { n: 'Z', j: now }));
+await ok('member progress', set(ref(db('m1'), 'ytRooms/r1/prog/m1'), { k: 'q1', t: 10, d: 100, p: 1, at: now }));
+await no('member writes someone else progress', set(ref(db('m1'), 'ytRooms/r1/prog/h1'), { k: 'q1', t: 10, d: 100, p: 1, at: now }));
+await ok('member done', set(ref(db('m1'), 'ytRooms/r1/done/m1/q1'), true));
+await ok('member chats', set(ref(db('m1'), 'ytRooms/r1/chat/c1'), { u: 'm1', n: 'M', m: 'ما فهمت هنا', at: now, k: 'q1', s: 30 }));
+await no('outsider chats', set(ref(db('o1'), 'ytRooms/r1/chat/c2'), { u: 'o1', n: 'O', m: 'x', at: now }));
+await no('member deletes host message', (async () => { await seed('ytRooms/r1/chat/c3', { u: 'h1', n: 'H', m: 'y', at: now }); return set(ref(db('m1'), 'ytRooms/r1/chat/c3'), null); })());
+await ok('member invites a friend', set(ref(db('m1'), 'ytInvites/f1/r1'), { from: 'm1', fn: 'M', t: 'فيزياء', at: now }));
+await no('outsider invites', set(ref(db('o1'), 'ytInvites/f1/r1'), { from: 'o1', fn: 'O', t: 'x', at: now }));
+await ok('friend reads invites', get(ref(db('f1'), 'ytInvites/f1')));
+await no('others read invites', get(ref(db('m1'), 'ytInvites/f1')));
+await ok('friend declines', set(ref(db('f1'), 'ytInvites/f1/r1'), null));
+await ok('host kicks', U('h1', { 'ytRooms/r1/kicked/m1': true, 'ytRooms/r1/members/m1': null, 'ytRooms/r1/prog/m1': null }));
+await no('kicked student rejoins', set(ref(db('m1'), 'ytRooms/r1/members/m1'), { n: 'M', j: now }));
+await no('member closes room', set(ref(db('m2'), 'ytRooms/r1'), null));
+await ok('host closes room', set(ref(db('h1'), 'ytRooms/r1'), null));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);
