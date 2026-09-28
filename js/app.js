@@ -5369,7 +5369,8 @@
             BIO_CHAPTERS: [
                 { f: 'cell', t: 'الخلية', c: '#10B981', icon: 'microscope' },
                 { f: 'transport', t: 'نقل المواد عبر الغشاء', c: '#0EA5E9', icon: 'arrow-left-right' },
-                { f: 'division', t: 'الانقسام الخيطي', c: '#8B5CF6', icon: 'git-fork' }
+                { f: 'division', t: 'الانقسام الخيطي', c: '#8B5CF6', icon: 'git-fork' },
+                { f: 'tissues', t: 'الأنسجة', c: '#F43F5E', icon: 'layers' }
             ],
 
             _bioImport(name) {
