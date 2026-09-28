@@ -171,7 +171,7 @@ rules = {
         },
     },
     **{k: {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN)}} for k in
-       ["userNewsState", "userTasks", "userActivity", "tokens", "walletTransactions", "chatClearedAt"]},
+       ["userNewsState", "userTasks", "userActivity", "tokens", "walletTransactions", "chatClearedAt", "userCards"]},
     # the challenger also lists the duel for the other player
     "userDuels": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$id": {".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"}}},
     "presence": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},

@@ -175,6 +175,12 @@ await ok('call answer', set(ref(db('v2'), 'voiceRoom/calls/v2/v1/answer'), { sdp
 await ok('caller listens', get(ref(db('v1'), 'voiceRoom/calls/v2/v1')));
 await no('outsider listens', get(ref(db('v3'), 'voiceRoom/calls/v2')));
 
+// review cards
+await ok('own cards', update(ref(db('u1'), 'userCards/u1'), { 'cards/c1': { f: 'q', b: 'a', u: 1 }, 'days/2026-01-01': 3 }));
+await ok('read own cards', get(ref(db('u1'), 'userCards/u1')));
+await no('read other cards', get(ref(db('u2'), 'userCards/u1')));
+await no('write other cards', set(ref(db('u2'), 'userCards/u1/cards/c2'), { f: 'x' }));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);
