@@ -6854,12 +6854,141 @@
             },
             goToSettings() { this.showToast('الإعدادات'); },
             goToHome() { this.setTab('home'); },
-            goToMore() {
-                this.switchView('moreView');
-                lucide.createIcons();
+            // ===== The More page: every section in one place =====
+            // Grouped by kind, searchable, with favourites the student picks and orders (saved on
+            // the device and in users/{uid}/moreFavs) and the last few sections they opened.
+            MORE_ITEMS: [
+                { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
+                { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
+                { id: 'res', fn: 'goToResources', t: 'الملازم', d: 'ملازم رسمية لكل المراحل', ic: 'book-open', c: '#2563EB', g: 'study' },
+                { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
+                { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
+                { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
+                { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
+                { id: 'cal', fn: 'goToCalendar', t: 'التقويم الشهري', d: 'تقدمك يوم بيوم', ic: 'calendar-days', c: '#6366F1', g: 'study' },
+                { id: 'grades', fn: 'goToGrades', t: 'تطور درجاتي', d: 'درجاتك برسم بياني', ic: 'chart-line', c: '#22C55E', g: 'study' },
+                { id: 'forest', fn: 'goToForest', t: 'غابة العراق', d: 'ادرس وازرع شجرة بمحافظتك', ic: 'trees', c: '#16A34A', g: 'play' },
+                { id: 'war', fn: 'goToGovWar', t: 'حرب المحافظات', d: 'هاجم لمحافظتك بالدراسة', ic: 'swords', c: '#DC2626', g: 'play' },
+                { id: 'duels', fn: 'goToDuels', t: 'تحدي مباشر', d: 'مسابقة أسئلة ويا زميلك', ic: 'zap', c: '#F97316', g: 'play' },
+                { id: 'auction', fn: 'goToAuction', t: 'مزاد النقاط', d: 'زايد على جائزة الأسبوع', ic: 'gavel', c: '#D97706', g: 'play' },
+                { id: 'pstore', fn: 'goToPointsStore', t: 'متجر النقاط', d: 'استبدل نقاطك برصيد', ic: 'gift', c: '#EC4899', g: 'play' },
+                { id: 'polls', fn: 'goToPolls', t: 'الاستطلاعات', d: 'صوّت وشوف النتيجة', ic: 'vote', c: '#0891B2', g: 'play' },
+                { id: 'forum', fn: 'goToForum', t: 'المنتدى', d: 'اسأل وجاوب زملاءك', ic: 'message-circle', c: '#3B82F6', g: 'people' },
+                { id: 'msgs', fn: 'goToMessages', t: 'الرسائل', d: 'راسل أي طالب', ic: 'mail', c: '#0EA5E9', g: 'people' },
+                { id: 'twin', fn: 'goToTwin', t: 'توأم المذاكرة', d: 'زميل يشجعك وتشجعه', ic: 'users-round', c: '#A855F7', g: 'people' },
+                { id: 'sroom', fn: 'goToStudyRoom', t: 'غرفة المذاكرة', d: 'منو يذاكر هسه', ic: 'users', c: '#0D9488', g: 'people' },
+                { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
+                { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
+                { id: 'calm', fn: 'goToCalm', t: 'قبل الامتحان', d: 'تنفّس ودعاء وتجهيز', ic: 'heart-handshake', c: '#DB2777', g: 'tools' },
+                { id: 'waste', fn: 'goToWaste', t: 'الوقت الضايع', d: 'شكد يروح وقتك بالهاتف', ic: 'hourglass', c: '#E5484D', g: 'tools' },
+                { id: 'saved', fn: 'goToSaved', t: 'الأخبار المحفوظة', d: 'اللي حفظتها للقراءة', ic: 'bookmark', c: '#64748B', g: 'tools' },
+                { id: 'cats', fn: 'goToCategories', t: 'تصنيفات الأخبار', d: 'الأخبار حسب النوع', ic: 'layout-grid', c: '#475569', g: 'tools' },
+                { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
+            ],
+            MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
+            MORE_DEFAULT_FAVS: ['bio', 'cards', 'forest', 'war'],
+
+            _moreState() {
+                if (this._mr) return this._mr;
+                let d = null;
+                try { d = JSON.parse(localStorage.getItem('isp_more') || 'null'); } catch (e) {}
+                const ok = (a) => Array.isArray(a) ? a.filter((id) => this.MORE_ITEMS.some((x) => x.id === id)) : null;
+                this._mr = { favs: (d && ok(d.favs)) || this.MORE_DEFAULT_FAVS.slice(), recent: (d && ok(d.recent)) || [] };
+                const srv = this.currentUser && this.currentUser.moreFavs;
+                if (typeof srv === 'string' && srv && !(d && d.local)) this._mr.favs = ok(srv.split(',')) || this._mr.favs;
+                return this._mr;
             },
-            goToMoreExtra() {
-                this.switchView('moreExtraView');
+            _moreSave(favsChanged) {
+                const m = this._moreState();
+                try { localStorage.setItem('isp_more', JSON.stringify({ favs: m.favs, recent: m.recent, local: 1 })); } catch (e) {}
+                if (favsChanged && this.authUid && window.firebaseDb) {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'users/' + this.authUid + '/moreFavs'), m.favs.join(',')).catch(() => {});
+                    if (this.currentUser) this.currentUser.moreFavs = m.favs.join(',');
+                }
+            },
+
+            goToMore() {
+                this._mrEdit = false;
+                this._mrQ = '';
+                this.switchView('moreView');
+                this.renderMore(true);
+            },
+            goToMoreExtra() { this.goToMore(); },
+
+            moreOpen(id) {
+                const it = this.MORE_ITEMS.find((x) => x.id === id);
+                if (!it) return;
+                if (this._mrEdit) { this.moreFav(id); return; }
+                const m = this._moreState();
+                m.recent = [id].concat(m.recent.filter((x) => x !== id)).slice(0, 6);
+                this._moreSave(false);
+                if (typeof this[it.fn] === 'function') this[it.fn]();
+            },
+
+            moreEdit() {
+                this._mrEdit = !this._mrEdit;
+                if (this._mrEdit) this._mrQ = '';
+                this.renderMore(false);
+                try { navigator.vibrate && navigator.vibrate(10); } catch (e) {}
+            },
+
+            moreFav(id) {
+                const m = this._moreState(), i = m.favs.indexOf(id);
+                if (i >= 0) m.favs.splice(i, 1);
+                else { if (m.favs.length >= 8) { this.showToast('المفضلة تتسع لـ 8 أقسام'); return; } m.favs.push(id); }
+                this._moreSave(true);
+                this.renderMore(false);
+            },
+
+            moreMove(id, d) {
+                const m = this._moreState(), i = m.favs.indexOf(id), j = i + d;
+                if (i < 0 || j < 0 || j >= m.favs.length) return;
+                [m.favs[i], m.favs[j]] = [m.favs[j], m.favs[i]];
+                this._moreSave(true);
+                this.renderMore(false);
+            },
+
+            moreSearch(q) {
+                this._mrQ = q;
+                const box = document.getElementById('mrBody');
+                if (box) { box.innerHTML = this._moreBody(); lucide.createIcons(); }
+            },
+
+            _moreTile(it, i, o = {}) {
+                const m = this._moreState(), fav = m.favs.indexOf(it.id) !== -1, e = this._mrEdit;
+                return `<button class="mr-tile${o.big ? ' big' : ''}${e ? ' edit' : ''}${e && fav ? ' on' : ''}" style="--c:${it.c};--i:${i}" onclick="app.moreOpen(${jsArg(it.id)})">
+                    <span class="mr-ic"><i data-lucide="${it.ic}"></i></span>
+                    <b>${escapeHtml(it.t)}</b>${o.big || o.desc ? `<small>${escapeHtml(it.d)}</small>` : ''}
+                    ${e ? `<em class="mr-star"><i data-lucide="${fav ? 'star' : 'plus'}"></i></em>` : ''}
+                </button>`;
+            },
+
+            _moreBody() {
+                const q = String(this._mrQ || '').trim(), items = this.MORE_ITEMS;
+                if (q) {
+                    const hit = items.filter((x) => (x.t + ' ' + x.d).indexOf(q) !== -1);
+                    return hit.length ? `<div class="mr-grid list">${hit.map((it, i) => this._moreTile(it, i, { desc: 1 })).join('')}</div>` : '<p class="mr-none">ما لكيت قسم بهالاسم</p>';
+                }
+                return this.MORE_GROUPS.map(([g, t, ic], gi) => `
+                    <div class="mr-sec" style="--i:${gi + 2}"><i data-lucide="${ic}"></i><b>${t}</b></div>
+                    <div class="mr-grid">${items.filter((x) => x.g === g).map((it, i) => this._moreTile(it, i)).join('')}</div>`).join('');
+            },
+
+            renderMore(anim) {
+                const box = document.getElementById('moreContent');
+                if (!box) return;
+                const m = this._moreState(), e = this._mrEdit, byId = (id) => this.MORE_ITEMS.find((x) => x.id === id);
+                const favs = m.favs.map(byId).filter(Boolean), recent = m.recent.map(byId).filter(Boolean).filter((x) => m.favs.indexOf(x.id) === -1).slice(0, 4);
+                const btn = document.getElementById('mrEditBtn');
+                if (btn) { btn.classList.toggle('on', !!e); btn.innerHTML = e ? '<i data-lucide="check"></i><span>تم</span>' : '<i data-lucide="sliders-horizontal"></i><span>تخصيص</span>'; }
+                box.classList.toggle('anim', !!anim);
+                box.innerHTML = `
+                    ${e ? '<div class="mr-hint"><i data-lucide="hand"></i>اضغط على أي قسم حتى تضيفه للمفضلة أو تشيله، ورتّب المفضلة بالأسهم</div>' : `<label class="mr-search"><i data-lucide="search"></i><input type="search" placeholder="دوّر على قسم..." value="${escapeHtml(this._mrQ || '')}" oninput="app.moreSearch(this.value)"></label>`}
+                    <div class="mr-fav-h"><b><i data-lucide="star"></i>المفضلة</b>${favs.length ? '' : '<span>فارغة</span>'}</div>
+                    ${favs.length ? `<div class="mr-favs">${favs.map((it, i) => `<div class="mr-fav-w" style="--i:${i}">${this._moreTile(it, i, { big: 1 })}${e ? `<div class="mr-mv"><button onclick="app.moreMove(${jsArg(it.id)}, -1)" ${i ? '' : 'disabled'} aria-label="قبل"><i data-lucide="chevron-right"></i></button><button onclick="app.moreMove(${jsArg(it.id)}, 1)" ${i < favs.length - 1 ? '' : 'disabled'} aria-label="بعد"><i data-lucide="chevron-left"></i></button></div>` : ''}</div>`).join('')}</div>` : `<button class="mr-empty" onclick="app.moreEdit()"><i data-lucide="star"></i>اضغط "تخصيص" واختار الأقسام اللي تستخدمها أكثر</button>`}
+                    ${!e && recent.length ? `<div class="mr-sec"><i data-lucide="history"></i><b>استخدمتها مؤخراً</b></div><div class="mr-recent">${recent.map((it, i) => `<button style="--c:${it.c};--i:${i}" onclick="app.moreOpen(${jsArg(it.id)})"><span class="mr-ic sm"><i data-lucide="${it.ic}"></i></span>${escapeHtml(it.t)}</button>`).join('')}</div>` : ''}
+                    <div id="mrBody">${this._moreBody()}</div>`;
                 lucide.createIcons();
             },
 
@@ -12248,7 +12377,7 @@
                 else if (tab === 'messages') this.goToMessages();
                 else if (tab === 'profile') this.goToProfile();
                 else if (tab === 'holidays') this.goToHolidays();
-                else if (tab === 'more') this.switchView('moreView');
+                else if (tab === 'more') this.goToMore();
                 this.viewHistory = [];
             },
 
@@ -12315,7 +12444,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'moreExtraView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);
