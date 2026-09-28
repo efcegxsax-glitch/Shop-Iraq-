@@ -90,18 +90,29 @@
         },
 
         async yrCreate() {
-            if (!this.authUid || !window.firebaseDb) return;
+            if (!this.authUid || !window.firebaseDb) { this.showToast('سجّل دخولك أول حتى تسوي غرفة'); return; }
+            const btn = document.querySelector('.yr-card .yr-btn.wide');
+            if (btn && btn.disabled) return;
             const title = filterBadWords(String(document.getElementById('yrTitle')?.value || '').trim()).clean.slice(0, 40) || 'غرفة دراسة';
-            const first = this.extractYoutubeId(document.getElementById('yrFirst')?.value || '');
+            const raw = String(document.getElementById('yrFirst')?.value || '').trim(), first = this.extractYoutubeId(raw);
+            if (raw && !first) { this.showToast('الرابط مو رابط فيديو يوتيوب، انسخه من زر المشاركة بيوتيوب'); return; }
             const rid = newId(), now = Date.now(), u = this.currentUser || {};
             const room = { meta: { host: this.authUid, title, at: now }, members: { [this.authUid]: { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: now } } };
             if (first) { const k = 'q' + now.toString(36); room.queue = { [k]: { v: first, t: '', by: this.authUid, at: now } }; room.meta.cur = k; }
+            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="yr-spin"></span>دا تنسوي الغرفة...'; }
             try {
-                await H().set(R('ytRooms/' + rid), room);
+                // a write the server never answers (no internet) should not leave the button spinning
+                await Promise.race([H().set(R('ytRooms/' + rid), room), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]);
                 this._yrRemember(rid, title);
                 this.yrOpen(rid);
                 setTimeout(() => this.yrInvite(), 600);
-            } catch (e) { console.warn(e); this.showToast('ما انسوت الغرفة، حاول مرة ثانية'); }
+            } catch (e) {
+                console.warn('yrCreate', e);
+                const msg = String(e && (e.code || e.message) || '');
+                this.showToast(/permission|denied/i.test(msg) ? 'قاعدة البيانات رفضت الغرفة: لازم تنشر قواعد الحماية الجديدة من صفحة rules.html'
+                    : /timeout/.test(msg) ? 'النت ضعيف، ما وصلت الغرفة. حاول مرة ثانية' : 'ما انسوت الغرفة، حاول مرة ثانية');
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i data-lucide="sparkles"></i>سوّي الغرفة'; lucide.createIcons(); }
+            }
         },
 
         yrJoinCode() {
@@ -127,7 +138,7 @@
                 this.yrDecline(rid);
                 this._yrRemember(rid, meta.val().title);
                 this.yrOpen(rid);
-            } catch (e) { console.warn(e); this.showToast('ما كدرت أدخل الغرفة، تأكد من النت'); }
+            } catch (e) { console.warn(e); this.showToast(/permission|denied/i.test(String(e && (e.code || e.message))) ? 'قاعدة البيانات رفضت: لازم تنشر قواعد الحماية الجديدة من صفحة rules.html' : 'ما كدرت أدخل الغرفة، تأكد من النت'); }
         },
 
         yrDecline(rid) {
