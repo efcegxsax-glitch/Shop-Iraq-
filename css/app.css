@@ -1656,48 +1656,16 @@
         .store-card-info { position: absolute; right: 16px; left: 72px; bottom: 24px; z-index: 2; }
         .store-action-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; background: none; border: none; }
 
+        /* the streak flame: a looping animated WebP (transparent), made from a cartoon fire clip */
         .flame {
             display: inline-block;
-            width: 13px;
-            height: 17px;
-            position: relative;
+            width: 16px;
+            height: 24px;
+            margin: -6px 0 0;
             vertical-align: middle;
             flex-shrink: 0;
-        }
-        .flame::before, .flame::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 50%;
-            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-            transform-origin: bottom center;
-        }
-        .flame::before {
-            width: 13px;
-            height: 17px;
-            margin-left: -6.5px;
-            background: linear-gradient(to top, #E8460C 0%, #FF8A00 45%, #FFC400 80%, #FFEB99 100%);
-            animation: flameFlickerOuter 0.55s ease-in-out infinite alternate;
-            box-shadow: 0 0 6px rgba(255, 138, 0, 0.55);
-        }
-        .flame::after {
-            width: 6px;
-            height: 9px;
-            margin-left: -3px;
-            bottom: 1px;
-            background: linear-gradient(to top, #FFC400 0%, #FFF3C4 100%);
-            animation: flameFlickerInner 0.35s ease-in-out infinite alternate;
-        }
-        @keyframes flameFlickerOuter {
-            0%   { transform: translateX(-50%) scale(1, 1) rotate(-3deg); }
-            35%  { transform: translateX(-46%) scale(0.92, 1.08) rotate(2deg); }
-            70%  { transform: translateX(-53%) scale(1.06, 0.94) rotate(-1deg); }
-            100% { transform: translateX(-49%) scale(0.97, 1.04) rotate(3deg); }
-        }
-        @keyframes flameFlickerInner {
-            0%   { transform: translateX(-50%) scale(1, 1); opacity: 0.95; }
-            50%  { transform: translateX(-42%) scale(0.85, 1.12); opacity: 1; }
-            100% { transform: translateX(-56%) scale(1.05, 0.9); opacity: 0.9; }
+            background: url('../assets/flame.webp') center bottom / contain no-repeat;
+            filter: drop-shadow(0 0 4px rgba(255, 120, 0, 0.45));
         }
 
         .study-scene { position: relative; width: 100%; height: 92px; }
