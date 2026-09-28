@@ -2264,3 +2264,59 @@ body.gw-running #govWarContent { padding-bottom: 150px; }
 .gw-ck .fr-ck-ring .fg { stroke: #F97316; }
 @media (prefers-reduced-motion: reduce) { .gw-bt-ic, .gw-go, .gw-power i, .gw-hud-dot { animation: none; } }
 .gw-ck { color: #fff; }
+
+/* ===== 3D biology diagrams ===== */
+.b3-list { padding: 16px 16px calc(var(--safe-b) + 120px); }
+.b3-hero { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border-radius: 22px; color: #fff; background: radial-gradient(120% 100% at 0% 0%, rgba(16, 185, 129, .5), transparent 60%), linear-gradient(150deg, #0F3D35, #0B1322); box-shadow: 0 18px 36px -22px #10B981; animation: kdUp .5s both; }
+.b3-hero > svg { width: 34px; height: 34px; flex-shrink: 0; color: #6EE7B7; animation: b3Spin 6s linear infinite; }
+@keyframes b3Spin { to { transform: rotateY(360deg); } }
+.b3-hero b { display: block; font-size: 16px; font-weight: 900; }
+.b3-hero small { display: block; margin-top: 4px; font-size: 12px; line-height: 1.75; color: rgba(236, 253, 245, .8); }
+.b3-ch { display: flex; align-items: center; justify-content: space-between; margin: 22px 2px 10px; }
+.b3-ch b { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 900; color: var(--text); }
+.b3-ch b svg { width: 20px; height: 20px; color: var(--c); }
+.b3-ch span { font-size: 12px; font-weight: 800; color: var(--text2); }
+.b3-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.b3-card { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 112px; padding: 14px; border: 1px solid color-mix(in srgb, var(--c) 30%, var(--border)); border-radius: 20px; background: linear-gradient(160deg, color-mix(in srgb, var(--c) 16%, var(--bg)), var(--bg) 80%); color: var(--text); font: inherit; text-align: right; animation: kdDeal .55s calc(var(--i) * 50ms + .1s) cubic-bezier(.2,.9,.25,1.2) both; transition: transform .15s; overflow: hidden; }
+.b3-card:active { transform: scale(.96); }
+.b3-card-ic { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: var(--c); color: #fff; box-shadow: 0 8px 18px -8px var(--c); }
+.b3-card-ic svg { width: 21px; height: 21px; }
+.b3-card b { font-size: 13.5px; font-weight: 900; line-height: 1.5; }
+.b3-card em { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 3px; padding: 3px 7px; border-radius: 99px; background: color-mix(in srgb, var(--c) 18%, transparent); color: var(--c); font-style: normal; font-size: 10.5px; font-weight: 900; }
+.b3-card em svg { width: 12px; height: 12px; }
+.b3-soon { margin: 22px 0 0; text-align: center; font-size: 12px; font-weight: 700; color: var(--text2); }
+.b3-err { padding: 60px 20px; text-align: center; color: var(--text2); font-weight: 700; }
+
+body.b3-on #bottomNav { display: none; }
+body.b3-on #mainContent { padding-bottom: 0 !important; }
+.b3-wrap { display: flex; flex-direction: column; height: calc(100dvh - 76px); }
+.b3 { position: relative; flex: 1; min-height: 300px; overflow: hidden; touch-action: none; background: radial-gradient(90% 70% at 50% 42%, color-mix(in srgb, rgb(var(--p)) 14%, var(--bg)), var(--bg) 75%); }
+.b3 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.b3-lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.b3-lines path { fill: none; stroke: var(--text2); stroke-width: 1.1; opacity: .75; }
+.b3-lines circle { fill: var(--text); stroke: var(--bg); stroke-width: 1.4; }
+.b3-lines .on { stroke: #F59E0B; stroke-width: 2; opacity: 1; }
+.b3-lines circle.on { fill: #F59E0B; }
+.b3-lines .back { opacity: .3; }
+.b3.nolabels .b3-lines, .b3.nolabels .b3-labels { display: none; }
+.b3-labels { position: absolute; inset: 0; pointer-events: none; }
+.b3-lb { position: absolute; top: 0; left: 0; display: flex; align-items: center; gap: 5px; max-width: 124px; padding: 3px 8px 3px 4px; border-radius: 10px; border: 1px solid var(--border); background: color-mix(in srgb, var(--surface) 88%, transparent); color: var(--text); font: inherit; font-size: 10.8px; font-weight: 800; line-height: 1.35; text-align: right; pointer-events: auto; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 4px 12px -6px rgba(0,0,0,.35); transition: opacity .25s, background .2s, border-color .2s; will-change: transform; }
+.b3-lb b { font-weight: 800; }
+.b3-n { flex-shrink: 0; min-width: 17px; height: 17px; border-radius: 6px; display: grid; place-items: center; background: var(--input-bg); color: var(--text2); font-size: 10px; font-weight: 900; }
+.b3-lb.on { border-color: #F59E0B; background: #F59E0B; color: #1F1300; }
+.b3-lb.on .b3-n { background: rgba(255,255,255,.35); color: #1F1300; }
+.b3-lb.back { opacity: .55; }
+.b3.exam .b3-lb:not(.shown) b { display: none; }
+.b3.exam .b3-lb:not(.shown)::after { content: '؟'; font-weight: 900; color: #8B5CF6; padding: 0 2px; }
+.b3.exam .b3-lb.shown { border-color: #8B5CF6; }
+.b3-load { position: absolute; inset: 0; display: grid; place-items: center; }
+.b3-bar { display: flex; gap: 8px; padding: 10px 12px 0; }
+.b3-bar button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; height: 42px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 800; transition: all .2s; }
+.b3-bar button svg { width: 17px; height: 17px; }
+.b3-bar button.on { background: rgb(var(--p)); border-color: rgb(var(--p)); color: #fff; }
+#b3Ex.on { background: #8B5CF6; border-color: #8B5CF6; }
+.b3-info { display: flex; align-items: center; gap: 8px; min-height: 64px; margin: 10px 12px calc(var(--safe-b) + 12px); padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); color: var(--text2); font-size: 12.5px; font-weight: 700; line-height: 1.7; }
+.b3-info > svg { width: 18px; height: 18px; flex-shrink: 0; }
+.b3-info.on { display: block; border-color: #F59E0B; box-shadow: 0 0 0 3px rgba(245, 158, 11, .15); animation: kdPop .35s ease; }
+.b3-info.on b { display: block; margin-bottom: 2px; font-size: 14.5px; font-weight: 900; color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .b3-hero > svg, .b3-card { animation: none; } }
