@@ -5514,6 +5514,16 @@
                 this.kdOpen();
             },
 
+            goToUni() {
+                this.switchView('uniView');
+                if (this._withPart('uni', () => typeof this.uniOpen === 'function', 'uniView', () => this.goToUni())) {
+                    const box = document.getElementById('uniContent');
+                    if (box) box.innerHTML = '<div class="kd-loading"><span></span><span></span><span></span></div>';
+                    return;
+                }
+                this.uniOpen();
+            },
+
             goToGrades() {
                 const g = this._gradesLoad();
                 if (!this.gradesSubject || g.subjects.indexOf(this.gradesSubject) === -1) {
@@ -6858,6 +6868,7 @@
             // Grouped by kind, searchable, with favourites the student picks and orders (saved on
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
+                { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
                 { id: 'res', fn: 'goToResources', t: 'الملازم', d: 'ملازم رسمية لكل المراحل', ic: 'book-open', c: '#2563EB', g: 'study' },
@@ -6886,7 +6897,7 @@
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
             MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
-            MORE_DEFAULT_FAVS: ['bio', 'cards', 'forest', 'war'],
+            MORE_DEFAULT_FAVS: ['uni', 'bio', 'cards', 'forest'],
 
             _moreState() {
                 if (this._mr) return this._mr;
@@ -12444,7 +12455,7 @@
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'uniView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);

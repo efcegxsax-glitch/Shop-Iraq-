@@ -24,6 +24,9 @@ await no('student reads root', get(ref(db('u1'), '/')));
 await ok('admin writes news', set(ref(db('adm'), 'news/1'), { title: 'x' }));
 await no('student writes news', set(ref(db('u1'), 'news/2'), { title: 'x' }));
 await ok('guest reads news', get(ref(db(null), 'news')));
+await ok('admin writes admission', set(ref(db('adm'), 'admission/base/med'), 98));
+await no('student writes admission', set(ref(db('u1'), 'admission/base/med'), 60));
+await ok('guest reads admission', get(ref(db(null), 'admission')));
 await no('guest reads users', get(ref(db(null), 'users')));
 await ok('student reads users', get(ref(db('u1'), 'users')));
 

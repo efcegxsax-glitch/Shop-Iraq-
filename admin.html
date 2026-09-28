@@ -68,6 +68,14 @@
         .card-head p { font-size: 11.5px; color: var(--text2); margin: 3px 0 0; line-height: 1.5; }
 
         .field { margin-bottom: 14px; }
+        .un-a-h { font-size: 14px; font-weight: 800; margin: 18px 0 8px; }
+        .un-a-grid { display: grid; gap: 8px; grid-template-columns: 1fr; }
+        @media (min-width: 640px) { .un-a-grid { grid-template-columns: 1fr 1fr; } }
+        .un-a-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 12px; border: 1px solid rgba(127,127,127,.2); }
+        .un-a-row span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .un-a-row b { font-size: 13px; }
+        .un-a-row small { font-size: 11px; opacity: .6; }
+        .un-a-row input { width: 84px; text-align: center; direction: ltr; }
         .field:last-child { margin-bottom: 0; }
         .field-grid { display: grid; gap: 14px; grid-template-columns: 1fr; margin-bottom: 14px; }
         @media (min-width: 640px) { .field-grid-2 { grid-template-columns: 1fr 1fr; } }
@@ -312,6 +320,7 @@
             <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
+            <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
@@ -1168,6 +1177,32 @@
                 </div>
             </div>
 
+            <div id="sec-uni" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="school"></i></div>
+                        <div>
+                            <h3>معدلات القبول</h3>
+                            <p>الطالب يحرك معدله ويشوف وين ينقبل. معدل القبول لأي كلية بأي جامعة = معدل الكلية + فرق الجامعة، وإذا الجامعة مو بمحافظة الطالب تنضاف "زيادة خارج المحافظة".</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field"><label>زيادة خارج المحافظة</label><input type="number" id="un_out" step="0.1"></div>
+                        <div class="field"><label>مثال: الطب بجامعة بغداد لطالب من بغداد</label><div class="fb-now" id="un_ex"></div></div>
+                    </div>
+                    <div class="field"><label>ملاحظة تطلع للطلاب (اختياري)</label><textarea id="un_note" rows="2" placeholder="مثلاً: مبنية على معدلات قبول 2025"></textarea></div>
+                    <h4 class="un-a-h">معدل كل كلية</h4>
+                    <div class="un-a-grid" id="un_cols"></div>
+                    <h4 class="un-a-h">فرق كل جامعة (موجب = أصعب، سالب = أسهل)</h4>
+                    <div class="un-a-grid" id="un_unis"></div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">
+                        <button class="btn" id="un_save">حفظ</button>
+                        <button class="btn" id="un_reset" style="background:transparent;border:1px solid rgba(127,127,127,.4);color:inherit;">رجّع الأرقام الافتراضية</button>
+                    </div>
+                    <p class="fb-note">الأرقام الافتراضية تقديرية. عدّلها حسب معدلات القبول الحقيقية لآخر سنة، والتغيير يوصل للطلاب فوراً.</p>
+                </div>
+            </div>
+
             <div id="sec-dreams" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1286,7 +1321,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -1320,6 +1355,7 @@
         })();
     </script>
 
+    <script src="js/uni.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
@@ -2671,6 +2707,49 @@
             btn.disabled = false;
         }
 
+        // ---------- Admission calculator (admission/{outside, note, base, off}) ----------
+        let uniCfg = null;
+        function loadUniAdmin() {
+            if (!window.UNI_DATA) return;
+            onValue(ref(db, 'admission'), (snap) => { uniCfg = snap.val(); renderUniAdmin(); });
+            el('un_save').addEventListener('click', saveUniAdmin);
+            el('un_reset').addEventListener('click', async () => {
+                if (!confirm('ترجع كل المعدلات للأرقام الافتراضية؟')) return;
+                try { await set(ref(db, 'admission'), null); toast('رجعت الأرقام الافتراضية'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+            el('sec-uni').addEventListener('input', uniExample);
+        }
+        function renderUniAdmin() {
+            const D = window.UNI_DATA, c = uniCfg || {}, base = c.base || {}, off = c.off || {};
+            const pick = (o, k, d) => (o[k] !== undefined && isFinite(Number(o[k])) ? Number(o[k]) : d);
+            const STN = { bio: 'احيائي', app: 'تطبيقي', all: 'الفرعين' };
+            el('un_out').value = pick(c, 'outside', D.outside);
+            el('un_note').value = c.note || '';
+            el('un_cols').innerHTML = D.colleges.map(([id, n, st, b]) => `<label class="un-a-row"><span><b>${escapeHtml(n)}</b><small>${STN[st]}</small></span><input type="number" step="0.1" data-col="${id}" value="${pick(base, id, b)}"></label>`).join('');
+            el('un_unis').innerHTML = D.unis.map(([id, n, p, o]) => `<label class="un-a-row"><span><b>${escapeHtml(n)}</b><small>${escapeHtml(p)}</small></span><input type="number" step="0.1" data-uni="${id}" value="${pick(off, id, o)}"></label>`).join('');
+            uniExample();
+        }
+        function uniExample() {
+            const m = document.querySelector('[data-col="med"]'), u = document.querySelector('[data-uni="bgd"]'), o = Number(el('un_out').value) || 0;
+            if (!m || !u) return;
+            const home = Number(m.value) + Number(u.value);
+            el('un_ex').innerHTML = `<div><b>${home.toFixed(1)}</b><span>من بغداد</span></div><div><b>${(home + o).toFixed(1)}</b><span>من محافظة ثانية</span></div>`;
+        }
+        async function saveUniAdmin() {
+            const btn = el('un_save'), base = {}, off = {};
+            let bad = false;
+            document.querySelectorAll('[data-col]').forEach((i) => { const v = Number(i.value); if (i.value === '' || !isFinite(v) || v < 0 || v > 110) bad = true; else base[i.dataset.col] = Math.round(v * 10) / 10; });
+            document.querySelectorAll('[data-uni]').forEach((i) => { const v = Number(i.value); if (i.value === '' || !isFinite(v) || Math.abs(v) > 20) bad = true; else off[i.dataset.uni] = Math.round(v * 10) / 10; });
+            const outside = Number(el('un_out').value);
+            if (bad || !isFinite(outside) || outside < 0 || outside > 20) { toast('في رقم غلط، تأكد من الخانات', false); return; }
+            btn.disabled = true;
+            try {
+                await set(ref(db, 'admission'), { outside: Math.round(outside * 10) / 10, note: el('un_note').value.trim().slice(0, 300), base, off, at: Date.now() });
+                toast('انحفظت معدلات القبول');
+            } catch (e) { console.warn(e); toast('فشل الحفظ', false); }
+            btn.disabled = false;
+        }
+
         // ---------- Dreams moderation ----------
         let dreamsData = {};
         const DREAM_CAT_NAMES = { study: 'دراسة', career: 'مهنة', family: 'عائلة', travel: 'سفر', other: 'حلم آخر' };
@@ -2841,6 +2920,7 @@
             loadDreamsAdmin();
             loadForestBots();
             loadWarBots();
+            loadUniAdmin();
             loadForestWeather();
             loadVerified();
             loadErrors();
