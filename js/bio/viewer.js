@@ -20,19 +20,65 @@ function smoothNoise(x, y, z) {
     return l(l(l(n(0, 0, 0), n(1, 0, 0), u), l(n(0, 1, 0), n(1, 1, 0), u), v), l(l(n(0, 0, 1), n(1, 0, 1), u), l(n(0, 1, 1), n(1, 1, 1), u), v), w);
 }
 
+// Surface detail made once: a fine organic bump (and a fibre one for muscle, tissues).
+const TEX = {};
+function surfTex(kind) {
+    if (TEX[kind]) return TEX[kind];
+    const N = 256, c = document.createElement('canvas');
+    c.width = c.height = N;
+    const g = c.getContext('2d'), img = g.createImageData(N, N);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+        const u = x / N, v = y / N;
+        let n = 0, a = 0.5, f = 4;
+        // tileable: sample on a torus
+        for (let o = 0; o < 5; o++) {
+            const X = Math.cos(u * 6.2832) * f / 6.2832, Y = Math.sin(u * 6.2832) * f / 6.2832, Z = Math.cos(v * 6.2832) * f / 6.2832, W = Math.sin(v * 6.2832) * f / 6.2832;
+            n += a * smoothNoise(X + 11.3, Y + Z * 0.7 + 5.1, W + 2.7);
+            a *= 0.5; f *= 2;
+        }
+        if (kind === 'fiber') n = 0.55 * n + 0.45 * (0.5 + 0.5 * Math.sin(v * 6.2832 * 18 + n * 4));
+        const k = Math.max(0, Math.min(255, Math.round(n * 255)));
+        const i = (y * N + x) * 4;
+        img.data[i] = img.data[i + 1] = img.data[i + 2] = k; img.data[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.colorSpace = THREE.NoColorSpace;
+    TEX[kind] = t;
+    return t;
+}
+
 export function makeKit(root) {
     const kit = {
         THREE,
         labels: [],
         anim: [],
+        // o: rough, coat, opacity, side, sheen, glow, clip/clipAll, bump (0 = smooth), tex ('organic'|'fiber'),
+        // rep (texture repeat), glass (see-through jelly: water, cytoplasm, vacuoles), thick
         mat(color, o = {}) {
+            // clear: plain see-through glass/water (transmission only works with something solid behind)
+            if (o.clear) { o = Object.assign({ opacity: o.opacity ?? 0.28, rough: 0.06, coat: 1, bump: 0, sheen: 0, depthWrite: false }, o); }
+            const glass = !!o.glass, bump = o.bump ?? 0.6;
             const m = new THREE.MeshPhysicalMaterial({
-                color, roughness: o.rough ?? 0.5, metalness: 0, clearcoat: o.coat ?? 0.35, clearcoatRoughness: 0.4,
-                transparent: (o.opacity ?? 1) < 1, opacity: o.opacity ?? 1, side: o.side ?? THREE.FrontSide,
-                depthWrite: o.depthWrite ?? ((o.opacity ?? 1) >= 1), sheen: o.sheen ?? 0, sheenColor: new THREE.Color(0xffffff),
+                color, roughness: o.rough ?? (glass ? 0.14 : 0.5), metalness: 0, clearcoat: o.coat ?? 0.35, clearcoatRoughness: 0.4,
+                transparent: !glass && (o.opacity ?? 1) < 1, opacity: glass ? 1 : o.opacity ?? 1, side: o.side ?? THREE.FrontSide,
+                depthWrite: o.depthWrite ?? (glass || (o.opacity ?? 1) >= 1), sheen: o.sheen ?? 0.25, sheenRoughness: 0.6, sheenColor: new THREE.Color(0xffffff),
                 emissive: new THREE.Color(o.glow || 0x000000), emissiveIntensity: o.glow ? 0.35 : 1,
                 clippingPlanes: o.clip || null, clipIntersection: !!o.clipAll, flatShading: !!o.flat
             });
+            if (glass) {
+                m.transmission = 1; m.thickness = o.thick ?? 0.5; m.ior = 1.34;
+                m.attenuationColor = new THREE.Color(color); m.attenuationDistance = o.atten ?? 1.4;
+                m.color = new THREE.Color(0xffffff).lerp(new THREE.Color(color), 0.35);
+            }
+            if (bump > 0) {
+                const t = surfTex(o.tex || 'organic').clone();
+                t.needsUpdate = true;
+                t.repeat.set(o.rep || 2, o.rep || 2);
+                m.bumpMap = t; m.bumpScale = bump * (glass ? 0.4 : 1);
+                if (!glass) { m.roughnessMap = t; }
+            }
             m.userData.baseEmissive = m.emissive.clone();
             m.userData.baseIntensity = m.emissiveIntensity;
             return m;
@@ -79,8 +125,9 @@ export function makeKit(root) {
             return im;
         },
         // A label: a name, a short explanation, where its pointer ends (model space) and the parts it lights up.
-        label(name, desc, anchor, parts) {
-            kit.labels.push({ name, desc, anchor: new THREE.Vector3(anchor[0], anchor[1], anchor[2]), parts: [].concat(parts || []).filter(Boolean) });
+        label(name, desc, anchor, parts, steps) {
+            const a = anchor && anchor.isVector3 ? anchor : new THREE.Vector3(anchor[0], anchor[1], anchor[2]);
+            kit.labels.push({ name, desc, anchor: a, parts: [].concat(parts || []).filter(Boolean), steps: steps || null });
         },
         rnd(seed) { let s = seed || 7; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; },
         onFrame(fn) { kit.anim.push(fn); }
@@ -97,16 +144,24 @@ export class Bio3D {
         this.lbBox = host.querySelector('.b3-labels');
         const r = this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
         r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
-        r.toneMapping = THREE.ACESFilmicToneMapping;
-        r.toneMappingExposure = 1.05;
+        r.toneMapping = THREE.AgXToneMapping;
+        r.toneMappingExposure = 1.25;
         r.localClippingEnabled = true;
+        r.shadowMap.enabled = true;
+        r.shadowMap.type = THREE.PCFSoftShadowMap;
+        r.transmissionResolutionScale = 0.6;
         r.outputColorSpace = THREE.SRGBColorSpace;
         this.scene = new THREE.Scene();
         const pm = new THREE.PMREMGenerator(r);
         this.scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
         pm.dispose();
         this.camera = new THREE.PerspectiveCamera(32, 1, 0.05, 100);
-        const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(3, 5, 4); this.scene.add(key);
+        const key = this.key = new THREE.DirectionalLight(0xfff4e6, 2.2); key.position.set(3, 5, 4); this.scene.add(key); this.scene.add(key.target);
+        key.castShadow = true;
+        key.shadow.mapSize.set(1024, 1024);
+        key.shadow.bias = -0.0006;
+        key.shadow.normalBias = 0.02;
+        key.shadow.radius = 4;
         const rim = new THREE.DirectionalLight(0x9fd8ff, 0.9); rim.position.set(-4, 2, -3); this.scene.add(rim);
         this.scene.add(new THREE.HemisphereLight(0xffffff, 0x445066, 0.55));
         this.controls = new OrbitControls(this.camera, this.canvas);
@@ -131,7 +186,16 @@ export class Bio3D {
         const root = this.root = new THREE.Group();
         this.scene.add(root);
         const kit = this.kit = makeKit(root);
+        kit.portrait = this.host.clientHeight > this.host.clientWidth * 1.15;
         const view = model.build(kit) || {};
+        root.traverse((o) => {
+            if (!o.isMesh) return;
+            const m = [].concat(o.material)[0];
+            o.receiveShadow = true;
+            o.castShadow = !(m && m.transparent) && !(m && m.transmission > 0);
+        });
+        this.steps = view.steps || null;
+        this.setStepFn = view.setStep || null;
         const box = new THREE.Box3().setFromObject(root), sph = box.getBoundingSphere(new THREE.Sphere()), size = box.getSize(new THREE.Vector3());
         this.center = box.getCenter(new THREE.Vector3());
         this.radius = sph.radius || 1;
@@ -140,14 +204,22 @@ export class Bio3D {
         this.halfH = size.y / 2 || 1;
         this.home = view.view || [0.9, 0.55, 1.6];
         this.controls.target.copy(this.center);
+        // light and shadow follow the model's size
+        const R = this.radius, k = this.key;
+        k.position.copy(this.center).add(new THREE.Vector3(3, 5, 4).normalize().multiplyScalar(R * 4));
+        k.target.position.copy(this.center);
+        Object.assign(k.shadow.camera, { left: -R * 1.3, right: R * 1.3, top: R * 1.3, bottom: -R * 1.3, near: R * 0.5, far: R * 9 });
+        k.shadow.camera.updateProjectionMatrix();
         this._resize();
         this.reset();
         this.labels = kit.labels.map((l, i) => Object.assign(l, { i }));
         this.lbBox.innerHTML = this.labels.map((l, i) => `<button class="b3-lb" data-i="${i}"><span class="b3-n">${i + 1}</span><b>${l.name}</b></button>`).join('');
+        this.step = 0;
         this.lbEls = Array.from(this.lbBox.children);
         this.lbEls.forEach((el) => el.addEventListener('click', (e) => { e.stopPropagation(); this.select(Number(el.dataset.i)); }));
         this.sel = -1;
         this._applyMode();
+        if (this.steps) this.setStep(0);
         this._resize();
         this.t0 = performance.now();
         this.start();
@@ -159,6 +231,16 @@ export class Bio3D {
         this.controls.update();
         this.controls.autoRotate = true;
     }
+
+    // Models with stages (e.g. the phases of mitosis): show one stage, its labels only.
+    setStep(i) {
+        if (!this.steps) return;
+        this.step = Math.max(0, Math.min(this.steps.length - 1, i));
+        if (this.setStepFn) this.setStepFn(this.step);
+        if (this.sel >= 0 && !this._inStep(this.labels[this.sel])) this.select(this.sel);
+        (this.lbEls || []).forEach((el) => { const l = this.labels[el.dataset.i]; el.style.display = this._inStep(l) ? '' : 'none'; el._w = 0; });
+    }
+    _inStep(l) { return !l.steps || l.steps.indexOf(this.step) !== -1; }
 
     setExam(on) { this.examMode = !!on; this.revealed = {}; this._applyMode(); }
     setLabels(on) { this.showLabels = !!on; this._applyMode(); }
@@ -263,7 +345,8 @@ export class Bio3D {
         const W = this.W, H = this.H, cam = this.camera, v = new THREE.Vector3(), cv = new THREE.Vector3();
         cv.copy(this.center).project(cam);
         const cz = this.center.clone().applyMatrix4(cam.matrixWorldInverse).z;
-        const pts = this.labels.map((l, i) => {
+        const pts = this.labels.filter((l) => this._inStep(l)).map((l) => {
+            const i = l.i;
             v.copy(l.anchor).project(cam);
             const x = (v.x * 0.5 + 0.5) * W, y = (0.5 - v.y * 0.5) * H;
             const z = l.anchor.clone().applyMatrix4(cam.matrixWorldInverse).z;
