@@ -142,8 +142,11 @@ rules = {
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
-                                  "forestConfig", "govWarConfig", "auctionHistory", "admission"]},
+                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio"]},
     "bannedStudents": signed_admin,
+    # voice note counters (anyone, one step at a time) and who listened (signed-in, own row; admin reads)
+    "voiceNoteStats": {".read": True, "$id": {"plays": {".write": True, ".validate": counter()}, "done": {".write": True, ".validate": counter()}}},
+    "voiceListeners": {".read": ADMIN, "$id": {"$uid": {".write": OWNER, ".validate": s_max("newData.child('n')", 60) + " && newData.child('at').isNumber()"}}},
 
     # ----- students -----
     "users": {

@@ -184,6 +184,17 @@ await ok('read own cards', get(ref(db('u1'), 'userCards/u1')));
 await no('read other cards', get(ref(db('u2'), 'userCards/u1')));
 await no('write other cards', set(ref(db('u2'), 'userCards/u1/cards/c2'), { f: 'x' }));
 
+// voice note
+await ok('admin posts voice note', set(ref(db('adm'), 'voiceNote'), { id: 'v1', dur: 10, at: now }));
+await no('student posts voice note', set(ref(db('u1'), 'voiceNote'), { id: 'v2', dur: 10, at: now }));
+await ok('guest reads voice audio', get(ref(db(null), 'voiceNoteAudio')));
+await ok('guest counts a play', set(ref(db(null), 'voiceNoteStats/v1/plays'), 1));
+await no('play count jumps', set(ref(db(null), 'voiceNoteStats/v1/plays'), 50));
+await ok('student marks listened', set(ref(db('u1'), 'voiceListeners/v1/u1'), { n: 'U', at: now, done: true }));
+await no('student marks someone else', set(ref(db('u1'), 'voiceListeners/v1/u2'), { n: 'U', at: now }));
+await no('student reads listeners', get(ref(db('u1'), 'voiceListeners/v1')));
+await ok('admin reads listeners', get(ref(db('adm'), 'voiceListeners/v1')));
+
 // YouTube rooms
 const room = { meta: { host: 'h1', title: 'فيزياء', at: now }, members: { h1: { n: 'H', j: now } } };
 await no('create room for someone else', set(ref(db('x1'), 'ytRooms/r1'), room));
