@@ -6,31 +6,31 @@
 (function () {
     const UNI_DATA = {
         outside: 1.2,
-        // [id, name, stream ('bio' = احيائي only, 'app' = تطبيقي only, 'all'), base, icon, color, group]
+        // [id, name, base, icon, color, group]
         colleges: [
-            ['med', 'الطب', 'bio', 98.2, 'stethoscope', '#DC2626', 'med'],
-            ['dent', 'طب الأسنان', 'bio', 97.3, 'smile', '#0EA5E9', 'med'],
-            ['pharm', 'الصيدلة', 'bio', 96.4, 'pill', '#16A34A', 'med'],
-            ['lab', 'التحليلات المرضية', 'bio', 91, 'test-tube', '#9333EA', 'med'],
-            ['nurs', 'التمريض', 'bio', 89.5, 'heart-pulse', '#E11D48', 'med'],
-            ['vet', 'الطب البيطري', 'bio', 86, 'paw-print', '#B45309', 'med'],
-            ['e_pet', 'هندسة النفط', 'all', 93, 'fuel', '#0F172A', 'eng'],
-            ['e_bio', 'الهندسة الطبية', 'all', 92, 'activity', '#DB2777', 'eng'],
-            ['e_comp', 'هندسة الحاسوب والاتصالات', 'all', 91, 'cpu', '#2563EB', 'eng'],
-            ['e_elec', 'الهندسة الكهربائية', 'all', 90.5, 'zap', '#EAB308', 'eng'],
-            ['e_arch', 'الهندسة المعمارية', 'all', 89, 'building-2', '#7C3AED', 'eng'],
-            ['e_civ', 'الهندسة المدنية', 'all', 88, 'construction', '#EA580C', 'eng'],
-            ['e_mech', 'الهندسة الميكانيكية', 'all', 87.5, 'cog', '#475569', 'eng'],
-            ['cs', 'علوم الحاسوب', 'all', 84, 'monitor', '#0891B2', 'sci'],
-            ['s_bio', 'علوم الأحياء', 'bio', 78, 'leaf', '#22C55E', 'sci'],
-            ['s_chem', 'الكيمياء', 'all', 74, 'flask-conical', '#EC4899', 'sci'],
-            ['s_math', 'الرياضيات', 'app', 70, 'sigma', '#8B5CF6', 'sci'],
-            ['s_phys', 'الفيزياء', 'all', 70, 'atom', '#06B6D4', 'sci'],
-            ['law', 'القانون', 'all', 83, 'scale', '#1E40AF', 'hum'],
-            ['econ', 'الإدارة والاقتصاد', 'all', 72, 'briefcase', '#0D9488', 'hum'],
-            ['edu', 'التربية للعلوم الصرفة', 'all', 66, 'graduation-cap', '#6366F1', 'hum'],
-            ['agri', 'الزراعة', 'all', 60, 'sprout', '#65A30D', 'hum'],
-            ['pe', 'التربية البدنية', 'all', 60, 'dumbbell', '#F97316', 'hum']
+            ['med', 'الطب', 98.2, 'stethoscope', '#DC2626', 'med'],
+            ['dent', 'طب الأسنان', 97.3, 'smile', '#0EA5E9', 'med'],
+            ['pharm', 'الصيدلة', 96.4, 'pill', '#16A34A', 'med'],
+            ['lab', 'التحليلات المرضية', 91, 'test-tube', '#9333EA', 'med'],
+            ['nurs', 'التمريض', 89.5, 'heart-pulse', '#E11D48', 'med'],
+            ['vet', 'الطب البيطري', 86, 'paw-print', '#B45309', 'med'],
+            ['e_pet', 'هندسة النفط', 93, 'fuel', '#0F172A', 'eng'],
+            ['e_bio', 'الهندسة الطبية', 92, 'activity', '#DB2777', 'eng'],
+            ['e_comp', 'هندسة الحاسوب والاتصالات', 91, 'cpu', '#2563EB', 'eng'],
+            ['e_elec', 'الهندسة الكهربائية', 90.5, 'zap', '#EAB308', 'eng'],
+            ['e_arch', 'الهندسة المعمارية', 89, 'building-2', '#7C3AED', 'eng'],
+            ['e_civ', 'الهندسة المدنية', 88, 'construction', '#EA580C', 'eng'],
+            ['e_mech', 'الهندسة الميكانيكية', 87.5, 'cog', '#475569', 'eng'],
+            ['cs', 'علوم الحاسوب', 84, 'monitor', '#0891B2', 'sci'],
+            ['s_bio', 'علوم الأحياء', 78, 'leaf', '#22C55E', 'sci'],
+            ['s_chem', 'الكيمياء', 74, 'flask-conical', '#EC4899', 'sci'],
+            ['s_math', 'الرياضيات', 70, 'sigma', '#8B5CF6', 'sci'],
+            ['s_phys', 'الفيزياء', 70, 'atom', '#06B6D4', 'sci'],
+            ['law', 'القانون', 83, 'scale', '#1E40AF', 'hum'],
+            ['econ', 'الإدارة والاقتصاد', 72, 'briefcase', '#0D9488', 'hum'],
+            ['edu', 'التربية للعلوم الصرفة', 66, 'graduation-cap', '#6366F1', 'hum'],
+            ['agri', 'الزراعة', 60, 'sprout', '#65A30D', 'hum'],
+            ['pe', 'التربية البدنية', 60, 'dumbbell', '#F97316', 'hum']
         ],
         // [id, name, province, offset, only these colleges (optional)]
         unis: [
@@ -76,7 +76,6 @@
             const u = this.currentUser || {};
             this._un = {
                 avg: Math.min(100, Math.max(50, num(s.avg, 90))),
-                st: s.st === 'app' ? 'app' : 'bio',
                 gov: IRAQ_GOVERNORATES.indexOf(s.gov) !== -1 ? s.gov : (IRAQ_GOVERNORATES.indexOf(u.governorate) !== -1 ? u.governorate : 'بغداد'),
                 dream: s.dream || '',
                 f: 'all', open: ''
@@ -97,14 +96,14 @@
 
         _uniSave() {
             const s = this._un;
-            try { localStorage.setItem(KEY, JSON.stringify({ avg: s.avg, st: s.st, gov: s.gov, dream: s.dream })); } catch (e) {}
+            try { localStorage.setItem(KEY, JSON.stringify({ avg: s.avg, gov: s.gov, dream: s.dream })); } catch (e) {}
         },
 
-        // Every college open to the student's stream, with each university's cut-off for them.
+        // Every college, with each university's cut-off for this student.
         _uniCalc() {
             const s = this._un, c = this._unCfg || {}, base = c.base || {}, off = c.off || {};
             const outside = num(c.outside, UNI_DATA.outside), rank = { safe: 2, maybe: 1, hard: 0 };
-            return UNI_DATA.colleges.filter((x) => x[2] === 'all' || x[2] === s.st).map(([id, name, , b, ic, col, grp]) => {
+            return UNI_DATA.colleges.map(([id, name, b, ic, col, grp]) => {
                 const bs = num(base[id], b);
                 const unis = UNI_DATA.unis.filter((u) => !u[4] || u[4].indexOf(id) !== -1).map(([uid, un, prov, o]) => {
                     const home = prov === s.gov, cut = r1(bs + num(off[uid], o) + (home ? 0 : outside)), m = r1(s.avg - cut);
@@ -127,7 +126,6 @@
                     <div class="un-hero">
                         <div class="un-hero-top">
                             <span>معدلك المتوقع</span>
-                            <div class="un-seg">${[['bio', 'احيائي'], ['app', 'تطبيقي']].map(([k, t]) => `<button class="${s.st === k ? 'on' : ''}" onclick="app.uniStream('${k}')">${t}</button>`).join('')}</div>
                         </div>
                         <div class="un-avg-row">
                             <button class="un-step" onclick="app.uniStep(-0.1)" aria-label="نقّص"><i data-lucide="minus"></i></button>
@@ -224,7 +222,6 @@
             this._uniPaint();
         },
         uniStep(d) { if (this._un) this.uniSet(this._un.avg + d); },
-        uniStream(k) { if (!this._un) return; this._un.st = k; this._un.open = ''; this._uniSave(); this._uniRender(true); },
         uniGov(g) { if (!this._un) return; this._un.gov = g; this._uniSave(); this._uniPaint(); },
         uniFilter(f) { if (!this._un) return; this._un.f = this._un.f === f ? 'all' : f; this._uniPaint(true); },
         uniToggle(id) { if (!this._un) return; this._un.open = this._un.open === id ? '' : id; this._uniPaint(); },
@@ -239,7 +236,7 @@
         uniShare() {
             const s = this._un, list = this._unList || [];
             const safe = list.filter((x) => x.st === 'safe').slice(0, 3).map((x) => x.name);
-            const text = `معدلي المتوقع ${fmt(s.avg)} (${s.st === 'bio' ? 'احيائي' : 'تطبيقي'})` +
+            const text = `معدلي المتوقع ${fmt(s.avg)}` +
                 (safe.length ? ` وحسب حاسبة القبول أكدر أدخل: ${safe.join('، ')}` : '') +
                 `. شوف وين يدخلك معدلك: ${location.origin + location.pathname}`;
             if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
