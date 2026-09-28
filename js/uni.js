@@ -53,6 +53,12 @@
             ['mys', 'جامعة ميسان', 'ميسان', -0.5],
             ['mth', 'جامعة المثنى', 'المثنى', -0.5]
         ],
+        // Private (أهلي) colleges: college id -> [minimum average set by the ministry, yearly fee in million IQD]
+        priv: {
+            med: [92, 12], dent: [90, 9], pharm: [88, 7], lab: [80, 3.5], nurs: [75, 2.5],
+            e_pet: [75, 4], e_bio: [72, 3.5], e_comp: [70, 3], e_elec: [70, 3], e_arch: [70, 3.5], e_civ: [70, 3], e_mech: [70, 3],
+            cs: [65, 2], law: [70, 2], econ: [60, 1.5]
+        },
         groups: [['med', 'المجموعة الطبية', 'stethoscope'], ['eng', 'الهندسة', 'hard-hat'], ['sci', 'العلوم والحاسوب', 'atom'], ['hum', 'كليات ثانية', 'landmark']]
     };
     window.UNI_DATA = UNI_DATA;
@@ -67,7 +73,11 @@
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const r1 = (x) => Math.round(x * 10) / 10;
     const fmt = (x) => r1(x).toFixed(1);
+    const fee = (m) => (m >= 1 ? r1(m) + ' مليون' : Math.round(m * 1000) + ' ألف') + ' دينار';
     const num = (v, d) => { const n = Number(v); return isFinite(n) ? n : d; };
+
+    // private admission depends on seats too, so it is never called "guaranteed"
+    const lbl = (k) => (app._un && app._un.kind === 'priv' ? { safe: 'تكدر تقدّم', hard: 'تحت الحد', maybe: ST.maybe[0] }[k] : ST[k][0]);
 
     Object.assign(app, {
         uniOpen() {
@@ -78,6 +88,7 @@
                 avg: Math.min(100, Math.max(50, num(s.avg, 90))),
                 gov: IRAQ_GOVERNORATES.indexOf(s.gov) !== -1 ? s.gov : (IRAQ_GOVERNORATES.indexOf(u.governorate) !== -1 ? u.governorate : 'بغداد'),
                 dream: s.dream || '',
+                kind: s.kind === 'priv' ? 'priv' : 'gov',
                 f: 'all', open: ''
             };
             this._uniListen();
@@ -96,12 +107,30 @@
 
         _uniSave() {
             const s = this._un;
-            try { localStorage.setItem(KEY, JSON.stringify({ avg: s.avg, gov: s.gov, dream: s.dream })); } catch (e) {}
+            try { localStorage.setItem(KEY, JSON.stringify({ avg: s.avg, gov: s.gov, dream: s.dream, kind: s.kind })); } catch (e) {}
+        },
+
+        // Private colleges: one national minimum each; at or above it the student can apply.
+        _uniPriv() {
+            const s = this._un, c = this._unCfg || {}, pmin = c.pmin || {}, fee = c.fee || {}, out = {};
+            UNI_DATA.colleges.forEach(([id]) => {
+                const d = UNI_DATA.priv[id];
+                if (!d || pmin[id] === 0) return;
+                const min = r1(num(pmin[id], d[0])), m = r1(s.avg - min);
+                out[id] = { min, fee: num(fee[id], d[1]), m, st: m >= 0 ? 'safe' : 'hard' };
+            });
+            return out;
         },
 
         // Every college, with each university's cut-off for this student.
         _uniCalc() {
-            const s = this._un, c = this._unCfg || {}, base = c.base || {}, off = c.off || {};
+            const s = this._un, c = this._unCfg || {}, base = c.base || {}, off = c.off || {}, priv = this._uniPriv();
+            if (s.kind === 'priv') {
+                return UNI_DATA.colleges.filter(([id]) => priv[id]).map(([id, name, , ic, col, grp]) => {
+                    const p = priv[id];
+                    return { id, name, ic, col, grp, priv: p, st: p.st, gap: r1(-p.m) };
+                });
+            }
             const outside = num(c.outside, UNI_DATA.outside), rank = { safe: 2, maybe: 1, hard: 0 };
             return UNI_DATA.colleges.map(([id, name, b, ic, col, grp]) => {
                 const bs = num(base[id], b);
@@ -113,7 +142,7 @@
                 // home province first, then the strongest university, among those at the best status
                 const pick = unis.find((u) => u.st === st);
                 const easiest = unis.reduce((a, u) => (u.cut < a.cut ? u : a), unis[0]);
-                return { id, name, ic, col, grp, unis, st, pick, easiest, gap: r1(easiest.cut - s.avg) };
+                return { id, name, ic, col, grp, unis, st, pick, easiest, gap: r1(easiest.cut - s.avg), alt: priv[id] };
             });
         },
 
@@ -124,6 +153,7 @@
             if (first || !document.getElementById('unBody')) {
                 box.innerHTML = `
                     <div class="un-hero">
+                        <div class="un-kind">${[['gov', 'حكومي', 'landmark'], ['priv', 'أهلي', 'building-2']].map(([k, t, ic]) => `<button class="${s.kind === k ? 'on' : ''}" onclick="app.uniKind('${k}')"><i data-lucide="${ic}"></i>${t}</button>`).join('')}</div>
                         <div class="un-hero-top">
                             <span>معدلك المتوقع</span>
                         </div>
@@ -134,7 +164,7 @@
                         </div>
                         <input id="unRange" class="un-range" type="range" min="50" max="100" step="0.1" value="${s.avg}" oninput="app.uniSet(this.value, 1)">
                         <div class="un-scale"><span>50</span><span>75</span><span>100</span></div>
-                        <label class="un-gov"><i data-lucide="map-pin"></i><span>محافظتك</span>
+                        <label class="un-gov${s.kind === 'priv' ? ' hidden' : ''}"><i data-lucide="map-pin"></i><span>محافظتك</span>
                             <select onchange="app.uniGov(this.value)">${IRAQ_GOVERNORATES.map((g) => `<option${g === s.gov ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>
                         </label>
                     </div>
@@ -165,22 +195,31 @@
                         <div><b>${reach}</b><span>من ${list.length}</span></div>
                     </div>
                     <div class="un-counts">
-                        <p>الكليات اللي تكدر تنقبل بيها بهذا المعدل</p>
-                        ${Object.keys(ST).map((k) => `<button class="${s.f === k ? 'on' : ''}" style="--c:${ST[k][1]}" onclick="app.uniFilter('${k}')"><i data-lucide="${ST[k][2]}"></i><b>${n[k]}</b>${ST[k][0]}</button>`).join('')}
+                        <p>${s.kind === 'priv' ? 'الكليات الأهلية اللي تكدر تقدّم عليها' : 'الكليات الحكومية اللي تكدر تنقبل بيها'}</p>
+                        ${Object.keys(ST).filter((k) => s.kind !== 'priv' || k !== 'maybe').map((k) => `<button class="${s.f === k ? 'on' : ''}" style="--c:${ST[k][1]}" onclick="app.uniFilter('${k}')"><i data-lucide="${ST[k][2]}"></i><b>${n[k]}</b>${lbl(k)}</button>`).join('')}
                     </div>
                 </div>
                 ${dream ? this._uniDream(dream) : '<div class="un-dream-empty"><i data-lucide="star"></i>دوس النجمة على أي كلية حتى تصير "كلية حلمك" وتشوف شكد يعوزك توصلها</div>'}
-                <div class="un-list-h"><b>${s.f === 'all' ? 'كل الكليات' : 'الكليات: ' + ST[s.f][0]}</b>${s.f !== 'all' ? '<button onclick="app.uniFilter(\'all\')">عرض الكل</button>' : ''}</div>
+                <div class="un-list-h"><b>${s.f === 'all' ? 'كل الكليات' : 'الكليات: ' + lbl(s.f)}</b>${s.f !== 'all' ? '<button onclick="app.uniFilter(\'all\')">عرض الكل</button>' : ''}</div>
                 ${UNI_DATA.groups.map(([g, t, ic]) => {
                     const items = shown.filter((x) => x.grp === g);
                     return items.length ? `<div class="un-grp"><i data-lucide="${ic}"></i>${t}</div>${items.map((x, i) => this._uniCard(x, i)).join('')}` : '';
                 }).join('') || '<p class="un-none">ماكو كليات بهذا التصنيف</p>'}
+                ${s.kind === 'priv' ? '<div class="un-note"><i data-lucide="wallet"></i><div><b>شلون القبول بالأهلي؟</b>الوزارة تحدد حد أدنى لكل كلية، وإذا معدلك يساويه أو أكثر تكدر تقدّم، وبعدها القبول حسب المقاعد. الأقساط تختلف من كلية لكلية، والمكتوب هنا تقريبي.</div></div>' : ''}
                 <div class="un-note"><i data-lucide="info"></i><div><b>الأرقام تقديرية</b>${esc(c.note || 'مبنية على معدلات القبول بالسنين الماضية وتتغير كل سنة حسب عدد المتقدمين والمقاعد. استخدمها حتى تعرف وين واكف، مو كنتيجة نهائية.')}</div></div>
                 <button class="un-share btn-press" onclick="app.uniShare()"><i data-lucide="share-2"></i>شارك نتيجتك ويا ربعك</button>`;
             lucide.createIcons();
         },
 
         _uniDream(x) {
+            if (x.priv) {
+                const stc = ST[x.st];
+                return `<div class="un-dream" style="--c:${x.col}">
+                    <span class="un-dream-ic"><i data-lucide="${x.ic}"></i></span>
+                    <div><small>كلية حلمك (أهلي)</small><b>${esc(x.name)}</b><p>${x.st === 'safe' ? `معدلك يكفي تقدّم عليها. القسط تقريباً <b>${fee(x.priv.fee)}</b> بالسنة` : `يعوزك <b>${fmt(x.gap)}</b> درجة حتى توصل الحد الأدنى`}</p></div>
+                    <em style="--s:${stc[1]}">${lbl(x.st)}</em>
+                </div>`;
+            }
             // the dream is the top university among those the student would apply to first
             const s = this._un, top = x.unis[0], need = r1(top.cut + SAFE - s.avg), stc = ST[x.st];
             const msg = need <= 0 ? `معدلك يدخلك ${esc(top.un)} بالمضمون`
@@ -189,25 +228,35 @@
             return `<div class="un-dream" style="--c:${x.col}">
                 <span class="un-dream-ic"><i data-lucide="${x.ic}"></i></span>
                 <div><small>كلية حلمك</small><b>${esc(x.name)}</b><p>${msg}</p></div>
-                <em style="--s:${stc[1]}">${stc[0]}</em>
+                <em style="--s:${stc[1]}">${lbl(x.st)}</em>
             </div>`;
         },
 
         _uniCard(x, i) {
-            const s = this._un, stc = ST[x.st], open = s.open === x.id;
-            const sub = x.st === 'hard' ? `يعوزك ${fmt(x.gap)} درجة لأسهل جامعة` : `${esc(x.pick.un)}${x.pick.home ? '' : ' (خارج محافظتك)'}`;
+            const s = this._un, stc = ST[x.st], open = s.open === x.id, p = x.priv;
+            const sub = p ? (x.st === 'hard' ? `يعوزك ${fmt(x.gap)} درجة للحد الأدنى` : `القسط تقريباً ${fee(p.fee)} بالسنة`)
+                : x.st === 'hard' ? `يعوزك ${fmt(x.gap)} درجة لأسهل جامعة` : `${esc(x.pick.un)}${x.pick.home ? '' : ' (خارج محافظتك)'}`;
+            const alt = !p && x.st === 'hard' && x.alt && x.alt.st === 'safe'
+                ? `<button class="un-alt" onclick="app.uniKind('priv')"><i data-lucide="building-2"></i>بالأهلي تكدر تقدّم عليها، القسط تقريباً ${fee(x.alt.fee)} بالسنة</button>` : '';
+            const detail = p ? `<div class="un-unis"><div class="un-pv">
+                    <div><span>الحد الأدنى</span><b>${fmt(p.min)}</b></div>
+                    <div><span>معدلك</span><b>${fmt(s.avg)}</b></div>
+                    <div style="--s:${stc[1]}"><span>الفرق</span><b class="d">${p.m >= 0 ? '+' + fmt(p.m) : fmt(p.m)}</b></div>
+                    <div><span>القسط السنوي</span><b>${fee(p.fee)}</b></div>
+                </div></div>`
+                : `<div class="un-unis">${x.unis.map((u) => `<div class="un-u" style="--s:${ST[u.st][1]}">
+                    <span><b>${esc(u.un)}</b><small>${esc(u.prov)}${u.home ? ' - محافظتك' : ''}</small></span>
+                    <span class="un-cut">${fmt(u.cut)}</span>
+                    <em>${u.m >= 0 ? '+' + fmt(u.m) : fmt(u.m)}</em>
+                </div>`).join('')}<p class="un-u-note">الرقم الأول معدل القبول التقديري، والثاني الفرق بينه وبين معدلك</p></div>`;
             return `<div class="un-card${open ? ' open' : ''}" style="--c:${x.col};--s:${stc[1]};--i:${i}">
                 <button class="un-card-h" onclick="app.uniToggle(${jsArg(x.id)})">
                     <span class="un-ic"><i data-lucide="${x.ic}"></i></span>
                     <span class="un-card-t"><b>${esc(x.name)}</b><small>${sub}</small></span>
-                    <em class="un-pill">${stc[0]}</em>
+                    <em class="un-pill">${lbl(x.st)}</em>
                 </button>
                 <button class="un-star${s.dream === x.id ? ' on' : ''}" onclick="app.uniDreamSet(${jsArg(x.id)})" aria-label="كلية حلمي"><i data-lucide="star"></i></button>
-                ${open ? `<div class="un-unis">${x.unis.map((u) => `<div class="un-u" style="--s:${ST[u.st][1]}">
-                    <span><b>${esc(u.un)}</b><small>${esc(u.prov)}${u.home ? ' - محافظتك' : ''}</small></span>
-                    <span class="un-cut">${fmt(u.cut)}</span>
-                    <em>${u.m >= 0 ? '+' + fmt(u.m) : fmt(u.m)}</em>
-                </div>`).join('')}<p class="un-u-note">الرقم الأول معدل القبول التقديري، والثاني الفرق بينه وبين معدلك</p></div>` : ''}
+                ${alt}${open ? detail : ''}
             </div>`;
         },
 
@@ -222,6 +271,13 @@
             this._uniPaint();
         },
         uniStep(d) { if (this._un) this.uniSet(this._un.avg + d); },
+        uniKind(k) {
+            if (!this._un || this._un.kind === k) return;
+            this._un.kind = k; this._un.f = 'all'; this._un.open = '';
+            this._uniSave();
+            this._uniRender(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
         uniGov(g) { if (!this._un) return; this._un.gov = g; this._uniSave(); this._uniPaint(); },
         uniFilter(f) { if (!this._un) return; this._un.f = this._un.f === f ? 'all' : f; this._uniPaint(true); },
         uniToggle(id) { if (!this._un) return; this._un.open = this._un.open === id ? '' : id; this._uniPaint(); },
@@ -237,7 +293,7 @@
             const s = this._un, list = this._unList || [];
             const safe = list.filter((x) => x.st === 'safe').slice(0, 3).map((x) => x.name);
             const text = `معدلي المتوقع ${fmt(s.avg)}` +
-                (safe.length ? ` وحسب حاسبة القبول أكدر أدخل: ${safe.join('، ')}` : '') +
+                (safe.length ? ` وحسب حاسبة القبول أكدر أدخل${s.kind === 'priv' ? ' بالأهلي' : ''}: ${safe.join('، ')}` : '') +
                 `. شوف وين يدخلك معدلك: ${location.origin + location.pathname}`;
             if (navigator.share) { navigator.share({ text }).catch(() => {}); return; }
             (navigator.clipboard ? navigator.clipboard.writeText(text) : Promise.reject()).then(
