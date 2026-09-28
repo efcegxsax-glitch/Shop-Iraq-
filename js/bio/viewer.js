@@ -72,6 +72,16 @@ export function makeKit(root) {
                 m.attenuationColor = new THREE.Color(color); m.attenuationDistance = o.atten ?? 1.4;
                 m.color = new THREE.Color(0xffffff).lerp(new THREE.Color(color), 0.35);
             }
+            if (o.stripe) {
+                // visible cross stripes (striated muscle): dark bands across the length (v)
+                const c = document.createElement('canvas'); c.width = 8; c.height = 64;
+                const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 8, 64);
+                g.fillStyle = 'rgba(40,10,10,0.55)'; g.fillRect(0, 0, 8, 14); g.fillStyle = 'rgba(40,10,10,0.2)'; g.fillRect(0, 30, 8, 5);
+                const st = new THREE.CanvasTexture(c);
+                st.wrapS = st.wrapT = THREE.RepeatWrapping; st.colorSpace = THREE.SRGBColorSpace;
+                st.repeat.set(1, o.stripe);
+                m.map = st;
+            }
             if (bump > 0) {
                 const t = surfTex(o.tex || 'organic').clone();
                 t.needsUpdate = true;
