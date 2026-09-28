@@ -19,6 +19,9 @@
     const clock = (s) => { s = Math.max(0, Math.floor(s || 0)); const m = Math.floor(s / 60), x = s % 60; return m + ':' + String(x).padStart(2, '0'); };
     const newId = () => Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 7);
     const thumb = (v) => 'https://i.ytimg.com/vi/' + v + '/mqdefault.jpg';
+    const SPEEDS = [1, 1.25, 1.5, 2];
+    // quick reactions everyone sees float over their own video
+    const REACTS = { ok: ['thumbs-up', 'فهمت', '#16A34A'], imp: ['star', 'مهم', '#F59E0B'], hard: ['circle-help', 'صعب', '#E11D48'] };
     const avatar = (a, n) => a && isSafeImageUrl(a) ? `<img src="${esc(a)}" alt="">` : `<span>${esc(String(n || 'ط').trim().charAt(0))}</span>`;
 
     // The YouTube player API, loaded once.
@@ -153,12 +156,23 @@
             const box = document.getElementById('yrContent');
             box.innerHTML = `
                 <div id="yrStage" class="yr-stage md">
-                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div></div>
+                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div><div id="yrFloat" class="yr-float"></div></div>
+                    <div class="yr-rail">
+                        <button onclick="app.yrSize('md')" aria-label="صغّر"><i data-lucide="minimize-2"></i></button>
+                        <button class="yr-speed-b" onclick="app.yrSpeed()"><b class="yr-speed-t">1x</b></button>
+                        ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')" aria-label="${REACTS[k][1]}"><i data-lucide="${REACTS[k][0]}"></i></button>`).join('')}
+                        <button class="q" onclick="app.yrMark()" aria-label="ما فهمت هنا"><i data-lucide="hand"></i></button>
+                        <small id="yrRailN"></small>
+                    </div>
                     <div id="yrMarks" class="yr-marks"></div>
                 </div>
                 <div class="yr-bar">
-                    <div class="yr-size">${[['sm', 'picture-in-picture-2', 'صغير'], ['md', 'rectangle-horizontal', 'عادي'], ['fs', 'maximize', 'كامل']].map(([k, ic, t]) => `<button data-s="${k}" class="${k === 'md' ? 'on' : ''}" onclick="app.yrSize('${k}')"><i data-lucide="${ic}"></i>${t}</button>`).join('')}</div>
+                    <div class="yr-size">${[['sm', 'picture-in-picture-2', 'صغير'], ['md', 'rectangle-horizontal', 'عادي'], ['land', 'rectangle-horizontal', 'بالعرض']].map(([k, ic, t]) => `<button data-s="${k}" class="${k === 'md' ? 'on' : ''}${k === 'land' ? ' land' : ''}" onclick="app.yrSize('${k}')"><i data-lucide="${ic}"></i>${t}</button>`).join('')}</div>
                     <button class="yr-q" onclick="app.yrMark()"><i data-lucide="hand"></i>ما فهمت هنا</button>
+                </div>
+                <div class="yr-reacts">
+                    ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')"><i data-lucide="${REACTS[k][0]}"></i>${REACTS[k][1]}</button>`).join('')}
+                    <button class="yr-speed-b sp" onclick="app.yrSpeed()"><i data-lucide="gauge"></i><b class="yr-speed-t">1x</b></button>
                 </div>
                 <div id="yrNow"></div>
                 <div class="yr-tabs">${[['people', 'users', 'الطلاب'], ['list', 'list-video', 'الفيديوهات'], ['chat', 'message-circle', 'الدردشة']].map(([k, ic, t]) => `<button data-t="${k}" class="${k === 'people' ? 'on' : ''}" onclick="app.yrTab('${k}')"><i data-lucide="${ic}"></i>${t}<em id="yrBadge_${k}"></em></button>`).join('')}</div>
@@ -190,11 +204,31 @@
             const h = H();
             on('ytRooms/' + rid + '/chat', (v) => {
                 const list = Object.keys(v || {}).map((id) => Object.assign({ id }, v[id])).sort((a, b) => (a.at || 0) - (b.at || 0));
-                const seen = y.chat.length;
+                // the first load is history; only what arrives after it is new
+                const seen = y.chatLoaded ? y.chat.length : list.length;
+                y.chatLoaded = true;
                 y.chat = list;
-                if (seen && list.length > seen && y.tab !== 'chat') y.unread = (y.unread || 0) + (list.length - seen);
+                if (list.length > seen && y.tab !== 'chat') y.unread = (y.unread || 0) + (list.length - seen);
+                if (list.length > seen && y.size === 'land') list.slice(seen).filter((c) => c.u !== this.authUid).slice(-3).forEach((c) => this._yrFloatMsg(c));
                 this._yrPaint();
             }, h.query && h.limitToLast ? (r) => h.query(r, h.limitToLast(60)) : null);
+
+            const opened = Date.now();
+            y.reactSeen = {};
+            on('ytRooms/' + rid + '/react', (v) => {
+                Object.keys(v || {}).forEach((u) => {
+                    const r = v[u];
+                    if (!r || !REACTS[r.r] || (r.at || 0) < opened || y.reactSeen[u] === r.at || u === this.authUid) return;
+                    y.reactSeen[u] = r.at;
+                    this._yrFloatReact(r.r, (y.members[u] || {}).n);
+                });
+            });
+            // turning the phone sideways goes to the landscape view, and back
+            y.onRot = () => this._yrRot();
+            window.addEventListener('resize', y.onRot);
+            document.addEventListener('fullscreenchange', y.onRot);
+            y.onVis = () => { if (!document.hidden) y.wl = null; };
+            document.addEventListener('visibilitychange', y.onVis);
 
             this.joinStudyRoom('youtube');
             y.tick = setInterval(() => this._yrTick(), 1000);
@@ -208,8 +242,14 @@
             this._yrSend(true);
             y.subs.forEach((u) => { try { u(); } catch (e) {} });
             clearInterval(y.tick);
+            window.removeEventListener('resize', y.onRot);
+            document.removeEventListener('fullscreenchange', y.onRot);
+            document.removeEventListener('visibilitychange', y.onVis);
+            try { if (y.wl && y.wl.release) y.wl.release(); } catch (e) {}
             try { if (y.player && y.player.destroy) y.player.destroy(); } catch (e) {}
             if (document.fullscreenElement) try { document.exitFullscreen(); } catch (e) {}
+            try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+            document.body.classList.remove('yr-land-on');
             this.leaveStudyRoom();
             this._yr = null;
             document.body.classList.remove('yr-mini-on');
@@ -253,7 +293,13 @@
         _yrTick() {
             const y = this._yr, st = this._yrState();
             if (!y || !st) return;
-            if (st.s === 1 && !document.hidden) y.watched++;
+            if (st.s === 1 && !document.hidden) {
+                y.watched += y.rate || 1;
+                if (!y.wl && navigator.wakeLock && navigator.wakeLock.request) {
+                    y.wl = 1;
+                    navigator.wakeLock.request('screen').then((l) => { if (this._yr === y) y.wl = l; else l.release(); }).catch(() => {});
+                }
+            }
             // the title comes from the player the first time anyone plays it
             const item = y.queue[y.key];
             if (item && !item.t && y.meta && y.meta.host === this.authUid) {
@@ -290,21 +336,85 @@
         },
 
         // ---------- controls ----------
-        yrSize(s) {
+        yrSize(s, auto) {
             const y = this._yr, stage = document.getElementById('yrStage');
             if (!y || !stage) return;
-            if (s === 'fs') {
-                const req = stage.requestFullscreen || stage.webkitRequestFullscreen;
-                if (req) {
-                    Promise.resolve(req.call(stage)).then(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }).catch(() => {});
-                } else this.showToast('ملء الشاشة ما مدعوم بهذا المتصفح');
-                return;
-            }
+            if (y.size === 'land' && s !== 'land' && !auto && window.innerWidth > window.innerHeight) y.leftLand = true;
+            const wasLand = y.size === 'land';
             y.size = s;
-            stage.classList.toggle('sm', s === 'sm');
-            stage.classList.toggle('md', s === 'md');
+            y.autoLand = s === 'land' && !!auto;
+            ['sm', 'md', 'land'].forEach((k) => stage.classList.toggle(k, s === k));
             document.body.classList.toggle('yr-mini-on', s === 'sm');
+            document.body.classList.toggle('yr-land-on', s === 'land');
             document.querySelectorAll('.yr-size button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-s') === s));
+            if (s === 'land' && !auto) {
+                // real fullscreen and a sideways lock where the phone allows it (Android);
+                // elsewhere (iPhone) the view is simply turned with CSS
+                // the whole page goes fullscreen, not the stage: a fullscreen element can't be turned
+                const de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
+                if (req && !document.fullscreenElement) Promise.resolve(req.call(de)).then(() => { try { return screen.orientation.lock('landscape'); } catch (e) {} }).catch(() => {}).then(() => this._yrRot());
+            }
+            if (s !== 'land' && wasLand) {
+                if (document.fullscreenElement) try { document.exitFullscreen(); } catch (e) {}
+                try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
+                const f = document.getElementById('yrFloat');
+                if (f) f.innerHTML = '';
+            }
+            this._yrRot();
+        },
+
+        // portrait phone in the landscape view: turn the stage with CSS
+        _yrRot() {
+            const y = this._yr, stage = document.getElementById('yrStage');
+            if (!y || !stage) return;
+            const wide = window.innerWidth > window.innerHeight, small = Math.min(window.innerWidth, window.innerHeight) < 600;
+            if (small && wide && y.size !== 'land' && y.key && !y.leftLand) { y.preLand = y.size; this.yrSize('land', true); return; }
+            if (!wide && y.autoLand) { y.autoLand = false; this.yrSize(y.preLand || 'md'); return; }
+            if (!wide) y.leftLand = false;
+            stage.classList.toggle('rot', y.size === 'land' && !wide);
+        },
+
+        yrSpeed() {
+            const y = this._yr;
+            if (!y || !y.player || !y.player.setPlaybackRate) return;
+            const i = SPEEDS.indexOf(y.rate || 1), r = SPEEDS[(i + 1) % SPEEDS.length];
+            try { y.player.setPlaybackRate(r); } catch (e) {}
+            y.rate = r;
+            document.querySelectorAll('.yr-speed-t').forEach((b) => { b.textContent = r + 'x'; });
+            this.showToast('السرعة ' + r + 'x (إلك بس)');
+        },
+
+        yrReact(r) {
+            const y = this._yr;
+            if (!y || !REACTS[r] || !this.authUid) return;
+            const now = Date.now();
+            if (now - (y.lastReact || 0) < 1500) return;
+            y.lastReact = now;
+            this._yrFloatReact(r, 'أنت');
+            H().set(R('ytRooms/' + y.rid + '/react/' + this.authUid), { r, at: now }).catch(() => {});
+        },
+
+        _yrFloatReact(r, name) {
+            const f = document.getElementById('yrFloat'), d = REACTS[r];
+            if (!f || !d) return;
+            const el = document.createElement('span');
+            el.className = 'yr-fr-r';
+            el.style.cssText = '--c:' + d[2] + ';--x:' + Math.round(Math.random() * 40 - 20) + 'px';
+            el.innerHTML = `<i data-lucide="${d[0]}"></i><small>${esc(name || '')} ${d[1]}</small>`;
+            f.appendChild(el);
+            lucide.createIcons();
+            setTimeout(() => el.remove(), 2600);
+        },
+
+        _yrFloatMsg(c) {
+            const f = document.getElementById('yrFloat');
+            if (!f) return;
+            const el = document.createElement('div');
+            el.className = 'yr-fr-m';
+            el.innerHTML = `<b>${esc(c.n)}</b>${esc(c.sv ? 'اقترح فيديو' : c.m)}`;
+            f.appendChild(el);
+            [...f.querySelectorAll('.yr-fr-m')].slice(0, -3).forEach((x) => x.remove());
+            setTimeout(() => el.remove(), 6000);
         },
 
         yrTab(t) {
@@ -581,6 +691,8 @@
             const host = y.meta.host === this.authUid, cur = y.meta.cur, keys = Object.keys(y.queue).sort();
             const mids = Object.keys(y.members).sort((a, b) => (a === y.meta.host ? -1 : b === y.meta.host ? 1 : (y.members[a].j || 0) - (y.members[b].j || 0)));
             const doneN = cur ? mids.filter((u) => (y.done[u] || {})[cur]).length : 0;
+            const rn = document.getElementById('yrRailN');
+            if (rn) rn.textContent = cur ? doneN + '/' + mids.length : '';
             const sub = document.getElementById('yrSubTx');
             if (sub) sub.textContent = mids.length + ' طلاب' + (keys.length ? ' . ' + keys.length + ' فيديو' : '');
             ['list', 'chat', 'people'].forEach((t) => { const b = document.getElementById('yrBadge_' + t); if (b) b.textContent = t === 'chat' && y.unread ? y.unread : ''; });

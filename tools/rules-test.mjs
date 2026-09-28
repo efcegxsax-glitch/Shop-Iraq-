@@ -199,6 +199,8 @@ await ok('member progress', set(ref(db('m1'), 'ytRooms/r1/prog/m1'), { k: 'q1', 
 await no('member writes someone else progress', set(ref(db('m1'), 'ytRooms/r1/prog/h1'), { k: 'q1', t: 10, d: 100, p: 1, at: now }));
 await ok('member done', set(ref(db('m1'), 'ytRooms/r1/done/m1/q1'), true));
 await ok('member chats', set(ref(db('m1'), 'ytRooms/r1/chat/c1'), { u: 'm1', n: 'M', m: 'ما فهمت هنا', at: now, k: 'q1', s: 30 }));
+await ok('member reacts', set(ref(db('m1'), 'ytRooms/r1/react/m1'), { r: 'ok', at: now }));
+await no('outsider reacts', set(ref(db('o1'), 'ytRooms/r1/react/o1'), { r: 'ok', at: now }));
 await no('outsider chats', set(ref(db('o1'), 'ytRooms/r1/chat/c2'), { u: 'o1', n: 'O', m: 'x', at: now }));
 await no('member deletes host message', (async () => { await seed('ytRooms/r1/chat/c3', { u: 'h1', n: 'H', m: 'y', at: now }); return set(ref(db('m1'), 'ytRooms/r1/chat/c3'), null); })());
 await ok('member invites a friend', set(ref(db('m1'), 'ytInvites/f1/r1'), { from: 'm1', fn: 'M', t: 'فيزياء', at: now }));

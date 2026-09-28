@@ -403,6 +403,12 @@
             }
           }
         },
+        "react": {
+          "$uid": {
+            ".write": "(((auth != null && auth.uid == $uid) && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || ((auth != null && auth.uid == $uid) && !newData.exists()) || ((auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid) && !newData.exists()))",
+            ".validate": "!newData.exists() || (newData.child('r').isString() && newData.child('r').val().length <= 8 && newData.child('at').isNumber())"
+          }
+        },
         "chat": {
           "$id": {
             ".write": "((auth != null && !data.exists() && newData.child('u').val() == auth.uid && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || (auth != null && !newData.exists() && (data.child('u').val() == auth.uid || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid))))",
