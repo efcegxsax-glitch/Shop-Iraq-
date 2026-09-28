@@ -7,8 +7,7 @@ The rules are kept here, in Python, because the expressions are long and repeat;
 file is what gets pasted into Firebase console -> Realtime Database -> Rules -> Publish.
 
 Who can do what:
-- admins/{uid} = true: full read and write (the admin panel). The first account that signs
-  in to admin.html while admins/ is empty becomes the admin.
+- The admin panel's account (ADMIN_EMAIL) and admins/{uid} = true: full read and write.
 - Everyone (even before signing in): the public content (news, polls, forest, ...), a few
   counters that only go up by one, error reports, device pings.
 - A signed-in student: their own records, plus the shared ones under conditions (chats only
@@ -19,7 +18,10 @@ import json, os
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-ADMIN = "(auth != null && root.child('admins/' + auth.uid).val() === true)"
+# the admin panel's own account (admin.html signs in to it with the panel password), plus
+# anyone listed in admins/{uid}
+ADMIN_EMAIL = 'panel.admin@iraqi-student-platform.app'
+ADMIN = f"(auth != null && (auth.token.email === '{ADMIN_EMAIL}' || root.child('admins/' + auth.uid).val() === true))"
 SIGNED = "auth != null"
 OWNER = "(auth != null && auth.uid == $uid)"
 NEW = "newData.parent().parent().parent()"  # the database root after the write, from users/$uid/x
@@ -129,7 +131,7 @@ rules = {
 
     "admins": {
         ".read": SIGNED,
-        "$uid": {".write": ors(ands(OWNER, "!root.child('admins').exists()", "newData.val() === true"), ADMIN)},
+        "$uid": {".write": ADMIN},
     },
 
     # ----- content published from the admin panel -----

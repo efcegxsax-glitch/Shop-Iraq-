@@ -268,8 +268,8 @@
         <form class="gate-card" onsubmit="event.preventDefault(); gateSignIn();">
             <div class="gate-ic"><i data-lucide="shield-check"></i></div>
             <h2>دخول لوحة التحكم</h2>
-            <p>سجّل بحسابك بالمنصة (الإيميل وكلمة السر). أول حساب يدخل هنا يصير هو المدير، وبعدها محد غيره يكدر يدخل.</p>
-            <div class="f"><label for="g_email">الإيميل</label><input id="g_email" type="email" autocomplete="username" dir="ltr" required></div>
+            <p>اكتب كلمة سر لوحة التحكم.</p>
+            <input type="text" name="username" value="panel" autocomplete="username" hidden>
             <div class="f"><label for="g_pass">كلمة السر</label><input id="g_pass" type="password" autocomplete="current-password" dir="ltr" required></div>
             <button id="g_btn" class="gate-btn" type="submit">دخول</button>
             <div id="g_err" class="gate-err"></div>
@@ -1293,7 +1293,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
         const firebaseConfig = {
@@ -1306,7 +1306,9 @@
             appId: "1:16734952715:web:6c11e771fb86f9d185960e"
         };
 
-        const app = initializeApp(firebaseConfig);
+        // Its own Firebase app name, so signing in here never touches the student account
+        // signed in to the app on the same site (and the other way round).
+        const app = initializeApp(firebaseConfig, 'admin-panel');
         const db = getDatabase(app);
 
         const el = (id) => document.getElementById(id);
@@ -2743,9 +2745,12 @@
         // `let tickerData`, `let siteConfig`, ... declarations it writes to. It only worked
         // because the first snapshot happens to arrive asynchronously; a cached snapshot
         // would hit the temporal dead zone and throw. Calling it last removes that risk.
-        // Sign-in gate. The database rules only let accounts listed in admins/{uid} read and
-        // change the panel's data. The first account to sign in here when admins/ is still
-        // empty becomes the admin; after that every other account is turned away.
+        // Password gate. The panel signs in to one fixed Firebase account (ADMIN_EMAIL) with the
+        // password typed here; the password itself is never in this file, Firebase checks it.
+        // The database rules give that account (and anyone in admins/{uid}) the admin rights.
+        // The very first time, when the account doesn't exist yet, it is created with the
+        // password typed, so that becomes the panel's password.
+        const ADMIN_EMAIL = 'panel.admin@iraqi-student-platform.app';
         const auth = getAuth(app);
         let panelStarted = false;
         function startPanel() {
@@ -2763,22 +2768,17 @@
             loadErrors();
         }
         function gateMsg(t) { el('g_err').textContent = t || ''; }
-        async function isAdmin(uid) {
-            const mine = await get(ref(db, 'admins/' + uid));
-            if (mine.val() === true) return true;
-            const any = await get(ref(db, 'admins'));
-            if (any.exists()) return false;
-            await set(ref(db, 'admins/' + uid), true);
-            toast('صار هذا الحساب هو المدير');
-            return true;
+        async function isAdmin(user) {
+            if (user.email === ADMIN_EMAIL) return true;
+            return (await get(ref(db, 'admins/' + user.uid))).val() === true;
         }
         onAuthStateChanged(auth, async (user) => {
             if (!user) { el('gate').classList.remove('hidden'); el('gateOut').classList.add('hidden'); try { lucide.createIcons(); } catch (e) {} return; }
             gateMsg('جاري التحقق من الصلاحية...');
             let ok = false;
-            try { ok = await isAdmin(user.uid); } catch (e) { console.warn('Admin check failed:', e); }
+            try { ok = await isAdmin(user); } catch (e) { console.warn('Admin check failed:', e); }
             if (!ok) {
-                gateMsg('هذا الحساب ما عنده صلاحية المدير');
+                gateMsg('ما عندك صلاحية الدخول');
                 el('g_btn').disabled = false;
                 await signOut(auth).catch(() => {});
                 return;
@@ -2789,15 +2789,26 @@
             startPanel();
         });
         window.gateSignIn = async () => {
-            const email = val('g_email'), pass = el('g_pass').value;
-            if (!email || !pass) { gateMsg('اكتب الإيميل وكلمة السر'); return; }
+            const pass = el('g_pass').value;
+            if (!pass) { gateMsg('اكتب كلمة السر'); return; }
             el('g_btn').disabled = true;
             gateMsg('');
             try {
-                await signInWithEmailAndPassword(auth, email, pass);
+                await signInWithEmailAndPassword(auth, ADMIN_EMAIL, pass);
             } catch (e) {
-                const c = String(e && e.code || '');
-                gateMsg(c.includes('invalid') || c.includes('wrong') || c.includes('not-found') ? 'الإيميل أو كلمة السر غلط' : c.includes('too-many') ? 'محاولات كثيرة، انتظر شوية' : 'تعذر الدخول، تأكد من الإنترنت');
+                let c = String(e && e.code || '');
+                // first time only: the panel account doesn't exist yet
+                if (c.includes('invalid-credential') || c.includes('user-not-found')) {
+                    try {
+                        await createUserWithEmailAndPassword(auth, ADMIN_EMAIL, pass);
+                        toast('انحفظت كلمة السر للوحة التحكم');
+                        return;
+                    } catch (e2) {
+                        const c2 = String(e2 && e2.code || '');
+                        c = c2.includes('email-already-in-use') ? 'wrong' : c2.includes('weak-password') ? 'weak' : c2;
+                    }
+                }
+                gateMsg(c.includes('wrong') || c.includes('invalid') ? 'كلمة السر غلط' : c.includes('weak') ? 'كلمة السر لازم 6 أحرف أو أكثر' : c.includes('too-many') ? 'محاولات كثيرة، انتظر شوية' : 'تعذر الدخول، تأكد من الإنترنت');
                 el('g_btn').disabled = false;
             }
         };
