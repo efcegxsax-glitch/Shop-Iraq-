@@ -5370,7 +5370,8 @@
                 { f: 'cell', t: 'الخلية', c: '#10B981', icon: 'microscope' },
                 { f: 'transport', t: 'نقل المواد عبر الغشاء', c: '#0EA5E9', icon: 'arrow-left-right' },
                 { f: 'division', t: 'الانقسام الخيطي', c: '#8B5CF6', icon: 'git-fork' },
-                { f: 'tissues', t: 'الأنسجة', c: '#F43F5E', icon: 'layers' }
+                { f: 'tissues', t: 'الأنسجة', c: '#F43F5E', icon: 'layers' },
+                { f: 'repro', t: 'التكاثر', c: '#EC4899', icon: 'flower-2' }
             ],
 
             _bioImport(name) {
@@ -5417,7 +5418,7 @@
                             return `<div class="b3-ch" style="--c:${c.c}"><b><i data-lucide="${c.icon}"></i>${escapeHtml(c.t)}</b><span>${list.length} رسمة</span></div>
                             <div class="b3-grid">${list.map((m, i) => `<button class="b3-card" style="--c:${c.c};--i:${i}" onclick="app.bioOpen(${jsArg(c.f)}, ${jsArg(m.id)})"><span class="b3-card-ic"><i data-lucide="${m.icon || 'box'}"></i></span><b>${escapeHtml(m.title)}</b><em><i data-lucide="rotate-3d"></i>3D</em></button>`).join('')}</div>`;
                         }).join('')}
-                        <p class="b3-soon">باقي فصول الكتاب تنضاف تباعاً</p>
+                        
                     </div>`;
                     lucide.createIcons();
                     return;
