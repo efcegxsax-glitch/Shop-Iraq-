@@ -105,7 +105,7 @@
 
         .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
         .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
-        .row-item .del, .pl-row .del { margin-inline-start: auto; background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+        .row-item .del, .pl-row .del, .err-row .del { margin-inline-start: auto; background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
 
         #toast { position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 420px; margin: 0 auto; background: var(--success); color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 700; text-align: center; display: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
 
@@ -197,6 +197,21 @@
         .ds-help button, .ds-help a { flex-shrink: 0; padding: 6px 12px; border-radius: 10px; border: 0; background: #F59E0B; color: #111; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; text-decoration: none; }
         .ds-state { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
         /* confirmation window (instead of the browser's confirm / prompt) */
+        .tab-badge { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-inline-start: 4px; border-radius: 99px; background: #DC2626; color: #fff; font-size: 10.5px; font-weight: 800; }
+        .err-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .err-sum div { padding: 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); text-align: center; }
+        .err-sum b { display: block; font-size: 20px; font-weight: 800; }
+        .err-sum span { font-size: 11px; color: var(--text2); }
+        .err-row { padding: 11px 0; border-bottom: 1px solid var(--border); }
+        .err-row:last-child { border-bottom: 0; }
+        .err-top { display: flex; align-items: flex-start; gap: 8px; }
+        .err-msg { flex: 1; min-width: 0; direction: ltr; text-align: left; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #FCA5A5; word-break: break-word; }
+        .err-n { flex-shrink: 0; padding: 2px 8px; border-radius: 99px; background: rgba(220,38,38,.18); color: #FCA5A5; font-size: 11.5px; font-weight: 800; }
+        .err-meta { margin-top: 5px; font-size: 11.5px; color: var(--text2); }
+        .err-row details { margin-top: 6px; }
+        .err-row summary { cursor: pointer; font-size: 11.5px; color: var(--text2); }
+        .err-row pre { margin: 6px 0 0; padding: 8px; border-radius: 8px; background: var(--panel-2); direction: ltr; text-align: left; font-size: 10.5px; white-space: pre-wrap; word-break: break-word; color: var(--text2); max-height: 220px; overflow: auto; }
+        .err-row .del { margin-top: 6px; }
         .vf-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
         .vf-row:last-child { border-bottom: 0; }
         .vf-row img { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; background: var(--panel-2); }
@@ -267,6 +282,7 @@
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
             <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
+            <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
@@ -1034,6 +1050,24 @@
                 </div>
             </div>
 
+            <div id="sec-errors" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic" style="background:rgba(248,113,113,.14);color:#F87171;"><i data-lucide="bug"></i></div>
+                        <div>
+                            <h3>أخطاء التطبيق عند الطلاب</h3>
+                            <p>كل خطأ يصير بموبايل طالب يوصل هنا وحده: شنو الخطأ، بأي صفحة، على أي جهاز، وكم مرة صار. نفس الخطأ بنفس اليوم ينحسب مرة وحدة ويزيد العداد</p>
+                        </div>
+                    </div>
+                    <div class="err-sum" id="errSum"></div>
+                    <div style="display:flex;gap:8px;margin:10px 0;">
+                        <select id="errRange" style="flex:1;"><option value="1">اليوم</option><option value="7" selected>آخر 7 أيام</option><option value="30">آخر 30 يوم</option></select>
+                        <button class="btn-sm" id="errClear" style="color:#F87171;border-color:rgba(248,113,113,.4);">مسح الكل</button>
+                    </div>
+                    <div id="errList"></div>
+                </div>
+            </div>
+
             <div id="sec-forest" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1196,7 +1230,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'forest', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2409,6 +2443,39 @@
             return out;
         }
 
+        // ---------- Error reports ----------
+        // errors/{day_key} written by the student app: {msg, src, line, stack, n, first, last, view, dev, ver}
+        let errorsData = {};
+        const VIEW_NAMES = { homeView: 'الرئيسية', forestView: 'غابة العراق', dreamsView: 'سما الأحلام', govWarView: 'حرب المحافظات', profileView: 'الحساب', leaderboardView: 'المتقدمون', messagesView: 'الرسائل', chatThreadView: 'محادثة', holidaysView: 'العطل', resourcesView: 'الملازم', focusView: 'وضع التركيز', moreView: 'المزيد', walletView: 'الرصيد', authView: 'تسجيل الدخول' };
+        function loadErrors() {
+            el('errRange').addEventListener('change', renderErrors);
+            el('errClear').addEventListener('click', async () => {
+                if (!(await ask({ icon: 'trash-2', title: 'تمسح كل الأخطاء؟', text: 'ينحذف سجل الأخطاء كله. الأخطاء الجديدة ترجع توصل عادي.', ok: 'امسح' }))) return;
+                set(ref(db, 'errors'), null).then(() => toast('انمسح سجل الأخطاء')).catch(() => toast('فشل', false));
+            });
+            onValue(ref(db, 'errors'), (snap) => { errorsData = snap.val() || {}; renderErrors(); });
+        }
+        function renderErrors() {
+            const box = el('errList');
+            if (!box) return;
+            const days = Number(val('errRange')) || 7, since = Date.now() - days * 86400000;
+            const list = Object.keys(errorsData).map((k) => ({ k, ...errorsData[k] })).filter((e) => e && e.msg && (e.last || 0) >= since).sort((a, b) => (b.last || 0) - (a.last || 0));
+            const today = Object.values(errorsData).filter((e) => e && (e.last || 0) >= Date.now() - 86400000);
+            const total = list.reduce((s, e) => s + (Number(e.n) || 0), 0);
+            el('errSum').innerHTML = `<div><b style="color:#F87171">${today.length}</b><span>أخطاء مختلفة اليوم</span></div><div><b>${list.length}</b><span>بالفترة المختارة</span></div><div><b>${total}</b><span>مرة صارت</span></div>`;
+            const badge = el('errBadge');
+            if (badge) { badge.textContent = today.length; badge.classList.toggle('hidden', !today.length); }
+            if (!list.length) { box.innerHTML = '<p class="list-empty">ماكو أخطاء. التطبيق شغال زين</p>'; return; }
+            box.innerHTML = list.slice(0, 150).map((e) => `
+                <div class="err-row">
+                    <div class="err-top"><div class="err-msg">${escapeHtml(e.msg)}</div><span class="err-n">${Number(e.n) || 1} مرة</span></div>
+                    <div class="err-meta">${escapeHtml(VIEW_NAMES[e.view] || e.view || 'غير معروف')} · ${escapeHtml(e.dev || '')} · آخر مرة ${escapeHtml(timeAgoAr(e.last))}${e.src ? ' · ' + escapeHtml(e.src) + (e.line ? ':' + e.line : '') : ''}</div>
+                    ${e.stack ? `<details><summary>تفاصيل للمبرمج</summary><pre>${escapeHtml(e.stack)}</pre></details>` : ''}
+                    <button class="del" onclick="deleteError(${jsArg(e.k)})">حذف</button>
+                </div>`).join('');
+        }
+        window.deleteError = (k) => { remove(ref(db, 'errors/' + k)).then(() => toast('انحذف')).catch(() => toast('فشل', false)); };
+
         // ---------- Verified accounts ----------
         // verified/{uid} = { at, name }: the student app shows a blue badge next to these names.
         const VB = (() => {
@@ -2657,6 +2724,7 @@
         loadForestBots();
         loadForestWeather();
         loadVerified();
+        loadErrors();
     </script>
 </body>
 </html>
