@@ -822,6 +822,114 @@
         }
       }
     },
+    "vent": {
+      ".read": "auth != null",
+      ".indexOn": [
+        "at"
+      ],
+      "$id": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && root.child('ventBan/' + auth.uid).val() != true && newData.parent().parent().child('ventOwners/' + $id).val() == auth.uid && newData.parent().parent().child('ventLast/' + auth.uid).val() == now) || (auth != null && !newData.exists() && root.child('ventOwners/' + $id).val() == auth.uid))",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['tx', 'm', 'at']) && newData.child('at').val() == now))",
+        "tx": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 400 && !newData.val().matches(/.*(شرموط|قحب|منيوك|منيوج|كسمك|كس امك|كسختك|طيزك|طيزه|سكس|نيكني|نياك|xnxx|porn|fuck|pussy|sharmoot|sharmout).*/i)"
+        },
+        "m": {
+          ".validate": "newData.isString() && newData.val().matches(/^(sad|worry|tired|upset|hope|lost)$/)"
+        },
+        "at": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "ventOwners": {
+      "$id": {
+        ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.val() == auth.uid) || (auth != null && !newData.exists() && data.val() == auth.uid))"
+      }
+    },
+    "ventLast": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"
+      }
+    },
+    "ventReplies": {
+      ".read": "auth != null",
+      "$pid": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$rid": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && root.child('ventBan/' + auth.uid).val() != true && root.child('vent/' + $pid).exists() && newData.parent().parent().parent().child('ventReplyOwners/' + $pid + '/' + $rid).val() == auth.uid && newData.parent().parent().parent().child('ventLastR/' + auth.uid).val() == now))",
+          ".validate": "!newData.exists() || ((newData.child('at').val() == now && (newData.child('k').isString() && newData.child('k').val().matches(/^[smd][1-9]$/) || newData.child('tx').isString() && newData.child('tx').val().length >= 2 && newData.child('tx').val().length <= 200 && !newData.child('tx').val().matches(/.*(شرموط|قحب|منيوك|منيوج|كسمك|كس امك|كسختك|طيزك|طيزه|سكس|نيكني|نياك|xnxx|porn|fuck|pussy|sharmoot|sharmout).*/i))))",
+          "$other": {
+            ".validate": "$other == 'k' || $other == 'tx' || $other == 'at'"
+          }
+        }
+      }
+    },
+    "ventReplyOwners": {
+      "$pid": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$rid": {
+          ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.val() == auth.uid))"
+        }
+      }
+    },
+    "ventLastR": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 15000)"
+      }
+    },
+    "ventReactOwners": {
+      "$pid": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$uid": {
+          ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()))",
+          ".validate": "newData.isString() && newData.val().matches(/^(hug|power|pray)$/)"
+        }
+      }
+    },
+    "ventReports": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$pid": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$uid": {
+          ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()))",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "ventCount": {
+      ".read": "auth != null",
+      "$pid": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$k": {
+          ".write": "auth != null",
+          ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (newData.isNumber() && newData.val() == (data.exists() ? data.val() : 0) + 1 && (($k.matches(/^(hug|power|pray)$/) && !root.child('ventReactOwners/' + $pid + '/' + auth.uid).exists() && newData.parent().parent().parent().child('ventReactOwners/' + $pid + '/' + auth.uid).val() == $k) || ($k == 'rep' && !root.child('ventReports/' + $pid + '/' + auth.uid).exists() && newData.parent().parent().parent().child('ventReports/' + $pid + '/' + auth.uid).val() === true) || ($k == 'rc' && newData.parent().parent().parent().child('ventLastR/' + auth.uid).val() == now))))"
+        }
+      }
+    },
+    "ventAlerts": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('u').val() == auth.uid))",
+        ".validate": "!newData.exists() || ((newData.child('at').val() == now && newData.child('tx').isString() && newData.child('tx').val().length <= 500 && newData.child('kind').isString() && newData.child('kind').val().matches(/^(bad|sex|danger)$/)))"
+      }
+    },
+    "ventBan": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+      }
+    },
     "devices": {
       "$id": {
         ".write": true,

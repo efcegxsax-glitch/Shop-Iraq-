@@ -306,6 +306,39 @@ await ok('student is here', set(ref(db('s2'), 'spotHere/sp1/s2'), { n: 'زهرا
 await ok('student leaves', set(ref(db('s2'), 'spotHere/sp1/s2'), null));
 await no('marks someone else here', set(ref(db('s2'), 'spotHere/sp1/s3'), { n: 'x', t: TS }));
 
+// فضفضة
+const vpost = (u, id, tx, m) => U(u, { ['vent/' + id]: { tx, m: m || 'sad', at: TS }, ['ventOwners/' + id]: u, ['ventLast/' + u]: TS });
+await ok('student vents', vpost('v1', 'p1', 'تعبت من الدراسة وما أحس نفسي متقدم'));
+await no('vents again at once', vpost('v1', 'p2', 'مرة ثانية'));
+await no('post as someone else', U('v2', { 'vent/p3': { tx: 'كلام', m: 'sad', at: TS }, 'ventOwners/p3': 'v1', 'ventLast/v2': TS }));
+await no('post with a name field', U('v2', { 'vent/p4': { tx: 'كلام عادي', m: 'sad', at: TS, name: 'علي' }, 'ventOwners/p4': 'v2', 'ventLast/v2': TS }));
+await no('post with a bad word', vpost('v3', 'p5', 'انت شرموط'));
+await no('post with a bad English word', vpost('v4', 'p6', 'what the FUCK'));
+await ok('another student vents', vpost('v5', 'p7', 'خايف من الوزاري'));
+await ok('students read posts', get(ref(db('v2'), 'vent')));
+await no('guest reads posts', get(ref(db(null), 'vent')));
+await no('students read who wrote', get(ref(db('v2'), 'ventOwners/p1')));
+await ok('admin reads who wrote', get(ref(db('adm'), 'ventOwners/p1')));
+await no('delete someone else\'s post', set(ref(db('v2'), 'vent/p1'), null));
+await ok('delete own post', U('v5', { 'vent/p7': null, 'ventOwners/p7': null }));
+const vrep = (u, rid, body) => U(u, { ['ventReplies/p1/' + rid]: Object.assign({ at: TS }, body), ['ventReplyOwners/p1/' + rid]: u, ['ventLastR/' + u]: TS, ['ventCount/p1/rc']: 1 });
+await ok('ready-made reply', vrep('v2', 'r1', { k: 's1' }));
+await no('reply again at once', U('v2', { 'ventReplies/p1/r2': { k: 'm1', at: TS }, 'ventReplyOwners/p1/r2': 'v2', 'ventLastR/v2': TS }));
+await ok('written reply', U('v6', { 'ventReplies/p1/r3': { tx: 'الله يوفقك', at: TS }, 'ventReplyOwners/p1/r3': 'v6', 'ventLastR/v6': TS, 'ventCount/p1/rc': 2 }));
+await no('reply with a bad word', U('v7', { 'ventReplies/p1/r4': { tx: 'يا منيوك', at: TS }, 'ventReplyOwners/p1/r4': 'v7', 'ventLastR/v7': TS }));
+await ok('hug', U('v2', { 'ventReactOwners/p1/v2': 'hug', 'ventCount/p1/hug': 1 }));
+await no('second reaction', U('v2', { 'ventReactOwners/p1/v2': 'pray', 'ventCount/p1/pray': 1 }));
+await no('counter without reacting', set(ref(db('v8'), 'ventCount/p1/hug'), 2));
+await ok('report', U('v8', { 'ventReports/p1/v8': true, 'ventCount/p1/rep': 1 }));
+await no('report twice', U('v8', { 'ventReports/p1/v8': true, 'ventCount/p1/rep': 2 }));
+await ok('filter alert', set(ref(db('v3'), 'ventAlerts/a1'), { u: 'v3', tx: 'انت شرموط', kind: 'sex', at: TS }));
+await no('alert as someone else', set(ref(db('v3'), 'ventAlerts/a2'), { u: 'v1', tx: 'x', kind: 'bad', at: TS }));
+await no('students read alerts', get(ref(db('v3'), 'ventAlerts')));
+await ok('admin bans', set(ref(db('adm'), 'ventBan/v3'), true));
+await no('banned student vents', vpost('v3', 'p8', 'كلام عادي جداً'));
+await no('student wipes a post', U('v2', { 'vent/p1': null, 'ventReplies/p1': null, 'ventCount/p1': null }));
+await ok('admin deletes a post with everything', U('adm', { 'vent/p1': null, 'ventOwners/p1': null, 'ventReplies/p1': null, 'ventReplyOwners/p1': null, 'ventCount/p1': null, 'ventReports/p1': null, 'ventReactOwners/p1': null }));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

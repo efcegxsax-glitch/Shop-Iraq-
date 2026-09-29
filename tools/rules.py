@@ -127,6 +127,10 @@ public_admin = {".read": True, ".write": ADMIN}
 # the 19 governorates, as a rules regular expression
 GOV_RE = "/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/"
 
+# فضفضة: words refused even from a tampered app (the app's own filter is much wider)
+VENT_BAD = "/.*(شرموط|قحب|منيوك|منيوج|كسمك|كس امك|كسختك|طيزك|طيزه|سكس|نيكني|نياك|xnxx|porn|fuck|pussy|sharmoot|sharmout).*/i"
+VENT_OK_USER = "root.child('ventBan/' + auth.uid).val() != true"
+
 # a study place (spots/{id} and spotsPending/{id})
 SPOT_OK = "(" + " && ".join([
     "newData.hasChildren(['n', 't', 'g', 'lat', 'lng', 'by', 'at'])",
@@ -555,6 +559,56 @@ rules = {
         ".write": ors(OWNER, ADMIN),
         ".validate": "!newData.exists() || (" + ands("root.child('spots/' + $sid).exists()", "newData.child('t').val() == now", s_max("newData.child('n')", 40)) + ")",
     }}},
+
+    # ----- فضفضة: anonymous venting. Posts and replies carry no name or governorate; who wrote
+    # them is kept apart (ventOwners, ventReplyOwners), readable by the admin only. One post
+    # every 5 minutes and one reply every 15 seconds; the worst words are refused here too.
+    "vent": {".read": SIGNED, ".indexOn": ["at"], "$id": {
+        ".write": ors(ADMIN,
+                      ands(SIGNED, "!data.exists()", VENT_OK_USER,
+                           "newData.parent().parent().child('ventOwners/' + $id).val() == auth.uid",
+                           "newData.parent().parent().child('ventLast/' + auth.uid).val() == now"),
+                      ands(SIGNED, "!newData.exists()", "root.child('ventOwners/' + $id).val() == auth.uid")),
+        ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['tx', 'm', 'at'])", "newData.child('at').val() == now") + ")",
+        "tx": {".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 400 && !newData.val().matches(" + VENT_BAD + ")"},
+        "m": {".validate": "newData.isString() && newData.val().matches(/^(sad|worry|tired|upset|hope|lost)$/)"},
+        "at": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }},
+    "ventOwners": {"$id": {".read": ADMIN, ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid"),
+                                                          ands(SIGNED, "!newData.exists()", "data.val() == auth.uid"))}},
+    "ventLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"}},
+    "ventReplies": {".read": SIGNED, "$pid": {".write": ADMIN, "$rid": {
+        ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", VENT_OK_USER, "root.child('vent/' + $pid).exists()",
+                                  "newData.parent().parent().parent().child('ventReplyOwners/' + $pid + '/' + $rid).val() == auth.uid",
+                                  "newData.parent().parent().parent().child('ventLastR/' + auth.uid).val() == now")),
+        ".validate": "!newData.exists() || (" + ands("newData.child('at').val() == now",
+                                                      ors("newData.child('k').isString() && newData.child('k').val().matches(/^[smd][1-9]$/)",
+                                                          "newData.child('tx').isString() && newData.child('tx').val().length >= 2 && newData.child('tx').val().length <= 200 && !newData.child('tx').val().matches(" + VENT_BAD + ")")) + ")",
+        "$other": {".validate": "$other == 'k' || $other == 'tx' || $other == 'at'"},
+    }}},
+    "ventReplyOwners": {"$pid": {".write": ADMIN, "$rid": {".read": ADMIN, ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid"))}}},
+    "ventLastR": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 15000)"}},
+    # one reaction and one report per student per post; the counters move by one with them
+    "ventReactOwners": {"$pid": {".write": ADMIN, "$uid": {".read": ors(OWNER, ADMIN), ".write": ors(ADMIN, ands(OWNER, "!data.exists()")),
+                                          ".validate": "newData.isString() && newData.val().matches(/^(hug|power|pray)$/)"}}},
+    "ventReports": {".read": ADMIN, "$pid": {".write": ADMIN, "$uid": {".read": ors(OWNER, ADMIN), ".write": ors(ADMIN, ands(OWNER, "!data.exists()")), ".validate": "newData.val() === true"}}},
+    "ventCount": {".read": SIGNED, "$pid": {".write": ADMIN, "$k": {
+        ".write": SIGNED,
+        ".validate": ors(ADMIN, ands("newData.isNumber()", "newData.val() == (data.exists() ? data.val() : 0) + 1", ors(
+            ands("$k.matches(/^(hug|power|pray)$/)", "!root.child('ventReactOwners/' + $pid + '/' + auth.uid).exists()",
+                 "newData.parent().parent().parent().child('ventReactOwners/' + $pid + '/' + auth.uid).val() == $k"),
+            ands("$k == 'rep'", "!root.child('ventReports/' + $pid + '/' + auth.uid).exists()",
+                 "newData.parent().parent().parent().child('ventReports/' + $pid + '/' + auth.uid).val() === true"),
+            ands("$k == 'rc'", "newData.parent().parent().parent().child('ventLastR/' + auth.uid).val() == now")))),
+    }}},
+    # what the filter stopped (or a post that sounds like the student may hurt themselves)
+    "ventAlerts": {".read": ADMIN, "$id": {
+        ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid")),
+        ".validate": "!newData.exists() || (" + ands("newData.child('at').val() == now", s_max("newData.child('tx')", 500),
+                                                      "newData.child('kind').isString() && newData.child('kind').val().matches(/^(bad|sex|danger)$/)") + ")",
+    }},
+    "ventBan": {"$uid": {".read": ors(OWNER, ADMIN), ".write": ADMIN}},
 
     # ----- usage numbers and error reports (also before signing in) -----
     "devices": {"$id": {".write": True, ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"}},
