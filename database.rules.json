@@ -567,6 +567,44 @@
         }
       }
     },
+    "studentMap": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "newData.hasChildren(['g', 't'])",
+        "g": {
+          ".validate": "newData.isString() && newData.val().matches(/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/)"
+        },
+        "t": {
+          ".validate": "newData.isNumber() && newData.val() <= now + 60000"
+        },
+        "m": {
+          ".validate": "newData.isString() && newData.val().matches(/^(happy|ok|tired|stress)$/)"
+        },
+        "d": {
+          ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+        },
+        "r": {
+          ".validate": "newData.val() === now && (!data.exists() || now - data.val() >= 2500)"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "mapReacts": {
+      ".read": "auth != null",
+      ".indexOn": [
+        "t"
+      ],
+      "$k": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('u').val() == auth.uid) || (auth != null && !newData.exists() && data.child('t').val() < now - 60000))",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'g', 'e', 't']) && newData.child('t').val() === now && newData.child('e').isString() && newData.child('e').val().matches(/^(heart|laugh|fire|party|sad|angry|tired|support)$/) && newData.child('g').val() === newData.parent().parent().child('studentMap/' + auth.uid + '/g').val() && newData.parent().parent().child('studentMap/' + auth.uid + '/r').val() === now))",
+        "$other": {
+          ".validate": "$other == 'u' || $other == 'g' || $other == 'e' || $other == 't'"
+        }
+      }
+    },
     "devices": {
       "$id": {
         ".write": true,

@@ -2943,3 +2943,80 @@ body.tutor-on #bottomNav, body.tutor-on #appHeaderBar { display: none !important
 #bottomNav .nav-ai.has-msg .nav-ic { position: relative; }
 #bottomNav .nav-ai.has-msg .nav-ic::after { content: ''; position: absolute; top: -2px; left: -1px; width: 11px; height: 11px; border-radius: 50%; background: #EF4444; border: 2px solid var(--surface); }
 @media (max-width: 375px) { #bottomNav .nav-label { font-size: 9px; letter-spacing: -0.2px; } }
+
+/* ===== خارطة الطلاب (js/moodmap.js) ===== */
+body.mm-on #bottomNav, body.mm-on #appHeaderBar { display: none !important; }
+#moodMapView { position: fixed; inset: 0; z-index: 40; background: #0B1220; }
+.mm { position: absolute; inset: 0; overflow: hidden; color: #fff; }
+.mm-map { position: absolute; inset: 0; touch-action: none; cursor: grab; background: radial-gradient(120% 80% at 50% 35%, #1B2638, #0B1220); }
+.mm-map .kd-loading { position: absolute; top: 45%; left: 50%; transform: translate(-50%, -50%); }
+.mm-stage { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; --iz: 1; }
+.mm-stage svg { display: block; overflow: visible; }
+.mm-dim { fill: rgba(8, 13, 25, .5); pointer-events: none; }
+.mm-g { --a: .06; fill: rgba(56, 189, 248, var(--a)); stroke: rgba(255, 255, 255, .75); stroke-width: 1.3; vector-effect: non-scaling-stroke; stroke-linejoin: round; transition: fill .3s; }
+.mm-g.sel { fill: rgba(251, 191, 36, .32); stroke: #FBBF24; stroke-width: 2.6; }
+.mm-g.ping { animation: mmPing .7s ease-out; }
+@keyframes mmPing { 0% { fill: rgba(255, 255, 255, .45); } 100% { fill: rgba(56, 189, 248, var(--a)); } }
+.mm-labels, .mm-floats { position: absolute; inset: 0; pointer-events: none; }
+.mm-l { position: absolute; transform: translate(-50%, -50%) scale(var(--iz)); display: flex; flex-direction: column; align-items: center; gap: 2px; pointer-events: auto; }
+.mm-lb { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px 3px 7px; border-radius: 999px; background: rgba(11, 18, 32, .78); border: 1px solid rgba(255, 255, 255, .22); box-shadow: 0 4px 12px -4px rgba(0, 0, 0, .6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.mm-lb b { font-size: 12.5px; font-weight: 900; line-height: 1.2; }
+.mm-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.mm-l small { display: none; font-size: 11px; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, .8); }
+.mm-stage.zoomed .mm-l small, .mm-l.sel small { display: block; }
+.mm-l.sel .mm-lb { background: #FBBF24; color: #111827; border-color: #FBBF24; }
+.mm-fl { position: absolute; width: 0; height: 0; transform: scale(var(--iz)); }
+.mm-fl span { position: absolute; left: -19px; top: -19px; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--c); box-shadow: 0 6px 16px -4px var(--c), 0 0 0 3px rgba(255, 255, 255, .85); animation: mmFloat 2.2s cubic-bezier(.2, .7, .3, 1) forwards; }
+.mm-fl svg { width: 21px; height: 21px; }
+@keyframes mmFloat { 0% { opacity: 0; transform: translate(0, 10px) scale(.3); } 14% { opacity: 1; transform: translate(0, -6px) scale(1.18); } 26% { transform: translate(calc(var(--dx) * .2), -14px) scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), -86px) scale(.85); } }
+.mm-top { position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 18px; background: linear-gradient(rgba(11, 18, 32, .92), rgba(11, 18, 32, 0)); pointer-events: none; }
+.mm-top > * { pointer-events: auto; }
+.mm-ic { width: 40px; height: 40px; flex: none; border-radius: 12px; display: grid; place-items: center; color: #fff; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .14); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.mm-ic svg { width: 20px; height: 20px; }
+.mm-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mm-title b { font-size: 16px; font-weight: 900; }
+.mm-title small { font-size: 12px; color: rgba(255, 255, 255, .75); }
+.mm-title small b { font-size: 12.5px; color: #fff; }
+.mm-live { display: inline-block; width: 7px; height: 7px; margin-inline-end: 4px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 3px rgba(34, 197, 94, .25); animation: hpBlink 1.4s ease-in-out infinite; }
+.mm-zoom { display: flex; gap: 6px; }
+.mm-zoom .mm-ic { width: 36px; height: 36px; }
+@media (max-width: 370px) { .mm-zoom .mm-ic:last-child { display: none; } }
+.mm-sheet { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 12px); display: flex; flex-direction: column; gap: 10px; background: linear-gradient(rgba(11, 18, 32, 0), rgba(11, 18, 32, .94) 22px); }
+.mm-sheet:empty { display: none; }
+.mm-card { padding: 12px; border-radius: 18px; background: rgba(23, 32, 50, .92); border: 1px solid rgba(251, 191, 36, .45); animation: unPop .25s ease; }
+.mm-card-h { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.mm-card-h b { display: block; font-size: 16px; font-weight: 900; color: #FBBF24; }
+.mm-card-h small { font-size: 12px; color: rgba(255, 255, 255, .75); }
+.mm-x { width: 30px; height: 30px; flex: none; border-radius: 10px; display: grid; place-items: center; color: #fff; background: rgba(255, 255, 255, .1); }
+.mm-x svg { width: 16px; height: 16px; }
+.mm-bars { display: grid; gap: 6px; margin-top: 10px; }
+.mm-bar { display: grid; grid-template-columns: 78px 1fr 28px; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 800; }
+.mm-bar span { display: inline-flex; align-items: center; gap: 5px; }
+.mm-bar span svg { width: 15px; height: 15px; }
+.mm-bar > i { height: 8px; border-radius: 99px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.mm-bar em { display: block; height: 100%; border-radius: 99px; transition: width .5s ease; }
+.mm-bar b { text-align: left; }
+.mm-empty { margin: 8px 0 0; font-size: 12.5px; color: rgba(255, 255, 255, .65); }
+.mm-row { display: flex; align-items: center; gap: 8px; }
+.mm-cap { flex: none; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, .7); }
+.mm-moods { flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.mm-moods::-webkit-scrollbar { display: none; }
+.mm-moods button { flex: 1 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 4px; padding: 7px 8px; border-radius: 12px; font-size: 12.5px; font-weight: 800; color: #fff; background: rgba(255, 255, 255, .09); border: 1px solid rgba(255, 255, 255, .12); }
+.mm-moods button svg { width: 15px; height: 15px; color: var(--c); }
+.mm-moods button.on { background: var(--c); border-color: var(--c); }
+.mm-moods button.on svg { color: #fff; }
+.mm-rx { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 8px; border-radius: 18px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); }
+.mm-rx button { aspect-ratio: 1; max-height: 46px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--c); box-shadow: 0 4px 12px -4px var(--c); transition: transform .15s, opacity .3s; }
+.mm-rx button svg { width: 20px; height: 20px; }
+.mm-rx button:active { transform: scale(.82); }
+.mm-rx.cool button { opacity: .45; }
+.mm-rx button.wait { animation: mmShake .3s; }
+@keyframes mmShake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.mm-hint { text-align: center; font-size: 11px; color: rgba(255, 255, 255, .6); }
+.mm-join { padding: 14px; border-radius: 18px; text-align: center; background: rgba(23, 32, 50, .92); border: 1px solid rgba(255, 255, 255, .12); }
+.mm-join b { display: block; font-size: 14.5px; font-weight: 900; }
+.mm-join small { display: block; margin-top: 4px; font-size: 12px; color: rgba(255, 255, 255, .7); }
+.mm-join > button { margin-top: 10px; padding: 10px 18px; border-radius: 12px; font-weight: 800; font-size: 13.5px; color: #fff; background: #0284C7; }
+.mm-govs { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; max-height: 180px; overflow-y: auto; }
+.mm-govs button { padding: 7px 11px; border-radius: 11px; font-size: 12.5px; font-weight: 800; color: #fff; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .14); }
+@media (prefers-reduced-motion: reduce) { .mm-fl span { animation-duration: 1.2s; } }
