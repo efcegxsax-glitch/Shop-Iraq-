@@ -357,6 +357,7 @@
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
             <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
+            <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
@@ -1171,6 +1172,48 @@
                 </div>
             </div>
 
+            <div id="sec-spots" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="inbox"></i></div>
+                        <div><h3>أماكن تنتظر الموافقة</h3><p>الأماكن اللي يضيفها الطلاب. لمن توافق يطلع المكان للكل وياخذ الطالب 50 نقطة</p></div>
+                    </div>
+                    <div id="spPend"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="map-pin-plus"></i></div>
+                        <div><h3>ضيف مكان بنفسك</h3><p>الصق رابط المكان من Google Maps، أو اكتب الإحداثيات</p></div>
+                    </div>
+                    <div class="field"><label>اسم المكان *</label><input type="text" id="spa_n" maxlength="60"></div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field"><label>النوع</label><select id="spa_t"><option value="lib">مكتبة</option><option value="cafe">مقهى هادئ</option><option value="hall">قاعة دراسة</option><option value="uni">مكتبة جامعة</option><option value="other">مكان ثاني</option></select></div>
+                        <div class="field"><label>المحافظة</label><select id="spa_g"></select></div>
+                    </div>
+                    <div class="field"><label>رابط Google Maps أو الإحداثيات *</label><input type="text" id="spa_loc" dir="ltr" placeholder="https://maps.app.goo.gl/... أو 33.3152, 44.3661"><small id="spa_locok" style="display:block;margin-top:6px;opacity:.75;"></small></div>
+                    <div class="field"><label>أقرب نقطة دالة</label><input type="text" id="spa_addr" maxlength="150"></div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field"><label>يفتح</label><input type="time" id="spa_o" value="08:00"></div>
+                        <div class="field"><label>يسد</label><input type="time" id="spa_c" value="22:00"></div>
+                    </div>
+                    <div class="field" id="spa_feats" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field"><label>لمن</label><select id="spa_sex"><option value="all">للجميع</option><option value="f">للبنات</option><option value="m">للأولاد</option></select></div>
+                        <div class="field"><label>السعر (اختياري)</label><input type="text" id="spa_price" maxlength="40"></div>
+                    </div>
+                    <div class="field"><label>صورة (اختياري)</label><input type="file" id="spa_img" accept="image/*"></div>
+                    <button class="btn" id="spa_save">نشر المكان</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="library-big"></i></div>
+                        <div><h3>الأماكن المنشورة</h3><p id="spCountA"></p></div>
+                    </div>
+                    <select id="sp_filter" style="margin-bottom:12px;"></select>
+                    <div id="spList"></div>
+                </div>
+            </div>
+
             <!-- Ban Student -->
             <div id="sec-polls" class="hidden">
                 <div class="card">
@@ -1483,7 +1526,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3152,6 +3195,111 @@
             try { await set(ref(db, 'shopOrders/' + id), null); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
         };
 
+        // ---------- study places: approve suggestions (spotsPending -> spots), manage, add ----------
+        const SP_T = { lib: 'مكتبة', cafe: 'مقهى هادئ', hall: 'قاعة دراسة', uni: 'مكتبة جامعة', other: 'مكان ثاني' };
+        const SP_F = { wifi: 'واي فاي', power: 'كهرباء دائمة', ac: 'تبريد', quiet: 'هادئ', coffee: 'مشروبات', free: 'مجاني' };
+        const SP_GOVS = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'دهوك', 'حلبجة', 'كركوك', 'الأنبار', 'صلاح الدين', 'ديالى', 'بابل', 'كربلاء', 'النجف', 'واسط', 'القادسية', 'ذي قار', 'ميسان', 'المثنى'];
+        let spPending = [], spPublished = [], spNewImg = null;
+        // a Google Maps link or "lat, lng" -> [lat, lng]
+        function parseLoc(v) {
+            const t = decodeURIComponent(String(v || ''));
+            const m = t.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/) || t.match(/[?&](?:q|query|destination|ll)=(-?\d+\.\d+),\s*(-?\d+\.\d+)/) || t.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/) || t.match(/^\s*(-?\d+\.\d+)\s*[, ]\s*(-?\d+\.\d+)\s*$/);
+            if (!m) return null;
+            const la = +m[1], lo = +m[2];
+            return la >= 29 && la <= 37.5 && lo >= 38.5 && lo <= 48.8 ? [+la.toFixed(6), +lo.toFixed(6)] : null;
+        }
+        function spRow(x, pending) {
+            const f = Object.keys(x.f || {}).filter((k) => x.f[k]).map((k) => SP_F[k]).join('، ');
+            const hours = x.h ? (x.h.a24 ? '24 ساعة' : (x.h.o || '') + ' – ' + (x.h.c || '')) + (x.h.fri ? '، مسدود الجمعة' : '') : '';
+            const img = /^data:image\//.test(x.img || '') ? x.img : '';
+            return `<div class="ord" style="border-inline-start-color:${pending ? '#F59E0B' : x.feat ? '#FBBF24' : '#2563EB'};">
+                <div style="display:flex;gap:12px;">
+                    ${img ? `<img src="${img}" alt="" style="width:92px;height:92px;border-radius:12px;object-fit:cover;flex:none;">` : ''}
+                    <div style="flex:1;min-width:0;">
+                        <b style="font-size:15px;">${escapeHtml(x.n)}</b>${x.feat ? ' <span style="color:#FBBF24;font-weight:800;font-size:12px;">مميز</span>' : ''}
+                        <div style="opacity:.8;margin-top:4px;">${escapeHtml(SP_T[x.t] || '')} · ${escapeHtml(x.g)}${x.sex && x.sex !== 'all' ? ' · ' + (x.sex === 'f' ? 'للبنات' : 'للأولاد') : ''}</div>
+                        ${x.addr ? `<div style="opacity:.8;">${escapeHtml(x.addr)}</div>` : ''}
+                        ${hours ? `<div style="opacity:.8;">الدوام: ${escapeHtml(hours)}</div>` : ''}
+                        ${f ? `<div style="opacity:.8;">${escapeHtml(f)}</div>` : ''}
+                        ${x.price ? `<div style="opacity:.8;">السعر: ${escapeHtml(x.price)}</div>` : ''}
+                        ${x.ph ? `<div style="opacity:.8;" dir="ltr">${escapeHtml(x.ph)}</div>` : ''}
+                        <a href="https://www.google.com/maps/search/?api=1&query=${Number(x.lat)},${Number(x.lng)}" target="_blank" rel="noopener" style="color:#60A5FA;font-weight:800;">شوفه على الخارطة</a>
+                    </div>
+                </div>
+                <div class="ord-act">${pending
+                    ? `<button class="btn-sm go" onclick="approveSpot(${jsArg(x.id)})">موافقة (+50 نقطة)</button><button class="del" onclick="rejectSpot(${jsArg(x.id)})">رفض</button>`
+                    : `<button class="btn-sm" onclick="featSpot(${jsArg(x.id)})">${x.feat ? 'شيل التمييز' : 'مميز'}</button><button class="del" onclick="deleteSpot(${jsArg(x.id)})">حذف</button>`}</div></div>`;
+        }
+        function renderSpotsAdmin() {
+            el('spPend').innerHTML = spPending.length ? spPending.map((x) => spRow(x, true)).join('') : '<p style="opacity:.6;font-size:13px;">ماكو أماكن جديدة.</p>';
+            el('spBadge').textContent = spPending.length; el('spBadge').classList.toggle('hidden', !spPending.length);
+            const f = el('sp_filter').value, list = spPublished.filter((x) => !f || x.g === f);
+            el('spCountA').textContent = spPublished.length ? spPublished.length + ' مكان' : '';
+            el('spList').innerHTML = list.length ? list.map((x) => spRow(x, false)).join('') : '<p style="opacity:.6;font-size:13px;">ماكو أماكن منشورة.</p>';
+        }
+        function loadSpotsAdmin() {
+            el('spa_g').innerHTML = SP_GOVS.map((g) => `<option>${g}</option>`).join('');
+            el('sp_filter').innerHTML = '<option value="">كل المحافظات</option>' + SP_GOVS.map((g) => `<option>${g}</option>`).join('');
+            el('spa_feats').innerHTML = Object.keys(SP_F).map((k) => `<label class="ds-chk"><input type="checkbox" data-spf="${k}"><span>${SP_F[k]}</span></label>`).join('');
+            onValue(ref(db, 'spotsPending'), (snap) => { const v = snap.val() || {}; spPending = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (a.at || 0) - (b.at || 0)); renderSpotsAdmin(); }, () => {});
+            onValue(ref(db, 'spots'), (snap) => { const v = snap.val() || {}; spPublished = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (b.at || 0) - (a.at || 0)); renderSpotsAdmin(); }, () => {});
+            el('sp_filter').addEventListener('change', renderSpotsAdmin);
+            el('spa_loc').addEventListener('input', () => { const l = parseLoc(el('spa_loc').value); el('spa_locok').textContent = el('spa_loc').value ? (l ? 'الموقع: ' + l.join(', ') : 'ما لكيت إحداثيات بالرابط. افتح المكان بـ Google Maps من المتصفح وانسخ الرابط الطويل، أو اكتب الإحداثيات') : ''; });
+            el('spa_img').addEventListener('change', async () => {
+                const f = el('spa_img').files && el('spa_img').files[0];
+                spNewImg = null;
+                if (f) try { spNewImg = { thumb: await shrinkPic(f, 520, 0.78), full: await shrinkPic(f, 1400, 0.82) }; } catch (e) { toast('ما انقرت الصورة', false); }
+            });
+            el('spa_save').addEventListener('click', addSpotAdmin);
+        }
+        async function addSpotAdmin() {
+            const n = val('spa_n'), loc = parseLoc(val('spa_loc'));
+            if (!n) { toast('اكتب اسم المكان', false); return; }
+            if (!loc) { toast('الموقع مو صحيح أو خارج العراق', false); return; }
+            const id = 'a' + Date.now().toString(36);
+            const x = { n: n.slice(0, 60), t: el('spa_t').value, g: el('spa_g').value, lat: loc[0], lng: loc[1], by: auth.currentUser ? auth.currentUser.uid : 'admin', at: Date.now(), sex: el('spa_sex').value, h: { o: el('spa_o').value || '08:00', c: el('spa_c').value || '22:00' } };
+            const f = {}; document.querySelectorAll('#spa_feats [data-spf]').forEach((c) => { if (c.checked) f[c.dataset.spf] = true; }); if (Object.keys(f).length) x.f = f;
+            if (val('spa_addr')) x.addr = val('spa_addr').slice(0, 150);
+            if (val('spa_price')) x.price = val('spa_price').slice(0, 40);
+            if (spNewImg) x.img = spNewImg.thumb;
+            const upd = { ['spots/' + id]: x };
+            if (spNewImg) upd['spotImgs/' + id] = spNewImg.full;
+            try { await update(ref(db), upd); toast('انتشر المكان'); ['spa_n', 'spa_loc', 'spa_addr', 'spa_price'].forEach((k) => { el(k).value = ''; }); el('spa_img').value = ''; spNewImg = null; el('spa_locok').textContent = ''; document.querySelectorAll('#spa_feats [data-spf]').forEach((c) => { c.checked = false; }); }
+            catch (e) { console.warn(e); toast('فشل النشر، تأكد إن القواعد منشورة', false); }
+        }
+        window.approveSpot = async (id) => {
+            const x = spPending.find((y) => y.id === id);
+            if (!x) return;
+            try {
+                const full = (await get(ref(db, 'spotsPendingImgs/' + id))).val();
+                const pub = { ...x }; delete pub.id;
+                const upd = { ['spots/' + id]: pub, ['spotsPending/' + id]: null, ['spotsPendingImgs/' + id]: null };
+                if (full) upd['spotImgs/' + id] = full;
+                await update(ref(db), upd);
+                // 50 points to the student who added it
+                if (x.by) {
+                    let np = null;
+                    await runTransaction(ref(db, 'users/' + x.by + '/points'), (cur) => { np = (Number(cur) || 0) + 50; return np; });
+                    if (np !== null) await set(ref(db, 'leaderboard/' + x.by + '/points'), np).catch(() => {});
+                }
+                toast('انقبل المكان وأخذ الطالب 50 نقطة');
+            } catch (e) { console.warn(e); toast('فشلت الموافقة', false); }
+        };
+        window.rejectSpot = async (id) => {
+            if (!(await ask({ icon: 'x', title: 'ترفض هذا المكان؟', ok: 'رفض' }))) return;
+            try { await update(ref(db), { ['spotsPending/' + id]: null, ['spotsPendingImgs/' + id]: null }); toast('انرفض'); } catch (e) { toast('فشل', false); }
+        };
+        window.featSpot = async (id) => {
+            const x = spPublished.find((y) => y.id === id);
+            if (!x) return;
+            try { await set(ref(db, 'spots/' + id + '/feat'), x.feat ? null : true); toast(x.feat ? 'انشال التمييز' : 'صار مميز ويطلع أول'); } catch (e) { toast('فشل', false); }
+        };
+        window.deleteSpot = async (id) => {
+            const x = spPublished.find((y) => y.id === id);
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف "' + (x ? x.n : '') + '"؟', text: 'تنحذف تقييماته ويا.', ok: 'احذف' }))) return;
+            try { await update(ref(db), { ['spots/' + id]: null, ['spotImgs/' + id]: null, ['spotRates/' + id]: null, ['spotHere/' + id]: null }); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
             onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
@@ -3536,6 +3684,7 @@
             loadYtKey();
             loadTutorUrl();
             loadShopAdmin();
+            loadSpotsAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();

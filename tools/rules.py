@@ -127,6 +127,32 @@ public_admin = {".read": True, ".write": ADMIN}
 # the 19 governorates, as a rules regular expression
 GOV_RE = "/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/"
 
+# a study place (spots/{id} and spotsPending/{id})
+SPOT_OK = "(" + " && ".join([
+    "newData.hasChildren(['n', 't', 'g', 'lat', 'lng', 'by', 'at'])",
+    "newData.child('lat').isNumber()", "newData.child('lat').val() >= 29", "newData.child('lat').val() <= 37.5",
+    "newData.child('lng').isNumber()", "newData.child('lng').val() >= 38.5", "newData.child('lng').val() <= 48.8",
+    "newData.child('at').isNumber()",
+]) + ")"
+SPOT_FIELDS = {
+    "n": {".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60"},
+    "t": {".validate": "newData.isString() && newData.val().matches(/^(lib|cafe|hall|uni|other)$/)"},
+    "g": {".validate": "newData.isString() && newData.val().matches(" + GOV_RE + ")"},
+    "addr": {".validate": "newData.isString() && newData.val().length <= 150"},
+    "price": {".validate": "newData.isString() && newData.val().length <= 40"},
+    "ph": {".validate": "newData.isString() && newData.val().matches(/^[+]?[0-9]{7,15}$/)"},
+    "sex": {".validate": "newData.isString() && newData.val().matches(/^(m|f|all)$/)"},
+    "img": {".validate": "newData.isString() && newData.val().length <= 80000"},
+    "by": {".validate": "newData.isString() && newData.val().length <= 128"},
+    "h": {"o": {".validate": "newData.isString() && newData.val().matches(/^[0-2][0-9]:[0-5][0-9]$/)"},
+          "c": {".validate": "newData.isString() && newData.val().matches(/^[0-2][0-9]:[0-5][0-9]$/)"},
+          "a24": {".validate": "newData.isBoolean()"}, "fri": {".validate": "newData.isBoolean()"},
+          "$other": {".validate": False}},
+    "f": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(wifi|power|ac|coffee|free|quiet)$/)"}},
+    "feat": {".validate": "newData.isBoolean()"},
+}
+SPOT = dict({".validate": SPOT_OK}, **SPOT_FIELDS)
+
 # YouTube rooms, from a node under ytRooms/$rid
 YR_HOST = "(auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid)"
 YR_MEMBER = "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"
@@ -499,6 +525,36 @@ rules = {
             "$other": {".validate": "$other == 'u' || $other == 'g' || $other == 'e' || $other == 't'"},
         },
     },
+
+    # ----- study places: students suggest (spotsPending), the admin approves into spots; ratings,
+    # and who is studying at a place now (each student writes only their own row) -----
+    "spots": {".read": True, ".write": ADMIN, ".indexOn": ["g"], "$id": SPOT},
+    "spotImgs": {".read": True, ".write": ADMIN, "$id": {".validate": s_max("newData", 400000)}},
+    "spotsPending": {
+        ".read": ADMIN,
+        "$id": {
+            ".read": ors(ADMIN, "auth != null && data.child('by').val() == auth.uid"),
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('by').val() == auth.uid")),
+            ".validate": "!newData.exists() || " + SPOT_OK,
+            **SPOT_FIELDS,
+        },
+    },
+    "spotsPendingImgs": {"$id": {
+        ".read": ADMIN,
+        ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.parent().parent().child('spotsPending/' + $id + '/by').val() == auth.uid")),
+        ".validate": "!newData.exists() || (" + s_max("newData", 400000) + ")",
+    }},
+    "spotRates": {".read": True, "$sid": {"$uid": {
+        ".write": ors(OWNER, ADMIN),
+        ".validate": "!newData.exists() || (" + ands("root.child('spots/' + $sid).exists()", "newData.child('s').isNumber()",
+                                                      "newData.child('s').val() >= 1", "newData.child('s').val() <= 5",
+                                                      "newData.child('at').val() == now", s_max("newData.child('n')", 40)) + ")",
+        "c": {".validate": s_max("newData", 200)},
+    }}},
+    "spotHere": {".read": True, "$sid": {"$uid": {
+        ".write": ors(OWNER, ADMIN),
+        ".validate": "!newData.exists() || (" + ands("root.child('spots/' + $sid).exists()", "newData.child('t').val() == now", s_max("newData.child('n')", 40)) + ")",
+    }}},
 
     # ----- usage numbers and error reports (also before signing in) -----
     "devices": {"$id": {".write": True, ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"}},

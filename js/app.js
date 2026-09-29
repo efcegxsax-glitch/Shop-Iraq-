@@ -3519,6 +3519,13 @@
                 this.mkOpen();
             },
 
+            // ===== أماكن الدراسة: study places on a street map (js/spots.js) =====
+            goToSpots() {
+                this.switchView('spotsView');
+                if (this._withPart('spots', () => typeof this.spOpen === 'function', 'spotsView', () => this.goToSpots())) return;
+                this.spOpen();
+            },
+
             // ===== خارطة الطلاب: students per governorate, today's moods, floating reactions (js/moodmap.js) =====
             goToMoodMap() {
                 this.switchView('moodMapView');
@@ -7142,6 +7149,7 @@
                 { id: 'garden', fn: 'goToGarden', t: 'شجرتي', d: 'ازرع بذرة وادرس لحد ما تثمر', ic: 'sprout', c: '#15803D', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
+                { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
@@ -7167,7 +7175,7 @@
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
             MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
-            MORE_DEFAULT_FAVS: ['moodmap', 'garden', 'uni', 'bio'],
+            MORE_DEFAULT_FAVS: ['spots', 'moodmap', 'garden', 'uni'],
 
             _moreState() {
                 if (this._mr) return this._mr;
@@ -12770,6 +12778,7 @@
                 if (this.currentView === 'tutorView' && viewId !== 'tutorView' && this.tutorClose) this.tutorClose();
                 if (this.currentView === 'moodMapView' && viewId !== 'moodMapView' && this.mmClose) this.mmClose();
                 if (this.currentView === 'storeView' && viewId !== 'storeView' && this.shClose) this.shClose();
+                if (this.currentView === 'spotsView' && viewId !== 'spotsView' && this.spClose) this.spClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
