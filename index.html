@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = 'a014380742';
+        window.APP_VER = '40dee507d4';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=a3ba5cb128">
+    <link rel="stylesheet" href="css/app.css?v=a6b2eb63b3">
     <link rel="stylesheet" href="css/tw.css?v=94e3d15547">
 </head>
 <body class="antialiased">
@@ -1764,13 +1764,13 @@
                 <span class="nav-ic"><i data-lucide="calendar-days"></i></span>
                 <span class="nav-label">العطل</span>
             </button>
+            <button onclick="app.setTab('leaderboard')" class="nav-item" data-tab="leaderboard" aria-label="المتقدمون">
+                <span class="nav-ic"><i data-lucide="trophy"></i></span>
+                <span class="nav-label">الأوائل</span>
+            </button>
             <button onclick="app.setTab('tutor')" class="nav-item nav-ai" data-tab="tutor" aria-label="المعلم الذكي">
                 <span class="nav-ic"><span class="nav-ai-orb"><i data-lucide="sparkles"></i></span></span>
                 <span class="nav-label">المعلم</span>
-            </button>
-            <button onclick="app.setTab('leaderboard')" class="nav-item" data-tab="leaderboard" aria-label="المتقدمون">
-                <span class="nav-ic"><i data-lucide="trophy"></i></span>
-                <span class="nav-label">المتقدمون</span>
             </button>
             <button onclick="app.setTab('store')" class="nav-item" data-tab="store" aria-label="المتجر">
                 <span class="nav-ic"><i data-lucide="store"></i><span id="navStoreCartBadge" class="hidden absolute w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span></span>
