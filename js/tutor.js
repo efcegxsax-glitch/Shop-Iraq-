@@ -5,7 +5,10 @@
 // Each request carries a short report of the student's own studying (days studied, grades,
 // exams soon, quiz results) so the tutor can hold them to it. The tutor can also:
 // - give a surprise quiz (multiple choice) answered and marked inside the chat;
-// - write first, once a day at most, when there is a real reason (app._ttNudgeSoon).
+// - write first, once a day at most, when there is a real reason (app._ttNudgeSoon);
+// - listen: with an empty box the send button becomes a microphone (the browser's speech
+//   recognition, Iraqi Arabic), and an answer to a spoken question is read aloud (speech
+//   synthesis); every answer has a button to hear it.
 (function () {
     const KEEP = 40, SEND = 20, IMG_MAX = 1280;
     const QUIZ_PTS = 2, QUIZ_DAY_CAP = 30; // points per right answer, and at most this many a day from quizzes
@@ -64,11 +67,17 @@
             this._tt = this._tt || { msgs: this._ttLoad(), busy: false, img: null };
             document.body.classList.add('tutor-on');
             this._ttBadge(false);
+            if (window.speechSynthesis) try { speechSynthesis.getVoices(); } catch (e) {}
             document.getElementById('ttPop')?.remove();
             this._ttRender();
             setTimeout(() => document.getElementById('ttInput')?.focus({ preventScroll: true }), 300);
         },
-        tutorClose() { document.body.classList.remove('tutor-on'); if (this._tt && this._tt.abort) this._tt.abort.abort(); },
+        tutorClose() {
+            document.body.classList.remove('tutor-on');
+            if (this._tt && this._tt.abort) this._tt.abort.abort();
+            this._ttHush();
+            if (this._ttRec) try { this._ttRec.abort(); } catch (e) {}
+        },
 
         _ttKey() { return 'isp_tutor_' + (this.authUid || 'guest'); },
         _ttLoad() { try { return (JSON.parse(localStorage.getItem(this._ttKey()) || '[]') || []).slice(-KEEP); } catch (e) { return []; } },
@@ -111,14 +120,23 @@
             const body = (m.content ? md(m.content) : m.error ? '' : '<span class="tt-typing"><i></i><i></i><i></i></span>') + (m.error ? `<p class="tt-err">${esc(m.error)}</p>` : '');
             const offer = !m.pending && !m.error && i === this._tt.msgs.length - 1 && /اختبار/.test(m.content || '') && !this._tt.busy
                 ? `<button class="tt-go" onclick="app.ttQuizPick()"><i data-lucide="list-checks"></i>ابدأ اختبار مفاجئ</button>` : '';
-            return `<div class="tt-msg ai${m.pending ? ' live' : ''}${m.nudge ? ' nudge' : ''}" id="ttMsg${i}"><span class="tt-orb"><i data-lucide="sparkles"></i></span><div class="tt-txt">${body}${offer}</div></div>`;
+            const say = !m.pending && m.content && window.speechSynthesis ? `<button class="tt-say${this._tt.saying === i ? ' on' : ''}" onclick="app.ttSay(${i})" aria-label="اسمع الجواب"><i data-lucide="volume-2"></i><span>اسمع</span></button>` : '';
+            return `<div class="tt-msg ai${m.pending ? ' live' : ''}${m.nudge ? ' nudge' : ''}" id="ttMsg${i}"><span class="tt-orb"><i data-lucide="sparkles"></i></span><div class="tt-txt">${body}${offer}${say}</div></div>`;
         },
 
         _ttScroll() { const box = document.getElementById('ttBody'); if (box) box.scrollTop = box.scrollHeight; },
 
         _ttComposer() {
             const t = this._tt, send = document.getElementById('ttSend'), prev = document.getElementById('ttPreview');
-            if (send) { send.innerHTML = t.busy ? '<i data-lucide="square"></i>' : '<i data-lucide="send"></i>'; send.classList.toggle('stop', t.busy); send.setAttribute('aria-label', t.busy ? 'أوقف' : 'إرسال'); }
+            if (send) {
+                const inp = document.getElementById('ttInput'), empty = !(inp && inp.value.trim()) && !t.img;
+                const mic = !t.busy && empty && !!this._ttSR();
+                const ic = t.busy || t.listening ? 'square' : mic ? 'mic' : 'send';
+                if (send.dataset.ic !== ic) { send.dataset.ic = ic; send.innerHTML = `<i data-lucide="${ic}"></i>`; }
+                send.classList.toggle('stop', t.busy);
+                send.classList.toggle('listen', !!t.listening);
+                send.setAttribute('aria-label', t.busy ? 'أوقف' : t.listening ? 'خلصت' : mic ? 'اسأل بصوتك' : 'إرسال');
+            }
             if (prev) { prev.innerHTML = t.img ? `<img src="${esc(t.img.thumb)}" alt=""><button onclick="app.ttDropImage()" aria-label="شيل الصورة"><i data-lucide="x"></i></button>` : ''; prev.classList.toggle('hidden', !t.img); }
             lucide.createIcons();
         },
@@ -131,7 +149,81 @@
             const inp = document.getElementById('ttInput');
             if (inp) { inp.value = s[2]; inp.focus(); this.ttAutosize(inp); }
         },
-        ttAutosize(el) { el.style.height = 'auto'; el.style.height = Math.min(140, el.scrollHeight) + 'px'; },
+        ttAutosize(el) {
+            el.style.height = 'auto'; el.style.height = Math.min(140, el.scrollHeight) + 'px';
+            if (this._tt && !this._tt.listening) this._ttComposer();
+        },
+
+        // ---------- voice ----------
+        _ttSR() { return window.SpeechRecognition || window.webkitSpeechRecognition || null; },
+
+        ttVoice() {
+            const t = this._tt, SR = this._ttSR();
+            if (!t || t.busy || !SR) return;
+            if (t.listening) { try { this._ttRec.stop(); } catch (e) {} return; }
+            this._ttHush();
+            const inp = document.getElementById('ttInput'), rec = new SR();
+            rec.lang = 'ar-IQ'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+            let heard = '', failed = '';
+            rec.onresult = (e) => {
+                heard = Array.from(e.results).map((r) => r[0].transcript).join(' ').trim();
+                if (inp) { inp.value = heard; this.ttAutosize(inp); }
+            };
+            rec.onerror = (e) => { failed = e.error || 'x'; };
+            rec.onend = () => {
+                t.listening = false; this._ttRec = null;
+                document.getElementById('ttComposer')?.classList.remove('listening');
+                if (inp) inp.placeholder = 'اكتب سؤالك...';
+                if (heard) { t.voice = true; this.ttSend(); return; }
+                this._ttComposer();
+                if (failed === 'not-allowed' || failed === 'service-not-allowed') this.showToast('اسمح للتطبيق يستخدم المايك من إعدادات المتصفح');
+                else if (failed === 'network') this.showToast('التعرف على الصوت يحتاج نت');
+                else if (failed !== 'aborted') this.showToast('ما سمعت شي، اضغط المايك واحچي');
+            };
+            try { rec.start(); } catch (e) { this.showToast('ما اشتغل المايك'); return; }
+            this._ttRec = rec; t.listening = true;
+            document.getElementById('ttComposer')?.classList.add('listening');
+            if (inp) { inp.value = ''; inp.placeholder = 'دا أسمعك... احچي سؤالك'; this.ttAutosize(inp); }
+            this._ttComposer();
+        },
+
+        // text for reading aloud: no markdown marks, symbols said in words
+        _ttPlain(text) {
+            return String(text || '').replace(/```[\s\S]*?```/g, ' ').replace(/[#*`_>|]/g, ' ')
+                .replace(/\^2/g, ' تربيع').replace(/\^3/g, ' تكعيب').replace(/\^/g, ' أس ').replace(/√/g, ' جذر ')
+                .replace(/→/g, ' يعطي ').replace(/×/g, ' ضرب ').replace(/÷/g, ' قسمة ').replace(/=/g, ' يساوي ')
+                .replace(/\n+/g, '. ').replace(/\s+/g, ' ').trim();
+        },
+        _ttVoiceAr() {
+            const vs = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
+            return vs.find((v) => /^ar[-_]IQ/i.test(v.lang)) || vs.find((v) => /^ar/i.test(v.lang) && /google/i.test(v.name)) || vs.find((v) => /^ar/i.test(v.lang)) || null;
+        },
+        _ttHush() {
+            if (window.speechSynthesis) try { speechSynthesis.cancel(); } catch (e) {}
+            if (this._tt && this._tt.saying !== undefined) { this._tt.saying = undefined; document.querySelectorAll('.tt-say.on').forEach((b) => b.classList.remove('on')); }
+        },
+        ttSay(i) {
+            const t = this._tt, m = t && t.msgs[i];
+            if (!m || !window.speechSynthesis) return;
+            if (t.saying === i) { this._ttHush(); return; }
+            this._ttHush();
+            const text = this._ttPlain(m.content);
+            if (!text) return;
+            const voice = this._ttVoiceAr();
+            if (!voice && !this._ttNoVoice) { this._ttNoVoice = true; this.showToast('إذا ما طلع صوت: نزّل اللغة العربية من إعدادات الموبايل ثم تحويل النص إلى كلام'); }
+            // short pieces: long ones get cut off on some phones
+            const parts = text.match(/[^.!?؟،\n]{1,180}[.!?؟،]?/g) || [text];
+            t.saying = i;
+            document.querySelector('#ttMsg' + i + ' .tt-say')?.classList.add('on');
+            parts.forEach((p, k) => {
+                const u = new SpeechSynthesisUtterance(p.trim());
+                u.lang = voice ? voice.lang : 'ar-SA';
+                if (voice) u.voice = voice;
+                u.rate = 1;
+                if (k === parts.length - 1) u.onend = () => { if (t.saying === i) this._ttHush(); };
+                speechSynthesis.speak(u);
+            });
+        },
         ttKey(e) { if (e.key === 'Enter' && !e.shiftKey && window.matchMedia('(pointer: fine)').matches) { e.preventDefault(); this.ttSend(); } },
 
         async ttPickImage(input) {
@@ -156,7 +248,10 @@
             if (!t) return;
             if (t.busy) { if (t.abort) t.abort.abort(); return; }
             const inp = document.getElementById('ttInput'), text = String(inp && inp.value || '').trim().slice(0, 4000);
-            if (!text && !t.img) return;
+            if (!text && !t.img) { if (this._ttSR()) this.ttVoice(); return; }
+            if (t.listening && this._ttRec) { try { this._ttRec.abort(); } catch (e) {} }
+            this._ttHush();
+            const voice = !!t.voice; t.voice = false;
             t.picking = false;
             if (!this.isLoggedIn || !window.firebaseAuth || !window.firebaseAuth.currentUser) { this.showToast('سجّل دخولك حتى تسأل المعلم'); this.goToAuth('login'); return; }
             const url = this._ttUrl();
@@ -212,6 +307,8 @@
             t.busy = false; t.abort = null;
             this._ttSave();
             this._ttRender();
+            // a spoken question gets a spoken answer
+            if (voice && ans.content && !ans.error) this.ttSay(idx);
         },
 
         _ttErr(e) {

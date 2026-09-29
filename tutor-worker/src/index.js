@@ -9,6 +9,7 @@
 //        or data: {"error": "..."}
 //   mode "quiz": { subject, topic?, context? } -> JSON { title, questions: [{ q, choices[4], answer, why }] }
 //   mode "nudge": { reasons: [...], context? } -> JSON { text }  (a short message the tutor sends first)
+//   mode "cards": { image: { type, data }, subject? } -> JSON { title, cards: [{ q, a }] }  (review cards from a page)
 // context: a short report of the student's studying, written by the app, used to hold them to it.
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
@@ -38,6 +39,19 @@ const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المد�
 const QUIZ_SYSTEM = `أنت مدرس عراقي تكتب اختبار قصير للسادس الإعدادي حسب المنهج العراقي. اكتب 5 أسئلة اختيار من متعدد، لكل سؤال 4 خيارات وخيار واحد صحيح، وشرح قصير (جملة أو جملتين) ليش هذا الجواب الصحيح. خلي الأسئلة متدرجة من السهل للأصعب، وواضحة ومرتبطة بالمادة والموضوع المطلوب، وبدون LaTeX. رقم الجواب الصحيح يبدأ من 0.`;
 
 const NUDGE_SYSTEM = `أنت "المعلم" بتطبيق منصة الطالب العراقي، وتكتب رسالة قصيرة تبدي بيها المحادثة ويا الطالب من نفسك، مثل مدرس يهتم بيه. جملتين أو ثلاث بالكثير، بلهجة عراقية خفيفة، حازمة ولطيفة، تذكر السبب الحقيقي من تقريره (مثلاً صارله أيام ما يدرس، أو درجته نزلت، أو امتحانه قريب)، وتنتهي بسؤال أو اقتراح خطوة صغيرة. لا تهينه ولا تستخدم إيموجي.`;
+
+const CARDS_SYSTEM = `أنت مدرس عراقي تحول صفحة من ملزمة أو كتاب للسادس الإعدادي إلى بطاقات مراجعة. اقرأ الصورة كلها أول، وبعدين اكتب من 5 إلى 15 بطاقة تغطي أهم ما بيها: تعاريف، قوانين، علاقات، أسباب ونتائج، مقارنات، وأمثلة. كل بطاقة: سؤال قصير واضح بوجه، وجواب دقيق ومختصر بالوجه الثاني بنفس كلمات المنهج. اكتب المعادلات بالرموز العادية بدون LaTeX. لا تخترع شي مو موجود بالصورة. إذا الصورة ما بيها محتوى دراسي أو ما مقروءة، رجع قائمة بطاقات فارغة. العنوان: موضوع الصفحة بكلمات قليلة.`;
+const Cards = z.object({ title: z.string(), cards: z.array(z.object({ q: z.string(), a: z.string() })) });
+const CARDS_JSON_SCHEMA = {
+    type: 'object',
+    properties: { title: { type: 'string' }, cards: { type: 'array', items: { type: 'object', properties: { q: { type: 'string' }, a: { type: 'string' } }, required: ['q', 'a'] } } },
+    required: ['title', 'cards'],
+};
+function cleanCards(r) {
+    const cards = (r && Array.isArray(r.cards) ? r.cards : []).filter((c) => c && typeof c.q === 'string' && typeof c.a === 'string' && c.q.trim() && c.a.trim())
+        .slice(0, 20).map((c) => ({ q: c.q.trim().slice(0, 300), a: c.a.trim().slice(0, 600) }));
+    return { title: String((r && r.title) || '').slice(0, 80), cards };
+}
 
 const Quiz = z.object({
     title: z.string(),
@@ -152,6 +166,17 @@ async function claudeNudge(env, prompt, context, uid) {
     return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
 }
 
+async function claudeCards(env, image, prompt, uid) {
+    const res = await claudeClient(env).messages.parse({
+        model: CLAUDE_MODEL, max_tokens: 8000, system: CARDS_SYSTEM,
+        messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type: image.type, data: image.data } }, { type: 'text', text: prompt }] }],
+        output_config: { effort: 'low', format: zodOutputFormat(Cards) },
+        metadata: { user_id: uid },
+    });
+    if (res.stop_reason === 'refusal') return null;
+    return res.parsed_output;
+}
+
 // ---------- Gemini ----------
 function geminiClient(env) { return new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}) }); }
 const geminiSystem = (base, context) => (context ? base + '\n\nتقرير الطالب من التطبيق:\n' + context : base);
@@ -209,6 +234,14 @@ async function geminiNudge(env, prompt, context) {
     return String(res.text || '').trim();
 }
 
+async function geminiCards(env, image, prompt) {
+    const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
+        model, contents: [{ role: 'user', parts: [{ inlineData: { mimeType: image.type, data: image.data } }, { text: prompt }] }],
+        config: { systemInstruction: CARDS_SYSTEM, responseMimeType: 'application/json', responseJsonSchema: CARDS_JSON_SCHEMA, maxOutputTokens: 8000 },
+    }));
+    try { return JSON.parse(res.text || ''); } catch { return null; }
+}
+
 function errorCode(err) {
     if (err instanceof Anthropic.APIError || err instanceof GeminiError) {
         const s = err.status;
@@ -243,6 +276,21 @@ export default {
                 return quiz ? json(200, quiz, headers) : json(502, { error: 'quiz' }, headers);
             } catch (err) {
                 console.error('quiz', err && err.message);
+                return json(502, { error: errorCode(err) }, headers);
+            }
+        }
+
+        if (body.mode === 'cards') {
+            const img = body.image;
+            const image = img && IMAGE_TYPES.includes(img.type) && typeof img.data === 'string' && img.data.length <= MAX_IMAGE_B64 && /^[A-Za-z0-9+/=]+$/.test(img.data) ? img : null;
+            if (!image) return json(400, { error: 'image' }, headers);
+            const subject = str(body.subject, 60);
+            const prompt = 'حول هذه الصفحة إلى بطاقات مراجعة' + (subject ? ' بمادة ' + subject : '') + '.';
+            try {
+                const r = cleanCards(useClaude ? await claudeCards(env, image, prompt, uid) : await geminiCards(env, image, prompt));
+                return json(200, r, headers);
+            } catch (err) {
+                console.error('cards', err && err.message);
                 return json(502, { error: errorCode(err) }, headers);
             }
         }
