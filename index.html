@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '56d505ce08';
+        window.APP_VER = '35a5a40428';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=699a25eefb">
+    <link rel="stylesheet" href="css/app.css?v=a3cf097090">
     <link rel="stylesheet" href="css/tw.css?v=c8e4c15e52">
 </head>
 <body class="antialiased">
@@ -1243,6 +1243,8 @@
                         <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                     </button>
                     <div class="sh-title"><b>المتجر</b><small id="shSub"></small></div>
+                    <button class="sh-hbtn" onclick="app.shOrdersOpen && app.shOrdersOpen()" aria-label="طلباتي"><i data-lucide="package"></i></button>
+                    <button class="sh-hbtn cart" onclick="app.shCartOpen && app.shCartOpen()" aria-label="السلة"><i data-lucide="shopping-cart"></i><span id="shCartN" class="hidden">0</span></button>
                 </div>
                 <label class="sh-search"><i data-lucide="search"></i><input id="shSearch" type="search" maxlength="60" placeholder="دوّر على منتج..." oninput="app.shSearch && app.shSearch(this.value)"></label>
                 <div class="sh-cats hidden" id="shCats"></div>

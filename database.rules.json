@@ -303,6 +303,9 @@
           "price": {
             ".validate": "newData.isString() && newData.val().length <= 40"
           },
+          "pd": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000"
+          },
           "tt": {
             ".validate": "newData.isString() && newData.val().length <= 300 && newData.val().matches(/^https:\\/\\/([a-z0-9-]+\\.)?tiktok\\.com\\//)"
           },
@@ -314,6 +317,32 @@
       "imgs": {
         "$id": {
           ".validate": "newData.isString() && newData.val().length <= 3000000"
+        }
+      },
+      "rate": {
+        ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000"
+      }
+    },
+    "shopOrders": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        ".read": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && data.child('u').val() == auth.uid)",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('u').val() == auth.uid))",
+        ".validate": "(data.exists() || (newData.hasChildren(['u', 'name', 'phone', 'gov', 'addr', 'items', 'totalD', 'totalP', 'pay', 'st', 'at']) && newData.child('st').val() == 'new' && newData.child('at').val() == now && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('addr').isString() && newData.child('addr').val().length <= 300 && newData.child('phone').isString() && newData.child('phone').val().matches(/^[+]?[0-9]{10,15}$/) && newData.child('gov').isString() && newData.child('gov').val().matches(/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/) && newData.child('totalD').isNumber() && newData.child('totalD').val() >= 0 && newData.child('totalP').isNumber() && newData.child('totalP').val() >= 0 && ((newData.child('pay').val() == 'points' && newData.child('totalP').val() > 0 && (root.child('users/' + auth.uid + '/points').isNumber() && newData.parent().parent().child('users/' + auth.uid + '/points').val() <= root.child('users/' + auth.uid + '/points').val() - (newData.child('totalP').val()) && newData.parent().parent().child('users/' + auth.uid + '/ps').val() == 's:' + $id && root.child('users/' + auth.uid + '/ps').val() != 's:' + $id)) || newData.child('pay').val() == 'cash')))",
+        "st": {
+          ".validate": "newData.isString() && newData.val().matches(/^(new|prep|sent|done|cancel)$/)"
+        },
+        "note": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        }
+      }
+    },
+    "shopMine": {
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        "$id": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()))",
+          ".validate": "newData.val() === true"
         }
       }
     },
