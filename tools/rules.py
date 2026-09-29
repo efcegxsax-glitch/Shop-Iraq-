@@ -274,11 +274,38 @@ rules = {
                               s_max("newData.child('cat')", 40), s_max("newData.child('img')", 400000)),
             "d": {".validate": s_max("newData", 800)},
             "price": {".validate": s_max("newData", 40)},
+            "pd": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000000"},
             "tt": {".validate": s_max("newData", 300) + " && newData.val().matches(/^https:\\/\\/([a-z0-9-]+\\.)?tiktok\\.com\\//)"},
             "buy": {".validate": s_max("newData", 300) + " && newData.val().matches(/^https:\\/\\//)"},
         }},
         "imgs": {"$id": {".validate": s_max("newData", 3000000)}},
+        # points per dinar, for prices in points
+        "rate": {".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 1000"},
     },
+    # orders from the store's cart: the student writes a new one (paying in points in the same
+    # write, or cash on delivery) and reads their own; only the admin changes them after that.
+    # shopMine/{uid} lists a student's order ids.
+    "shopOrders": {
+        ".read": ADMIN,
+        "$id": {
+            ".read": ors(ADMIN, "auth != null && data.child('u').val() == auth.uid"),
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid")),
+            ".validate": ors("data.exists()", ands(
+                "newData.hasChildren(['u', 'name', 'phone', 'gov', 'addr', 'items', 'totalD', 'totalP', 'pay', 'st', 'at'])",
+                "newData.child('st').val() == 'new'", "newData.child('at').val() == now",
+                s_max("newData.child('name')", 60), s_max("newData.child('addr')", 300),
+                "newData.child('phone').isString() && newData.child('phone').val().matches(/^[+]?[0-9]{10,15}$/)",
+                "newData.child('gov').isString() && newData.child('gov').val().matches(" + GOV_RE + ")",
+                "newData.child('totalD').isNumber() && newData.child('totalD').val() >= 0",
+                "newData.child('totalP').isNumber() && newData.child('totalP').val() >= 0",
+                ors(ands("newData.child('pay').val() == 'points'", "newData.child('totalP').val() > 0",
+                         paid("newData.child('totalP').val()", "'s:' + $id")),
+                    "newData.child('pay').val() == 'cash'"))),
+            "st": {".validate": "newData.isString() && newData.val().matches(/^(new|prep|sent|done|cancel)$/)"},
+            "note": {".validate": s_max("newData", 300)},
+        },
+    },
+    "shopMine": {"$uid": {".read": OWNER, "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")), ".validate": "newData.val() === true"}}},
 
     # ----- store -----
     "stores": {".read": True, "$uid": {".write": ors(OWNER, ADMIN)}},

@@ -129,6 +129,21 @@
 
         .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
         .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .ord { padding: 12px; margin-bottom: 10px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--border); border-inline-start: 4px solid #F59E0B; font-size: 13.5px; }
+        .ord-h { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .ord-h b { direction: ltr; }
+        .ord-h span { font-weight: 800; }
+        .ord-h small { margin-inline-start: auto; opacity: .6; font-size: 11.5px; }
+        .ord-who { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+        .ord-who a { color: #60A5FA; font-weight: 800; text-decoration: none; }
+        .ord-addr, .ord-note { margin-top: 6px; line-height: 1.7; }
+        .ord-note { opacity: .8; }
+        .ord-items { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(127,127,127,.08); }
+        .ord-items div { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; }
+        .ord-total { margin-top: 8px; }
+        .ord-act { display: flex; gap: 8px; margin-top: 10px; }
+        .ord-act .btn-sm.go { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .ord-act .del { margin-inline-start: 0; }
         .shp-pic { display: grid; place-items: center; width: 100%; min-height: 150px; border-radius: 14px; border: 1.5px dashed var(--border); background: #0F172A; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; overflow: hidden; padding: 0; }
         .shp-pic span { opacity: .7; }
         .shp-pic.has { border-style: solid; background: #fff; }
@@ -351,6 +366,7 @@
             <div class="nav-group-label">المالية والمتجر</div>
             <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
             <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
+            <button class="tab" data-tab="orders"><span class="tab-ic"><i data-lucide="package-check"></i></span><span>طلبات المتجر</span><b class="tab-badge hidden" id="ordBadge"></b></button>
             <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
 
             <div class="nav-group-label">الإدارة</div>
@@ -1074,6 +1090,19 @@
                     </div>
                     <div id="shcList"></div>
                 </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="star"></i></div>
+                        <div><h3>السعر بالنقاط</h3><p>كل منتج يتسعّر بالنقاط وحده من سعره بالدينار. تغيّر الرقم هنا وتتغير أسعار كل المنتجات</p></div>
+                    </div>
+                    <div class="field" style="display:flex;gap:8px;align-items:center;">
+                        <span style="white-space:nowrap;font-weight:700;">كل 1 دينار =</span>
+                        <input type="text" id="shr_rate" inputmode="decimal" dir="ltr" maxlength="6" style="max-width:110px;text-align:center;">
+                        <span style="white-space:nowrap;font-weight:700;">نقطة</span>
+                        <button class="btn-sm" id="shr_save" style="padding:10px 16px;">حفظ</button>
+                    </div>
+                    <p id="shr_ex" style="opacity:.7;font-size:13px;margin:0;"></p>
+                </div>
                 <div class="card" id="shpCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="package-plus"></i></div>
@@ -1089,7 +1118,7 @@
                     <div class="field"><label>شرح بسيط</label><textarea id="shp_desc" maxlength="800" rows="3" placeholder="شنو المنتج وشنو يميزه"></textarea></div>
                     <div class="field-grid field-grid-2">
                         <div class="field"><label>القسم *</label><select id="shp_cat"></select></div>
-                        <div class="field"><label>السعر (اختياري)</label><input type="text" id="shp_price" maxlength="40" placeholder="مثلاً: 5,000 دينار"></div>
+                        <div class="field"><label>السعر بالدينار</label><input type="text" id="shp_pd" inputmode="numeric" dir="ltr" maxlength="12" placeholder="10000"><small id="shp_pts" style="display:block;margin-top:6px;opacity:.75;font-weight:700;">بدون سعر ما ينباع بالسلة</small></div>
                     </div>
                     <div class="field"><label>رابط فيديو المنتج على تيك توك (اختياري)</label><input type="text" id="shp_tt" dir="ltr" maxlength="300" placeholder="https://www.tiktok.com/@.../video/..."></div>
                     <div class="field"><label>رابط الطلب (اختياري)</label><input type="text" id="shp_buy" dir="ltr" maxlength="300" placeholder="واتساب أو انستغرام، مثلاً https://wa.me/9647..."></div>
@@ -1128,6 +1157,17 @@
                         <button class="subtab" data-spf="rejected" onclick="setProductSubFilter('rejected')">مرفوضة</button>
                     </div>
                     <div id="storeProductsAdminList"></div>
+                </div>
+            </div>
+
+            <div id="sec-orders" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="package-check"></i></div>
+                        <div><h3>طلبات المتجر</h3><p>كل طلب يوصل هنا وحده: منو، رقمه، محافظته، عنوانه، شنو طلب، وشلون يدفع</p></div>
+                    </div>
+                    <div class="subtabs" id="ordTabs"></div>
+                    <div id="ordList"></div>
                 </div>
             </div>
 
@@ -1443,7 +1483,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2830,7 +2870,13 @@
         }
 
         // ---------- the store: categories (shop/cats) and products (shop/items, full pictures in shop/imgs) ----------
-        let shopCats = [], shopItems = [], shpEdit = null, shpImg = null;
+        let shopCats = [], shopItems = [], shpEdit = null, shpImg = null, shopRate = 10;
+        const fmtN = (n) => Math.round(Number(n) || 0).toLocaleString('en-US');
+        const parsePd = (v) => { const n = Number(String(v || '').replace(/[,\s٬]/g, '').replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))); return isFinite(n) && n > 0 ? Math.round(n) : 0; };
+        function showPts() {
+            const pd = parsePd(el('shp_pd').value);
+            el('shp_pts').textContent = pd ? '= ' + fmtN(pd * shopRate) + ' نقطة' : 'بدون سعر ما ينباع بالسلة';
+        }
         const SHP_TT = /^https:\/\/([a-z0-9-]+\.)?tiktok\.com\/[^\s"'<>]+$/i, SHP_HTTPS = /^https:\/\/[^\s"'<>]+$/i;
         const shpImgSrc = (u) => (/^data:image\/(jpeg|png|webp);base64,/.test(String(u || '')) || SHP_HTTPS.test(String(u || '')) ? u : '');
 
@@ -2872,6 +2918,20 @@
             el('shp_save').addEventListener('click', saveShopItem);
             el('shp_cancel').addEventListener('click', resetShopForm);
             el('shp_filter').addEventListener('change', renderShopItems);
+            el('shp_pd').addEventListener('input', showPts);
+            onValue(ref(db, 'shop/rate'), (snap) => {
+                const r = Number(snap.val());
+                shopRate = r > 0 ? r : 10;
+                if (document.activeElement !== el('shr_rate')) el('shr_rate').value = shopRate;
+                el('shr_ex').textContent = 'يعني منتج سعره 10,000 دينار = ' + fmtN(10000 * shopRate) + ' نقطة';
+                showPts(); renderShopItems();
+            });
+            el('shr_save').addEventListener('click', async () => {
+                const r = Number(String(el('shr_rate').value).replace(',', '.'));
+                if (!(r > 0 && r <= 1000)) { toast('اكتب رقم بين 0.01 و 1000', false); return; }
+                try { await set(ref(db, 'shop/rate'), r); toast('انحفظ، الأسعار بالنقاط تغيرت'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+            loadShopOrders();
         }
 
         function renderShopCats() {
@@ -2940,7 +3000,8 @@
 
         function resetShopForm() {
             shpEdit = null; shpImg = null;
-            ['shp_name', 'shp_desc', 'shp_price', 'shp_tt', 'shp_buy', 'shp_url'].forEach((k) => { el(k).value = ''; });
+            ['shp_name', 'shp_desc', 'shp_pd', 'shp_tt', 'shp_buy', 'shp_url'].forEach((k) => { el(k).value = ''; });
+            showPts();
             el('shp_hide').checked = false;
             showShopPic('');
             el('shp_title').textContent = 'منتج جديد';
@@ -2952,7 +3013,7 @@
             const x = shopItems.find((y) => y.id === id);
             if (!x) return;
             shpEdit = id; shpImg = null;
-            el('shp_name').value = x.n || ''; el('shp_desc').value = x.d || ''; el('shp_price').value = x.price || '';
+            el('shp_name').value = x.n || ''; el('shp_desc').value = x.d || ''; el('shp_pd').value = x.pd ? fmtN(x.pd) : ''; showPts();
             el('shp_tt').value = x.tt || ''; el('shp_buy').value = x.buy || ''; el('shp_hide').checked = !!x.h;
             el('shp_url').value = /^https:/.test(x.img || '') ? x.img : '';
             if (shopCats.some((c) => c.id === x.cat)) el('shp_cat').value = x.cat;
@@ -2974,9 +3035,11 @@
             if (buy && !SHP_HTTPS.test(buy)) { toast('رابط الطلب لازم يبدي بـ https://', false); return; }
             const id = shpEdit || 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
             const item = { n: n.slice(0, 80), cat, at: old && old.at ? old.at : Date.now(), img: shpImg ? shpImg.thumb : url || old.img };
-            const d = val('shp_desc'), price = val('shp_price');
+            const d = val('shp_desc'), pd = parsePd(val('shp_pd'));
+            if (val('shp_pd') && !pd) { toast('السعر لازم يكون رقم، مثلاً 10000', false); return; }
             if (d) item.d = d.slice(0, 800);
-            if (price) item.price = price.slice(0, 40);
+            if (pd) item.pd = pd;
+            else if (old && old.price) item.price = old.price;
             if (tt) item.tt = tt;
             if (buy) item.buy = buy;
             if (el('shp_hide').checked) item.h = true;
@@ -3004,7 +3067,7 @@
                 return `<div class="row-item" style="${x.h ? 'opacity:.55;' : ''}">
                     <img src="${escapeHtml(shpImgSrc(x.img))}" alt="">
                     <div style="flex:1;min-width:0;"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(x.n)}</b>
-                        <small style="opacity:.65;">${escapeHtml(c ? c.n : 'بدون قسم')}${x.price ? ' · ' + escapeHtml(x.price) : ''}${x.tt ? ' · فيديو' : ''}${x.h ? ' · مخفي' : ''}</small></div>
+                        <small style="opacity:.65;">${escapeHtml(c ? c.n : 'بدون قسم')}${x.pd ? ' · ' + fmtN(x.pd) + ' د.ع = ' + fmtN(x.pd * shopRate) + ' نقطة' : x.price ? ' · ' + escapeHtml(x.price) : ''}${x.tt ? ' · فيديو' : ''}${x.h ? ' · مخفي' : ''}</small></div>
                     <button class="btn-sm" onclick="editShopItem(${jsArg(x.id)})">تعديل</button>
                     <button class="btn-sm" onclick="toggleShopItem(${jsArg(x.id)})">${x.h ? 'إظهار' : 'إخفاء'}</button>
                     <button class="del" style="margin-inline-start:0;" onclick="deleteShopItem(${jsArg(x.id)})">حذف</button></div>`;
@@ -3019,6 +3082,74 @@
             const x = shopItems.find((y) => y.id === id);
             if (!(await ask({ icon: 'trash-2', title: 'تحذف "' + (x ? x.n : '') + '"؟', ok: 'احذف' }))) return;
             try { await update(ref(db), { ['shop/items/' + id]: null, ['shop/imgs/' + id]: null }); if (shpEdit === id) resetShopForm(); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
+        // ---------- store orders (shopOrders): new -> prep -> sent -> done, or cancel ----------
+        const ORD_ST = { new: ['جديدة', '#F59E0B'], prep: ['يتجهز', '#0EA5E9'], sent: ['بالطريق', '#8B5CF6'], done: ['وصلت', '#16A34A'], cancel: ['ملغية', '#DC2626'] };
+        let shopOrders = [], ordFilter = 'new';
+        function loadShopOrders() {
+            onValue(ref(db, 'shopOrders'), (snap) => {
+                const v = snap.val() || {};
+                shopOrders = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+                const n = shopOrders.filter((o) => o.st === 'new').length;
+                el('ordBadge').textContent = n; el('ordBadge').classList.toggle('hidden', !n);
+                renderShopOrders();
+            }, (e) => console.warn('orders', e));
+        }
+        window.setOrdFilter = (f) => { ordFilter = f; renderShopOrders(); };
+        function renderShopOrders() {
+            const counts = {};
+            shopOrders.forEach((o) => { counts[o.st] = (counts[o.st] || 0) + 1; });
+            el('ordTabs').innerHTML = Object.keys(ORD_ST).map((k) => `<button class="subtab ${ordFilter === k ? 'active' : ''}" onclick="setOrdFilter('${k}')">${ORD_ST[k][0]} (${counts[k] || 0})</button>`).join('');
+            const list = shopOrders.filter((o) => o.st === ordFilter);
+            el('ordList').innerHTML = list.length ? list.map((o) => {
+                const items = Object.keys(o.items || {}).map((k) => ({ ...o.items[k], id: k }));
+                // what the products cost now, to catch an order sent with a wrong total
+                const wantD = items.reduce((a, i) => a + (Number(i.pd) || 0) * (Number(i.q) || 1), 0);
+                const wantP = items.reduce((a, i) => a + (Number(i.pp) || 0) * (Number(i.q) || 1), 0);
+                const nowP = items.reduce((a, i) => { const x = shopItems.find((y) => y.id === i.id); return a + (x && x.pd ? Math.round(x.pd * (Number(o.rate) || shopRate)) : Number(i.pp) || 0) * (Number(i.q) || 1); }, 0);
+                const bad = o.pay === 'points' ? Number(o.totalP) < Math.min(wantP, nowP) : Number(o.totalD) < wantD;
+                const ph = String(o.phone || ''), wa = ph.replace(/^0/, '964').replace(/^\+/, '');
+                const st = ORD_ST[o.st] || ORD_ST.new;
+                const next = { new: ['prep', 'ابدأ التجهيز'], prep: ['sent', 'انرسل'], sent: ['done', 'وصل'] }[o.st];
+                return `<div class="ord" style="border-inline-start-color:${st[1]};">
+                    <div class="ord-h"><b>#${escapeHtml(o.id.slice(-6).toUpperCase())}</b><span style="color:${st[1]};">${st[0]}</span><small>${new Date(Number(o.at) || 0).toLocaleString('ar-IQ')}</small></div>
+                    <div class="ord-who"><b>${escapeHtml(o.name)}</b>
+                        <a href="tel:${escapeHtml(ph)}" dir="ltr">${escapeHtml(ph)}</a>
+                        <a href="https://wa.me/${escapeHtml(wa)}" target="_blank" rel="noopener">واتساب</a></div>
+                    <div class="ord-addr"><b>${escapeHtml(o.gov)}</b> · ${escapeHtml(o.addr)}</div>
+                    ${o.note ? `<div class="ord-note">ملاحظة: ${escapeHtml(o.note)}</div>` : ''}
+                    <div class="ord-items">${items.map((i) => `<div><span>${escapeHtml(i.n)} ×${Number(i.q) || 1}</span><span>${fmtN((Number(i.pd) || 0) * (Number(i.q) || 1))} د.ع</span></div>`).join('')}</div>
+                    <div class="ord-total">${o.pay === 'points' ? `<b>دفع بالنقاط: ${fmtN(o.totalP)} نقطة</b>${o.refunded ? ' · <span style="color:#4ADE80;">انرجعت النقاط</span>' : ''}` : `<b>نقداً عند الاستلام: ${fmtN(o.totalD)} د.ع</b>`}</div>
+                    ${bad ? '<div class="vn-warn" style="margin:8px 0 0;">انتبه: المبلغ بالطلب أقل من سعر المنتجات. تأكد قبل ما ترسله.</div>' : ''}
+                    <div class="ord-act">
+                        ${next ? `<button class="btn-sm go" onclick="setOrdSt(${jsArg(o.id)}, '${next[0]}')">${next[1]}</button>` : ''}
+                        ${o.st !== 'cancel' && o.st !== 'done' ? `<button class="btn-sm" onclick="cancelOrd(${jsArg(o.id)})">إلغاء</button>` : ''}
+                        ${o.st === 'cancel' || o.st === 'done' ? `<button class="del" onclick="deleteOrd(${jsArg(o.id)})">حذف</button>` : ''}
+                    </div></div>`;
+            }).join('') : '<p style="opacity:.6;font-size:13px;">ماكو طلبات هنا.</p>';
+        }
+        window.setOrdSt = async (id, st) => {
+            try { await set(ref(db, 'shopOrders/' + id + '/st'), st); toast('صار: ' + ORD_ST[st][0]); } catch (e) { toast('فشل الحفظ', false); }
+        };
+        window.cancelOrd = async (id) => {
+            const o = shopOrders.find((x) => x.id === id);
+            if (!o) return;
+            const refund = o.pay === 'points' && !o.refunded && Number(o.totalP) > 0;
+            if (!(await ask({ icon: 'circle-x', title: 'تلغي الطلب؟', text: refund ? 'ترجع ' + fmtN(o.totalP) + ' نقطة للطالب.' : '', ok: 'إلغاء الطلب', cancel: 'رجوع' }))) return;
+            try {
+                if (refund) {
+                    // give the points back once: the order is marked refunded in the same step
+                    let np = null;
+                    await runTransaction(ref(db, 'users/' + o.u + '/points'), (cur) => { np = (Number(cur) || 0) + Number(o.totalP); return np; });
+                    await update(ref(db), { ['shopOrders/' + id + '/st']: 'cancel', ['shopOrders/' + id + '/refunded']: true, ['leaderboard/' + o.u + '/points']: np });
+                } else await set(ref(db, 'shopOrders/' + id + '/st'), 'cancel');
+                toast(refund ? 'انلغى ورجعت النقاط' : 'انلغى الطلب');
+            } catch (e) { console.warn(e); toast('فشل الإلغاء', false); }
+        };
+        window.deleteOrd = async (id) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف الطلب من القائمة؟', ok: 'احذف' }))) return;
+            try { await set(ref(db, 'shopOrders/' + id), null); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
         };
 
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------

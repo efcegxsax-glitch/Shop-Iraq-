@@ -260,6 +260,28 @@ await no('student publishes a product', set(ref(db('u1'), 'shop/items/p6'), { n:
 await no('student edits a product', set(ref(db('u1'), 'shop/items/p1/price'), '1 دينار'));
 await ok('guest reads the store', get(ref(db(null), 'shop')));
 
+// store orders
+await ok('admin sets the points rate', set(ref(db('adm'), 'shop/rate'), 10));
+await ok('price in dinar', set(ref(db('adm'), 'shop/items/p1/pd'), 10000));
+await seed('users/b1', { points: 150000, balance: 0, pAt: 0 });
+const ord = (u, pay, extra) => Object.assign({ u, name: 'علي', phone: '07701234567', gov: 'بغداد', addr: 'الكرادة، قرب ساحة كهرمانة', items: { p1: { n: 'دفتر', q: 2, pd: 10000, pp: 100000 } }, totalD: 20000, totalP: 100000, pay, st: 'new', at: TS }, extra || {});
+await ok('cash order', U('b1', { 'shopOrders/o1': ord('b1', 'cash'), 'shopMine/b1/o1': true }));
+await no('points order without paying', set(ref(db('b1'), 'shopOrders/o2'), ord('b1', 'points')));
+await ok('points order paid', U('b1', { 'shopOrders/o3': ord('b1', 'points'), 'shopMine/b1/o3': true, 'users/b1/points': 50000, 'users/b1/ps': 's:o3' }));
+await no('same payment for a second order', U('b1', { 'shopOrders/o4': ord('b1', 'points'), 'users/b1/points': 0, 'users/b1/ps': 's:o3' }));
+await no('order for someone else', set(ref(db('b1'), 'shopOrders/o5'), ord('b2', 'cash')));
+await no('bad phone', set(ref(db('b1'), 'shopOrders/o6'), ord('b1', 'cash', { phone: 'call me' })));
+await no('unknown governorate in order', set(ref(db('b1'), 'shopOrders/o7'), ord('b1', 'cash', { gov: 'دبي' })));
+await no('order marked done by the student', set(ref(db('b1'), 'shopOrders/o8'), ord('b1', 'cash', { st: 'done' })));
+await no('student changes the status', set(ref(db('b1'), 'shopOrders/o1/st'), 'done'));
+await ok('student reads own order', get(ref(db('b1'), 'shopOrders/o1')));
+await no('another student reads it', get(ref(db('u1'), 'shopOrders/o1')));
+await no('student lists all orders', get(ref(db('b1'), 'shopOrders')));
+await ok('student reads own list', get(ref(db('b1'), 'shopMine/b1')));
+await ok('admin lists orders', get(ref(db('adm'), 'shopOrders')));
+await ok('admin moves the order on', set(ref(db('adm'), 'shopOrders/o3/st'), 'sent'));
+await no('unknown status', set(ref(db('adm'), 'shopOrders/o3/st'), 'lost'));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);
