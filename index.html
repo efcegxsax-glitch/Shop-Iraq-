@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = 'fac1c0eb46';
+        window.APP_VER = '801567adbe';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=80006f3c6a">
+    <link rel="stylesheet" href="css/app.css?v=c2918a8695">
     <link rel="stylesheet" href="css/tw.css?v=c8e4c15e52">
 </head>
 <body class="antialiased">
@@ -1514,7 +1514,8 @@
         </div>
 
         <div id="spotsView" class="hidden">
-            <div class="sp">
+            <div class="sp" data-view="google">
+                <iframe class="sp-gmap" id="spGmap" title="خارطة Google" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
                 <div class="sp-map" id="spMap"><div class="sp-maperr"><span class="sp-spin"></span></div></div>
                 <div class="sp-top">
                     <button class="sp-ic" onclick="app.goBack()" aria-label="رجوع"><i data-lucide="chevron-right"></i></button>
@@ -1522,6 +1523,7 @@
                     <button class="sp-ic" id="spLocBtn" onclick="app.spLocate && app.spLocate()" aria-label="موقعي"><i data-lucide="locate-fixed"></i></button>
                     <button class="sp-ic" id="spLayerBtn" onclick="app.spLayer && app.spLayer()" aria-label="صورة فضائية"><i data-lucide="layers"></i></button>
                 </div>
+                <div class="sp-views" id="spViews"></div>
                 <div class="sp-filters" id="spFilters"></div>
                 <div class="sp-pick">
                     <div class="sp-pick-h"><b>حرّك الخارطة لحد ما الدبوس يصير على المكان</b><small>قرّب بإصبعين حتى تكون دقيق</small></div>

@@ -3,6 +3,8 @@
 // (spotsPending, approved by the admin into spots), rate them (spotRates) and mark that they
 // are studying there now (spotHere, for 3 hours). The student's location is only used on the
 // phone, to sort by distance; it is never saved. Loaded on demand by app._need('spots').
+// Two views: Google Maps itself (Google's embeddable map, no key: its real libraries and cafés
+// near the student or in the governorate), and the students' places on a map of our own.
 (function () {
     const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
     const HERE_MS = 3 * 3600000;
@@ -18,6 +20,8 @@
         quiet: ['هادئ', 'volume-x'], coffee: ['مشروبات', 'cup-soda'], free: ['مجاني', 'badge-check'],
     };
     const SEX = { all: 'للجميع', f: 'للبنات', m: 'للأولاد' };
+    // what to look for on Google Maps
+    const GQ = { lib: ['مكتبات', 'مكتبة', 'library-big'], cafe: ['كافيهات', 'كافيه', 'coffee'], hall: ['قاعات دراسية', 'قاعة دراسية', 'armchair'], uni: ['مكتبات الجامعات', 'مكتبة جامعة', 'graduation-cap'] };
     // each governorate's centre
     const GOV_C = {
         'بغداد': [33.3152, 44.3661], 'البصرة': [30.5085, 47.7804], 'نينوى': [36.345, 43.145], 'أربيل': [36.1911, 44.0092],
@@ -96,13 +100,51 @@
             const saved = (() => { try { return localStorage.getItem('isp_sp_gov') || ''; } catch (e) { return ''; } })();
             this._sp = this._sp || {
                 gov: GOV_C[saved] ? saved : this._myGov() || 'بغداد', spots: {}, rates: {}, here: {}, full: {},
-                on: {}, sheet: 'peek', layer: 'map', me: null, sel: '', mode: 'list', loaded: false,
+                on: {}, sheet: 'min', layer: 'map', me: null, sel: '', mode: 'list', loaded: false, view: 'google', gq: 'lib', gfocus: '',
             };
             document.body.classList.add('sp-on');
+            this._spView();
+            this._spListen();
+        },
+
+        // ---------- Google Maps or the students' map ----------
+        spView(v) {
+            const s = this._sp;
+            if (s.view === v) return;
+            s.view = v;
+            s.sheet = v === 'google' ? 'min' : 'peek';
+            this._spView();
+        },
+        _spView() {
+            const s = this._sp, root = document.querySelector('#spotsView .sp');
+            if (root) root.dataset.view = s.view;
             this._spHead();
             this._spListRender();
-            loadLeaflet().then(() => { if (this.currentView === 'spotsView') { this._spMapInit(); this._spListen(); } })
-                .catch(() => { const l = document.getElementById('spMap'); if (l) l.innerHTML = '<div class="sp-maperr">ما انحملت الخارطة، تأكد من النت</div>'; this._spListen(); });
+            if (s.view === 'google') { this._spGoogle(); return; }
+            this._spEnsureMap();
+        },
+        _spEnsureMap() {
+            return loadLeaflet().then(() => { if (this.currentView === 'spotsView') { this._spMapInit(); if (this._sp.loaded) this._spFit(); } })
+                .catch(() => { const l = document.getElementById('spMap'); if (l) l.innerHTML = '<div class="sp-maperr">ما انحملت الخارطة، تأكد من النت</div>'; });
+        },
+        // what Google Maps shows: one of the students' places, or a kind of place near the student / in the governorate
+        _spGQuery() {
+            const s = this._sp, x = s.gfocus && s.spots[s.gfocus], g = GQ[s.gq] || GQ.lib;
+            if (x) return { q: x.lat + ',' + x.lng + ' (' + x.n + ')', ll: [x.lat, x.lng], z: 17 };
+            if (s.me) return { q: g[1], ll: s.me, z: 15 };
+            return { q: g[0] + ' ' + s.gov, ll: GOV_C[s.gov], z: 13 };
+        },
+        _spGoogle() {
+            const s = this._sp, f = document.getElementById('spGmap');
+            if (!f) return;
+            const { q, ll, z } = this._spGQuery();
+            const src = 'https://maps.google.com/maps?q=' + encodeURIComponent(q) + '&ll=' + ll[0] + ',' + ll[1] + '&sll=' + ll[0] + ',' + ll[1] + '&z=' + z + '&hl=ar' + (s.layer === 'sat' ? '&t=k' : '') + '&output=embed';
+            if (f.dataset.src !== src) { f.dataset.src = src; f.src = src; }
+        },
+        spGq(k) { const s = this._sp; s.gq = k; s.gfocus = ''; this._spHead(); this._spGoogle(); },
+        spGOpen() {
+            const { q } = this._spGQuery();
+            window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q), '_blank', 'noopener');
         },
 
         spClose() {
@@ -243,6 +285,7 @@
             const s = this._sp, x = s.spots[id];
             if (!x) return;
             s.sel = id;
+            if (s.view === 'google') { s.gfocus = id; this._spHead(); this._spGoogle(); this.spDetail(id); return; }
             this._spMarkers();
             if (s.map) s.map.flyTo([x.lat, x.lng], Math.max(s.map.getZoom(), 15), { duration: 0.6 });
             if (fromMap) { s.sheet = 'peek'; this._spListRender(); this._spSheetApply(); document.querySelector('#spList .sp-card.sel')?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); }
@@ -251,9 +294,9 @@
 
         spLayer() {
             const s = this._sp;
-            if (!s.map) return;
             s.layer = s.layer === 'sat' ? 'map' : 'sat';
-            this._spTiles();
+            if (s.view === 'google') this._spGoogle();
+            else if (s.map) this._spTiles();
             document.getElementById('spLayerBtn')?.classList.toggle('on', s.layer === 'sat');
         },
 
@@ -268,6 +311,8 @@
                 // near another governorate's centre: show that one
                 const near = GOVS.map((g) => [g, hav(s.me, GOV_C[g])]).sort((a, b) => a[1] - b[1])[0];
                 if (near && near[0] !== s.gov && near[1] < 60000) this.spSetGov(near[0], true);
+                s.gfocus = '';
+                if (s.view === 'google') this._spGoogle();
                 if (s.map) s.map.flyTo(s.me, 14, { duration: 0.8 });
                 this._spMarkers(); this._spListRender();
             }, (e) => {
@@ -280,8 +325,15 @@
         _spHead() {
             const s = this._sp, g = document.getElementById('spGov');
             if (g) g.innerHTML = `<i data-lucide="map-pin"></i><b>${esc(s.gov)}</b><i data-lucide="chevron-down"></i>`;
+            const v = document.getElementById('spViews');
+            if (v) v.innerHTML = `<button class="${s.view === 'google' ? 'on' : ''}" onclick="app.spView('google')"><span class="sp-g">G</span>خارطة Google</button><button class="${s.view === 'app' ? 'on' : ''}" onclick="app.spView('app')"><i data-lucide="users-round"></i>أماكن الطلاب${Object.keys(s.spots).length ? `<small>${this._spInGov().length}</small>` : ''}</button>`;
             const f = document.getElementById('spFilters');
-            if (f) {
+            if (f && s.view === 'google') {
+                const x = s.gfocus && s.spots[s.gfocus];
+                f.innerHTML = (x ? `<button class="on" onclick="app.spGq(app._sp.gq)"><i data-lucide="x"></i>${esc(x.n)}</button>` : '')
+                    + Object.keys(GQ).map((k) => `<button class="${!x && s.gq === k ? 'on' : ''}" onclick="app.spGq('${k}')"><i data-lucide="${GQ[k][2]}"></i>${GQ[k][0]}</button>`).join('')
+                    + `<button onclick="app.spGOpen()"><i data-lucide="external-link"></i>افتحها بـ Google Maps</button>`;
+            } else if (f) {
                 const chip = (k, label, ic) => `<button class="${s.on[k] ? 'on' : ''}" onclick="app.spToggle('${k}')">${ic ? `<i data-lucide="${ic}"></i>` : ''}${label}</button>`;
                 f.innerHTML = chip('open', 'مفتوح هسه', 'clock')
                     + Object.keys(TYPES).filter((k) => k !== 'other').map((k) => chip('t_' + k, TYPES[k][0], TYPES[k][1])).join('')
@@ -316,13 +368,14 @@
             const s = this._sp;
             document.querySelector('.sp-govs')?.remove();
             if (!GOV_C[g]) return;
-            s.gov = g; s.sel = '';
+            s.gov = g; s.sel = ''; s.gfocus = '';
+            if (s.view === 'google') this._spGoogle();
             try { localStorage.setItem('isp_sp_gov', g); } catch (e) {}
             if (s.map && !keepView) this._spFit(true);
             this._spHead(); this._spMarkers(); this._spListRender();
         },
 
-        spSheetToggle() { const s = this._sp; s.sheet = s.sheet === 'full' ? 'peek' : 'full'; this._spSheetApply(); },
+        spSheetToggle() { const s = this._sp; s.sheet = s.sheet === 'full' ? (s.view === 'google' ? 'min' : 'peek') : 'full'; this._spSheetApply(); },
         _spSheetApply() {
             const sh = document.getElementById('spSheet');
             if (sh) sh.dataset.st = this._sp.sheet;
@@ -337,7 +390,8 @@
                 if (y0 === null) return;
                 const dy = e.clientY - y0; y0 = null;
                 if (Math.abs(dy) < 8) { this.spSheetToggle(); return; }
-                this._sp.sheet = dy < 0 ? 'full' : 'peek';
+                const sp = this._sp, low = sp.view === 'google' ? 'min' : 'peek';
+                sp.sheet = dy < 0 ? (sp.sheet === 'min' ? 'peek' : 'full') : (sp.sheet === 'full' ? 'peek' : low);
                 this._spSheetApply();
             });
         },
@@ -349,7 +403,7 @@
             if (!s.loaded) { box.innerHTML = '<div class="sp-load"><i></i><i></i></div>'; return; }
             const all = this._spInGov(), list = this._spFiltered(), svg = this._spIcons();
             const nHere = all.reduce((a, x) => a + this._spHere(x.id).length, 0);
-            if (head) head.innerHTML = `<b>${list.length} ${list.length === 1 ? 'مكان' : 'أماكن'} للدراسة بـ${esc(s.gov)}</b>${nHere ? `<small><span class="sp-live"></span>${nHere} يدرسون هسه</small>` : `<small>${s.me ? 'مرتبة حسب الأقرب إلك' : 'اضغط زر الموقع حتى ترتب حسب الأقرب'}</small>`}`;
+            if (head) head.innerHTML = `<b>${s.view === 'google' ? 'أماكن أضافها الطلاب بـ' + esc(s.gov) + ' (' + list.length + ')' : list.length + ' ' + (list.length === 1 ? 'مكان' : 'أماكن') + ' للدراسة بـ' + esc(s.gov)}</b>${nHere ? `<small><span class="sp-live"></span>${nHere} يدرسون هسه</small>` : `<small>${s.me ? 'مرتبة حسب الأقرب إلك' : 'اضغط زر الموقع حتى ترتب حسب الأقرب'}</small>`}`;
             if (!all.length) {
                 box.innerHTML = `<div class="sp-empty"><span>${svg.t.lib}</span><b>بعد ماكو أماكن بـ${esc(s.gov)}</b><p>تعرف مكتبة أو مقهى هادئ تدرس بيه؟ ضيفه وخلي طلاب محافظتك يستفادون، وتاخذ 50 نقطة لمن ينقبل.</p><button onclick="app.spAddOpen()"><i data-lucide="plus"></i>ضيف أول مكان</button></div>`;
                 lucide.createIcons();
@@ -499,14 +553,24 @@
         spAddOpen() {
             const s = this._sp;
             if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى تضيف مكان'); this.goToAuth('login'); return; }
-            if (!s.map) { this.showToast('انتظر الخارطة تنحمل'); return; }
+            if (s.view !== 'app' || !s.map) {
+                s.backTo = s.view;
+                s.view = 'app';
+                const root = document.querySelector('#spotsView .sp');
+                if (root) root.dataset.view = 'app';
+                this._spHead();
+                this._spEnsureMap().then(() => { if (this._sp.map) this.spAddOpen(); });
+                return;
+            }
             s.mode = 'pick';
             s.draft = s.draft || { t: 'lib', sex: 'all', f: {}, h: { o: '08:00', c: '22:00' } };
             document.body.classList.add('sp-picking');
             if (s.me && hav(s.me, GOV_C[s.gov]) < 60000) s.map.flyTo(s.me, 17, { duration: 0.6 });
             else if (s.map.getZoom() < 14) s.map.flyTo(s.map.getCenter(), 15, { duration: 0.6 });
         },
-        spPickCancel() { const s = this._sp; s.mode = 'list'; document.body.classList.remove('sp-picking'); },
+        spPickCancel() { const s = this._sp; s.mode = 'list'; document.body.classList.remove('sp-picking'); this._spBack(); },
+        // after adding (or not), back to the view the student came from
+        _spBack() { const s = this._sp; if (s.backTo && s.backTo !== s.view) { const v = s.backTo; s.backTo = ''; this.spView(v); } s.backTo = ''; },
         spPickDone() {
             const s = this._sp, c = s.map.getCenter();
             if (c.lat < 29 || c.lat > 37.5 || c.lng < 38.5 || c.lng > 48.8) { this.showToast('المكان لازم يكون داخل العراق'); return; }
@@ -558,7 +622,7 @@
         spDraftH(k) { this._spKeep(); const h = this._sp.draft.h; h[k] = !h[k]; this._spForm(); },
         spDraftF(k) { this._spKeep(); const f = this._sp.draft.f; f[k] = !f[k]; this._spForm(); },
         spFormBack() { this._spKeep(); document.querySelector('.sp-form')?.remove(); this.spAddOpen(); },
-        spFormClose() { document.querySelector('.sp-form')?.remove(); this._sp.mode = 'list'; },
+        spFormClose() { document.querySelector('.sp-form')?.remove(); this._sp.mode = 'list'; this._spBack(); },
         spPickImg() {
             this._spKeep();
             const inp = document.createElement('input');
@@ -597,6 +661,7 @@
                 s.draft = null;
                 document.querySelector('.sp-form')?.remove();
                 s.mode = 'list';
+                this._spBack();
                 this._spThanks();
             } catch (e) {
                 console.warn('Place not sent:', e);
