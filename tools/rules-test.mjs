@@ -282,6 +282,30 @@ await ok('admin lists orders', get(ref(db('adm'), 'shopOrders')));
 await ok('admin moves the order on', set(ref(db('adm'), 'shopOrders/o3/st'), 'sent'));
 await no('unknown status', set(ref(db('adm'), 'shopOrders/o3/st'), 'lost'));
 
+// study places
+const spot = (by, extra) => Object.assign({ n: 'مكتبة الكرادة', t: 'lib', g: 'بغداد', lat: 33.30, lng: 44.43, by, at: now, addr: 'قرب ساحة كهرمانة', sex: 'all', h: { o: '08:00', c: '22:00', fri: true }, f: { wifi: true, power: true }, img: 'data:image/jpeg;base64,AAAA' }, extra || {});
+await ok('student suggests a place', U('s1', { 'spotsPending/sp1': spot('s1'), 'spotsPendingImgs/sp1': 'data:image/jpeg;base64,BBBB' }));
+await no('suggest as someone else', set(ref(db('s1'), 'spotsPending/sp2'), spot('s9')));
+await no('place outside Iraq', set(ref(db('s1'), 'spotsPending/sp3'), spot('s1', { lat: 51.5, lng: -0.1 })));
+await no('unknown place type', set(ref(db('s1'), 'spotsPending/sp4'), spot('s1', { t: 'bar' })));
+await no('unknown feature', set(ref(db('s1'), 'spotsPending/sp5'), spot('s1', { f: { pool: true } })));
+await no('bad hours', set(ref(db('s1'), 'spotsPending/sp6'), spot('s1', { h: { o: '8am', c: '22:00' } })));
+await no('picture for another suggestion', set(ref(db('s2'), 'spotsPendingImgs/sp1x'), 'data:x'));
+await ok('student reads own suggestion', get(ref(db('s1'), 'spotsPending/sp1')));
+await no('another student reads it', get(ref(db('s2'), 'spotsPending/sp1')));
+await no('student lists suggestions', get(ref(db('s1'), 'spotsPending')));
+await no('student edits own suggestion', set(ref(db('s1'), 'spotsPending/sp1/n'), 'x'));
+await no('student publishes a place', set(ref(db('s1'), 'spots/sp1'), spot('s1')));
+await ok('admin approves', update(ref(db('adm')), { 'spots/sp1': spot('s1'), 'spotImgs/sp1': 'data:image/jpeg;base64,BBBB', 'spotsPending/sp1': null, 'spotsPendingImgs/sp1': null }));
+await ok('guest reads places', get(ref(db(null), 'spots')));
+await ok('student rates', set(ref(db('s2'), 'spotRates/sp1/s2'), { s: 5, c: 'هادئ وبيه مولدة', n: 'زهراء', at: TS }));
+await no('rating out of range', set(ref(db('s2'), 'spotRates/sp1/s2'), { s: 9, n: 'زهراء', at: TS }));
+await no('rating for someone else', set(ref(db('s2'), 'spotRates/sp1/s3'), { s: 1, n: 'x', at: TS }));
+await no('rating a missing place', set(ref(db('s2'), 'spotRates/nope/s2'), { s: 3, n: 'x', at: TS }));
+await ok('student is here', set(ref(db('s2'), 'spotHere/sp1/s2'), { n: 'زهراء', t: TS }));
+await ok('student leaves', set(ref(db('s2'), 'spotHere/sp1/s2'), null));
+await no('marks someone else here', set(ref(db('s2'), 'spotHere/sp1/s3'), { n: 'x', t: TS }));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

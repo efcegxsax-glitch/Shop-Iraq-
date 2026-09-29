@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '55bf7e60c9';
+        window.APP_VER = 'fac1c0eb46';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=f79ca4db3f">
+    <link rel="stylesheet" href="css/app.css?v=80006f3c6a">
     <link rel="stylesheet" href="css/tw.css?v=c8e4c15e52">
 </head>
 <body class="antialiased">
@@ -1513,6 +1513,33 @@
             </div>
         </div>
 
+        <div id="spotsView" class="hidden">
+            <div class="sp">
+                <div class="sp-map" id="spMap"><div class="sp-maperr"><span class="sp-spin"></span></div></div>
+                <div class="sp-top">
+                    <button class="sp-ic" onclick="app.goBack()" aria-label="رجوع"><i data-lucide="chevron-right"></i></button>
+                    <button class="sp-gov" id="spGov" onclick="app.spPickGov && app.spPickGov()"></button>
+                    <button class="sp-ic" id="spLocBtn" onclick="app.spLocate && app.spLocate()" aria-label="موقعي"><i data-lucide="locate-fixed"></i></button>
+                    <button class="sp-ic" id="spLayerBtn" onclick="app.spLayer && app.spLayer()" aria-label="صورة فضائية"><i data-lucide="layers"></i></button>
+                </div>
+                <div class="sp-filters" id="spFilters"></div>
+                <div class="sp-pick">
+                    <div class="sp-pick-h"><b>حرّك الخارطة لحد ما الدبوس يصير على المكان</b><small>قرّب بإصبعين حتى تكون دقيق</small></div>
+                    <div class="sp-pick-pin"><i data-lucide="map-pin"></i><span></span></div>
+                    <div class="sp-pick-b">
+                        <button class="ghost" onclick="app.spPickCancel()">إلغاء</button>
+                        <button class="ghost" onclick="app.spLocate()"><i data-lucide="locate-fixed"></i>موقعي</button>
+                        <button onclick="app.spPickDone()">هنا بالضبط<i data-lucide="chevron-left"></i></button>
+                    </div>
+                </div>
+                <div class="sp-sheet" id="spSheet" data-st="peek">
+                    <div class="sp-grip" id="spGrip"><i></i><div class="sp-count" id="spCount"></div></div>
+                    <div class="sp-list" id="spList"></div>
+                </div>
+                <button class="sp-add" onclick="app.spAddOpen && app.spAddOpen()"><i data-lucide="plus"></i><span>ضيف مكان</span></button>
+            </div>
+        </div>
+
         <div id="moodMapView" class="hidden">
             <div class="mm">
                 <div class="mm-map" id="mmMap"><div class="kd-loading"><span></span><span></span><span></span></div></div>
@@ -1809,7 +1836,7 @@
         </div>
     </nav>
 
-    <script src="js/app.js?v=2cdbe7de8d"></script>
+    <script src="js/app.js?v=72eba80eaa"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
