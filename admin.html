@@ -357,6 +357,7 @@
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
             <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
+            <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
             <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
 
@@ -1214,6 +1215,30 @@
                 </div>
             </div>
 
+            <div id="sec-vent" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic" style="background:rgba(248,113,113,.14);color:#F87171;"><i data-lucide="shield-alert"></i></div>
+                        <div><h3>إنذارات الفضفضة</h3><p>كل كلام مسيء حاول طالب يكتبه (انمنع وما انتشر)، وأي فضفضة تبين إن الطالب ممكن يأذي نفسه. هنا بس تشوف منو الطالب</p></div>
+                    </div>
+                    <div id="vtAlerts"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="flag"></i></div>
+                        <div><h3>فضفضات عليها تبليغ</h3><p>الفضفضة اللي يوصلها 3 تبليغات تختفي عن الطلاب لحد ما تراجعها</p></div>
+                    </div>
+                    <div id="vtReported"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="feather"></i></div>
+                        <div><h3>آخر الفضفضات</h3><p id="vtCountA"></p></div>
+                    </div>
+                    <div id="vtPosts"></div>
+                </div>
+            </div>
+
             <!-- Ban Student -->
             <div id="sec-polls" class="hidden">
                 <div class="card">
@@ -1526,7 +1551,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3300,6 +3325,69 @@
             try { await update(ref(db), { ['spots/' + id]: null, ['spotImgs/' + id]: null, ['spotRates/' + id]: null, ['spotHere/' + id]: null }); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
         };
 
+        // ---------- فضفضة: alerts from the word filter, reported posts, bans ----------
+        const VT_M = { sad: 'حزين', worry: 'قلقان', tired: 'تعبان', upset: 'متضايق', lost: 'ضايع', hope: 'متفائل' };
+        const VT_K = { sex: ['كلام جنسي أو إباحي', '#F472B6'], bad: ['سب أو شتم', '#F87171'], danger: ['ممكن يأذي نفسه', '#FBBF24'] };
+        let vtAlerts = [], vtPosts = [], vtCounts = {}, vtBans = {}, vtNames = {};
+        async function vtWho(uid) {
+            if (!uid) return '';
+            if (vtNames[uid] === undefined) {
+                vtNames[uid] = '...';
+                try { const u = (await get(ref(db, 'users/' + uid))).val() || {}; vtNames[uid] = (u.fullName || 'بدون اسم') + (u.studentNumber ? ' · رقم ' + u.studentNumber : '') + (u.governorate ? ' · ' + u.governorate : ''); } catch (e) { vtNames[uid] = uid; }
+                renderVentAdmin();
+            }
+            return vtNames[uid];
+        }
+        function renderVentAdmin() {
+            const n = vtAlerts.length;
+            el('vtBadge').textContent = n; el('vtBadge').classList.toggle('hidden', !n);
+            el('vtAlerts').innerHTML = n ? vtAlerts.map((a) => {
+                const k = VT_K[a.kind] || VT_K.bad, who = vtNames[a.u] === undefined ? (vtWho(a.u), '...') : vtNames[a.u];
+                return `<div class="ord" style="border-inline-start-color:${k[1]};">
+                    <div class="ord-h"><span style="color:${k[1]};">${k[0]}</span><small>${a.where === 'reply' ? 'برد' : 'بفضفضة'} · ${new Date(Number(a.at) || 0).toLocaleString('ar-IQ')}</small></div>
+                    <div style="padding:10px;border-radius:10px;background:rgba(127,127,127,.1);line-height:1.8;white-space:pre-wrap;">${escapeHtml(a.tx)}</div>
+                    ${a.w ? `<div style="margin-top:6px;opacity:.8;">الكلمات: <b>${escapeHtml(a.w)}</b></div>` : ''}
+                    <div style="margin-top:6px;">الطالب: <b>${escapeHtml(who)}</b>${vtBans[a.u] ? ' <span style="color:#F87171;font-weight:800;">(ممنوع)</span>' : ''}</div>
+                    <div class="ord-act">${vtBans[a.u] ? `<button class="btn-sm" onclick="vtBan(${jsArg(a.u)}, false)">رجّع له الكتابة</button>` : `<button class="del" onclick="vtBan(${jsArg(a.u)}, true)">امنعه من الكتابة</button>`}
+                        <button class="btn-sm" onclick="vtAlertDone(${jsArg(a.id)})">تمت المراجعة</button></div></div>`;
+            }).join('') : '<p style="opacity:.6;font-size:13px;">ماكو إنذارات. الحمد لله.</p>';
+            const reported = vtPosts.filter((p) => (vtCounts[p.id] || {}).rep).sort((a, b) => (vtCounts[b.id].rep || 0) - (vtCounts[a.id].rep || 0));
+            el('vtReported').innerHTML = reported.length ? reported.map((p) => vtPostRow(p, true)).join('') : '<p style="opacity:.6;font-size:13px;">ماكو تبليغات.</p>';
+            el('vtCountA').textContent = vtPosts.length ? vtPosts.length + ' فضفضة' : '';
+            el('vtPosts').innerHTML = vtPosts.length ? vtPosts.slice(0, 60).map((p) => vtPostRow(p, false)).join('') : '<p style="opacity:.6;font-size:13px;">ماكو فضفضات.</p>';
+        }
+        function vtPostRow(p, reported) {
+            const c = vtCounts[p.id] || {};
+            return `<div class="ord" style="border-inline-start-color:${reported ? '#F87171' : '#A78BFA'};">
+                <div class="ord-h"><span>${VT_M[p.m] || ''}</span><small>${new Date(Number(p.at) || 0).toLocaleString('ar-IQ')}</small></div>
+                <div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(p.tx)}</div>
+                <div style="margin-top:6px;opacity:.75;font-size:12px;">حضن ${c.hug || 0} · قوة ${c.power || 0} · دعاء ${c.pray || 0} · ردود ${c.rc || 0}${c.rep ? ' · <b style="color:#F87171;">تبليغات ' + c.rep + '</b>' : ''}</div>
+                <div id="vtw_${escapeHtml(p.id)}" style="margin-top:6px;"></div>
+                <div class="ord-act"><button class="btn-sm" onclick="vtReveal(${jsArg(p.id)})">منو كتبها؟</button>
+                    ${reported ? `<button class="btn-sm" onclick="vtClearRep(${jsArg(p.id)})">سليمة، رجّعها</button>` : ''}
+                    <button class="del" onclick="vtDelete(${jsArg(p.id)})">حذف</button></div></div>`;
+        }
+        function loadVentAdmin() {
+            onValue(ref(db, 'ventAlerts'), (snap) => { const v = snap.val() || {}; vtAlerts = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (b.at || 0) - (a.at || 0)); renderVentAdmin(); }, () => {});
+            onValue(ref(db, 'vent'), (snap) => { const v = snap.val() || {}; vtPosts = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (b.at || 0) - (a.at || 0)); renderVentAdmin(); }, () => {});
+            onValue(ref(db, 'ventCount'), (snap) => { vtCounts = snap.val() || {}; renderVentAdmin(); }, () => {});
+            onValue(ref(db, 'ventBan'), (snap) => { vtBans = snap.val() || {}; renderVentAdmin(); }, () => {});
+        }
+        window.vtBan = async (uid, on) => {
+            if (on && !(await ask({ icon: 'ban', title: 'تمنعه من الكتابة بالفضفضة؟', text: 'يكدر يقرا بس ما يكدر يكتب ولا يرد.', ok: 'امنعه' }))) return;
+            try { await set(ref(db, 'ventBan/' + uid), on ? true : null); toast(on ? 'انمنع من الكتابة' : 'رجعت له الكتابة'); } catch (e) { toast('فشل', false); }
+        };
+        window.vtAlertDone = async (id) => { try { await set(ref(db, 'ventAlerts/' + id), null); } catch (e) { toast('فشل', false); } };
+        window.vtReveal = async (pid) => {
+            const box = el('vtw_' + pid);
+            try { const uid = (await get(ref(db, 'ventOwners/' + pid))).val(); if (box) box.innerHTML = uid ? 'الكاتب: <b>' + escapeHtml(await vtWho(uid) || uid) + '</b>' + (vtBans[uid] ? ' (ممنوع)' : ` <button class="del" style="margin-inline-start:6px;" onclick="vtBan(${jsArg(uid)}, true)">امنعه</button>`) : 'ما معروف'; } catch (e) { toast('فشل', false); }
+        };
+        window.vtClearRep = async (pid) => { try { await update(ref(db), { ['ventCount/' + pid + '/rep']: null, ['ventReports/' + pid]: null }); toast('رجعت تطلع للطلاب'); } catch (e) { toast('فشل', false); } };
+        window.vtDelete = async (pid) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف هاي الفضفضة ويا ردودها؟', ok: 'احذف' }))) return;
+            try { await update(ref(db), { ['vent/' + pid]: null, ['ventOwners/' + pid]: null, ['ventReplies/' + pid]: null, ['ventReplyOwners/' + pid]: null, ['ventCount/' + pid]: null, ['ventReports/' + pid]: null, ['ventReactOwners/' + pid]: null }); toast('انحذفت'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
             onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
@@ -3685,6 +3773,7 @@
             loadTutorUrl();
             loadShopAdmin();
             loadSpotsAdmin();
+            loadVentAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();
