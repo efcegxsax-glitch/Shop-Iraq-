@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '3a3cd2e35d';
+        window.APP_VER = 'ce1ba4f964';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=f14a95fba1">
+    <link rel="stylesheet" href="css/app.css?v=ee4e6e16df">
     <link rel="stylesheet" href="css/tw.css?v=94e3d15547">
 </head>
 <body class="antialiased">
@@ -171,7 +171,7 @@
                 <i data-lucide="bell" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-xs font-bold rounded-full flex items-center justify-center">0</span>
             </button>
-            <button onclick="app.goToMore()" class="btn-press w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="المزيد">
+            <button onclick="app.goToMore()" id="hdrMoreBtn" class="btn-press relative w-11 h-11 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="المزيد">
                 <i data-lucide="menu" class="w-6 h-6 theme-transition" style="color: var(--text);"></i>
             </button>
         </div>
@@ -1500,6 +1500,27 @@
         </div>
 
         <!-- ===== غابة العراق ===== -->
+        <div id="tutorView" class="hidden">
+            <div class="tt">
+                <div class="tt-top">
+                    <button class="tt-ic" onclick="app.tutorBack()" aria-label="رجوع"><i data-lucide="chevron-right"></i></button>
+                    <span class="tt-orb"><i data-lucide="sparkles"></i></span>
+                    <div class="tt-title"><b>المعلم</b><small>مدرس ذكي بكل المواد</small></div>
+                    <button class="tt-ic" onclick="app.ttNew && app.ttNew()" aria-label="محادثة جديدة"><i data-lucide="square-pen"></i></button>
+                </div>
+                <div class="tt-body" id="ttBody"><div class="kd-loading"><span></span><span></span><span></span></div></div>
+                <div class="tt-composer hidden" id="ttComposer">
+                    <div class="tt-preview hidden" id="ttPreview"></div>
+                    <div class="tt-row">
+                        <label class="tt-att" aria-label="صورة سؤال"><i data-lucide="camera"></i><input type="file" id="ttFile" accept="image/*" onchange="app.ttPickImage(this)" hidden></label>
+                        <textarea id="ttInput" rows="1" maxlength="4000" placeholder="اكتب سؤالك..." oninput="app.ttAutosize(this)" onkeydown="app.ttKey(event)"></textarea>
+                        <button class="tt-send" id="ttSend" onclick="app.ttSend()" aria-label="إرسال"><i data-lucide="send"></i></button>
+                    </div>
+                    <small class="tt-note">المعلم ممكن يغلط، تأكد من الملزمة.</small>
+                </div>
+            </div>
+        </div>
+
         <div id="gardenView" class="hidden">
             <div class="gd">
                 <div class="gd-root" id="gdRoot"><div class="gd-load"><span></span><b>دا تتحضر الأرض...</b></div></div>
@@ -1738,21 +1759,9 @@
                 <span class="nav-ic"><i data-lucide="book-open"></i></span>
                 <span class="nav-label">الملازم</span>
             </button>
-            <button onclick="app.setTab('holidays')" class="nav-item" data-tab="holidays" aria-label="العطل">
-                <span class="nav-ic"><i data-lucide="calendar-days"></i></span>
-                <span class="nav-label">العطل</span>
-            </button>
-            <button onclick="app.setTab('store')" class="nav-item" data-tab="store" aria-label="المتجر">
-                <span class="nav-ic"><i data-lucide="store"></i><span id="navStoreCartBadge" class="hidden absolute w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span></span>
-                <span class="nav-label">المتجر</span>
-            </button>
-            <button onclick="app.setTab('leaderboard')" class="nav-item" data-tab="leaderboard" aria-label="المتقدمون">
-                <span class="nav-ic"><i data-lucide="trophy"></i></span>
-                <span class="nav-label">المتقدمون</span>
-            </button>
-            <button onclick="app.setTab('wallet')" class="nav-item" data-tab="wallet" aria-label="رصيدي">
-                <span class="nav-ic"><i data-lucide="wallet"></i></span>
-                <span class="nav-label">رصيدي</span>
+            <button onclick="app.setTab('tutor')" class="nav-item nav-ai" data-tab="tutor" aria-label="المعلم الذكي">
+                <span class="nav-ic"><span class="nav-ai-orb"><i data-lucide="sparkles"></i></span></span>
+                <span class="nav-label">المعلم</span>
             </button>
             <button onclick="app.setTab('messages')" class="nav-item" data-tab="messages" aria-label="الرسائل">
                 <span class="nav-ic"><i data-lucide="message-circle"></i><span id="navMessagesBadge" class="hidden absolute w-4 h-4 bg-error text-white text-[10px] font-bold rounded-full flex items-center justify-center">0</span></span>
@@ -1765,7 +1774,7 @@
         </div>
     </nav>
 
-    <script src="js/app.js?v=9ffe0aa9df"></script>
+    <script src="js/app.js?v=08354bf6df"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

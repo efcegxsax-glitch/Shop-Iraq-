@@ -2500,6 +2500,7 @@
             applySiteConfig(cfg) {
                 cfg = cfg || {};
                 this.siteConfig = cfg;
+                if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
                 const on = (group, key) => !(cfg[group] && cfg[group][key] === false);
                 const $ = (id) => document.getElementById(id);
 
@@ -3444,6 +3445,14 @@
                 setTimeout(() => this.showToast('ذبلت شجرتك لأن التطبيق انسد قبل ما تخلص الجلسة'), 1500);
             },
 
+            // ===== المعلم الذكي (engine in js/tutor.js, server in tutor-worker/) =====
+            goToTutor() {
+                this.switchView('tutorView');
+                if (this._withPart('tutor', () => typeof this.tutorOpen === 'function', 'tutorView', () => this.goToTutor())) return;
+                this.tutorOpen();
+            },
+            tutorBack() { this.setTab('home'); },
+
             // ===== شجرتي: a solo focus timer with a 3D tree (js/gardenui.js + js/garden.js) =====
             goToGarden() {
                 this.switchView('gardenView');
@@ -3947,7 +3956,8 @@
             // holiday (red) or waiting for a decision (amber) for the student's governorate.
             // Weekends and the summer break don't count; the dot clears once the page is seen.
             updateHolidayNavDot() {
-                const ic = document.querySelector('#bottomNav .nav-item[data-tab="holidays"] .nav-ic');
+                // the holidays page moved from the bottom bar to "More": the dot sits on the header's More button
+                const ic = document.querySelector('#bottomNav .nav-item[data-tab="holidays"] .nav-ic') || document.getElementById('hdrMoreBtn');
                 if (!ic) return;
                 let dot = document.getElementById('navHolidayDot');
                 const gov = this._myGov() || (() => { try { return localStorage.getItem('isp_day_gov') || ''; } catch (e) { return ''; } })();
@@ -7026,6 +7036,10 @@
             // Grouped by kind, searchable, with favourites the student picks and orders (saved on
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
+                { id: 'holidays', fn: 'goToHolidays', t: 'العطل والدوام', d: 'باچر دوام لو عطلة', ic: 'calendar-days', c: '#0EA5E9', g: 'main' },
+                { id: 'store', fn: 'goToStore', t: 'المتجر', d: 'اشترِ من الطلاب والمكتبات', ic: 'store', c: '#F97316', g: 'main' },
+                { id: 'leaders', fn: 'goToLeaderboard', t: 'المتقدمون', d: 'ترتيب الطلاب بالنقاط', ic: 'trophy', c: '#EAB308', g: 'main' },
+                { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'main' },
                 { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
@@ -7056,7 +7070,7 @@
                 { id: 'cats', fn: 'goToCategories', t: 'تصنيفات الأخبار', d: 'الأخبار حسب النوع', ic: 'layout-grid', c: '#475569', g: 'tools' },
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
-            MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
+            MORE_GROUPS: [['main', 'الأساسية', 'layout-grid'], ['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
             MORE_DEFAULT_FAVS: ['garden', 'uni', 'bio', 'forest'],
 
             _moreState() {
@@ -12598,6 +12612,7 @@
                 else if (tab === 'profile') this.goToProfile();
                 else if (tab === 'holidays') this.goToHolidays();
                 else if (tab === 'more') this.goToMore();
+                else if (tab === 'tutor') this.goToTutor();
                 this.viewHistory = [];
             },
 
@@ -12656,6 +12671,7 @@
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
                 if (this._garden && viewId !== 'gardenView' && this.gdFail) this.gdFail('طلعت من صفحة شجرتي', true);
                 if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
+                if (this.currentView === 'tutorView' && viewId !== 'tutorView' && this.tutorClose) this.tutorClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }

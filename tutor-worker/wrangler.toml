@@ -1,0 +1,18 @@
+# The AI tutor's server. Deployed by .github/workflows/tutor-worker.yml on every push that
+# touches this folder, once the repository has the CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID
+# and ANTHROPIC_API_KEY secrets. The API key only ever lives in the Worker's secrets.
+name = "isp-tutor"
+main = "src/index.js"
+compatibility_date = "2026-09-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+FIREBASE_PROJECT_ID = "iraqi-student-platform-9918d"
+# pages allowed to call the tutor (comma separated)
+ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-platform-9918d.web.app,https://iraqi-student-platform-9918d.firebaseapp.com"
+
+# per student: at most 6 questions a minute
+[[ratelimits]]
+name = "PER_MINUTE"
+namespace_id = "1001"
+simple = { limit = 6, period = 60 }

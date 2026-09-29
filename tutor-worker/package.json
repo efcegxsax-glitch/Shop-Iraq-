@@ -1,0 +1,17 @@
+{
+  "name": "isp-tutor-worker",
+  "private": true,
+  "description": "المعلم الذكي: a Cloudflare Worker that lets signed-in students ask Claude, without exposing the API key",
+  "type": "module",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "jose": "^6.2.12"
+  },
+  "devDependencies": {
+    "wrangler": "^4.143.0"
+  }
+}

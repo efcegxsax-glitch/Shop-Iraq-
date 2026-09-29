@@ -361,6 +361,18 @@
 
                 <div class="card">
                     <div class="card-head">
+                        <div class="ic"><i data-lucide="sparkles"></i></div>
+                        <div>
+                            <h3>المعلم الذكي</h3>
+                            <p>رابط سيرفر المعلم (Cloudflare Worker) اللي ينشر تلقائياً من GitHub. إذا تتركه فارغ، زر المعلم يبين للطلاب إنه بعده ما مفعّل.</p>
+                        </div>
+                    </div>
+                    <div class="field"><input type="url" id="tt_url" placeholder="https://isp-tutor.xxxx.workers.dev" dir="ltr" autocomplete="off"></div>
+                    <button class="btn" id="tt_save">حفظ</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
                         <div class="ic"><i data-lucide="search"></i></div>
                         <div>
                             <h3>بحث يوتيوب بغرف المشاهدة</h3>
@@ -2771,6 +2783,16 @@
             btn.disabled = false;
         }
 
+        // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
+        function loadTutorUrl() {
+            onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
+            el('tt_save').addEventListener('click', async () => {
+                const v = el('tt_url').value.trim().replace(/\/+$/, '');
+                if (v && !/^https:\/\/[a-z0-9.-]+(\/[^\s]*)?$/i.test(v)) { toast('الرابط لازم يبدي بـ https://', false); return; }
+                try { await set(ref(db, 'siteConfig/tutorUrl'), v || null); toast(v ? 'انحفظ، المعلم صار شغال' : 'انطفى المعلم'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+        }
+
         // ---------- YouTube search key for the study rooms (siteConfig/ytKey) ----------
         function loadYtKey() {
             onValue(ref(db, 'siteConfig/ytKey'), (snap) => { if (document.activeElement !== el('ytk_key')) el('ytk_key').value = snap.val() || ''; });
@@ -3143,6 +3165,7 @@
             loadWarBots();
             loadUniAdmin();
             loadYtKey();
+            loadTutorUrl();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();
