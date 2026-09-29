@@ -10971,6 +10971,8 @@
                 }
                 this.listenForReadReceipts();
                 this.markChatRead();
+                // the call part and its relay addresses get ready while the chat is open
+                this._need('calls').then(() => this._clIce()).catch(() => {});
                 lucide.createIcons();
             },
 

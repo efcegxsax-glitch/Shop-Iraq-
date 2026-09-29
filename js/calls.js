@@ -31,7 +31,7 @@
         const m = /a=rtpmap:(\d+) opus\/48000/i.exec(sdp);
         if (!m) return sdp;
         const pt = m[1];
-        const want = { useinbandfec: '1', usedtx: '0', stereo: '0', 'sprop-stereo': '0', maxaveragebitrate: '40000', maxplaybackrate: '48000', cbr: '0' };
+        const want = { useinbandfec: '1', usedtx: '0', stereo: '0', 'sprop-stereo': '0', maxaveragebitrate: '32000', maxplaybackrate: '48000', cbr: '0' };
         const re = new RegExp('a=fmtp:' + pt + ' ([^\\r\\n]*)');
         if (re.test(sdp)) {
             sdp = sdp.replace(re, (all, params) => {
@@ -122,28 +122,25 @@
             c.id = rid();
             c.st = 'out';
             this._clRender();
+            this._clAvatar(c);
             tone.start('out');
-            const [stream, ice] = await Promise.all([this._clMic(), this._clIce()]);
-            if (this._cl !== c) { if (stream) stream.getTracks().forEach((t) => t.stop()); return; }
-            if (!stream) { this._clEnd('mic'); return; }
-            c.stream = stream;
-            const { ref, set, update, onValue, onDisconnect, serverTimestamp } = H();
+            // the ring goes out straight away; the mic and the relay addresses get ready meanwhile
+            const ready = Promise.all([this._clMic(), this._clIce()]);
+            const { ref, update, onValue, onDisconnect, serverTimestamp } = H();
             const base = 'calls/' + c.chat;
+            const me = this.currentUser || {};
+            const ring = { id: c.id, n: String(me.fullName || 'طالب').slice(0, 60), at: serverTimestamp() };
+            if (me.avatar && String(me.avatar).length <= 600) ring.a = me.avatar;
             try {
-                await set(ref(db(), base), { id: c.id, from: this.authUid, to: uid, at: serverTimestamp(), st: 'ring' });
+                await update(ref(db()), {
+                    [base]: { id: c.id, from: this.authUid, to: uid, at: serverTimestamp(), st: 'ring' },
+                    ['callRing/' + uid + '/' + this.authUid]: ring,
+                });
                 c.disc = [onDisconnect(ref(db(), base + '/st')), onDisconnect(ref(db(), 'callRing/' + uid + '/' + this.authUid))];
                 c.disc[0].set('end'); c.disc[1].remove();
-                this._clPc(ice);
-                const offer = await c.pc.createOffer();
-                await c.pc.setLocalDescription(offer);
-                c.offerV = 1;
-                await update(ref(db(), base), { offer: { sdp: tuneOpus(offer.sdp), type: offer.type, v: 1 } });
-                const me = this.currentUser || {};
-                const ring = { id: c.id, n: String(me.fullName || 'طالب').slice(0, 60), at: serverTimestamp() };
-                if (me.avatar && String(me.avatar).length <= 600) ring.a = me.avatar;
-                await set(ref(db(), 'callRing/' + uid + '/' + this.authUid), ring);
             } catch (e) {
                 console.warn('call start failed', e);
+                ready.then(([st]) => st && st.getTracks().forEach((t) => t.stop()));
                 if (this._cl === c) this._clEnd('fail');
                 return;
             }
@@ -151,6 +148,40 @@
             c.offs.push(onValue(ref(db(), base), (snap) => this._clSignal(c, snap.val())));
             this._clCands(c, 'ac');
             c.ringT = setTimeout(() => { if (this._cl === c && c.st === 'out') this._clEnd('miss'); }, RING_MS);
+            const [stream, ice] = await ready;
+            if (this._cl !== c) { if (stream) stream.getTracks().forEach((t) => t.stop()); return; }
+            if (!stream) { this._clEnd('mic'); return; }
+            c.stream = stream;
+            try {
+                this._clPc(ice);
+                const offer = await c.pc.createOffer();
+                await c.pc.setLocalDescription(offer);
+                c.offerV = 1;
+                await update(ref(db(), base), { offer: { sdp: tuneOpus(offer.sdp), type: offer.type, v: 1 } });
+            } catch (e) {
+                console.warn('call offer failed', e);
+                if (this._cl === c) this._clEnd('fail');
+            }
+        },
+
+        // The other person's real photo (profile photos are kept in users/{uid}/avatar).
+        async _clAvatar(c) {
+            try {
+                const { ref, get } = H();
+                const v = (await get(ref(db(), 'users/' + c.other.uid + '/avatar'))).val();
+                if (v && this._cl === c && personAvatarSrc(v, '') === v) { c.other.avatar = v; this._clPaintAv(c); }
+            } catch (e) {}
+        },
+        _clPaintAv(c) {
+            const el = document.getElementById('clAv');
+            if (!el || !c.other.avatar) return;
+            const src = personAvatarSrc(c.other.avatar, c.other.name);
+            if (/ui-avatars\.com/.test(src)) return;
+            const paint = () => { if (el.isConnected) { el.style.backgroundImage = 'url("' + src.replace(/"/g, '%22') + '")'; el.classList.add('on'); } };
+            if (c.avOk === src) { el.classList.add('now'); paint(); return; }
+            const img = new Image();
+            img.onload = () => { c.avOk = src; paint(); };
+            img.src = src;
         },
 
         // ---------- a ring arrives (app._clRingListen) ----------
@@ -171,8 +202,10 @@
             const c = this._cl = this._clNew('callee', from, r.n, r.a);
             c.id = r.id;
             c.st = 'in';
-            c.offer = call.offer;
+            c.offer = call.offer || null;
             this._clRender();
+            this._clAvatar(c);
+            this._clIce();
             tone.start('in');
             c.offs.push(H().onValue(ref(db(), 'calls/' + chat), (snap) => this._clSignal(c, snap.val())));
             c.ringT = setTimeout(() => { if (this._cl === c && c.st === 'in') this._clEnd('miss', true); }, RING_MS + 5000);
@@ -195,6 +228,10 @@
             if (this._cl !== c) { if (stream) stream.getTracks().forEach((t) => t.stop()); return; }
             if (!stream) { this._clEnd('mic'); return; }
             c.stream = stream;
+            // the caller's phone may still be getting its side ready
+            for (let i = 0; !c.offer && i < 150 && this._cl === c; i++) await new Promise((ok) => setTimeout(ok, 100));
+            if (this._cl !== c) return;
+            if (!c.offer) { this._clEnd('fail'); return; }
             const { ref, update, set, onDisconnect } = H();
             const base = 'calls/' + c.chat;
             try {
@@ -285,7 +322,12 @@
         // TURN addresses from the tutor Worker (siteConfig.tutorUrl, mode "turn"), kept for an hour.
         async _clIce() {
             const keep = this._clIceCache;
-            if (keep && Date.now() - keep.at < 3600000) return keep.list;
+            if (keep && Date.now() - keep.at < (keep.ok ? 3600000 : 600000)) return keep.list;
+            if (this._clIceWait) return this._clIceWait;
+            this._clIceWait = this._clIceFetch().finally(() => { this._clIceWait = null; });
+            return this._clIceWait;
+        },
+        async _clIceFetch() {
             const url = (this.siteConfig || {}).tutorUrl;
             let list = STUN;
             if (/^https:\/\/[^\s]+$/.test(String(url || '')) && window.firebaseAuth && window.firebaseAuth.currentUser) {
@@ -298,10 +340,10 @@
                     const r = res.ok ? await res.json() : null;
                     if (r && Array.isArray(r.iceServers) && r.iceServers.length) {
                         list = STUN.concat(r.iceServers);
-                        this._clIceCache = { at: Date.now(), list };
                     }
                 } catch (e) { /* STUN only */ }
             }
+            this._clIceCache = { at: Date.now(), list, ok: list !== STUN };
             return list;
         },
 
@@ -346,7 +388,7 @@
             pc.oniceconnectionstatechange = () => this._clNet(c);
             c.onHide = () => { if (this._cl === c) this._clEnd(c.st === 'out' ? 'cancel' : c.st === 'in' ? 'no' : 'end'); };
             window.addEventListener('pagehide', c.onHide);
-            c.onOnline = () => { if (this._cl === c && c.role === 'caller' && c.st !== 'out') this._clRestart(c); };
+            c.onOnline = () => { if (this._cl === c && c.role === 'caller' && c.st === 'reconnect') this._clRestart(c); };
             window.addEventListener('online', c.onOnline);
         },
 
@@ -355,7 +397,7 @@
             try {
                 const p = c.sender.getParameters();
                 p.encodings = p.encodings && p.encodings.length ? p.encodings : [{}];
-                p.encodings[0].maxBitrate = 48000;
+                p.encodings[0].maxBitrate = 40000;
                 p.encodings[0].priority = 'high';
                 p.encodings[0].networkPriority = 'high';
                 await c.sender.setParameters(p);
@@ -402,6 +444,7 @@
                 this._clEnd(v.st === 'end' ? 'end' : v.st, true);
                 return;
             }
+            if (c.role === 'callee' && !c.offer && v.offer) c.offer = v.offer;
             const om = !!(v.mute && v.mute[c.other.uid]);
             if (om !== !!c.otherMuted) { c.otherMuted = om; this._clRender(); }
             if (c.role === 'caller') {
@@ -423,6 +466,7 @@
             const ice = c.pc.iceConnectionState;
             if (s === 'connected' || ice === 'connected' || ice === 'completed') {
                 if (c.lostAt) c.lostAt = 0;
+                if (c.blipT) { clearTimeout(c.blipT); c.blipT = null; }
                 if (c.restartT) { clearTimeout(c.restartT); c.restartT = null; }
                 if (c.st !== 'on') {
                     const first = !c.startedAt;
@@ -447,10 +491,17 @@
             }
             if (s === 'failed' || ice === 'failed' || s === 'disconnected' || ice === 'disconnected') {
                 if (c.st !== 'on' && c.st !== 'reconnect') return;
+                const failed = s === 'failed' || ice === 'failed';
                 if (!c.lostAt) c.lostAt = Date.now();
-                if (c.st !== 'reconnect') { c.st = 'reconnect'; this._clRender(); }
-                if (c.role === 'caller' && !c.restartT) {
-                    c.restartT = setTimeout(() => { c.restartT = null; if (this._cl === c && c.st === 'reconnect') this._clRestart(c); }, s === 'failed' || ice === 'failed' ? 0 : 2000);
+                // phones lose a few packets now and then and the connection comes back by itself;
+                // only a drop that lasts is shown and repaired
+                if (!c.blipT) {
+                    c.blipT = setTimeout(() => {
+                        c.blipT = null;
+                        if (this._cl !== c || !c.lostAt) return;
+                        if (c.st === 'on') { c.st = 'reconnect'; this._clRender(); }
+                        if (c.role === 'caller' && !c.restartT) this._clRestart(c);
+                    }, failed ? 0 : 3500);
                 }
             }
         },
@@ -476,7 +527,7 @@
             const blocks = Math.floor(c.secs / BLOCK_S);
             if (blocks > (c.blocks || 0)) { c.blocks = blocks; this._clAward(c); }
             const $ = (id) => document.getElementById(id);
-            const t = $('clTime'); if (t) t.textContent = c.st === 'reconnect' ? 'جاي يرجع الاتصال...' : mmss(c.secs);
+            const t = $('clTime'); if (t && c.st === 'on') t.textContent = mmss(c.secs);
             const pill = $('clPillTime'); if (pill) pill.textContent = mmss(c.secs);
             const left = BLOCK_S - (c.secs % BLOCK_S);
             const ring = $('clPtsRing');
@@ -555,7 +606,7 @@
             this._cl = null;
             tone.stop();
             tone.inCall = false;
-            [c.ringT, c.restartT, c.connT].forEach((t) => t && clearTimeout(t));
+            [c.ringT, c.restartT, c.connT, c.blipT].forEach((t) => t && clearTimeout(t));
             if (c.onHide) window.removeEventListener('pagehide', c.onHide);
             [c.tickT, c.statT].forEach((t) => t && clearInterval(t));
             c.offs.forEach((off) => { try { off(); } catch (e) {} });
@@ -623,9 +674,10 @@
             box.classList.remove('cl-hide', 'cl-bye');
             // buttons slide in only when the call moves to a new stage, not on every redraw
             box.classList.toggle('cl-enter', box.dataset.st !== c.st);
-            const av = personAvatarSrc(c.other.avatar, c.other.name);
+            const ini = String(c.other.name || 'طالب').trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0)).join('');
             const ringing = c.st === 'out' || c.st === 'in';
-            const status = { out: 'جاي يرن...', in: 'مكالمة صوتية واردة', connecting: 'جاي يتصل...', on: mmss(c.secs), reconnect: 'جاي يرجع الاتصال...' }[c.st] || '';
+            const dots = '<span class="cl-dots"><i></i><i></i><i></i></span>';
+            const status = { out: 'جاي يرن' + dots, in: 'مكالمة صوتية واردة', connecting: 'جاي يتصل' + dots, on: mmss(c.secs), reconnect: 'جاي يرجع الاتصال' + dots }[c.st] || '';
             const left = BLOCK_S - (c.secs % BLOCK_S);
             const canSpk = c.audio && typeof c.audio.setSinkId === 'function';
             box.dataset.st = c.st;
@@ -641,10 +693,10 @@
                     <div class="cl-code-d">الصوت يروح مشفّر من تلفونك لتلفونه مباشرة، ولا أحد بالنص يكدر يسمعه، حتى إحنا. إذا هذا الرقم نفسه عند صاحبك، فمكالمتكم ما يسمعها غيركم.</div>
                 </div>` : ''}
                 <div class="cl-mid">
-                    <div class="cl-orb ${ringing ? 'ring' : ''}" id="clOrb">
+                    <div class="cl-orb ${ringing ? 'cl-ringing' : ''}" id="clOrb">
                         <span class="cl-wave"></span><span class="cl-wave"></span><span class="cl-wave"></span>
-                        <b class="cl-ini">${esc(String(c.other.name || 'ط').trim().charAt(0))}</b>
-                        <img src="${esc(av)}" alt="" onerror="this.remove()">
+                        <span class="cl-halo"></span>
+                        <div class="cl-avw"><b class="cl-ini">${esc(ini)}</b><div class="cl-av" id="clAv"></div></div>
                     </div>
                     <div class="cl-name">${esc(c.other.name)}</div>
                     <div class="cl-status ${c.st === 'reconnect' ? 'warn' : ''}" id="clTime" dir="${c.st === 'on' ? 'ltr' : 'rtl'}">${status}</div>
@@ -667,6 +719,7 @@
                     `}
                 </div>`;
             lucide.createIcons();
+            this._clPaintAv(c);
         },
 
         // The goodbye screen: how long, how many points, then it slides away.
@@ -678,7 +731,7 @@
             box.classList.remove('cl-hide');
             box.dataset.st = 'bye';
             const mid = box.querySelector('.cl-mid');
-            const orb = box.querySelector('.cl-orb'); if (orb) orb.classList.remove('ring', 'talk');
+            const orb = box.querySelector('.cl-orb'); if (orb) orb.classList.remove('cl-ringing', 'talk');
             const st = box.querySelector('#clTime');
             if (st) { st.textContent = msg + (c.secs ? ' · ' + mmss(c.secs) : ''); st.setAttribute('dir', 'rtl'); }
             if (mid && c.pts) { const d = document.createElement('div'); d.className = 'cl-chip cl-gold'; d.textContent = 'ربحت ' + c.pts + ' نقطة من المكالمة'; mid.appendChild(d); }
