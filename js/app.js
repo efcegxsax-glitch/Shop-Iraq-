@@ -1081,6 +1081,7 @@
                     }
                     this.listenForOwnUserRecord();
                     this.checkDailyStreak();
+                    this._ttNudgeSoon();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -2147,6 +2148,7 @@
                     this.initPushNotifications();
                     this.syncNativePush();
                     this.checkDailyStreak();
+                    this._ttNudgeSoon();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -2501,6 +2503,7 @@
                 cfg = cfg || {};
                 this.siteConfig = cfg;
                 if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
+                this._ttNudgeSoon();
                 const on = (group, key) => !(cfg[group] && cfg[group][key] === false);
                 const $ = (id) => document.getElementById(id);
 
@@ -3452,6 +3455,42 @@
                 this.tutorOpen();
             },
             tutorBack() { this.setTab('home'); },
+
+            // Once a day the tutor may write to the student first; js/tutor.js decides whether
+            // there is a reason to (days without studying, a grade that fell, an exam soon).
+            _ttNudgeSoon() {
+                if (this.authUid) this._ttBadge();
+                if (this._ttNudgeT || !this.isLoggedIn || !this.authUid || !(this.siteConfig || {}).tutorUrl) return;
+                try { if (localStorage.getItem('isp_tutor_nudge_' + this.authUid) === this.localDateStr()) return; } catch (e) {}
+                this._ttNudgeT = setTimeout(() => {
+                    this._need('tutor').then(() => this._ttNudge && this._ttNudge()).catch(() => {});
+                }, 8000);
+            },
+
+            // a dot on the tutor's tab while it has a message the student hasn't opened
+            _ttBadge(on) {
+                const k = 'isp_tutor_unread_' + (this.authUid || '');
+                try {
+                    if (on === undefined) on = localStorage.getItem(k) === '1';
+                    else if (on) localStorage.setItem(k, '1');
+                    else localStorage.removeItem(k);
+                } catch (e) {}
+                document.querySelector('#bottomNav .nav-ai')?.classList.toggle('has-msg', !!on);
+            },
+
+            // The student's own record, for the tutor to hold them to it.
+            _ttStudyData() {
+                if (!this._ttActP || this._ttActUid !== this.authUid) {
+                    this._ttActUid = this.authUid;
+                    this._ttActP = (async () => {
+                        if (!window.firebaseDb || !this.authUid || this._moodActLoaded) return;
+                        const { ref, get } = window.firebaseDbHelpers;
+                        const snap = await get(ref(window.firebaseDb, 'userActivity/' + this.authUid));
+                        if (snap.exists()) { const vals = snap.val(); Object.keys(vals).forEach((d) => { monthlyActivity[d] = vals[d]; }); }
+                    })().catch(() => { this._ttActP = null; });
+                }
+                return this._ttActP.then(() => ({ activity: monthlyActivity, exams: examSchedule.slice(), grades: this._gradesLoad() }));
+            },
 
             // ===== شجرتي: a solo focus timer with a 3D tree (js/gardenui.js + js/garden.js) =====
             goToGarden() {
