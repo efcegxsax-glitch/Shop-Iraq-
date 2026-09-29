@@ -11010,73 +11010,145 @@
                 });
             },
 
+            // One message as HTML. The time and the read ticks sit inside the bubble, like WhatsApp;
+            // the ticks turn blue by class (_chatTicks) so a read receipt never redraws the chat.
+            _chatMsgHtml(m, idx) {
+                const isMine = m.from === this.authUid;
+                const showActions = this._openMessageActionsId === m.id;
+                const prev = chatMessages[idx - 1];
+                const prevSameSender = !!prev && prev.from === m.from && this._chatDay(prev.createdAt) === this._chatDay(m.createdAt);
+                const isTextMsg = !m.type || m.type === 'text';
+                let bodyHtml;
+                if (m.type === 'image') {
+                    bodyHtml = `<img src="${safeImage(m.imageUrl)}" class="rounded-xl block" style="max-width: 220px; max-height: 280px; object-fit: cover;" alt="صورة">`;
+                } else if (m.type === 'voice') {
+                    const totalDuration = Math.max(0, Math.round(m.duration || 0));
+                    const mm = Math.floor(totalDuration / 60);
+                    const ss = String(totalDuration % 60).padStart(2, '0');
+                    bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
+                            <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${jsNum(m.id)})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
+                            <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
+                            <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0" data-total="${totalDuration}">${mm}:${ss}</span>
+                            <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${jsNum(m.id)})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
+                            <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${escapeHtml(safeAudioUrl(m.audioUrl))}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${jsNum(m.id)})" onpause="app.onVoicePause(${jsNum(m.id)})" onended="app.onVoiceEnded(${jsNum(m.id)})" ontimeupdate="app.onVoiceTimeUpdate(${jsNum(m.id)})"></audio>
+                        </div>`;
+                } else if (m.type === 'call') {
+                    const ok = m.st === 'done';
+                    const d = Math.max(0, Math.round(numOr0(m.dur)));
+                    const lbl = ok ? 'مكالمة صوتية' : isMine ? ({ no: 'رفض المكالمة', busy: 'كان مشغول', cancel: 'مكالمة ملغية' }[m.st] || 'ما رد') : 'مكالمة فائتة';
+                    const sub = ok ? (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d / 60) % 60).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : 'اضغط حتى ترجع تتصل';
+                    bodyHtml = `<div class="chat-call ${ok ? '' : 'missed'}" onclick="event.stopPropagation(); app.goCall()">
+                            <span class="chat-call-ic"><i data-lucide="${ok ? (isMine ? 'phone-outgoing' : 'phone-incoming') : 'phone-missed'}" class="w-4 h-4"></i></span>
+                            <span class="min-w-0"><span class="block text-xs font-bold">${lbl}</span><span class="block text-[10px] opacity-75" dir="${ok ? 'ltr' : 'rtl'}">${sub}</span></span>
+                        </div>`;
+                } else if (m.type === 'file') {
+                    bodyHtml = `<a href="${escapeHtml(safeFileUrl(m.fileUrl) || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
+                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
+                            <div class="min-w-0"><div class="text-xs font-bold truncate">${escapeHtml(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${(numOr0(m.fileSize) / 1024 / 1024).toFixed(1)} MB</div></div>
+                        </a>`;
+                } else {
+                    bodyHtml = `${escapeHtml(m.text)}`;
+                }
+                const at = new Date(m.createdAt || m.id || 0);
+                const hm = at.getHours() % 12 || 12;
+                const time = hm + ':' + String(at.getMinutes()).padStart(2, '0') + (at.getHours() < 12 ? ' ص' : ' م');
+                const meta = `<span class="cm-meta${m.type === 'image' ? ' cm-meta-img' : isTextMsg ? '' : ' cm-meta-blk'}">${m.edited && isTextMsg ? '<span>معدّلة</span>' : ''}<span>${time}</span>${isMine ? `<span class="cm-tick" data-at="${numOr0(m.createdAt)}"><i data-lucide="check"></i><i data-lucide="check-check"></i></span>` : ''}</span>`;
+                let sep = '';
+                if (!prev || this._chatDay(prev.createdAt) !== this._chatDay(m.createdAt)) sep = `<div class="cm-day"><span>${this._chatDayLabel(m.createdAt)}</span></div>`;
+                return `${sep}
+                    <div class="cm-row flex flex-col ${isMine ? 'items-end' : 'items-start'} ${prevSameSender ? '' : 'mt-1.5'}" data-mid="${numOr0(m.id)}">
+                        <div class="cm-bubble max-w-[80%] ${m.type === 'image' ? 'p-1' : 'px-3.5 pt-2 pb-1.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl' : 'theme-transition rounded-2xl'} ${prevSameSender ? '' : isMine ? 'rounded-ee-md' : 'rounded-es-md'} ${this._animatedMsgIds.has(m.id) ? '' : 'chat-bubble-in'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${jsNum(m.id)})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${jsNum(m.id)})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
+                            ${bodyHtml}${meta}
+                        </div>
+                        ${showActions ? `
+                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
+                            ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
+                            ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
+                            <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
+                            ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
+                        </div>` : ''}
+                    </div>`;
+            },
+            _chatDay(t) { const d = new Date(t || 0); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); },
+            _chatDayLabel(t) {
+                const d = new Date(t || 0), now = new Date();
+                const y = new Date(now); y.setDate(now.getDate() - 1);
+                if (this._chatDay(d) === this._chatDay(now)) return 'اليوم';
+                if (this._chatDay(d) === this._chatDay(y)) return 'أمس';
+                const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                if (now - d < 6 * 86400000) return days[d.getDay()];
+                return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+            },
+            // blue double tick on what the other side has read
+            _chatTicks() {
+                const at = this.currentChatOtherReadAt || 0;
+                document.querySelectorAll('#chatMessagesList .cm-tick').forEach((el) => el.classList.toggle('read', at >= Number(el.dataset.at || 0)));
+            },
+            _chatNearBottom() {
+                const el = document.scrollingElement || document.documentElement;
+                return el.scrollHeight - (el.scrollTop + window.innerHeight) < 160;
+            },
+            _chatToBottom(smooth) {
+                const el = document.scrollingElement || document.documentElement;
+                window.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+                const pill = document.getElementById('chatNewPill'); if (pill) pill.remove();
+            },
+            _chatNewPill() {
+                if (document.getElementById('chatNewPill')) return;
+                const b = document.createElement('button');
+                b.id = 'chatNewPill'; b.className = 'cm-newpill';
+                b.innerHTML = '<i data-lucide="arrow-down" class="w-4 h-4"></i> رسائل جديدة';
+                b.onclick = () => this._chatToBottom(true);
+                document.body.appendChild(b);
+                lucide.createIcons();
+                const off = () => { if (this._chatNearBottom() || this.currentView !== 'chatThreadView') { b.remove(); window.removeEventListener('scroll', off); } };
+                window.addEventListener('scroll', off, { passive: true });
+            },
+
+            // Draws the thread. Only new messages are added when the list just grew, so a playing
+            // voice message or a loading photo isn't thrown away by every update.
             renderChatMessages() {
                 const container = document.getElementById('chatMessagesList');
                 if (!container) return;
+                this._animatedMsgIds = this._animatedMsgIds || new Set();
                 if (chatMessages.length === 0) {
                     container.innerHTML = '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">ابدأ المحادثة بإرسال أول رسالة</p>';
+                    this._chatKeys = [];
                     return;
                 }
-                this._animatedMsgIds = this._animatedMsgIds || new Set();
-                const otherReadAt = this.currentChatOtherReadAt || 0;
-                container.innerHTML = chatMessages.map((m, idx) => {
-                    const isMine = m.from === this.authUid;
-                    const showActions = this._openMessageActionsId === m.id;
-                    const isRead = isMine && otherReadAt >= (m.createdAt || 0);
-                    const isNew = !this._animatedMsgIds.has(m.id);
-                    this._animatedMsgIds.add(m.id);
-                    const prevSameSender = idx > 0 && chatMessages[idx - 1].from === m.from;
-                    const isTextMsg = !m.type || m.type === 'text';
-                    let bodyHtml;
-                    if (m.type === 'image') {
-                        bodyHtml = `<img src="${safeImage(m.imageUrl)}" class="rounded-xl block" style="max-width: 220px; max-height: 280px; object-fit: cover;" alt="صورة">`;
-                    } else if (m.type === 'voice') {
-                        const totalDuration = Math.max(0, Math.round(m.duration || 0));
-                        const mm = Math.floor(totalDuration / 60);
-                        const ss = String(totalDuration % 60).padStart(2, '0');
-                        bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
-                                <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${jsNum(m.id)})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
-                                <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
-                                <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0" data-total="${totalDuration}">${mm}:${ss}</span>
-                                <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${jsNum(m.id)})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
-                                <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${escapeHtml(safeAudioUrl(m.audioUrl))}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${jsNum(m.id)})" onpause="app.onVoicePause(${jsNum(m.id)})" onended="app.onVoiceEnded(${jsNum(m.id)})" ontimeupdate="app.onVoiceTimeUpdate(${jsNum(m.id)})"></audio>
-                            </div>`;
-                    } else if (m.type === 'call') {
-                        const ok = m.st === 'done';
-                        const d = Math.max(0, Math.round(numOr0(m.dur)));
-                        const lbl = ok ? 'مكالمة صوتية' : isMine ? ({ no: 'رفض المكالمة', busy: 'كان مشغول', cancel: 'مكالمة ملغية' }[m.st] || 'ما رد') : 'مكالمة فائتة';
-                        const sub = ok ? (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d / 60) % 60).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : 'اضغط حتى ترجع تتصل';
-                        bodyHtml = `<div class="chat-call ${ok ? '' : 'missed'}" onclick="event.stopPropagation(); app.goCall()">
-                                <span class="chat-call-ic"><i data-lucide="${ok ? (isMine ? 'phone-outgoing' : 'phone-incoming') : 'phone-missed'}" class="w-4 h-4"></i></span>
-                                <span class="min-w-0"><span class="block text-xs font-bold">${lbl}</span><span class="block text-[10px] opacity-75" dir="${ok ? 'ltr' : 'rtl'}">${sub}</span></span>
-                            </div>`;
-                    } else if (m.type === 'file') {
-                        bodyHtml = `<a href="${escapeHtml(safeFileUrl(m.fileUrl) || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
-                                <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-                                <div class="min-w-0"><div class="text-xs font-bold truncate">${escapeHtml(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${(numOr0(m.fileSize) / 1024 / 1024).toFixed(1)} MB</div></div>
-                            </a>`;
-                    } else {
-                        bodyHtml = `${escapeHtml(m.text)}${m.edited ? '<span class="text-[10px] opacity-70"> (معدّلة)</span>' : ''}`;
+                const keys = chatMessages.map((m) => [m.id, m.type || '', m.text || '', m.edited ? 1 : 0, this._openMessageActionsId === m.id ? 1 : 0].join('|'));
+                const old = container.dataset.chat === this.currentChatUid ? this._chatKeys || [] : [];
+                const first = !old.length;
+                const near = first || this._chatNearBottom();
+                let added = 0, mineAdded = false;
+                if (old.length && old.length <= keys.length && old.every((k, i) => k === keys[i])) {
+                    if (old.length === keys.length) { this._chatTicks(); return; }
+                    let html = '';
+                    for (let i = old.length; i < chatMessages.length; i++) {
+                        html += this._chatMsgHtml(chatMessages[i], i);
+                        if (chatMessages[i].from === this.authUid) mineAdded = true;
+                        added++;
                     }
-                    return `
-                        <div class="flex flex-col ${isMine ? 'items-end' : 'items-start'} ${prevSameSender ? '' : 'mt-1.5'}">
-                            <div class="max-w-[78%] ${m.type === 'image' ? 'p-1' : 'px-4 py-2.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl rounded-ee-md' : 'theme-transition rounded-2xl rounded-es-md'} ${isNew ? 'chat-bubble-in' : ''}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${jsNum(m.id)})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${jsNum(m.id)})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
-                                ${bodyHtml}
-                            </div>
-                            ${isMine ? `<div class="text-[10px] mt-0.5 px-1 inline-flex items-center gap-1" style="color: ${isRead ? '#60A5FA' : 'var(--text2)'};"><i data-lucide="${isRead ? 'check-check' : 'check'}" style="width:12px;height:12px"></i>${isRead ? 'تمت القراءة' : 'تم الإرسال'}</div>` : ''}
-                            ${showActions ? `
-                            <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-                                ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
-                                ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
-                                <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
-                                ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
-                            </div>` : ''}
-                        </div>
-                    `;
-                }).join('');
-                container.scrollTop = container.scrollHeight;
-                // every redraw (read receipts too) brings its own icons
+                    container.insertAdjacentHTML('beforeend', html);
+                } else {
+                    container.innerHTML = chatMessages.map((m, i) => this._chatMsgHtml(m, i)).join('');
+                    if (old.length) added = Math.max(0, keys.length - old.length);
+                    mineAdded = added > 0 && chatMessages[chatMessages.length - 1].from === this.authUid;
+                }
+                chatMessages.forEach((m) => this._animatedMsgIds.add(m.id));
+                this._chatKeys = keys;
+                container.dataset.chat = this.currentChatUid;
                 if (window.lucide) lucide.createIcons();
+                this._chatTicks();
+                if (first) {
+                    this._chatToBottom(false);
+                    // photos finish loading after this; stay at the bottom while they do
+                    [150, 500, 1200].forEach((ms) => setTimeout(() => { if (this.currentView === 'chatThreadView') this._chatToBottom(false); }, ms));
+                    container.querySelectorAll('img').forEach((img) => { if (!img.complete) img.addEventListener('load', () => { if (this._chatNearBottom()) this._chatToBottom(false); }, { once: true }); });
+                } else if (added) {
+                    if (near || mineAdded) requestAnimationFrame(() => this._chatToBottom(true));
+                    else this._chatNewPill();
+                }
             },
 
             toggleMessageActions(msgId) {

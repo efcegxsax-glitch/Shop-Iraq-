@@ -90,9 +90,11 @@
         },
         stop() {
             if (this.timer) { clearInterval(this.timer); this.timer = null; }
+            if (this.inCall && this.ctx) { try { this.ctx.close(); } catch (e) {} this.ctx = null; }
             if (navigator.vibrate) try { navigator.vibrate(0); } catch (e) {}
         },
         blip(freqs) {
+            if (this.inCall) { if (navigator.vibrate) try { navigator.vibrate(freqs.length > 2 ? [60, 60, 60] : 40); } catch (e) {} return; }
             try {
                 const AC = window.AudioContext || window.webkitAudioContext;
                 this.ctx = this.ctx || new AC();
@@ -268,7 +270,7 @@
                 return await navigator.mediaDevices.getUserMedia({
                     audio: {
                         echoCancellation: { ideal: true }, noiseSuppression: { ideal: true }, autoGainControl: { ideal: true },
-                        channelCount: { ideal: 1 }, sampleRate: { ideal: 48000 }, sampleSize: { ideal: 16 }, latency: { ideal: 0.01 },
+                        channelCount: { ideal: 1 },
                         // Chrome: the stronger voice-processing variants
                         googEchoCancellation: true, googNoiseSuppression: true, googHighpassFilter: true, googAutoGainControl: true,
                     },
@@ -318,8 +320,11 @@
                 const tr = pc.getTransceivers()[0];
                 const caps = RTCRtpSender.getCapabilities && RTCRtpSender.getCapabilities('audio');
                 if (tr && caps && tr.setCodecPreferences) {
+                    // RED first: every packet also carries the one before it, so a lost packet on a
+                    // shaky Wi-Fi is filled in instead of heard as a cut; then plain Opus
+                    const red = caps.codecs.filter((x) => /audio\/red/i.test(x.mimeType));
                     const opus = caps.codecs.filter((x) => /opus/i.test(x.mimeType));
-                    if (opus.length) tr.setCodecPreferences(opus.concat(caps.codecs.filter((x) => !/opus/i.test(x.mimeType))));
+                    if (opus.length) tr.setCodecPreferences(red.concat(opus, caps.codecs.filter((x) => !/opus|audio\/red/i.test(x.mimeType))));
                 }
             } catch (e) {}
             pc.onicecandidate = (ev) => {
@@ -335,7 +340,7 @@
                 }
                 a.srcObject = ev.streams[0] || new MediaStream([ev.track]);
                 a.play().catch(() => {});
-                try { if ('jitterBufferTarget' in ev.receiver) ev.receiver.jitterBufferTarget = 60; } catch (e) {}
+                try { if ('jitterBufferTarget' in ev.receiver) ev.receiver.jitterBufferTarget = 120; } catch (e) {}
             };
             pc.onconnectionstatechange = () => this._clNet(c);
             pc.oniceconnectionstatechange = () => this._clNet(c);
@@ -428,12 +433,13 @@
                         // drop of the database connection no longer ends a call that still works
                         (c.disc || []).forEach((d) => { try { d.cancel(); } catch (e) {} });
                         if (c.connT) { clearTimeout(c.connT); c.connT = null; }
+                        tone.inCall = true;
                         tone.stop();
                         tone.blip([880, 1175]);
                         this._clSenderTune(c);
                         safetyCode(c.pc.localDescription && c.pc.localDescription.sdp, c.pc.remoteDescription && c.pc.remoteDescription.sdp).then((code) => { c.code = code; if (this._cl === c) this._clRender(); });
                         c.tickT = setInterval(() => this._clTick(c), 1000);
-                        c.statT = setInterval(() => this._clStats(c), 1000);
+                        c.statT = setInterval(() => this._clStats(c), 400);
                     }
                     this._clRender();
                 }
@@ -522,6 +528,8 @@
                     if (r.type === 'candidate-pair' && r.selected) rtt = r.currentRoundTripTime || rtt;
                 });
             } catch (e) { return; }
+            c.lossA = (c.lossA || 0) * 0.85 + loss * 0.15;
+            loss = c.lossA;
             const q = loss > 0.08 || rtt > 0.6 || jit > 0.08 ? 1 : loss > 0.02 || rtt > 0.3 || jit > 0.04 ? 2 : 3;
             const orb = document.getElementById('clOrb');
             if (orb) {
@@ -546,6 +554,7 @@
             if (why === 'end' && remote && c.st === 'in') why = 'miss';
             this._cl = null;
             tone.stop();
+            tone.inCall = false;
             [c.ringT, c.restartT, c.connT].forEach((t) => t && clearTimeout(t));
             if (c.onHide) window.removeEventListener('pagehide', c.onHide);
             [c.tickT, c.statT].forEach((t) => t && clearInterval(t));
@@ -607,17 +616,20 @@
                 box = document.createElement('div');
                 box.id = 'clCall';
                 box.className = 'cl-call';
+                // the moving background is made once, so redraws never restart it
+                box.innerHTML = '<div class="cl-bg"><span></span><span></span><span></span></div><div class="cl-in"></div>';
                 document.body.appendChild(box);
             }
             box.classList.remove('cl-hide', 'cl-bye');
+            // buttons slide in only when the call moves to a new stage, not on every redraw
+            box.classList.toggle('cl-enter', box.dataset.st !== c.st);
             const av = personAvatarSrc(c.other.avatar, c.other.name);
             const ringing = c.st === 'out' || c.st === 'in';
             const status = { out: 'جاي يرن...', in: 'مكالمة صوتية واردة', connecting: 'جاي يتصل...', on: mmss(c.secs), reconnect: 'جاي يرجع الاتصال...' }[c.st] || '';
             const left = BLOCK_S - (c.secs % BLOCK_S);
             const canSpk = c.audio && typeof c.audio.setSinkId === 'function';
             box.dataset.st = c.st;
-            box.innerHTML = `
-                <div class="cl-bg"><span></span><span></span><span></span></div>
+            box.querySelector('.cl-in').innerHTML = `
                 <div class="cl-top">
                     ${c.st !== 'in' ? `<button class="cl-ic" onclick="app.clMin()" aria-label="تصغير"><i data-lucide="chevron-down" class="w-6 h-6"></i></button>` : '<span></span>'}
                     <button class="cl-lock" onclick="app.clCode()"><i data-lucide="lock" class="w-3.5 h-3.5"></i> مشفّرة بين الطرفين</button>
