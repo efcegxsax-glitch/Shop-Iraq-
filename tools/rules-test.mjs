@@ -224,6 +224,29 @@ await no('kicked student rejoins', set(ref(db('m1'), 'ytRooms/r1/members/m1'), {
 await no('member closes room', set(ref(db('m2'), 'ytRooms/r1'), null));
 await ok('host closes room', set(ref(db('h1'), 'ytRooms/r1'), null));
 
+// students' map
+const TS = { '.sv': 'timestamp' };
+await ok('student joins the map', update(ref(db('s1'), 'studentMap/s1'), { g: 'بغداد', t: TS, m: 'happy', d: '2026-09-29' }));
+await no('unknown governorate', update(ref(db('s2'), 'studentMap/s2'), { g: 'لندن', t: TS }));
+await no('unknown mood', update(ref(db('s1'), 'studentMap/s1'), { m: 'x' }));
+await no('extra field', update(ref(db('s1'), 'studentMap/s1'), { name: 'Ali' }));
+await no('writes another student', update(ref(db('s1'), 'studentMap/s9'), { g: 'بغداد', t: TS }));
+await ok('student reads the map', get(ref(db('s2'), 'studentMap')));
+await no('guest reads the map', get(ref(db(null), 'studentMap')));
+await ok('reaction from my governorate', U('s1', { 'mapReacts/a1': { u: 's1', g: 'بغداد', e: 'heart', t: TS }, 'studentMap/s1/r': TS }));
+await no('reaction again at once', U('s1', { 'mapReacts/a2': { u: 's1', g: 'بغداد', e: 'fire', t: TS }, 'studentMap/s1/r': TS }));
+await no('reaction without moving r', set(ref(db('s1'), 'mapReacts/a3'), { u: 's1', g: 'بغداد', e: 'heart', t: TS }));
+await ok('student 3 joins', update(ref(db('s3'), 'studentMap/s3'), { g: 'البصرة', t: TS }));
+await no('reaction from another governorate', U('s3', { 'mapReacts/a4': { u: 's3', g: 'بغداد', e: 'heart', t: TS }, 'studentMap/s3/r': TS }));
+await no('reaction as someone else', U('s3', { 'mapReacts/a5': { u: 's1', g: 'البصرة', e: 'heart', t: TS }, 'studentMap/s3/r': TS }));
+await no('unknown reaction', U('s3', { 'mapReacts/a6': { u: 's3', g: 'البصرة', e: 'bomb', t: TS }, 'studentMap/s3/r': TS }));
+await no('reaction with a message', U('s3', { 'mapReacts/a7': { u: 's3', g: 'البصرة', e: 'heart', t: TS, x: 'hi' }, 'studentMap/s3/r': TS }));
+await ok('reaction from Basra', U('s3', { 'mapReacts/a8': { u: 's3', g: 'البصرة', e: 'laugh', t: TS }, 'studentMap/s3/r': TS }));
+await no('clears a fresh reaction', set(ref(db('s1'), 'mapReacts/a8'), null));
+await seed('mapReacts/old', { u: 's3', g: 'البصرة', e: 'laugh', t: now - 120000 });
+await ok('clears an old reaction', set(ref(db('s1'), 'mapReacts/old'), null));
+await ok('student reads reactions', get(ref(db('s2'), 'mapReacts')));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

@@ -1082,6 +1082,7 @@
                     this.listenForOwnUserRecord();
                     this.checkDailyStreak();
                     this._ttNudgeSoon();
+                    this._smPing();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -2149,6 +2150,7 @@
                     this.syncNativePush();
                     this.checkDailyStreak();
                     this._ttNudgeSoon();
+                    this._smPing();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -3490,6 +3492,36 @@
                     })().catch(() => { this._ttActP = null; });
                 }
                 return this._ttActP.then(() => ({ activity: monthlyActivity, exams: examSchedule.slice(), grades: this._gradesLoad() }));
+            },
+
+            // ===== خارطة الطلاب: students per governorate, today's moods, floating reactions (js/moodmap.js) =====
+            goToMoodMap() {
+                this.switchView('moodMapView');
+                if (typeof this.mmOpen !== 'function' || typeof IRAQ_GEO === 'undefined') {
+                    this._need('maps').then(() => this._need('moodmap')).then(() => { if (this.currentView === 'moodMapView') this.mmOpen(); })
+                        .catch(() => this.showToast('ما انحملت الخارطة، تأكد من النت وحاول مرة ثانية'));
+                    return;
+                }
+                this.mmOpen();
+            },
+
+            // studentMap/{uid}: the student's governorate and today's mood, for the students' map.
+            // Once a day on its own; `force` after a change or while the map is open.
+            _smPing(force) {
+                if (!window.firebaseDb || !this.authUid) return Promise.resolve();
+                const g = this._myGov();
+                if (!g) return Promise.resolve();
+                const today = this.localDateStr(), k = 'isp_sm_' + this.authUid;
+                let last = '';
+                try { last = localStorage.getItem(k) || ''; } catch (e) {}
+                if (!force && last === today + '|' + g) return Promise.resolve();
+                const mood = this._moodsLoad()[today];
+                const { ref, update, serverTimestamp } = window.firebaseDbHelpers;
+                const o = { g, t: serverTimestamp() };
+                if (mood) { o.m = mood; o.d = today; }
+                return update(ref(window.firebaseDb, 'studentMap/' + this.authUid), o)
+                    .then(() => { try { localStorage.setItem(k, today + '|' + g); } catch (e) {} })
+                    .catch((e) => console.warn('Students map update failed:', e));
             },
 
             // ===== شجرتي: a solo focus timer with a 3D tree (js/gardenui.js + js/garden.js) =====
@@ -5981,6 +6013,7 @@
                     update(ref(window.firebaseDb, 'users/' + this.authUid + '/moods'), { [today]: k }).catch((e) => console.warn('Mood save failed:', e));
                 }
                 this._moodEditing = false;
+                this._smPing(true);
                 this.renderMood();
             },
 
@@ -7083,6 +7116,7 @@
                 { id: 'garden', fn: 'goToGarden', t: 'شجرتي', d: 'ازرع بذرة وادرس لحد ما تثمر', ic: 'sprout', c: '#15803D', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
+                { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
@@ -7107,7 +7141,7 @@
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
             MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
-            MORE_DEFAULT_FAVS: ['garden', 'uni', 'bio', 'forest'],
+            MORE_DEFAULT_FAVS: ['moodmap', 'garden', 'uni', 'bio'],
 
             _moreState() {
                 if (this._mr) return this._mr;
@@ -12708,6 +12742,7 @@
                 if (this._garden && viewId !== 'gardenView' && this.gdFail) this.gdFail('طلعت من صفحة شجرتي', true);
                 if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
                 if (this.currentView === 'tutorView' && viewId !== 'tutorView' && this.tutorClose) this.tutorClose();
+                if (this.currentView === 'moodMapView' && viewId !== 'moodMapView' && this.mmClose) this.mmClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }

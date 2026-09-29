@@ -124,6 +124,9 @@ def own_write(extra=None):
 
 public_admin = {".read": True, ".write": ADMIN}
 
+# the 19 governorates, as a rules regular expression
+GOV_RE = "/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/"
+
 # YouTube rooms, from a node under ytRooms/$rid
 YR_HOST = "(auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid)"
 YR_MEMBER = "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"
@@ -419,6 +422,39 @@ rules = {
     },
     "polls": {".read": True, ".write": ADMIN, "$pid": {"counts": {"$i": {".write": True, ".validate": counter()}}}},
     "pollVotes": {"$pid": {"$voter": {".read": True, ".write": "!data.exists() && ($voter.beginsWith('d_') || (auth != null && auth.uid == $voter))", ".validate": "newData.isNumber()"}}},
+
+    # ----- the students' map: each student's governorate and today's mood, and reactions that
+    # float up from a governorate for a moment. A reaction comes from the sender's own
+    # governorate, at most one every 2.5 seconds (studentMap/{uid}/r moves on in the same write),
+    # and anyone may clear reactions older than a minute.
+    "studentMap": {
+        ".read": SIGNED,
+        "$uid": {
+            ".write": ors(OWNER, ADMIN),
+            ".validate": "newData.hasChildren(['g', 't'])",
+            "g": {".validate": "newData.isString() && newData.val().matches(" + GOV_RE + ")"},
+            "t": {".validate": "newData.isNumber() && newData.val() <= now + 60000"},
+            "m": {".validate": "newData.isString() && newData.val().matches(/^(happy|ok|tired|stress)$/)"},
+            "d": {".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"},
+            "r": {".validate": "newData.val() === now && (!data.exists() || now - data.val() >= 2500)"},
+            "$other": {".validate": False},
+        },
+    },
+    "mapReacts": {
+        ".read": SIGNED,
+        ".indexOn": ["t"],
+        "$k": {
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid"),
+                          ands(SIGNED, "!newData.exists()", "data.child('t').val() < now - 60000")),
+            ".validate": "!newData.exists() || (" + ands(
+                "newData.hasChildren(['u', 'g', 'e', 't'])",
+                "newData.child('t').val() === now",
+                "newData.child('e').isString() && newData.child('e').val().matches(/^(heart|laugh|fire|party|sad|angry|tired|support)$/)",
+                "newData.child('g').val() === newData.parent().parent().child('studentMap/' + auth.uid + '/g').val()",
+                "newData.parent().parent().child('studentMap/' + auth.uid + '/r').val() === now") + ")",
+            "$other": {".validate": "$other == 'u' || $other == 'g' || $other == 'e' || $other == 't'"},
+        },
+    },
 
     # ----- usage numbers and error reports (also before signing in) -----
     "devices": {"$id": {".write": True, ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"}},
