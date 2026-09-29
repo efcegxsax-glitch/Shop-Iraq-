@@ -120,8 +120,107 @@
         kdBack() {
             const s = this._kdScr ? this._kdScr.s : 'home';
             if (s === 'review' || s === 'done') { const from = this._kdScr.from; this._kdEndReview(); this._kdScr = from ? { s: 'deck', id: from } : { s: 'home' }; this._kdRender(); return; }
+            if (s === 'snap') { const from = this._kdScr.from; this._kdScr = from ? { s: 'deck', id: from } : { s: 'home' }; this._kdRender(); return; }
             if (s === 'deck') { this._kdScr = { s: 'home' }; this._kdRender(); return; }
             this.goBack();
+        },
+
+        // ---------- a page photographed into cards, written by the AI tutor (siteConfig/tutorUrl) ----------
+        _kdSnapBtn(deckId) {
+            const c = this.siteConfig || {};
+            if (!/^https:\/\/[^\s]+$/.test(String(c.tutorUrl || ''))) return '';
+            return `<button class="kd-snap" onclick="app.kdSnap(${deckId ? jsArg(deckId) : 'null'})"><span><i data-lucide="camera"></i></span><div><b>صوّر صفحة وحوّلها بطاقات</b><small>المعلم الذكي يقرا الملزمة ويكتب البطاقات</small></div><i data-lucide="sparkles"></i></button>`;
+        },
+
+        kdSnap(deckId) {
+            if (!this.isLoggedIn || !window.firebaseAuth || !window.firebaseAuth.currentUser) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+            const inp = document.createElement('input');
+            inp.type = 'file'; inp.accept = 'image/*';
+            inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) this._kdSnapRun(f, deckId); };
+            inp.click();
+        },
+
+        async _kdSnapRun(file, deckId) {
+            if (!/^image\//.test(file.type)) { this.showToast('اختار صورة'); return; }
+            const deck = deckId || (this._kdScr && this._kdScr.id) || '';
+            const scr = this._kdScr = { s: 'snap', from: deckId || null, deck, busy: true, cards: [], pick: [] };
+            try {
+                scr.img = await new Promise((resolve, reject) => {
+                    const url = URL.createObjectURL(file), im = new Image();
+                    im.onload = () => {
+                        const k = Math.min(1, 1600 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+                        c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+                        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.drawImage(im, 0, 0, c.width, c.height);
+                        URL.revokeObjectURL(url);
+                        resolve(c.toDataURL('image/jpeg', 0.85));
+                    };
+                    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+                    im.src = url;
+                });
+            } catch (e) { this.showToast('ما كدرت أقرا الصورة'); this.kdBack(); return; }
+            this._kdRender();
+            const k = this._kdDeck(deck);
+            try {
+                const token = await window.firebaseAuth.currentUser.getIdToken();
+                const res = await fetch(this.siteConfig.tutorUrl, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+                    body: JSON.stringify({ mode: 'cards', image: { type: 'image/jpeg', data: scr.img.split(',')[1] }, subject: k ? k.name : '' }),
+                });
+                const r = await res.json().catch(() => null);
+                if (!res.ok || !r) throw Object.assign(new Error('http'), { status: res.status, code: r && r.error });
+                scr.cards = (r.cards || []).filter((c) => c && c.q && c.a);
+                scr.title = r.title || '';
+                scr.pick = scr.cards.map(() => true);
+                if (!scr.cards.length) scr.err = 'ما لكيت بالصورة شي أسويه بطاقات. صوّر الصفحة من قريب وبإضاءة زينة.';
+            } catch (e) {
+                scr.err = e.status === 429 || e.code === 'slow_down' ? 'على كيفك، انتظر دقيقة وجرب مرة ثانية.'
+                    : e.code === 'busy' ? 'المعلم مشغول هسه، جرب بعد دقيقة.'
+                    : !navigator.onLine ? 'ماكو نت، تأكد من الاتصال.' : 'ما كدرت أسوي البطاقات، جرب مرة ثانية.';
+            }
+            scr.busy = false;
+            if (this._kdScr === scr) this._kdRender();
+        },
+
+        _kdRenderSnap(box, scr) {
+            const decks = this._kdDecks(), n = scr.pick.filter(Boolean).length;
+            this._kdTitle('صوّر وحوّلها بطاقات', scr.busy ? 'المعلم دا يقرا الصفحة...' : scr.cards.length ? scr.cards.length + ' بطاقة' : '');
+            box.innerHTML = `<div class="kd kd-in kd-snapv">
+                ${scr.img ? `<img class="kd-snap-img" src="${scr.img}" alt="">` : ''}
+                ${scr.busy ? `<div class="kd-snap-busy"><span></span><b>المعلم دا يقرا الصفحة ويكتب البطاقات...</b><small>تاخذ ثواني</small></div>`
+                    : scr.err ? `<div class="kd-snap-busy err"><b>${esc(scr.err)}</b><button class="kd-go" onclick="app.kdSnap(${scr.from ? jsArg(scr.from) : 'null'})"><i data-lucide="camera"></i>صوّر مرة ثانية</button></div>`
+                    : `${scr.title ? `<p class="kd-snap-t">${esc(scr.title)}</p>` : ''}
+                    <div class="kd-snap-list">${scr.cards.map((c, i) => `<button class="kd-snap-card ${scr.pick[i] ? 'on' : ''}" onclick="app.kdSnapPick(${i})">
+                        <span class="kd-snap-chk"><i data-lucide="${scr.pick[i] ? 'check' : 'plus'}"></i></span>
+                        <div><b dir="auto">${esc(c.q)}</b><small dir="auto">${esc(c.a)}</small></div></button>`).join('')}</div>
+                    <label class="kd-snap-deck">تنضاف لمجموعة
+                        <select onchange="app._kdScr.deck = this.value">${decks.map((k) => `<option value="${esc(k.id)}" ${k.id === scr.deck ? 'selected' : ''}>${esc(k.name)}</option>`).join('')}</select></label>
+                    <button class="kd-go" ${n ? '' : 'disabled'} onclick="app.kdSnapSave()"><i data-lucide="check"></i>أضف ${n} ${n === 1 ? 'بطاقة' : 'بطاقات'}</button>`}
+            </div>`;
+            if (!scr.busy && !scr.err && !decks.some((k) => k.id === scr.deck)) scr.deck = decks[0] ? decks[0].id : '';
+        },
+
+        kdSnapPick(i) {
+            const scr = this._kdScr;
+            if (!scr || scr.s !== 'snap') return;
+            scr.pick[i] = !scr.pick[i];
+            const y = window.scrollY;
+            this._kdRender();
+            window.scrollTo(0, y);
+        },
+
+        kdSnapSave() {
+            const scr = this._kdScr, d = this._kdLoad(), now = Date.now(), up = {};
+            if (!scr || !scr.deck || !this._kdDeck(scr.deck)) { this.showToast('اختار المجموعة'); return; }
+            let n = 0;
+            scr.cards.forEach((c, i) => {
+                if (!scr.pick[i]) return;
+                const card = { id: newId('c'), d: scr.deck, f: String(c.q).slice(0, 300), b: String(c.a).slice(0, 600), box: 0, due: now, n: 0, ok: 0, bad: 0, at: now + n, u: now };
+                d.cards[card.id] = card; up['cards/' + card.id] = card; n++;
+            });
+            this._kdSave(up);
+            this.showToast('انضافت ' + n + (n === 1 ? ' بطاقة' : ' بطاقات'));
+            this._kdScr = { s: 'deck', id: scr.deck, q: '' };
+            this._kdRender();
         },
 
         kdOpenDeck(id) { this._kdScr = { s: 'deck', id, q: '' }; this._kdRender(); },
@@ -137,7 +236,8 @@
             if (!box) return;
             const scr = this._kdScr || { s: 'home' };
             document.body.classList.toggle('kd-reviewing', scr.s === 'review');
-            if (scr.s === 'deck') this._kdRenderDeck(box, scr);
+            if (scr.s === 'snap') this._kdRenderSnap(box, scr);
+            else if (scr.s === 'deck') this._kdRenderDeck(box, scr);
             else if (scr.s === 'review') this._kdRenderReview(box);
             else if (scr.s === 'done') this._kdRenderDone(box);
             else this._kdRenderHome(box);
@@ -163,6 +263,7 @@
                         </div>
                     </div>
                     <button class="kd-go" ${due ? '' : 'disabled'} onclick="app.kdStart(null)"><i data-lucide="play"></i>${due ? 'راجع كل البطاقات المستحقة' : 'ماكو بطاقات مستحقة هسه'}</button>
+                    ${this._kdSnapBtn(null)}
                     <div class="kd-sec"><b>المواد</b><button onclick="app.kdNewDeck()"><i data-lucide="folder-plus"></i>مجموعة جديدة</button></div>
                     <div class="kd-grid">
                         ${decks.map((k, i) => {
@@ -215,6 +316,7 @@
                         <button class="kd-go ghost" ${all.length ? '' : 'disabled'} onclick="app.kdStart(${jsArg(k.id)}, true)"><i data-lucide="shuffle"></i>كلها</button>
                     </div>
                     ${all.length > 5 ? `<label class="kd-search"><i data-lucide="search"></i><input type="search" placeholder="دوّر بالبطاقات" value="${esc(scr.q || '')}" oninput="app.kdFilter(this.value)"></label>` : ''}
+                    ${this._kdSnapBtn(k.id)}
                     <div class="kd-list" id="kdList">${this._kdListHtml(all, scr.q)}</div>
                 </div>
                 <button class="kd-fab" style="--c:${k.color}" onclick="app.kdEdit(null, ${jsArg(k.id)})" aria-label="بطاقة جديدة"><i data-lucide="plus"></i></button>`;
