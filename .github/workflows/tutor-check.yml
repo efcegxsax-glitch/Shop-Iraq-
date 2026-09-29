@@ -1,0 +1,30 @@
+# Checks the AI tutor from outside, by hand from the Actions tab: can the Worker be reached from
+# the app's sites (CORS), does it refuse a request without sign-in, and does the Gemini key work
+# with the model the Worker uses. Prints status codes and error messages only, never the keys.
+name: Check AI tutor
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      URL: https://isp-tutor.efceg-xsax.workers.dev/
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    steps:
+      - name: Worker from the app's sites
+        run: |
+          for o in https://efcegxsax-glitch.github.io https://iraqi-student-platform-9918d.web.app; do
+            echo "== preflight from $o"
+            curl -s -o /dev/null -D - -X OPTIONS "$URL" -H "Origin: $o" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: authorization,content-type" | grep -i -E "^HTTP|access-control-allow-origin" || true
+          done
+          echo "== request without sign-in (expect 401)"
+          curl -s -w "\nHTTP %{http_code}\n" -X POST "$URL" -H "Origin: https://efcegxsax-glitch.github.io" -H "Content-Type: application/json" -d '{}' || true
+      - name: Gemini key and model
+        run: |
+          for m in gemini-flash-latest gemini-2.5-flash; do
+            echo "== $m"
+            curl -s -w "\nHTTP %{http_code}\n" "https://generativelanguage.googleapis.com/v1beta/models/$m:generateContent" \
+              -H "x-goog-api-key: $GEMINI_API_KEY" -H "Content-Type: application/json" \
+              -d '{"contents":[{"parts":[{"text":"say ok"}]}],"generationConfig":{"maxOutputTokens":20}}' \
+              | python3 -c "import sys,json; t=sys.stdin.read(); b,_,c=t.rpartition('\nHTTP '); d=json.loads(b or '{}'); print('HTTP', c.strip()); print('error:', (d.get('error') or {}).get('status'), (d.get('error') or {}).get('message','')[:300]); print('text:', ''.join(p.get('text','') for p in (((d.get('candidates') or [{}])[0].get('content') or {}).get('parts') or []))[:80])"
+          done

@@ -221,7 +221,8 @@
                 : c === 'busy' ? 'المعلم مشغول هسه، حاول بعد دقيقة.'
                 : c === 'key' ? 'المعلم بعده ما مضبوط، بلّغ الإدارة.'
                 : !navigator.onLine ? 'ماكو نت، تأكد من الاتصال.'
-                : 'صار خلل، حاول مرة ثانية.';
+                // the code helps find the cause when a student reports it
+                : 'صار خلل، حاول مرة ثانية. (' + (c || s || (e.name === 'TypeError' ? 'net' : 'x')) + ')';
         },
 
         // a JSON request to the tutor's server (quiz, nudge)
