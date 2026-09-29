@@ -263,6 +263,23 @@ rules = {
         },
     },
 
+    # ----- the store: categories and products the admin publishes from the panel. A product's
+    # small picture is inside it (shop/items); the full one is in shop/imgs, read when opened.
+    "shop": {
+        ".read": True,
+        ".write": ADMIN,
+        "cats": {"$id": {".validate": ands("newData.hasChildren(['n'])", s_max("newData.child('n')", 40), "newData.child('n').val().length > 0")}},
+        "items": {"$id": {
+            ".validate": ands("newData.hasChildren(['n', 'cat', 'img'])", s_max("newData.child('n')", 80), "newData.child('n').val().length > 0",
+                              s_max("newData.child('cat')", 40), s_max("newData.child('img')", 400000)),
+            "d": {".validate": s_max("newData", 800)},
+            "price": {".validate": s_max("newData", 40)},
+            "tt": {".validate": s_max("newData", 300) + " && newData.val().matches(/^https:\\/\\/([a-z0-9-]+\\.)?tiktok\\.com\\//)"},
+            "buy": {".validate": s_max("newData", 300) + " && newData.val().matches(/^https:\\/\\//)"},
+        }},
+        "imgs": {"$id": {".validate": s_max("newData", 3000000)}},
+    },
+
     # ----- store -----
     "stores": {".read": True, "$uid": {".write": ors(OWNER, ADMIN)}},
     "storeProducts": {

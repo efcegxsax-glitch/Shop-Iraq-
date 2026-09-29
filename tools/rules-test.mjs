@@ -247,6 +247,19 @@ await seed('mapReacts/old', { u: 's3', g: 'البصرة', e: 'laugh', t: now - 1
 await ok('clears an old reaction', set(ref(db('s1'), 'mapReacts/old'), null));
 await ok('student reads reactions', get(ref(db('s2'), 'mapReacts')));
 
+// store
+await ok('admin adds a category', set(ref(db('adm'), 'shop/cats/c1'), { n: 'قرطاسية', o: 1 }));
+await no('student adds a category', set(ref(db('u1'), 'shop/cats/c2'), { n: 'x', o: 2 }));
+await no('category without a name', set(ref(db('adm'), 'shop/cats/c3'), { n: '', o: 3 }));
+await ok('admin publishes a product', update(ref(db('adm')), { 'shop/items/p1': { n: 'دفتر', d: 'دفتر 100 ورقة', cat: 'c1', img: 'data:image/jpeg;base64,AAAA', price: '2,000 دينار', tt: 'https://www.tiktok.com/@shop/video/123', buy: 'https://wa.me/964000', at: now }, 'shop/imgs/p1': 'data:image/jpeg;base64,BBBB' }));
+await ok('short TikTok link', set(ref(db('adm'), 'shop/items/p2'), { n: 'قلم', cat: 'c1', img: 'https://example.com/a.jpg', tt: 'https://vm.tiktok.com/ZMabc/' }));
+await no('video link from another site', set(ref(db('adm'), 'shop/items/p3'), { n: 'قلم', cat: 'c1', img: 'x', tt: 'https://evil.com/tiktok.com/' }));
+await no('buy link not https', set(ref(db('adm'), 'shop/items/p4'), { n: 'قلم', cat: 'c1', img: 'x', buy: 'javascript:alert(1)' }));
+await no('product without a picture', set(ref(db('adm'), 'shop/items/p5'), { n: 'قلم', cat: 'c1' }));
+await no('student publishes a product', set(ref(db('u1'), 'shop/items/p6'), { n: 'قلم', cat: 'c1', img: 'x' }));
+await no('student edits a product', set(ref(db('u1'), 'shop/items/p1/price'), '1 دينار'));
+await ok('guest reads the store', get(ref(db(null), 'shop')));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

@@ -129,6 +129,10 @@
 
         .row-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font-size: 13px; }
         .row-item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .shp-pic { display: grid; place-items: center; width: 100%; min-height: 150px; border-radius: 14px; border: 1.5px dashed var(--border); background: #0F172A; color: var(--text); font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; overflow: hidden; padding: 0; }
+        .shp-pic span { opacity: .7; }
+        .shp-pic.has { border-style: solid; background: #fff; }
+        .shp-pic img { display: block; max-width: 100%; max-height: 320px; object-fit: contain; }
         .row-item .del, .pl-row .del, .err-row .del { margin-inline-start: auto; background: var(--danger); color: #fff; border: none; border-radius: 8px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; flex-shrink: 0; }
 
         #toast { position: fixed; bottom: 20px; right: 20px; left: 20px; max-width: 420px; margin: 0 auto; background: var(--success); color: #fff; padding: 12px 16px; border-radius: 12px; font-weight: 700; text-align: center; display: none; z-index: 99; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
@@ -1061,8 +1065,50 @@
             <div id="sec-store" class="hidden">
                 <div class="card">
                     <div class="card-head">
+                        <div class="ic"><i data-lucide="layout-grid"></i></div>
+                        <div><h3>أقسام المتجر</h3><p>كل قسم يطلع للطلاب بعنوان، ومنتجاته تحته بأعمدة</p></div>
+                    </div>
+                    <div class="field" style="display:flex;gap:8px;">
+                        <input type="text" id="shc_name" maxlength="40" placeholder="اسم القسم، مثلاً: قرطاسية">
+                        <button class="btn-sm" id="shc_add" style="padding:10px 18px;">إضافة</button>
+                    </div>
+                    <div id="shcList"></div>
+                </div>
+                <div class="card" id="shpCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="package-plus"></i></div>
+                        <div><h3 id="shp_title">منتج جديد</h3><p>الصورة تنضغط وحدها بدون ما تخرب، وتطلع واضحة للطلاب</p></div>
+                    </div>
+                    <div class="field">
+                        <label>صورة المنتج *</label>
+                        <button type="button" class="shp-pic" id="shp_pic"><span>اضغط واختار صورة المنتج</span></button>
+                        <input type="file" id="shp_file" accept="image/*" hidden>
+                        <input type="text" id="shp_url" dir="ltr" placeholder="أو الصق رابط صورة يبدي بـ https://" style="margin-top:8px;">
+                    </div>
+                    <div class="field"><label>اسم المنتج *</label><input type="text" id="shp_name" maxlength="80" placeholder="مثلاً: دفتر سلك 200 ورقة"></div>
+                    <div class="field"><label>شرح بسيط</label><textarea id="shp_desc" maxlength="800" rows="3" placeholder="شنو المنتج وشنو يميزه"></textarea></div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field"><label>القسم *</label><select id="shp_cat"></select></div>
+                        <div class="field"><label>السعر (اختياري)</label><input type="text" id="shp_price" maxlength="40" placeholder="مثلاً: 5,000 دينار"></div>
+                    </div>
+                    <div class="field"><label>رابط فيديو المنتج على تيك توك (اختياري)</label><input type="text" id="shp_tt" dir="ltr" maxlength="300" placeholder="https://www.tiktok.com/@.../video/..."></div>
+                    <div class="field"><label>رابط الطلب (اختياري)</label><input type="text" id="shp_buy" dir="ltr" maxlength="300" placeholder="واتساب أو انستغرام، مثلاً https://wa.me/9647..."></div>
+                    <label class="ds-chk"><input type="checkbox" id="shp_hide"><span>مخفي (ما يطلع للطلاب)</span></label>
+                    <button class="btn mt-4" id="shp_save">نشر المنتج</button>
+                    <button class="btn-sm" id="shp_cancel" style="display:none;width:100%;margin-top:8px;padding:10px;">إلغاء التعديل</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="package"></i></div>
+                        <div><h3>منتجات المتجر</h3><p id="shpCount"></p></div>
+                    </div>
+                    <select id="shp_filter" style="margin-bottom:12px;"></select>
+                    <div id="shpList"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
                         <div class="ic"><i data-lucide="store"></i></div>
-                        <div><h3>طلبات فتح المتاجر</h3></div>
+                        <div><h3>طلبات فتح المتاجر (النظام القديم)</h3></div>
                     </div>
                     <div class="subtabs">
                         <button class="subtab active" data-ssf="pending" onclick="setStoreSubFilter('pending')">قيد المراجعة</button>
@@ -1074,7 +1120,7 @@
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="package"></i></div>
-                        <div><h3>منتجات المتاجر (ريلز)</h3></div>
+                        <div><h3>منتجات المتاجر (النظام القديم)</h3></div>
                     </div>
                     <div class="subtabs">
                         <button class="subtab active" data-spf="pending" onclick="setProductSubFilter('pending')">قيد المراجعة</button>
@@ -2783,6 +2829,198 @@
             btn.disabled = false;
         }
 
+        // ---------- the store: categories (shop/cats) and products (shop/items, full pictures in shop/imgs) ----------
+        let shopCats = [], shopItems = [], shpEdit = null, shpImg = null;
+        const SHP_TT = /^https:\/\/([a-z0-9-]+\.)?tiktok\.com\/[^\s"'<>]+$/i, SHP_HTTPS = /^https:\/\/[^\s"'<>]+$/i;
+        const shpImgSrc = (u) => (/^data:image\/(jpeg|png|webp);base64,/.test(String(u || '')) || SHP_HTTPS.test(String(u || '')) ? u : '');
+
+        // a picture made smaller as JPEG on a white background (transparent PNGs stay clean)
+        function shrinkPic(file, max, q) {
+            return new Promise((resolve, reject) => {
+                const url = URL.createObjectURL(file), im = new Image();
+                im.onload = () => {
+                    const k = Math.min(1, max / Math.max(im.width, im.height)), c = document.createElement('canvas');
+                    c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+                    const g = c.getContext('2d');
+                    g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+                    g.imageSmoothingQuality = 'high';
+                    g.drawImage(im, 0, 0, c.width, c.height);
+                    URL.revokeObjectURL(url);
+                    resolve(c.toDataURL('image/jpeg', q));
+                };
+                im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('image')); };
+                im.src = url;
+            });
+        }
+
+        function loadShopAdmin() {
+            onValue(ref(db, 'shop/cats'), (snap) => {
+                const v = snap.val() || {};
+                shopCats = Object.keys(v).filter((k) => v[k] && v[k].n).map((k) => ({ id: k, n: v[k].n, o: Number(v[k].o) || 0 })).sort((a, b) => a.o - b.o);
+                renderShopCats(); renderShopSelects(); renderShopItems();
+            });
+            onValue(ref(db, 'shop/items'), (snap) => {
+                const v = snap.val() || {};
+                shopItems = Object.keys(v).filter((k) => v[k]).map((k) => ({ ...v[k], id: k })).sort((a, b) => (Number(b.at) || 0) - (Number(a.at) || 0));
+                renderShopCats(); renderShopItems();
+            });
+            el('shc_add').addEventListener('click', addShopCat);
+            el('shc_name').addEventListener('keydown', (e) => { if (e.key === 'Enter') addShopCat(); });
+            el('shp_pic').addEventListener('click', () => el('shp_file').click());
+            el('shp_file').addEventListener('change', pickShopPic);
+            el('shp_url').addEventListener('input', () => { if (el('shp_url').value.trim()) { shpImg = null; showShopPic(el('shp_url').value.trim()); } });
+            el('shp_save').addEventListener('click', saveShopItem);
+            el('shp_cancel').addEventListener('click', resetShopForm);
+            el('shp_filter').addEventListener('change', renderShopItems);
+        }
+
+        function renderShopCats() {
+            const box = el('shcList');
+            if (!box) return;
+            box.innerHTML = shopCats.length ? shopCats.map((c, i) => {
+                const n = shopItems.filter((x) => x.cat === c.id).length;
+                return `<div class="row-item"><b style="flex:1;min-width:0;">${escapeHtml(c.n)} <small style="opacity:.6;font-weight:600;">${n} منتج</small></b>
+                    <button class="btn-sm" ${i ? '' : 'disabled'} onclick="moveShopCat(${i}, -1)" aria-label="لفوك">&#9650;</button>
+                    <button class="btn-sm" ${i < shopCats.length - 1 ? '' : 'disabled'} onclick="moveShopCat(${i}, 1)" aria-label="لجوه">&#9660;</button>
+                    <button class="btn-sm" onclick="renameShopCat(${jsArg(c.id)})">تسمية</button>
+                    <button class="del" style="margin-inline-start:0;" onclick="deleteShopCat(${jsArg(c.id)})">حذف</button></div>`;
+            }).join('') : '<p style="opacity:.6;font-size:13px;">ماكو أقسام بعد. ضيف أول قسم حتى تكدر تنشر منتجات.</p>';
+        }
+
+        function renderShopSelects() {
+            const cur = el('shp_cat').value, f = el('shp_filter').value;
+            el('shp_cat').innerHTML = shopCats.length ? shopCats.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.n)}</option>`).join('') : '<option value="">ضيف قسم أول</option>';
+            if (shopCats.some((c) => c.id === cur)) el('shp_cat').value = cur;
+            el('shp_filter').innerHTML = '<option value="">كل الأقسام</option>' + shopCats.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.n)}</option>`).join('');
+            if (shopCats.some((c) => c.id === f)) el('shp_filter').value = f;
+        }
+
+        async function addShopCat() {
+            const n = el('shc_name').value.trim().slice(0, 40);
+            if (!n) { toast('اكتب اسم القسم', false); return; }
+            if (shopCats.some((c) => c.n === n)) { toast('هذا القسم موجود', false); return; }
+            const id = 'c' + Date.now().toString(36);
+            try { await set(ref(db, 'shop/cats/' + id), { n, o: shopCats.length ? Math.max(...shopCats.map((c) => c.o)) + 1 : 1 }); el('shc_name').value = ''; toast('انضاف القسم'); } catch (e) { toast('فشل الحفظ، تأكد إن القواعد منشورة', false); }
+        }
+        window.moveShopCat = async (i, d) => {
+            const a = shopCats[i], b = shopCats[i + d];
+            if (!a || !b) return;
+            const oa = a.o === b.o ? a.o + d : b.o, ob = a.o === b.o ? b.o : a.o;
+            try { await update(ref(db), { ['shop/cats/' + a.id + '/o']: oa, ['shop/cats/' + b.id + '/o']: ob }); } catch (e) { toast('فشل الترتيب', false); }
+        };
+        window.renameShopCat = async (id) => {
+            const c = shopCats.find((x) => x.id === id);
+            const n = await ask({ icon: 'pencil', tone: 'primary', title: 'اسم القسم الجديد', input: c ? c.n : '', ok: 'حفظ' });
+            if (!n) return;
+            try { await set(ref(db, 'shop/cats/' + id + '/n'), n.slice(0, 40)); toast('انحفظ'); } catch (e) { toast('فشل الحفظ', false); }
+        };
+        window.deleteShopCat = async (id) => {
+            const n = shopItems.filter((x) => x.cat === id).length;
+            if (n) { toast('بهذا القسم ' + n + ' منتج، انقلهن أو احذفهن أول', false); return; }
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف القسم؟', ok: 'احذف' }))) return;
+            try { await set(ref(db, 'shop/cats/' + id), null); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
+        function showShopPic(src) {
+            el('shp_pic').innerHTML = src ? `<img src="${escapeHtml(src)}" alt="">` : '<span>اضغط واختار صورة المنتج</span>';
+            el('shp_pic').classList.toggle('has', !!src);
+        }
+        async function pickShopPic() {
+            const f = el('shp_file').files && el('shp_file').files[0];
+            el('shp_file').value = '';
+            if (!f) return;
+            if (!/^image\//.test(f.type)) { toast('اختار صورة', false); return; }
+            try {
+                const [thumb, full] = await Promise.all([shrinkPic(f, 640, 0.84), shrinkPic(f, 1600, 0.86)]);
+                shpImg = { thumb, full };
+                el('shp_url').value = '';
+                showShopPic(thumb);
+            } catch (e) { toast('ما كدرت أقرا الصورة', false); }
+        }
+
+        function resetShopForm() {
+            shpEdit = null; shpImg = null;
+            ['shp_name', 'shp_desc', 'shp_price', 'shp_tt', 'shp_buy', 'shp_url'].forEach((k) => { el(k).value = ''; });
+            el('shp_hide').checked = false;
+            showShopPic('');
+            el('shp_title').textContent = 'منتج جديد';
+            el('shp_save').textContent = 'نشر المنتج';
+            el('shp_cancel').style.display = 'none';
+        }
+
+        window.editShopItem = (id) => {
+            const x = shopItems.find((y) => y.id === id);
+            if (!x) return;
+            shpEdit = id; shpImg = null;
+            el('shp_name').value = x.n || ''; el('shp_desc').value = x.d || ''; el('shp_price').value = x.price || '';
+            el('shp_tt').value = x.tt || ''; el('shp_buy').value = x.buy || ''; el('shp_hide').checked = !!x.h;
+            el('shp_url').value = /^https:/.test(x.img || '') ? x.img : '';
+            if (shopCats.some((c) => c.id === x.cat)) el('shp_cat').value = x.cat;
+            showShopPic(shpImgSrc(x.img));
+            el('shp_title').textContent = 'تعديل: ' + (x.n || '');
+            el('shp_save').textContent = 'حفظ التعديل';
+            el('shp_cancel').style.display = 'block';
+            el('shpCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+
+        async function saveShopItem() {
+            const n = val('shp_name'), cat = el('shp_cat').value, url = val('shp_url'), tt = val('shp_tt'), buy = val('shp_buy');
+            const old = shpEdit ? shopItems.find((y) => y.id === shpEdit) : null;
+            if (!shopCats.length || !cat) { toast('ضيف قسم أول', false); return; }
+            if (!n) { toast('اكتب اسم المنتج', false); return; }
+            if (!shpImg && !url && !(old && old.img)) { toast('اختار صورة للمنتج', false); return; }
+            if (url && !SHP_HTTPS.test(url)) { toast('رابط الصورة لازم يبدي بـ https://', false); return; }
+            if (tt && !SHP_TT.test(tt)) { toast('رابط تيك توك مو صحيح، لازم يبدي بـ https://www.tiktok.com أو https://vm.tiktok.com', false); return; }
+            if (buy && !SHP_HTTPS.test(buy)) { toast('رابط الطلب لازم يبدي بـ https://', false); return; }
+            const id = shpEdit || 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+            const item = { n: n.slice(0, 80), cat, at: old && old.at ? old.at : Date.now(), img: shpImg ? shpImg.thumb : url || old.img };
+            const d = val('shp_desc'), price = val('shp_price');
+            if (d) item.d = d.slice(0, 800);
+            if (price) item.price = price.slice(0, 40);
+            if (tt) item.tt = tt;
+            if (buy) item.buy = buy;
+            if (el('shp_hide').checked) item.h = true;
+            if (old && old.o !== undefined) item.o = old.o;
+            const upd = { ['shop/items/' + id]: item };
+            if (shpImg) upd['shop/imgs/' + id] = shpImg.full;
+            else if (url) upd['shop/imgs/' + id] = null;
+            const btn = el('shp_save');
+            btn.disabled = true;
+            try {
+                await update(ref(db), upd);
+                toast(shpEdit ? 'انحفظ التعديل' : 'انتشر المنتج');
+                resetShopForm();
+            } catch (e) { console.warn(e); toast('فشل النشر، تأكد إن القواعد منشورة', false); }
+            btn.disabled = false;
+        }
+
+        function renderShopItems() {
+            const box = el('shpList');
+            if (!box) return;
+            const f = el('shp_filter').value, list = shopItems.filter((x) => !f || x.cat === f);
+            el('shpCount').textContent = shopItems.length ? shopItems.length + ' منتج' : '';
+            box.innerHTML = list.length ? list.map((x) => {
+                const c = shopCats.find((y) => y.id === x.cat);
+                return `<div class="row-item" style="${x.h ? 'opacity:.55;' : ''}">
+                    <img src="${escapeHtml(shpImgSrc(x.img))}" alt="">
+                    <div style="flex:1;min-width:0;"><b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(x.n)}</b>
+                        <small style="opacity:.65;">${escapeHtml(c ? c.n : 'بدون قسم')}${x.price ? ' · ' + escapeHtml(x.price) : ''}${x.tt ? ' · فيديو' : ''}${x.h ? ' · مخفي' : ''}</small></div>
+                    <button class="btn-sm" onclick="editShopItem(${jsArg(x.id)})">تعديل</button>
+                    <button class="btn-sm" onclick="toggleShopItem(${jsArg(x.id)})">${x.h ? 'إظهار' : 'إخفاء'}</button>
+                    <button class="del" style="margin-inline-start:0;" onclick="deleteShopItem(${jsArg(x.id)})">حذف</button></div>`;
+            }).join('') : '<p style="opacity:.6;font-size:13px;">ماكو منتجات بعد.</p>';
+        }
+        window.toggleShopItem = async (id) => {
+            const x = shopItems.find((y) => y.id === id);
+            if (!x) return;
+            try { await set(ref(db, 'shop/items/' + id + '/h'), x.h ? null : true); toast(x.h ? 'رجع يطلع للطلاب' : 'انخفى عن الطلاب'); } catch (e) { toast('فشل الحفظ', false); }
+        };
+        window.deleteShopItem = async (id) => {
+            const x = shopItems.find((y) => y.id === id);
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف "' + (x ? x.n : '') + '"؟', ok: 'احذف' }))) return;
+            try { await update(ref(db), { ['shop/items/' + id]: null, ['shop/imgs/' + id]: null }); if (shpEdit === id) resetShopForm(); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
             onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
@@ -3166,6 +3404,7 @@
             loadUniAdmin();
             loadYtKey();
             loadTutorUrl();
+            loadShopAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();
