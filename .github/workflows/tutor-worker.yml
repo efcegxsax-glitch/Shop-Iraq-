@@ -1,6 +1,7 @@
 # Deploys the AI tutor's server (tutor-worker/) to Cloudflare Workers whenever it changes,
-# or by hand from the Actions tab. Needs three repository secrets (Settings -> Secrets and
-# variables -> Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, ANTHROPIC_API_KEY.
+# or by hand from the Actions tab. Repository secrets (Settings -> Secrets and variables ->
+# Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, and at least one model key:
+# GEMINI_API_KEY (free tier) or ANTHROPIC_API_KEY. With both, the Worker uses Claude.
 # Until they exist the job skips itself instead of failing.
 name: Deploy AI tutor
 on:
@@ -11,16 +12,17 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
     steps:
       - name: Check the secrets are set
         id: chk
-        env:
-          CF: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          ACC: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          if [ -n "$CF" ] && [ -n "$ACC" ] && [ -n "$KEY" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"
-          else echo "::notice::AI tutor not deployed: add CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and ANTHROPIC_API_KEY to the repository secrets."; fi
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ] && { [ -n "$GEMINI_API_KEY" ] || [ -n "$ANTHROPIC_API_KEY" ]; }; then echo "ok=1" >> "$GITHUB_OUTPUT"
+          else echo "::notice::AI tutor not deployed: add CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and GEMINI_API_KEY (or ANTHROPIC_API_KEY) to the repository secrets."; fi
       - uses: actions/checkout@v4
         if: steps.chk.outputs.ok == '1'
       - uses: actions/setup-node@v4
@@ -33,12 +35,16 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Deploy
         if: steps.chk.outputs.ok == '1'
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          workingDirectory: tutor-worker
-          secrets: |
-            ANTHROPIC_API_KEY
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        working-directory: tutor-worker
+        run: npx wrangler deploy
+      - name: Upload the model keys
+        if: steps.chk.outputs.ok == '1'
+        working-directory: tutor-worker
+        run: |
+          node -e '
+            const o = {};
+            for (const k of ["GEMINI_API_KEY", "ANTHROPIC_API_KEY"]) if (process.env[k]) o[k] = process.env[k];
+            require("fs").writeFileSync("keys.json", JSON.stringify(o), { mode: 0o600 });
+          '
+          npx wrangler secret bulk keys.json
+          rm -f keys.json
