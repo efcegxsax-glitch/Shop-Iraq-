@@ -17,7 +17,8 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
-const GEMINI_MODEL = 'gemini-flash-latest';
+// tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
+const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3.8-flash-lite'];
 const MAX_TURNS = 20, MAX_CHARS = 4000, MAX_CONTEXT = 2500, MAX_IMAGE_B64 = 2_000_000;
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
@@ -154,42 +155,64 @@ async function claudeNudge(env, prompt, context, uid) {
 // ---------- Gemini ----------
 function geminiClient(env) { return new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}) }); }
 const geminiSystem = (base, context) => (context ? base + '\n\nتقرير الطالب من التطبيق:\n' + context : base);
+const geminiModels = (env) => (env.GEMINI_MODEL ? [env.GEMINI_MODEL, ...GEMINI_MODELS.filter((m) => m !== env.GEMINI_MODEL)] : GEMINI_MODELS);
+const geminiRetry = (err) => err instanceof GeminiError && [404, 429, 500, 503].includes(err.status);
+async function geminiTry(env, fn) {
+    let last;
+    for (const model of geminiModels(env)) {
+        try { return await fn(model); } catch (err) {
+            last = err;
+            if (!geminiRetry(err)) throw err;
+            console.warn('gemini', model, err.status);
+        }
+    }
+    throw last;
+}
 async function geminiChat(env, { turns, image }, context, uid, send) {
     const contents = turns.map((t, i) => ({
         role: t.role === 'assistant' ? 'model' : 'user',
         parts: i === turns.length - 1 && image ? [{ inlineData: { mimeType: image.type, data: image.data } }, { text: t.text }] : [{ text: t.text }],
     }));
-    const stream = await geminiClient(env).models.generateContentStream({
-        model: env.GEMINI_MODEL || GEMINI_MODEL, contents,
-        config: { systemInstruction: geminiSystem(SYSTEM, context), maxOutputTokens: 8000 },
+    let finish = '', sent = false;
+    // another model may answer only while nothing has been sent yet
+    await geminiTry(env, async (model) => {
+        if (sent) return;
+        const stream = await geminiClient(env).models.generateContentStream({
+            model, contents,
+            config: { systemInstruction: geminiSystem(SYSTEM, context), maxOutputTokens: 8000 },
+        });
+        try {
+            for await (const chunk of stream) {
+                if (chunk.text) { sent = true; send({ t: chunk.text }); }
+                const f = chunk.candidates && chunk.candidates[0] && chunk.candidates[0].finishReason;
+                if (f) finish = f;
+            }
+        } catch (err) {
+            if (sent) throw Object.assign(new Error('cut'), { status: 0 });
+            throw err;
+        }
     });
-    let finish = '';
-    for await (const chunk of stream) {
-        if (chunk.text) send({ t: chunk.text });
-        const f = chunk.candidates && chunk.candidates[0] && chunk.candidates[0].finishReason;
-        if (f) finish = f;
-    }
     return finish === 'MAX_TOKENS' ? 'max_tokens' : finish === 'SAFETY' || finish === 'PROHIBITED_CONTENT' ? 'refusal' : 'end_turn';
 }
 async function geminiQuiz(env, prompt, context) {
-    const res = await geminiClient(env).models.generateContent({
-        model: env.GEMINI_MODEL || GEMINI_MODEL, contents: prompt,
+    const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
+        model, contents: prompt,
         config: { systemInstruction: geminiSystem(QUIZ_SYSTEM, context), responseMimeType: 'application/json', responseJsonSchema: QUIZ_JSON_SCHEMA, maxOutputTokens: 8000 },
-    });
+    }));
     try { return JSON.parse(res.text || ''); } catch { return null; }
 }
 async function geminiNudge(env, prompt, context) {
-    const res = await geminiClient(env).models.generateContent({
-        model: env.GEMINI_MODEL || GEMINI_MODEL, contents: prompt,
+    const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
+        model, contents: prompt,
         config: { systemInstruction: geminiSystem(NUDGE_SYSTEM, context), maxOutputTokens: 2000 },
-    });
+    }));
     return String(res.text || '').trim();
 }
 
 function errorCode(err) {
     if (err instanceof Anthropic.APIError || err instanceof GeminiError) {
         const s = err.status;
-        return s === 429 ? 'busy' : s === 401 || s === 403 ? 'key' : s === 400 ? 'bad_request' : 'api_' + (s || 'error');
+        return s === 429 || s === 503 || s === 500 || s === 529 ? 'busy' : s === 401 || s === 403 ? 'key' : s === 400 ? 'bad_request' : 'api_' + (s || 'error');
     }
     return 'network';
 }
