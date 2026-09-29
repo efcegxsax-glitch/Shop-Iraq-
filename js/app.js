@@ -11582,12 +11582,11 @@
             },
 
             // ==================== STORE (reels-style marketplace) ====================
+            // The store: categories and products the admin publishes from the panel (js/shop.js).
             goToStore() {
                 this.switchView('storeView');
-                this.listenForStoreProducts();
-                this.loadStoreCart();
-                this.renderStoreFeed();
-                lucide.createIcons();
+                if (this._withPart('shop', () => typeof this.shOpen === 'function', 'storeView', () => this.goToStore())) return;
+                this.shOpen();
             },
 
             listenForStoreProducts() {
@@ -11755,7 +11754,7 @@
 
             updateStoreCartBadge() {
                 const count = storeCart.length;
-                const badges = document.querySelectorAll('#navStoreCartBadge, .store-card-cart-badge');
+                const badges = document.querySelectorAll('.store-card-cart-badge');
                 badges.forEach((badge) => { badge.classList.toggle('hidden', count === 0); badge.textContent = count; });
             },
 
@@ -12770,6 +12769,7 @@
                 if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
                 if (this.currentView === 'tutorView' && viewId !== 'tutorView' && this.tutorClose) this.tutorClose();
                 if (this.currentView === 'moodMapView' && viewId !== 'moodMapView' && this.mmClose) this.mmClose();
+                if (this.currentView === 'storeView' && viewId !== 'storeView' && this.shClose) this.shClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
@@ -12792,7 +12792,6 @@
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
-                document.body.classList.toggle('store-nav-hidden', viewId === 'storeView');
                 document.body.classList.toggle('forest-on', viewId === 'forestView');
                 window.scrollTo(0, 0);
 

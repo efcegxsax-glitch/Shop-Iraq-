@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = 'bf6492f820';
+        window.APP_VER = '56d505ce08';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,8 +130,8 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=19e1ad01bb">
-    <link rel="stylesheet" href="css/tw.css?v=94e3d15547">
+    <link rel="stylesheet" href="css/app.css?v=699a25eefb">
+    <link rel="stylesheet" href="css/tw.css?v=c8e4c15e52">
 </head>
 <body class="antialiased">
     <div id="offlineBar" class="offline-bar" role="status">بدون نت: تشوف آخر نسخة محفوظة، وبعض الأشياء ترجع تشتغل لما يرجع النت</div>
@@ -1237,28 +1237,17 @@
 
         <!-- ===== STORE VIEW (Reels-style marketplace) ===== -->
         <div id="storeView" class="hidden page-slide-rtl">
-            <div class="fixed top-0 right-0 left-0 z-40 flex items-center justify-between px-3" style="padding-top: calc(0.75rem + env(safe-area-inset-top)); padding-bottom: 0.5rem;">
-                <button onclick="app.goBack()" class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background-color: rgba(0,0,0,0.45);">
-                    <i data-lucide="chevron-right" class="w-5 h-5 text-white"></i>
-                </button>
-                <!-- FIX (UI/UX): the full-screen reel feed had no sense of "how many products,
-                     where am I" — added a small position counter fed by an IntersectionObserver
-                     in setupStoreFeedVideoAutoplay(). -->
-                <span id="storeFeedCounter" class="hidden h-9 px-3 rounded-full flex items-center text-white text-xs font-bold" style="background-color: rgba(0,0,0,0.45);"></span>
-                <button onclick="app.goToMyStore()" class="btn-press h-9 px-4 rounded-full flex items-center gap-1.5 flex-shrink-0" style="background-color: rgba(0,0,0,0.45);" aria-label="متجري">
-                    <i data-lucide="store" class="w-4 h-4 text-white"></i>
-                    <span class="text-white text-xs font-bold">متجري</span>
-                </button>
-            </div>
-            <div id="storeFeed" class="store-feed"></div>
-            <div id="storeEmptyState" class="hidden absolute inset-0 flex flex-col items-center justify-center text-center px-6" style="background: #0F172A;">
-                <div class="w-20 h-20 rounded-full flex items-center justify-center mb-4" style="background-color: rgba(255,255,255,0.1);">
-                    <i data-lucide="store" class="w-10 h-10 text-white/70"></i>
+            <div class="sh-bar sticky top-16 z-30 theme-transition">
+                <div class="sh-head">
+                    <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                        <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                    </button>
+                    <div class="sh-title"><b>المتجر</b><small id="shSub"></small></div>
                 </div>
-                <h3 class="text-lg font-bold mb-2 text-white">لا توجد منتجات بعد</h3>
-                <p class="text-sm text-white/70 mb-4">كن أول من يفتح متجره وينشر منتج</p>
-                <button onclick="app.goToMyStore()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">افتح متجرك</button>
+                <label class="sh-search"><i data-lucide="search"></i><input id="shSearch" type="search" maxlength="60" placeholder="دوّر على منتج..." oninput="app.shSearch && app.shSearch(this.value)"></label>
+                <div class="sh-cats hidden" id="shCats"></div>
             </div>
+            <div id="shBody"><div class="sh-load"><i></i><i></i><i></i><i></i></div></div>
         </div>
 
         <!-- ===== STORE CART VIEW ===== -->
@@ -1818,7 +1807,7 @@
         </div>
     </nav>
 
-    <script src="js/app.js?v=e2c9f8375a"></script>
+    <script src="js/app.js?v=2cdbe7de8d"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

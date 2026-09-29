@@ -286,6 +286,37 @@
         }
       }
     },
+    "shop": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "cats": {
+        "$id": {
+          ".validate": "(newData.hasChildren(['n']) && newData.child('n').isString() && newData.child('n').val().length <= 40 && newData.child('n').val().length > 0)"
+        }
+      },
+      "items": {
+        "$id": {
+          ".validate": "(newData.hasChildren(['n', 'cat', 'img']) && newData.child('n').isString() && newData.child('n').val().length <= 80 && newData.child('n').val().length > 0 && newData.child('cat').isString() && newData.child('cat').val().length <= 40 && newData.child('img').isString() && newData.child('img').val().length <= 400000)",
+          "d": {
+            ".validate": "newData.isString() && newData.val().length <= 800"
+          },
+          "price": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "tt": {
+            ".validate": "newData.isString() && newData.val().length <= 300 && newData.val().matches(/^https:\\/\\/([a-z0-9-]+\\.)?tiktok\\.com\\//)"
+          },
+          "buy": {
+            ".validate": "newData.isString() && newData.val().length <= 300 && newData.val().matches(/^https:\\/\\//)"
+          }
+        }
+      },
+      "imgs": {
+        "$id": {
+          ".validate": "newData.isString() && newData.val().length <= 3000000"
+        }
+      }
+    },
     "stores": {
       ".read": true,
       "$uid": {
