@@ -339,6 +339,24 @@ await no('banned student vents', vpost('v3', 'p8', 'كلام عادي جداً')
 await no('student wipes a post', U('v2', { 'vent/p1': null, 'ventReplies/p1': null, 'ventCount/p1': null }));
 await ok('admin deletes a post with everything', U('adm', { 'vent/p1': null, 'ventOwners/p1': null, 'ventReplies/p1': null, 'ventReplyOwners/p1': null, 'ventCount/p1': null, 'ventReports/p1': null, 'ventReactOwners/p1': null }));
 
+// صندوق الأفكار
+const idea = (u, id, extra) => U(u, { ['ideas/' + id]: Object.assign({ t: 'وضع ليلي للمتجر', d: 'يكون أريح للعين', c: 'look', by: u, n: 'علي', st: 'new', v: 0, at: TS }, extra || {}), ['ideaLast/' + u]: TS });
+await ok('student suggests', idea('i1', 'd1'));
+await no('suggests again at once', idea('i1', 'd2'));
+await no('suggestion as someone else', U('i2', { 'ideas/d3': { t: 'فكرة حلوة جداً', c: 'study', by: 'i1', n: 'x', st: 'new', v: 0, at: TS }, 'ideaLast/i2': TS }));
+await no('starts with votes', idea('i3', 'd4', { v: 50 }));
+await no('marks itself done', idea('i4', 'd5', { st: 'done' }));
+await no('bad word in an idea', idea('i5', 'd6', { t: 'المدير شرموط' }));
+await ok('vote', U('i2', { 'ideaVotes/d1/i2': true, 'ideaMine/i2/d1': true, 'ideas/d1/v': 1 }));
+await no('vote twice', U('i2', { 'ideaVotes/d1/i2': true, 'ideas/d1/v': 2 }));
+await no('count without voting', set(ref(db('i6'), 'ideas/d1/v'), 2));
+await no('vote for someone else', U('i6', { 'ideaVotes/d1/i7': true, 'ideas/d1/v': 2 }));
+await ok('take the vote back', U('i2', { 'ideaVotes/d1/i2': null, 'ideaMine/i2/d1': null, 'ideas/d1/v': 0 }));
+await no('student sets the status', set(ref(db('i1'), 'ideas/d1/st'), 'done'));
+await ok('admin answers', update(ref(db('adm'), 'ideas/d1'), { st: 'doing', r: 'فكرة حلوة، دا نشتغل عليها' }));
+await no('author deletes after it moved on', set(ref(db('i1'), 'ideas/d1'), null));
+await ok('guest cannot read ideas', assertFails(get(ref(db(null), 'ideas'))).then(() => true));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

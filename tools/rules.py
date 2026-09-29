@@ -610,6 +610,43 @@ rules = {
     }},
     "ventBan": {"$uid": {".read": ors(OWNER, ADMIN), ".write": ADMIN}},
 
+    # ----- صندوق الأفكار: students suggest features and vote; the admin sets the status and
+    # answers. One idea every 10 minutes; one vote per student, the count moves with it. -----
+    "ideas": {".read": SIGNED, ".indexOn": ["v", "at"], "$id": {
+        ".write": ors(ADMIN,
+                      ands(SIGNED, "!data.exists()", "newData.child('by').val() == auth.uid",
+                           "newData.parent().parent().child('ideaLast/' + auth.uid).val() == now"),
+                      ands(SIGNED, "!newData.exists()", "data.child('by').val() == auth.uid", "data.child('st').val() == 'new'")),
+        ".validate": "!newData.exists() || data.exists() || (" + ands(
+            "newData.hasChildren(['t', 'c', 'by', 'n', 'st', 'v', 'at'])", "newData.child('st').val() == 'new'",
+            "newData.child('v').val() == 0", "newData.child('at').val() == now") + ")",
+        "t": {".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 80 && !newData.val().matches(" + VENT_BAD + ")"},
+        "d": {".validate": "newData.isString() && newData.val().length <= 400 && !newData.val().matches(" + VENT_BAD + ")"},
+        "c": {".validate": "newData.isString() && newData.val().matches(/^(study|play|look|store|other)$/)"},
+        "n": {".validate": "newData.isString() && newData.val().length <= 30"},
+        "by": {".validate": "newData.isString()"},
+        "st": {".validate": "newData.isString() && newData.val().matches(/^(new|review|doing|done|no)$/)"},
+        "r": {".validate": "newData.isString() && newData.val().length <= 300"},
+        "paid": {".validate": "newData.isBoolean()"},
+        "at": {".validate": "newData.isNumber()"},
+        "v": {
+            ".write": SIGNED,
+            ".validate": ors(ADMIN, ands("newData.isNumber()", ors(
+                ands("!root.child('ideas/' + $id).exists()", "newData.val() == 0"),
+                ands("newData.val() == (data.exists() ? data.val() : 0) + 1",
+                     "!root.child('ideaVotes/' + $id + '/' + auth.uid).exists()",
+                     "newData.parent().parent().parent().child('ideaVotes/' + $id + '/' + auth.uid).val() === true"),
+                ands("data.exists()", "newData.val() == data.val() - 1",
+                     "root.child('ideaVotes/' + $id + '/' + auth.uid).exists()",
+                     "!newData.parent().parent().parent().child('ideaVotes/' + $id + '/' + auth.uid).exists()")))),
+        },
+        "$other": {".validate": False},
+    }},
+    "ideaVotes": {"$id": {".write": ADMIN, "$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER,
+                                                    ".validate": "newData.val() === true && root.child('ideas/' + $id).exists()"}}},
+    "ideaMine": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN)}},
+    "ideaLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 600000)"}},
+
     # ----- usage numbers and error reports (also before signing in) -----
     "devices": {"$id": {".write": True, ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"}},
     "stats": {"daily": {"$d": {"opens": {".read": True, ".write": True, ".validate": counter()}}}},

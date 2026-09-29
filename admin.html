@@ -357,6 +357,7 @@
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
             <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
+            <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>أفكار الطلاب</span><b class="tab-badge hidden" id="idBadge"></b></button>
             <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
             <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
@@ -1239,6 +1240,17 @@
                 </div>
             </div>
 
+            <div id="sec-ideas" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic" style="background:rgba(245,158,11,.14);color:#F59E0B;"><i data-lucide="lightbulb"></i></div>
+                        <div><h3>أفكار الطلاب</h3><p>غيّر حالة كل فكرة واكتب رد يشوفه الطلاب. لمن تضغط "انضافت" ياخذ صاحبها 100 نقطة (مرة وحدة)</p></div>
+                    </div>
+                    <div class="subtabs" id="idTabsA"></div>
+                    <div id="idListA"></div>
+                </div>
+            </div>
+
             <!-- Ban Student -->
             <div id="sec-polls" class="hidden">
                 <div class="card">
@@ -1551,7 +1563,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3388,6 +3400,63 @@
             try { await update(ref(db), { ['vent/' + pid]: null, ['ventOwners/' + pid]: null, ['ventReplies/' + pid]: null, ['ventReplyOwners/' + pid]: null, ['ventCount/' + pid]: null, ['ventReports/' + pid]: null, ['ventReactOwners/' + pid]: null }); toast('انحذفت'); } catch (e) { toast('فشل الحذف', false); }
         };
 
+        // ---------- صندوق الأفكار: status, answer, points when an idea is added ----------
+        const ID_ST = { new: 'جديدة', review: 'قيد الدراسة', doing: 'قيد التنفيذ', done: 'انضافت', no: 'ما راح تنضاف' };
+        const ID_C = { study: 'الدراسة', play: 'المنافسة والنقاط', look: 'الشكل والتصميم', store: 'المتجر', other: 'غيرها' };
+        let ideasA = [], idFilterA = 'new';
+        function loadIdeasAdmin() {
+            onValue(ref(db, 'ideas'), (snap) => {
+                const v = snap.val() || {};
+                ideasA = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (b.v || 0) - (a.v || 0) || (b.at || 0) - (a.at || 0));
+                renderIdeasAdmin();
+            }, () => {});
+        }
+        window.setIdFilterA = (f) => { idFilterA = f; renderIdeasAdmin(); };
+        function renderIdeasAdmin() {
+            const counts = {}; ideasA.forEach((x) => { counts[x.st] = (counts[x.st] || 0) + 1; });
+            el('idBadge').textContent = counts.new || 0; el('idBadge').classList.toggle('hidden', !counts.new);
+            el('idTabsA').innerHTML = Object.keys(ID_ST).map((k) => `<button class="subtab ${idFilterA === k ? 'active' : ''}" onclick="setIdFilterA('${k}')">${ID_ST[k]} (${counts[k] || 0})</button>`).join('');
+            const list = ideasA.filter((x) => x.st === idFilterA);
+            // keep what the admin is still typing when the list redraws
+            const kept = {};
+            document.querySelectorAll('#idListA [id^="idr_"], #idListA [id^="idst_"]').forEach((n) => { if (n.dataset.dirty) kept[n.id] = n.value; });
+            el('idListA').innerHTML = list.length ? list.map((x) => `<div class="ord" style="border-inline-start-color:#F59E0B;">
+                <div class="ord-h"><b style="direction:rtl;">${escapeHtml(x.t)}</b><span style="color:#F59E0B;">${x.v || 0} صوت</span><small>${escapeHtml(ID_C[x.c] || '')} · ${new Date(Number(x.at) || 0).toLocaleDateString('ar-IQ')}</small></div>
+                ${x.d ? `<div style="line-height:1.8;white-space:pre-wrap;opacity:.9;">${escapeHtml(x.d)}</div>` : ''}
+                <div style="margin-top:6px;opacity:.75;font-size:12px;">صاحبها: ${escapeHtml(x.n || '')}${x.paid ? ' · أخذ 100 نقطة' : ''}</div>
+                <div class="field" style="margin:10px 0 0;"><select id="idst_${escapeHtml(x.id)}">${Object.keys(ID_ST).map((k) => `<option value="${k}" ${x.st === k ? 'selected' : ''}>${ID_ST[k]}</option>`).join('')}</select></div>
+                <div class="field" style="margin:8px 0 0;"><textarea id="idr_${escapeHtml(x.id)}" rows="2" maxlength="300" placeholder="رد يشوفه الطلاب (اختياري)">${escapeHtml(x.r || '')}</textarea></div>
+                <div class="ord-act"><button class="btn-sm go" onclick="saveIdeaA(${jsArg(x.id)})">حفظ</button>
+                    ${x.st !== 'done' ? `<button class="btn-sm" onclick="doneIdeaA(${jsArg(x.id)})">انضافت (+100 نقطة)</button>` : ''}
+                    <button class="del" onclick="delIdeaA(${jsArg(x.id)})">حذف</button></div></div>`).join('') : '<p style="opacity:.6;font-size:13px;">ماكو أفكار هنا.</p>';
+            Object.keys(kept).forEach((k) => { const n = el(k); if (n) { n.value = kept[k]; n.dataset.dirty = '1'; } });
+            document.querySelectorAll('#idListA [id^="idr_"], #idListA [id^="idst_"]').forEach((n) => { n.addEventListener('input', () => { n.dataset.dirty = '1'; }); n.addEventListener('change', () => { n.dataset.dirty = '1'; }); });
+        }
+        window.saveIdeaA = async (id) => {
+            const st = el('idst_' + id).value, r = el('idr_' + id).value.trim().slice(0, 300);
+            if (st === 'done') { await window.doneIdeaA(id, r); return; }
+            try { await update(ref(db, 'ideas/' + id), { st, r: r || null }); toast('انحفظ'); } catch (e) { toast('فشل الحفظ', false); }
+        };
+        window.doneIdeaA = async (id, reply) => {
+            const x = ideasA.find((y) => y.id === id);
+            if (!x) return;
+            const r = reply !== undefined ? reply : (el('idr_' + id) ? el('idr_' + id).value.trim().slice(0, 300) : (x.r || ''));
+            try {
+                await update(ref(db, 'ideas/' + id), { st: 'done', r: r || 'انضافت للتطبيق، شكراً على الفكرة الحلوة', paid: true });
+                // 100 points, once
+                if (!x.paid && x.by) {
+                    let np = null;
+                    await runTransaction(ref(db, 'users/' + x.by + '/points'), (cur) => { np = (Number(cur) || 0) + 100; return np; });
+                    if (np !== null) await set(ref(db, 'leaderboard/' + x.by + '/points'), np).catch(() => {});
+                }
+                toast(x.paid ? 'صارت انضافت' : 'صارت انضافت وأخذ صاحبها 100 نقطة');
+            } catch (e) { console.warn(e); toast('فشل', false); }
+        };
+        window.delIdeaA = async (id) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف هاي الفكرة؟', ok: 'احذف' }))) return;
+            try { await update(ref(db), { ['ideas/' + id]: null, ['ideaVotes/' + id]: null }); toast('انحذفت'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
             onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
@@ -3774,6 +3843,7 @@
             loadShopAdmin();
             loadSpotsAdmin();
             loadVentAdmin();
+            loadIdeasAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();

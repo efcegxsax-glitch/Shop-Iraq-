@@ -930,6 +930,74 @@
         ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
       }
     },
+    "ideas": {
+      ".read": "auth != null",
+      ".indexOn": [
+        "v",
+        "at"
+      ],
+      "$id": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('by').val() == auth.uid && newData.parent().parent().child('ideaLast/' + auth.uid).val() == now) || (auth != null && !newData.exists() && data.child('by').val() == auth.uid && data.child('st').val() == 'new'))",
+        ".validate": "!newData.exists() || data.exists() || ((newData.hasChildren(['t', 'c', 'by', 'n', 'st', 'v', 'at']) && newData.child('st').val() == 'new' && newData.child('v').val() == 0 && newData.child('at').val() == now))",
+        "t": {
+          ".validate": "newData.isString() && newData.val().length >= 5 && newData.val().length <= 80 && !newData.val().matches(/.*(شرموط|قحب|منيوك|منيوج|كسمك|كس امك|كسختك|طيزك|طيزه|سكس|نيكني|نياك|xnxx|porn|fuck|pussy|sharmoot|sharmout).*/i)"
+        },
+        "d": {
+          ".validate": "newData.isString() && newData.val().length <= 400 && !newData.val().matches(/.*(شرموط|قحب|منيوك|منيوج|كسمك|كس امك|كسختك|طيزك|طيزه|سكس|نيكني|نياك|xnxx|porn|fuck|pussy|sharmoot|sharmout).*/i)"
+        },
+        "c": {
+          ".validate": "newData.isString() && newData.val().matches(/^(study|play|look|store|other)$/)"
+        },
+        "n": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "by": {
+          ".validate": "newData.isString()"
+        },
+        "st": {
+          ".validate": "newData.isString() && newData.val().matches(/^(new|review|doing|done|no)$/)"
+        },
+        "r": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "paid": {
+          ".validate": "newData.isBoolean()"
+        },
+        "at": {
+          ".validate": "newData.isNumber()"
+        },
+        "v": {
+          ".write": "auth != null",
+          ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (newData.isNumber() && ((!root.child('ideas/' + $id).exists() && newData.val() == 0) || (newData.val() == (data.exists() ? data.val() : 0) + 1 && !root.child('ideaVotes/' + $id + '/' + auth.uid).exists() && newData.parent().parent().parent().child('ideaVotes/' + $id + '/' + auth.uid).val() === true) || (data.exists() && newData.val() == data.val() - 1 && root.child('ideaVotes/' + $id + '/' + auth.uid).exists() && !newData.parent().parent().parent().child('ideaVotes/' + $id + '/' + auth.uid).exists()))))"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "ideaVotes": {
+      "$id": {
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "$uid": {
+          ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".write": "(auth != null && auth.uid == $uid)",
+          ".validate": "newData.val() === true && root.child('ideas/' + $id).exists()"
+        }
+      }
+    },
+    "ideaMine": {
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
+      }
+    },
+    "ideaLast": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 600000)"
+      }
+    },
     "devices": {
       "$id": {
         ".write": true,

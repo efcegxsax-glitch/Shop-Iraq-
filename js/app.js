@@ -3519,6 +3519,14 @@
                 this.mkOpen();
             },
 
+            // ===== صندوق الأفكار: students suggest features and vote (js/ideas.js) =====
+            goToIdeas() {
+                this.switchView('ideasView');
+                if (typeof this.idOpen === 'function' && window.ventCheck) { this.idOpen(); return; }
+                this._need('ventfilter').then(() => this._need('ideas')).then(() => { if (this.currentView === 'ideasView') this.idOpen(); })
+                    .catch(() => this.showToast('ما انحملت الصفحة، تأكد من النت وحاول مرة ثانية'));
+            },
+
             // ===== فضفضة: anonymous venting with a word filter (js/ventfilter.js + js/vent.js) =====
             goToVent() {
                 this.switchView('ventView');
@@ -7157,6 +7165,7 @@
                 { id: 'garden', fn: 'goToGarden', t: 'شجرتي', d: 'ازرع بذرة وادرس لحد ما تثمر', ic: 'sprout', c: '#15803D', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
+                { id: 'ideas', fn: 'goToIdeas', t: 'صندوق الأفكار', d: 'اقترح إضافات وصوّت عليها', ic: 'lightbulb', c: '#F59E0B', g: 'people' },
                 { id: 'vent', fn: 'goToVent', t: 'فضفضة', d: 'قول اللي بقلبك بدون اسم', ic: 'feather', c: '#8B5CF6', g: 'people' },
                 { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
