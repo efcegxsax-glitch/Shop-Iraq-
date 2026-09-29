@@ -10,6 +10,8 @@
 //   mode "quiz": { subject, topic?, context? } -> JSON { title, questions: [{ q, choices[4], answer, why }] }
 //   mode "nudge": { reasons: [...], context? } -> JSON { text }  (a short message the tutor sends first)
 //   mode "cards": { image: { type, data }, subject? } -> JSON { title, cards: [{ q, a }] }  (review cards from a page)
+//   mode "turn": {} -> JSON { iceServers }  (short-lived Cloudflare TURN credentials for voice calls,
+//     when the TURN_KEY_ID and TURN_KEY_API_TOKEN secrets are set; works without a model key)
 // context: a short report of the student's studying, written by the app, used to hold them to it.
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
@@ -250,22 +252,54 @@ function errorCode(err) {
     return 'network';
 }
 
+// Voice calls: a TURN relay lets two phones behind carrier NAT reach each other. The media stays
+// encrypted end to end (DTLS-SRTP); the relay only forwards packets it can't read.
+async function turnServers(env) {
+    if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return null;
+    const base = (env.TURN_API_BASE || 'https://rtc.live.cloudflare.com') + '/v1/turn/keys/' + encodeURIComponent(env.TURN_KEY_ID) + '/credentials/';
+    const ask = (path) => fetch(base + path, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + env.TURN_KEY_API_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ttl: 6 * 3600 }),
+    });
+    try {
+        let res = await ask('generate-ice-servers');
+        if (res.status === 404) res = await ask('generate');
+        if (!res.ok) { console.error('turn', res.status); return null; }
+        const r = await res.json();
+        const list = (Array.isArray(r.iceServers) ? r.iceServers : [r.iceServers]).filter((x) => x && x.urls);
+        // browsers refuse port 53, so those addresses only slow the connection down
+        return list.map((x) => ({ ...x, urls: [].concat(x.urls).filter((u) => !/:53(\?|$)/.test(u)) })).filter((x) => x.urls.length);
+    } catch (err) {
+        console.error('turn', err && err.message);
+        return null;
+    }
+}
+
 export default {
     async fetch(req, env, ctx) {
         const headers = cors(req, env);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
         if (req.method !== 'POST') return json(405, { error: 'method' }, headers);
-        const useClaude = !!env.ANTHROPIC_API_KEY;
-        if (!useClaude && !env.GEMINI_API_KEY) return json(503, { error: 'key' }, headers);
-
         const uid = await verifyStudent(req, env);
         if (!uid) return json(401, { error: 'signin' }, headers);
+        let body;
+        try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }, headers); }
+        if (body.mode === 'turn') {
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const iceServers = await turnServers(env);
+            return iceServers ? json(200, { iceServers }, headers) : json(503, { error: 'turn' }, headers);
+        }
+
+        const useClaude = !!env.ANTHROPIC_API_KEY;
+        if (!useClaude && !env.GEMINI_API_KEY) return json(503, { error: 'key' }, headers);
         if (env.PER_MINUTE) {
             const { success } = await env.PER_MINUTE.limit({ key: uid });
             if (!success) return json(429, { error: 'slow_down' }, headers);
         }
-        let body;
-        try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }, headers); }
         const context = str(body.context, MAX_CONTEXT);
 
         if (body.mode === 'quiz') {

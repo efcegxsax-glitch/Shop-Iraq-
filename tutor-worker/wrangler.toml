@@ -16,3 +16,9 @@ ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-plat
 name = "PER_MINUTE"
 namespace_id = "1001"
 simple = { limit = 6, period = 60 }
+
+# per student: at most 10 voice-call relay requests a minute
+[[ratelimits]]
+name = "PER_CALL"
+namespace_id = "1002"
+simple = { limit = 10, period = 60 }
