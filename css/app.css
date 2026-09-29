@@ -2818,18 +2818,17 @@ body.garden-running #bottomNav { display: none; }
 
 /* ===== Bottom bar: 5 tabs, the AI tutor raised in the middle (inside the dock, so the
    travelling light around the frame stays as it is) ===== */
-#bottomNav .nav-ai .nav-ic { height: 40px; width: 46px; }
-#bottomNav .nav-ai-orb { width: 42px; height: 42px; border-radius: 15px; display: grid; place-items: center; color: #fff;
+#bottomNav .nav-ai .nav-ic { height: 38px; width: 40px; }
+#bottomNav .nav-ai-orb { width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; color: #fff;
     background: linear-gradient(140deg, rgb(var(--p)) 0%, #6D5BF6 100%);
     box-shadow: 0 8px 18px -8px #6D5BF6, inset 0 1px 0 rgba(255,255,255,.3);
     animation: navAiBreathe 3.2s ease-in-out infinite; transition: transform .35s var(--ease-spring); }
-#bottomNav .nav-ai svg { color: #fff !important; width: 22px; height: 22px; }
+#bottomNav .nav-ai svg { color: #fff !important; width: 20px; height: 20px; }
 #bottomNav .nav-ai.active .nav-ai-orb { transform: translateY(-1px) scale(1.06); box-shadow: 0 10px 22px -8px #6D5BF6, 0 0 0 3px rgb(var(--p) / .22); }
 #bottomNav .nav-ai .nav-label { font-weight: 800; color: rgb(var(--p)); }
 #bottomNav:has(.nav-ai.active) .nav-indicator { opacity: 0; }
 @keyframes navAiBreathe { 0%, 100% { box-shadow: 0 8px 18px -8px #6D5BF6, inset 0 1px 0 rgba(255,255,255,.3); } 50% { box-shadow: 0 8px 22px -6px #6D5BF6, 0 0 0 4px rgba(109,91,246,.14), inset 0 1px 0 rgba(255,255,255,.3); } }
-#bottomNav .nav-label { font-size: 10.5px; }
-#bottomNav .nav-item svg { width: 22px; height: 22px; }
+/* 8 tabs again: the tutor's orb is sized to fit a 360px phone */
 #hdrMoreBtn .nav-dot { position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: #EF4444; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #EF4444; animation: hpBlink 1.1s ease-in-out infinite; }
 #hdrMoreBtn .nav-dot.amber { background: #F59E0B; box-shadow: 0 0 0 2px var(--surface), 0 0 8px #F59E0B; }
 @media (prefers-reduced-motion: reduce) { #bottomNav .nav-ai-orb { animation: none; } }
@@ -2892,3 +2891,4 @@ body.tutor-on #bottomNav, body.tutor-on #appHeaderBar { display: none !important
 .tt-send.stop { background: #111827; }
 .tt-send svg { width: 20px; height: 20px; }
 .tt-note { display: block; text-align: center; font-size: 10.5px; color: var(--text2); margin-top: 6px; }
+@media (max-width: 375px) { #bottomNav .nav-label { font-size: 9px; letter-spacing: -0.2px; } }

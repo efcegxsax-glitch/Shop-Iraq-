@@ -7036,10 +7036,7 @@
             // Grouped by kind, searchable, with favourites the student picks and orders (saved on
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
-                { id: 'holidays', fn: 'goToHolidays', t: 'العطل والدوام', d: 'باچر دوام لو عطلة', ic: 'calendar-days', c: '#0EA5E9', g: 'main' },
-                { id: 'store', fn: 'goToStore', t: 'المتجر', d: 'اشترِ من الطلاب والمكتبات', ic: 'store', c: '#F97316', g: 'main' },
-                { id: 'leaders', fn: 'goToLeaderboard', t: 'المتقدمون', d: 'ترتيب الطلاب بالنقاط', ic: 'trophy', c: '#EAB308', g: 'main' },
-                { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'main' },
+                { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'tools' },
                 { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
@@ -7070,7 +7067,7 @@
                 { id: 'cats', fn: 'goToCategories', t: 'تصنيفات الأخبار', d: 'الأخبار حسب النوع', ic: 'layout-grid', c: '#475569', g: 'tools' },
                 { id: 'profile', fn: 'goToProfile', t: 'حسابي', d: 'معلوماتك الشخصية', ic: 'user', c: '#2563EB', g: 'tools' }
             ],
-            MORE_GROUPS: [['main', 'الأساسية', 'layout-grid'], ['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
+            MORE_GROUPS: [['study', 'الدراسة', 'graduation-cap'], ['play', 'المنافسة والنقاط', 'trophy'], ['people', 'الطلاب', 'users-round'], ['tools', 'أدوات', 'wrench']],
             MORE_DEFAULT_FAVS: ['garden', 'uni', 'bio', 'forest'],
 
             _moreState() {
