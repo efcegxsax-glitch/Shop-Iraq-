@@ -515,6 +515,49 @@
         }
       }
     },
+    "callRing": {
+      "$to": {
+        ".read": "auth != null && auth.uid == $to",
+        "$from": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && auth.uid == $from && $from != $to && (!newData.exists() || !root.child('blockedUsers/' + $to + '/' + $from).exists())) || auth != null && auth.uid == $to && !newData.exists())",
+          ".validate": "!newData.exists() || ((newData.child('id').isString() && newData.child('id').val().length <= 40 && newData.child('n').isString() && newData.child('n').val().length <= 60 && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000))",
+          "a": {
+            ".validate": "newData.isString() && newData.val().length <= 600"
+          }
+        }
+      }
+    },
+    "calls": {
+      "$chat": {
+        ".read": "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))",
+        ".validate": "!newData.exists() || ((newData.child('id').isString() && newData.child('id').val().length <= 40 && newData.child('from').isString() && newData.child('to').isString() && $chat == newData.child('from').val() + '_' + newData.child('to').val() || $chat == newData.child('to').val() + '_' + newData.child('from').val()))",
+        "offer": {
+          "sdp": {
+            ".validate": "newData.isString() && newData.val().length <= 20000"
+          }
+        },
+        "answer": {
+          "sdp": {
+            ".validate": "newData.isString() && newData.val().length <= 20000"
+          }
+        },
+        "oc": {
+          "$k": {
+            "candidate": {
+              ".validate": "newData.isString() && newData.val().length <= 1000"
+            }
+          }
+        },
+        "ac": {
+          "$k": {
+            "candidate": {
+              ".validate": "newData.isString() && newData.val().length <= 1000"
+            }
+          }
+        }
+      }
+    },
     "voiceRoom": {
       "participants": {
         ".read": "auth != null",

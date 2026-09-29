@@ -357,6 +357,27 @@ await ok('admin answers', update(ref(db('adm'), 'ideas/d1'), { st: 'doing', r: '
 await no('author deletes after it moved on', set(ref(db('i1'), 'ideas/d1'), null));
 await ok('guest cannot read ideas', assertFails(get(ref(db(null), 'ideas'))).then(() => true));
 
+// voice calls
+await seed('blockedUsers/k9/k1', true);
+await ok('caller opens a call', set(ref(db('k1'), 'calls/k1_k2'), { id: 'c1', from: 'k1', to: 'k2', at: TS, st: 'ring' }));
+await ok('caller writes the offer', update(ref(db('k1'), 'calls/k1_k2'), { offer: { sdp: 'v=0', type: 'offer', v: 1 } }));
+await ok('caller writes a candidate', set(ref(db('k1'), 'calls/k1_k2/oc/x1'), { candidate: 'candidate:1 1 udp 1 1.2.3.4 5 typ host', sdpMid: '0', sdpMLineIndex: 0 }));
+await ok('caller rings', set(ref(db('k1'), 'callRing/k2/k1'), { id: 'c1', n: 'علي', at: TS }));
+await no('ring as someone else', set(ref(db('k3'), 'callRing/k2/k1'), { id: 'c1', n: 'x', at: TS }));
+await no('ring someone who blocked you', set(ref(db('k1'), 'callRing/k9/k1'), { id: 'c2', n: 'x', at: TS }));
+await no('ring yourself', set(ref(db('k1'), 'callRing/k1/k1'), { id: 'c2', n: 'x', at: TS }));
+await ok('callee reads the ring', get(ref(db('k2'), 'callRing/k2')));
+await no('others read the ring', get(ref(db('k3'), 'callRing/k2')));
+await ok('callee reads the call', get(ref(db('k2'), 'calls/k1_k2')));
+await no('others read the call', get(ref(db('k3'), 'calls/k1_k2')));
+await no('others write into the call', update(ref(db('k3'), 'calls/k1_k2'), { st: 'end' }));
+await ok('callee answers', update(ref(db('k2'), 'calls/k1_k2'), { answer: { sdp: 'v=0', type: 'answer', v: 1 }, st: 'on' }));
+await ok('callee clears the ring', set(ref(db('k2'), 'callRing/k2/k1'), null));
+await ok('mute flag', set(ref(db('k2'), 'calls/k1_k2/mute/k2'), true));
+await no('call for another pair', set(ref(db('k1'), 'calls/k1_k2'), { id: 'c3', from: 'k1', to: 'k5', at: TS, st: 'ring' }));
+await no('huge sdp', update(ref(db('k1'), 'calls/k1_k2'), { offer: { sdp: 'x'.repeat(20001), type: 'offer', v: 2 } }));
+await ok('hang up', update(ref(db('k2'), 'calls/k1_k2'), { st: 'end', by: 'k2' }));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

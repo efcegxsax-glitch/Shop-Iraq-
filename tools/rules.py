@@ -449,6 +449,33 @@ rules = {
                                    ands(SIGNED, "newData.child('from').val() == auth.uid", "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"))},
         },
     },
+    # ----- voice calls in messages: the ring goes to the callee's box, the call's signalling
+    # (offer/answer/network candidates, never the audio itself) sits under the pair's chat id -----
+    "callRing": {
+        "$to": {
+            ".read": "auth != null && auth.uid == $to",
+            "$from": {
+                ".write": ors(ADMIN, ands("auth != null && auth.uid == $from", "$from != $to",
+                                          "(!newData.exists() || !root.child('blockedUsers/' + $to + '/' + $from).exists())"),
+                              "auth != null && auth.uid == $to && !newData.exists()"),
+                ".validate": "!newData.exists() || (" + ands(s_max("newData.child('id')", 40), s_max("newData.child('n')", 60),
+                                                            "newData.child('at').isNumber()", "newData.child('at').val() <= now + 60000") + ")",
+                "a": {".validate": s_max("newData", 600)},
+            },
+        },
+    },
+    "calls": {
+        "$chat": {
+            ".read": "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))",
+            ".write": ors(ADMIN, "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))"),
+            ".validate": "!newData.exists() || (" + ands(s_max("newData.child('id')", 40), "newData.child('from').isString()", "newData.child('to').isString()",
+                                                        "$chat == newData.child('from').val() + '_' + newData.child('to').val() || $chat == newData.child('to').val() + '_' + newData.child('from').val()") + ")",
+            "offer": {"sdp": {".validate": s_max("newData", 20000)}},
+            "answer": {"sdp": {".validate": s_max("newData", 20000)}},
+            "oc": {"$k": {"candidate": {".validate": s_max("newData", 1000)}}},
+            "ac": {"$k": {"candidate": {".validate": s_max("newData", 1000)}}},
+        },
+    },
     "voiceRoom": {
         "participants": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},
         "calls": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$other": {".read": "auth != null && auth.uid == $other", ".write": "auth != null && auth.uid == $other"}}},

@@ -754,11 +754,12 @@
             // stayed attached and kept overwriting friendsList / chats / wallet with the
             // previous account's data whenever it changed. They're unsubscribed now.
             resetUserScopedListeners() {
+                if (this._cl && this._clEnd) this._clEnd('end');
                 ['_tasksListener', '_walletTxListener', '_friendsListener', '_friendRequestsListener',
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
-                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek'].forEach((key) => {
+                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -1083,6 +1084,7 @@
                     this.checkDailyStreak();
                     this._ttNudgeSoon();
                     this._smPing();
+                    this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -2151,6 +2153,7 @@
                     this.checkDailyStreak();
                     this._ttNudgeSoon();
                     this._smPing();
+                    this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
                     this.listenForFriends();
@@ -3555,6 +3558,21 @@
 
             // studentMap/{uid}: the student's governorate and today's mood, for the students' map.
             // Once a day on its own; `force` after a change or while the map is open.
+            // Voice calls (js/calls.js): a ring for this student opens the incoming-call screen.
+            _clRingListen() {
+                if (this._clRingOff || !window.firebaseDb || !this.authUid) return;
+                const { ref, onChildAdded } = window.firebaseDbHelpers;
+                this._clRingOff = onChildAdded(ref(window.firebaseDb, 'callRing/' + this.authUid), (snap) => {
+                    const r = snap.val();
+                    if (!r || !r.id) return;
+                    this._need('calls').then(() => this._clIncoming(snap.key, r)).catch(() => {});
+                });
+            },
+            goCall() {
+                if (typeof this.clCall === 'function') { this.clCall(); return; }
+                this._need('calls').then(() => this.clCall()).catch(() => this.showToast('ما انحمل الاتصال، تأكد من النت'));
+            },
+
             _smPing(force) {
                 if (!window.firebaseDb || !this.authUid) return Promise.resolve();
                 const g = this._myGov();
@@ -11023,6 +11041,15 @@
                                 <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${jsNum(m.id)})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
                                 <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${escapeHtml(safeAudioUrl(m.audioUrl))}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${jsNum(m.id)})" onpause="app.onVoicePause(${jsNum(m.id)})" onended="app.onVoiceEnded(${jsNum(m.id)})" ontimeupdate="app.onVoiceTimeUpdate(${jsNum(m.id)})"></audio>
                             </div>`;
+                    } else if (m.type === 'call') {
+                        const ok = m.st === 'done';
+                        const d = Math.max(0, Math.round(numOr0(m.dur)));
+                        const lbl = ok ? 'مكالمة صوتية' : isMine ? ({ no: 'رفض المكالمة', busy: 'كان مشغول', cancel: 'مكالمة ملغية' }[m.st] || 'ما رد') : 'مكالمة فائتة';
+                        const sub = ok ? (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d / 60) % 60).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : 'اضغط حتى ترجع تتصل';
+                        bodyHtml = `<div class="chat-call ${ok ? '' : 'missed'}" onclick="event.stopPropagation(); app.goCall()">
+                                <span class="chat-call-ic"><i data-lucide="${ok ? (isMine ? 'phone-outgoing' : 'phone-incoming') : 'phone-missed'}" class="w-4 h-4"></i></span>
+                                <span class="min-w-0"><span class="block text-xs font-bold">${lbl}</span><span class="block text-[10px] opacity-75" dir="${ok ? 'ltr' : 'rtl'}">${sub}</span></span>
+                            </div>`;
                     } else if (m.type === 'file') {
                         bodyHtml = `<a href="${escapeHtml(safeFileUrl(m.fileUrl) || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
                                 <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
@@ -11048,6 +11075,8 @@
                     `;
                 }).join('');
                 container.scrollTop = container.scrollHeight;
+                // every redraw (read receipts too) brings its own icons
+                if (window.lucide) lucide.createIcons();
             },
 
             toggleMessageActions(msgId) {
