@@ -3494,6 +3494,31 @@
                 return this._ttActP.then(() => ({ activity: monthlyActivity, exams: examSchedule.slice(), grades: this._gradesLoad() }));
             },
 
+            // ===== دفتر الغلطات: every wrong answer comes back after 1, 3 and 7 days until it is
+            // answered right three times in a row (js/mistakes.js). The list lives on the device:
+            // localStorage isp_mistakes_<uid>; photos in IndexedDB.
+            _mkKey() { return 'isp_mistakes_' + (this.authUid || 'guest'); },
+            _mkList() { try { const v = JSON.parse(localStorage.getItem(this._mkKey()) || '[]'); return Array.isArray(v) ? v : []; } catch (e) { return []; } },
+            _mkStore(list) { try { localStorage.setItem(this._mkKey(), JSON.stringify(list.slice(-400))); } catch (e) { console.warn('Mistakes save failed:', e); } },
+            // the start of the day `days` from now, so an item is due all of that day
+            _mkDay(days) { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + days); return d.getTime(); },
+            // a multiple-choice question answered wrong (tutor quiz, duel), or a photo the student adds
+            _mkAdd(it) {
+                const list = this._mkList(), q = String(it.q || '').slice(0, 600);
+                const same = q && list.find((x) => x.q === q && !x.done);
+                if (same) { same.ok = 0; same.due = this._mkDay(1); same.miss = (same.miss || 1) + 1; this._mkStore(list); return same; }
+                const item = Object.assign({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at: Date.now(), due: this._mkDay(1), ok: 0, miss: 1 }, it, { q });
+                list.push(item);
+                this._mkStore(list);
+                return item;
+            },
+            _mkDueCount() { const now = Date.now(); return this._mkList().filter((x) => !x.done && x.due <= now).length; },
+            goToMistakes() {
+                this.switchView('mistakesView');
+                if (this._withPart('mistakes', () => typeof this.mkOpen === 'function', 'mistakesView', () => this.goToMistakes())) return;
+                this.mkOpen();
+            },
+
             // ===== خارطة الطلاب: students per governorate, today's moods, floating reactions (js/moodmap.js) =====
             goToMoodMap() {
                 this.switchView('moodMapView');
@@ -7109,6 +7134,7 @@
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
                 { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'tools' },
+                { id: 'mistakes', fn: 'goToMistakes', t: 'دفتر الغلطات', d: 'غلطاتك ترجعلك لحد ما تتقنها', ic: 'notebook-pen', c: '#E11D48', g: 'study' },
                 { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
@@ -12546,6 +12572,7 @@
                 const correct = chosenIndex === q.correct;
                 const timeMs = Date.now() - (this._duelQuestionStartedAt || Date.now());
                 this.duelAnswers.push({ chosenIndex, correct, timeMs });
+                if (!correct) this._mkAdd({ src: 'duel', s: 'عام', q: q.q, ch: q.options, a: q.correct, pick: chosenIndex });
                 this.currentDuelQuestionIndex++;
                 this.renderDuelQuestion();
             },

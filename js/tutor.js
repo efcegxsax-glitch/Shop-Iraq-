@@ -262,8 +262,8 @@
             const weakest = marks.slice().sort((a, b) => a.v - b.v)[0] || null;
             const exams = (d.exams || []).map((ex) => ({ s: String(ex.subject || ''), days: Math.ceil((new Date(ex.date).getTime() - now) / DAY) }))
                 .filter((x) => x.s && x.days >= 0 && x.days <= 21).sort((a, b) => a.days - b.days);
-            const quizzes = this._ttQuizLog().slice(-5);
-            return { name: String(u.fullName || '').split(' ')[0], streak: u.loginStreak || 0, daysSince, week, lastWeek, days14, marks, drops, weakest, exams, quizzes };
+            const quizzes = this._ttQuizLog().slice(-5), mkDue = this._mkDueCount();
+            return { mkDue, name: String(u.fullName || '').split(' ')[0], streak: u.loginStreak || 0, daysSince, week, lastWeek, days14, marks, drops, weakest, exams, quizzes };
         },
 
         async _ttContext() {
@@ -275,6 +275,7 @@
             if (f.marks.length) L.push('درجاته: ' + f.marks.map((m) => m.s + ' ' + m.v + ' (' + m.p + (m.prev !== null ? '، قبلها ' + m.prev : '') + ')').join('، '));
             else L.push('ما مسجل درجات بالتطبيق.');
             if (f.exams.length) L.push('امتحانات قريبة: ' + f.exams.slice(0, 4).map((x) => x.s + (x.days === 0 ? ' اليوم' : ' بعد ' + x.days + ' يوم')).join('، '));
+            if (f.mkDue) L.push('بدفتر غلطاته ' + f.mkDue + ' سؤال غلط بيه قبل ومستحق يراجعه اليوم.');
             if (f.quizzes.length) L.push('آخر اختباراته المفاجئة: ' + f.quizzes.map((q) => q.s + ' ' + q.r + '/' + q.n).join('، '));
             return L.join('\n').slice(0, 2400);
         },
@@ -287,6 +288,7 @@
             if (f.lastWeek >= 4 && f.week < f.lastWeek / 2) R.push('جلسات دراسته هالأسبوع ' + f.week + ' بس، والأسبوع اللي قبله ' + f.lastWeek);
             f.drops.slice(0, 2).forEach((x) => R.push('درجته بـ' + x.s + ' نزلت من ' + x.from + ' إلى ' + x.to));
             f.exams.filter((x) => x.days <= 3).slice(0, 2).forEach((x) => R.push('امتحان ' + x.s + (x.days === 0 ? ' اليوم' : ' بعد ' + x.days + ' يوم')));
+            if (f.mkDue >= 3) R.push('عنده ' + f.mkDue + ' أسئلة غلط بيها قبل ومستحقة المراجعة اليوم بدفتر الغلطات');
             if (!R.length && f.weakest && f.weakest.v < 60) {
                 const recent = this._ttQuizLog().some((q) => Date.now() - q.t < 7 * DAY);
                 if (!recent) R.push('أضعف مادة عنده ' + f.weakest.s + ' (' + f.weakest.v + ')، وما مسوي اختبار مفاجئ من أسبوع');
@@ -404,6 +406,8 @@
             const t = this._tt, m = t && t.msgs[i], q = m && m.quiz;
             if (!q || q.picks[k] !== null || !q.qs[k]) return;
             q.picks[k] = j;
+            const x = q.qs[k];
+            if (j !== x.answer) this._mkAdd({ src: 'quiz', s: q.s, q: x.q, ch: x.choices, a: x.answer, why: x.why, pick: j });
             if (q.picks.indexOf(null) < 0) this._ttQuizDone(m);
             this._ttSave();
             const el = document.querySelector('#ttMsg' + i + ' .tt-txt');
