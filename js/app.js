@@ -930,13 +930,8 @@
                     if (!window.firebaseDb) return num;
                     try {
                         const { ref, get } = window.firebaseDbHelpers;
-                        const snap = await get(ref(window.firebaseDb, 'users'));
-                        let exists = false;
-                        if (snap.exists()) {
-                            const users = snap.val();
-                            exists = Object.keys(users).some((k) => String(users[k].studentNumber) === num);
-                        }
-                        if (!exists) return num;
+                        const snap = await get(ref(window.firebaseDb, 'numIndex/' + num));
+                        if (!snap.exists()) return num;
                     } catch (e) {
                         return num;
                     }
@@ -2182,6 +2177,7 @@
                     payload.points = 0;
                     payload.balance = 0;
                 }
+                this._pubSync(uid, payload);
                 const userWrite = update(ref(window.firebaseDb, 'users/' + uid), payload).then(() => {
                     console.log('User synced to Realtime Database');
                     return true;
@@ -2225,6 +2221,7 @@
                         this.currentUser = { ...this.currentUser, ...snap.val() };
                         this.isLoggedIn = true;
                         this.saveUserData();
+                        this._pubSync(safeUid, this.currentUser);
                     } else {
                         if (!this.currentUser) this.currentUser = {};
                         if (!this.currentUser.studentNumber) {
@@ -3935,7 +3932,11 @@
                 const t = this._coachPending;
                 this._coachPending = null;
                 if (!t || !this.isLoggedIn) return;
-                this._need('tutor').then(() => { this._coachDeliver(t); this.setTab('tutor'); }).catch(() => {});
+                this._need('tutor').then(() => {
+                    if (!this._coachKnown || !this._coachKnown(t)) return; // not one of the tutor's own messages
+                    this._coachDeliver(t);
+                    this.setTab('tutor');
+                }).catch(() => {});
             },
 
             // A short line for the tutor's report on the student.
@@ -8851,18 +8852,9 @@
                 lucide.createIcons();
                 const { ref, get } = window.firebaseDbHelpers;
                 try {
-                    const snap = await get(ref(window.firebaseDb, 'users'));
-                    let found = null;
-                    let foundUid = null;
-                    if (snap.exists()) {
-                        const users = snap.val();
-                        Object.keys(users).forEach((k) => {
-                            if (String(users[k].studentNumber) === query) {
-                                found = users[k];
-                                foundUid = k;
-                            }
-                        });
-                    }
+                    const hit = await this.findStudentByNumber(query);
+                    const found = hit ? hit.data : null;
+                    const foundUid = hit ? hit.uid : null;
                     if (!found) {
                         result.innerHTML = `
                             <div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center">
@@ -8871,7 +8863,6 @@
                         return;
                     }
                     this.transferReceiver = { uid: foundUid, data: found };
-                    const receiverBalance = (typeof found.balance === 'number') ? found.balance : 0;
                     result.innerHTML = `
                         <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                             <div class="flex items-center gap-3">
@@ -8879,7 +8870,6 @@
                                 <div class="flex-1 min-w-0">
                                     <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.fullName || 'طالب')}</div>
                                     <div class="text-xs theme-transition" style="color: var(--text2);">${escapeHtml(found.governorate || '—')} • رقم: ${escapeHtml(found.studentNumber || '—')}</div>
-                                    <div class="text-xs theme-transition" style="color: var(--text2);">النقاط: ${numOr0(found.points).toLocaleString('en-US')} • الرصيد: $${receiverBalance.toFixed(2)}</div>
                                 </div>
                             </div>
                         </div>
@@ -9823,16 +9813,12 @@
                 if (!window.firebaseDb) return [];
                 const { ref, get } = window.firebaseDbHelpers;
                 try {
-                    const snap = await get(ref(window.firebaseDb, 'users'));
+                    const snap = await get(ref(window.firebaseDb, 'pub'));
                     if (!snap.exists()) return [];
-                    const users = snap.val();
+                    const all = snap.val();
                     const q = query.toLowerCase();
-                    const matches = [];
-                    Object.keys(users).forEach((uid) => {
-                        const u = users[uid];
-                        if (u && u.fullName && u.fullName.toLowerCase().includes(q)) matches.push({ uid, data: u });
-                    });
-                    return matches.slice(0, 15);
+                    const uids = Object.keys(all).filter((uid) => all[uid] && String(all[uid].n || '').toLowerCase().includes(q)).slice(0, 15);
+                    return Promise.all(uids.map((uid) => this._pubData(uid, all[uid])));
                 } catch (err) {
                     console.warn('Name search failed:', err);
                     return [];
@@ -11129,18 +11115,39 @@
             },
 
             // ==================== SHARED: FIND STUDENT BY NUMBER ====================
+            // Students' full records (email, phone, balance...) are only readable by their owner and
+            // the panel. Others are found through a small public directory: pub/{uid} = { n, s, g }
+            // (name, student number, governorate) and numIndex/{number} = uid; the photo and points
+            // come from the leaderboard, which is public anyway.
+            // this student's own entry in the directory
+            _pubSync(uid, u) {
+                if (!window.firebaseDb || !uid || !u) return;
+                const { ref, update, get, set } = window.firebaseDbHelpers;
+                const rec = { n: String(u.fullName || 'طالب').slice(0, 80), s: String(u.studentNumber || '').slice(0, 12), g: String(u.governorate || '').slice(0, 30) };
+                const key = JSON.stringify(rec);
+                if (this._pubLast === uid + key) return;
+                this._pubLast = uid + key;
+                update(ref(window.firebaseDb, 'pub/' + uid), rec).catch(() => {});
+                if (/^[0-9]{3,12}$/.test(rec.s)) {
+                    get(ref(window.firebaseDb, 'numIndex/' + rec.s)).then((sn) => { if (!sn.exists()) return set(ref(window.firebaseDb, 'numIndex/' + rec.s), uid); }).catch(() => {});
+                }
+            },
+            async _pubData(uid, p) {
+                let lb = {};
+                try { lb = (await window.firebaseDbHelpers.get(window.firebaseDbHelpers.ref(window.firebaseDb, 'leaderboard/' + uid))).val() || {}; } catch (e) {}
+                return { uid, data: { fullName: p.n || 'طالب', studentNumber: p.s || '', governorate: p.g || '', avatar: lb.avatar || '', points: lb.points || 0 } };
+            },
             async findStudentByNumber(number) {
                 if (!window.firebaseDb) return null;
                 const { ref, get } = window.firebaseDbHelpers;
                 try {
-                    const snap = await get(ref(window.firebaseDb, 'users'));
-                    if (!snap.exists()) return null;
-                    const users = snap.val();
-                    let found = null, foundUid = null;
-                    Object.keys(users).forEach((k) => {
-                        if (String(users[k].studentNumber) === number) { found = users[k]; foundUid = k; }
-                    });
-                    return found ? { uid: foundUid, data: found } : null;
+                    const num = String(number || '').trim();
+                    if (!/^[0-9]{3,12}$/.test(num)) return null;
+                    const snap = await get(ref(window.firebaseDb, 'numIndex/' + num));
+                    const uid = snap.val();
+                    if (typeof uid !== 'string') return null;
+                    const p = await get(ref(window.firebaseDb, 'pub/' + uid));
+                    return p.exists() ? this._pubData(uid, p.val()) : null;
                 } catch (err) {
                     console.warn('Student search failed:', err);
                     return null;
