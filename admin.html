@@ -446,6 +446,20 @@
 
                 <div class="card">
                     <div class="card-head">
+                        <div class="ic"><i data-lucide="moon-star"></i></div>
+                        <div>
+                            <h3>صفحات اختيارية</h3>
+                            <p>أطفئ الصفحة حتى تختفي من التطبيق عند كل الطلاب</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>روحانيات</strong><span>المسبحة والاستغفار والأدعية وأعمال شهر رمضان</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.dhikr" aria-label="روحانيات"><span class="track"></span></label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
                         <div class="ic"><i data-lucide="compass"></i></div>
                         <div>
                             <h3>شريط التنقل السفلي</h3>
@@ -2226,7 +2240,7 @@
         // The student site listens to `siteConfig` live. Missing keys mean default,
         // so switches for sections/nav default to ON and flags default to OFF.
         let siteConfig = {};
-        const CFG_DEFAULT_ON = (path) => /^(sections|nav)\./.test(path) || path === 'ticker.autoplay';
+        const CFG_DEFAULT_ON = (path) => /^(sections|nav|features)\./.test(path) || path === 'ticker.autoplay';
         const cfgGet = (path) => path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), siteConfig);
         const cfgWrite = (patch, okMsg) => {
             const payload = { ...patch, updatedAt: serverTimestamp() };
