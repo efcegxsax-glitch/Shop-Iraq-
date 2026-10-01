@@ -71,6 +71,18 @@ self.addEventListener('message', (e) => {
     }
 });
 
+// the app's own notifications (tutor, meals, water): a tap opens the app or brings it forward
+self.addEventListener('notificationclick', (e) => {
+    const tag = (e.notification && e.notification.tag) || '';
+    if (tag.indexOf('isp-') !== 0) return;
+    e.notification.close();
+    e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+        const w = list.find((c) => new URL(c.url).origin === self.location.origin);
+        if (w) { w.postMessage({ type: 'isp-open', tag }); return w.focus(); }
+        return self.clients.openWindow('./');
+    }));
+});
+
 self.addEventListener('fetch', (e) => {
     const r = e.request;
     if (r.method !== 'GET' || SKIP.test(r.url) || !/^https?:/.test(r.url)) return;

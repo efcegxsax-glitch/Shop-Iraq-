@@ -13,6 +13,67 @@
     const KEEP = 40, SEND = 20, IMG_MAX = 1280;
     const QUIZ_PTS = 2, QUIZ_DAY_CAP = 30; // points per right answer, and at most this many a day from quizzes
     const DAY = 86400000;
+    // the tutor's reminders ({name}, {n} days to the {s} exam, {d} days without studying)
+    const COACH = {
+        scold: [
+            '{name}، ليش متكاسل؟ وراك ناس تنتظر تشوفك تطيح حتى تشمت بيك. لا تنطيهم هالفرحة.',
+            'هذا مستقبلك انت، مو مستقبل أحد غيرك. محد راح يفيدك غير تعبك.',
+            'بالامتحان محد راح يكون وياك. لا صديق ولا تلفون ولا أحد. بس انت واللي حفظته.',
+            'هاي شدة وتخلص. تعب نفسك هسه، وترتاح باچر.',
+            'التلفون يكدر ينتظر، الامتحان ما ينتظر أحد.',
+            'كل ساعة تضيعها هسه راح تتمناها ليلة الامتحان، وما راح ترجع.',
+            'أهلك تعبوا عليك سنين. ردلهم التعب بنتيجة يرفعون بيها راسهم.',
+            'شكد مرة كلت باچر أبدي؟ باچر ما يجي. ابدي هسه ولو بعشر دقايق.',
+            'اللي ناجحين مو أذكى منك، بس ما استسلموا للكسل. وانت؟',
+            '{name}، تخيل يوم النتائج. شنو تريد تشوف؟ اللي تسويه هسه هو اللي راح تشوفه.',
+            'السوشيال ميديا ما راح تكتبلك الجواب بالامتحان.',
+            'التعب يروح، بس النتيجة تبقى وياك العمر كله.',
+            'محد يشيل همك. شيل همك انت وافتح الكتاب.',
+            'لا تخلي الكسل يقرر بدالك. انت أقوى منه.',
+            'صفحة وحدة هسه أحسن من عشر صفحات بليلة الامتحان وانت مرعوب.',
+            'ترضى تشوف زملاءك بالكلية اللي تحلم بيها وانت لا؟ يلا گوم.',
+            'الندم أصعب من الدراسة بهواية. اختار التعب اللي ينفعك.',
+            'بطّل تأجيل. التأجيل يسرق أحلامك وانت ما تحس.',
+            'لا النوم ولا اللعب راح ينجحك. بس دراستك.',
+            'الناس راح تسأل شجبت، محد راح يسأل شكد تعبت. خلي الجواب يرفع راسك.',
+            '{name}، أني مو هنا حتى أزعجك. أني هنا لأن أعرف إنك تكدر، وانت هم تعرف.',
+            'اللي يزرع هسه يحصد باچر. شنو زرعت اليوم؟',
+            'وراك هدف، مو بس امتحان. لا تضيعه عشان شوية راحة.',
+            'الأيام تركض، والامتحان يقرب يوم بعد يوم. وانت وين؟',
+        ],
+        soft: [
+            'حتى خطوة صغيرة اليوم تفرق. افتح كتابك ولو عشر دقايق.',
+            '{name}، أني واثق بيك. يلا نبدي جلسة وحدة سوا.',
+            'التعب اللي تحسه هسه هو اللي يصنع نجاحك.',
+            'خذ نفس، اشرب ماي، وابدي. تكدر.',
+            'مو لازم تخلص كلشي اليوم. بس لا تخلي اليوم يعبر بدون شي.',
+            'كل صفحة تقراها تقربك من الكلية اللي تحلم بيها.',
+            'ارتاح شوية إذا تعبان، بس ارجع. المهم ما توكف.',
+        ],
+        notToday: [
+            '{name}، اليوم بعدك ما فتحت كتاب. اليوم يروح وما يرجع.',
+            'صار العصر وبعدك ما درست اليوم. شنو العذر هالمرة؟',
+            'اليوم بعده ما خلص. جلسة وحدة 25 دقيقة وتنقذ يومك.',
+        ],
+        gap: [
+            'صارلك {d} أيام ما مسجل دراسة. وين رحت؟ مستقبلك ينتظرك.',
+            '{d} أيام بدون دراسة يا {name}؟ ارجع اليوم قبل لا تصير عادة.',
+        ],
+        exam: [
+            'باقي {n} يوم على امتحان {s}. كل يوم يعبر بدون دراسة يقربك من الندم.',
+            'امتحان {s} بعد {n} يوم. محد راح يكون وياك بالقاعة، بس اللي تحفظه هسه.',
+            '{name}، {s} بعد {n} يوم. هاي الأيام هي اللي تفرق، لا تضيعها.',
+        ],
+        night: [
+            'صار الليل. إذا درست اليوم نام زين، النوم يثبت الحفظ. وإذا ما درست، ربع ساعة قبل النوم وباچر صفحة جديدة.',
+            'لا تسهر على التلفون. نامك المبكر هو نص نجاحك باچر.',
+        ],
+        praise: [
+            '{name}، شفتك درست اليوم. هيچ أريدك. كمّل وخليهم يشوفون منو انت.',
+            'عاشت إيدك على دراسة اليوم. التعب هذا راح يرجعلك فرحة.',
+            'هسه صرت على الطريق الصح. لا توكف، باچر مثل اليوم.',
+        ],
+    };
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const STARTERS = [
         ['book-open', 'اشرحلي درس', 'اشرحلي '],
@@ -64,7 +125,7 @@
 
     Object.assign(app, {
         tutorOpen() {
-            this._tt = this._tt || { msgs: this._ttLoad(), busy: false, img: null };
+            this._ttEnsure();
             document.body.classList.add('tutor-on');
             this._ttBadge(false);
             if (window.speechSynthesis) try { speechSynthesis.getVoices(); } catch (e) {}
@@ -80,8 +141,19 @@
         },
 
         _ttKey() { return 'isp_tutor_' + (this.authUid || 'guest'); },
+        // the chat belongs to the account it was loaded for: if the sign-in came back (or changed)
+        // after the page opened, the right chat is loaded instead of saving over it
+        _ttEnsure() {
+            const who = this.authUid || 'guest';
+            if (!this._tt || this._tt.who !== who) {
+                if (this._tt && this._tt.abort) try { this._tt.abort.abort(); } catch (e) {}
+                this._tt = { msgs: this._ttLoad(), busy: false, img: null, who };
+            }
+            return this._tt;
+        },
         _ttLoad() { try { return (JSON.parse(localStorage.getItem(this._ttKey()) || '[]') || []).slice(-KEEP); } catch (e) { return []; } },
         _ttSave() {
+            if (this._tt.who && this._tt.who !== (this.authUid || 'guest')) return;
             const list = this._tt.msgs.filter((m) => !m.pending).slice(-KEEP);
             try { localStorage.setItem(this._ttKey(), JSON.stringify(list)); } catch (e) {
                 // storage full: drop the thumbnails first
@@ -94,6 +166,7 @@
         _ttRender() {
             const box = document.getElementById('ttBody');
             if (!box || !this._tt) return;
+            if (this._tt.who !== (this.authUid || 'guest') && !this._tt.busy) this._ttEnsure();
             const t = this._tt;
             if (!this._ttUrl()) {
                 box.innerHTML = `<div class="tt-off"><span class="tt-orb big"><i data-lucide="sparkles"></i></span><b>المعلم الذكي بعده ما مفعّل</b><p>راح يشتغل قريباً إن شاء الله.</p></div>`;
@@ -408,7 +481,7 @@
                 if (!reasons.length) return;
                 const { text } = await this._ttPost({ mode: 'nudge', reasons, context: await this._ttContext() });
                 if (!text) return;
-                this._tt = this._tt || { msgs: this._ttLoad(), busy: false, img: null };
+                this._ttEnsure();
                 if (this._tt.busy) return;
                 this._tt.msgs.push({ role: 'assistant', content: text, nudge: true });
                 this._ttSave();
@@ -432,6 +505,106 @@
         },
         ttPopOpen() { document.getElementById('ttPop')?.remove(); this.setTab('tutor'); },
         ttPopClose() { document.getElementById('ttPop')?.remove(); },
+
+        // ---------- the tutor's reminders (app._coachTick decides when; this picks what to say) ----------
+        // Firm, caring words in Iraqi dialect that put the student face to face with their own future,
+        // chosen from their record: not studied today, days without studying, an exam coming, or praise.
+        async _coachSend() {
+            if (!this.authUid) return;
+            let f = null;
+            try { f = await this._ttFacts(); } catch (e) {}
+            f = f || {};
+            const c = this._coachGet();
+            const hour = new Date().getHours();
+            const name = f.name || 'حبيبي';
+            const today = f.daysSince === 0;
+            const exam = (f.exams || [])[0];
+            const fill = (t) => t.replace(/\{name\}/g, name).replace(/\{n\}/g, exam ? exam.days : '').replace(/\{s\}/g, exam ? exam.s : '').replace(/\{d\}/g, f.daysSince || '');
+            let pool;
+            if (today && (c.tone !== 'scold' || Math.random() < 0.5)) pool = COACH.praise;
+            else if (exam && exam.days <= 14 && Math.random() < 0.6) pool = COACH.exam;
+            else if (!today && f.daysSince >= 2 && Math.random() < 0.5) pool = COACH.gap;
+            else if (!today && hour >= 15 && Math.random() < 0.5) pool = COACH.notToday;
+            else if (hour >= 22) pool = COACH.night;
+            else pool = c.tone === 'soft' ? COACH.soft : c.tone === 'scold' ? COACH.scold : (Math.random() < 0.65 ? COACH.scold : COACH.soft);
+            const used = c.used || [];
+            const pick = pool.map((t, i) => [t, i]).filter(([t]) => !used.includes(t.slice(0, 24)));
+            const [raw] = (pick.length ? pick : pool.map((t, i) => [t, i]))[Math.floor(Math.random() * (pick.length || pool.length))];
+            c.used = used.concat(raw.slice(0, 24)).slice(-20);
+            this._coachSave(c);
+            this._coachDeliver(fill(raw));
+        },
+        // into the chat with the tutor (so the student can answer it), and as a notification
+        _coachDeliver(text) {
+            this._ttEnsure();
+            this._tt.msgs.push({ role: 'assistant', content: text, nudge: true });
+            this._ttSave();
+            if (this.currentView === 'tutorView' && !document.hidden) { this._ttRender(); return; }
+            this._ttBadge(true);
+            if (document.hidden) {
+                if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+                    navigator.serviceWorker.ready.then((r) => r.showNotification('المعلم', { body: text, tag: 'isp-coach', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './' } })).catch(() => {});
+                }
+                return;
+            }
+            try { if (navigator.vibrate) navigator.vibrate([80, 60, 80]); } catch (e) {}
+            this._ttPop(text);
+        },
+
+        // settings, from the bell in the tutor's header
+        ttCoachSettings() {
+            const c = this._coachGet();
+            const perm = 'Notification' in window ? Notification.permission : 'denied';
+            document.getElementById('fdSheet')?.remove();
+            const el = document.createElement('div');
+            el.id = 'fdSheet'; el.className = 'fd-sheet';
+            const sel = (f, list, cur) => `<select onchange="app.ttCoachSet('${f}', this.value)">${list.map(([v, l]) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+            el.innerHTML = `<div class="fd-back" onclick="app.ttCoachClose()"></div><div class="fd-card">
+                <div class="fd-grab"></div>
+                <div class="fd-sh"><span class="fd-mi" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)"><i data-lucide="message-circle-warning"></i></span><div><b>رسائل المعلم</b><small>يذكّرك بمستقبلك ويعاتبك إذا تكاسلت</small></div></div>
+                <label class="fd-sw"><span><b>خلي المعلم يراسلني</b><small>رسائل بلهجتنا تشد حيلك</small></span><input type="checkbox" ${c.on ? 'checked' : ''} onchange="app.ttCoachSet('on', this.checked)"><i></i></label>
+                ${c.on ? `<div class="fd-times">
+                    <label><span>كل</span>${sel('every', [[60, 'ساعة'], [120, 'ساعتين'], [240, '4 ساعات'], [360, '6 ساعات']], c.every)}</label>
+                    <label><span>الأسلوب</span>${sel('tone', [['scold', 'عتاب وشدة'], ['mix', 'عتاب وتشجيع'], ['soft', 'تشجيع هادي']], c.tone)}</label>
+                </div>
+                <div class="fd-times">
+                    <label><span>من الساعة</span><input type="time" value="${c.from}" onchange="app.ttCoachSet('from', this.value)"></label>
+                    <label><span>إلى الساعة</span><input type="time" value="${c.to}" onchange="app.ttCoachSet('to', this.value)"></label>
+                </div>
+                <button class="fd-perm" onclick="app.ttCoachTry()"><i data-lucide="send"></i>جرّب رسالة هسه</button>` : ''}
+                ${perm !== 'granted' ? `<button class="fd-perm" onclick="app.ttCoachAllow()"><i data-lucide="bell-plus"></i>خلي الرسائل توصلني حتى والتطبيق مسدود</button>` : '<p class="fd-small">الإشعارات مفعّلة، والرسائل توصلك حتى والتطبيق مسدود.</p>'}
+                <p class="fd-small">ما يراسلك وانت بجلسة دراسة أو تركيز أو مكالمة.</p>
+                <button class="fd-main" onclick="app.ttCoachClose()">تمام</button>
+            </div>`;
+            document.body.appendChild(el);
+            requestAnimationFrame(() => el.classList.add('on'));
+            lucide.createIcons();
+        },
+        ttCoachClose() {
+            const el = document.getElementById('fdSheet');
+            if (!el) return;
+            el.classList.remove('on');
+            setTimeout(() => el.remove(), 280);
+        },
+        ttCoachSet(field, v) {
+            const c = this._coachGet();
+            if (field === 'on') c.on = !!v;
+            else if (field === 'every') c.every = Number(v) || 240;
+            else if (field === 'tone') c.tone = ['scold', 'mix', 'soft'].includes(v) ? v : 'mix';
+            else if ((field === 'from' || field === 'to') && /^\d\d:\d\d$/.test(v)) c[field] = v;
+            this._coachSave(c);
+            if (field === 'on') { this._coachTag(c.on); this.ttCoachSettings(); }
+        },
+        ttCoachTry() { this.ttCoachClose(); this._coachSend(); },
+        async ttCoachAllow() {
+            if (!('Notification' in window)) { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
+            // the push service (OneSignal) asks itself when it is set up; otherwise the browser does
+            const p = window.OneSignal && OneSignal.Notifications && OneSignal.Notifications.requestPermission
+                ? await OneSignal.Notifications.requestPermission().then(() => Notification.permission).catch(() => Notification.permission)
+                : await Notification.requestPermission().catch(() => 'denied');
+            this.showToast(p === 'granted' ? 'تمام، رسائل المعلم راح توصلك' : 'ما انسمحت الإشعارات، فعّلها من إعدادات المتصفح');
+            this.ttCoachSettings();
+        },
 
         // ---------- surprise quiz ----------
         ttQuizPick() {

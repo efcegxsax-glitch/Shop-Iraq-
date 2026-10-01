@@ -12,6 +12,7 @@
 //   mode "cards": { image: { type, data }, subject? } -> JSON { title, cards: [{ q, a }] }  (review cards from a page)
 //   mode "food": { text, meal? } -> JSON { items: [{ name, v, why }], score, brain, tip, next[] }  (what the
 //     student ate, judged for a student's focus and memory); { ideas: true, meal? } -> varied meal ideas
+//   cron (wrangler.toml): the tutor's push messages to every student, see coachPush
 //   mode "turn": {} -> JSON { iceServers }  (short-lived Cloudflare TURN credentials for voice calls,
 //     when the TURN_KEY_ID and TURN_KEY_API_TOKEN secrets are set; works without a model key)
 // context: a short report of the student's studying, written by the app, used to hold them to it.
@@ -322,7 +323,66 @@ async function turnServers(env) {
     }
 }
 
+// ---------- the tutor's messages to every student (cron, through OneSignal web push) ----------
+// Four times a day (wrangler.toml [triggers]); only when the panel hasn't switched them off
+// (siteConfig/features/coach) and only to students who didn't switch them off (tag coach=off).
+// A tap opens the app with the message, which then joins the student's chat with the tutor.
+const COACH_PUSH = [
+    'هذا مستقبلك انت، مو مستقبل أحد غيرك. محد راح يفيدك غير تعبك.',
+    'بالامتحان محد راح يكون وياك. لا صديق ولا تلفون. بس انت واللي حفظته.',
+    'هاي شدة وتخلص. تعب نفسك هسه، وترتاح باچر.',
+    'التلفون يكدر ينتظر، الامتحان ما ينتظر أحد.',
+    'كل ساعة تضيعها هسه راح تتمناها ليلة الامتحان، وما راح ترجع.',
+    'أهلك تعبوا عليك سنين. ردلهم التعب بنتيجة يرفعون بيها راسهم.',
+    'شكد مرة كلت باچر أبدي؟ باچر ما يجي. ابدي هسه ولو بعشر دقايق.',
+    'ليش متكاسل؟ وراك ناس تنتظر تشوفك تطيح حتى تشمت. لا تنطيهم هالفرحة.',
+    'التعب يروح، بس النتيجة تبقى وياك العمر كله.',
+    'محد يشيل همك. شيل همك انت وافتح الكتاب.',
+    'الندم أصعب من الدراسة بهواية. اختار التعب اللي ينفعك.',
+    'الناس راح تسأل شجبت، محد راح يسأل شكد تعبت. خلي الجواب يرفع راسك.',
+    'اللي يزرع هسه يحصد باچر. شنو زرعت اليوم؟',
+    'الأيام تركض، والامتحان يقرب يوم بعد يوم. وانت وين؟',
+    'حتى خطوة صغيرة اليوم تفرق. افتح كتابك ولو عشر دقايق.',
+    'ترضى تشوف زملاءك بالكلية اللي تحلم بيها وانت لا؟ يلا گوم.',
+];
+const COACH_NIGHT = [
+    'صار الليل. إذا درست اليوم نام زين، النوم يثبت الحفظ. وإذا ما درست، ربع ساعة قبل النوم وباچر صفحة جديدة.',
+    'لا تسهر على التلفون. نومك المبكر نص نجاحك باچر.',
+];
+async function coachPush(env, when) {
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return 'no_key';
+    if (env.FIREBASE_DB_URL) {
+        try {
+            const r = await fetch(env.FIREBASE_DB_URL.replace(/\/$/, '') + '/siteConfig/features/coach.json');
+            if (r.ok && (await r.json()) === false) return 'off';
+        } catch { /* the panel switch couldn't be read: send anyway */ }
+    }
+    const hour = (new Date(when).getUTCHours() + 3) % 24; // Baghdad
+    const list = hour >= 20 ? COACH_NIGHT : COACH_PUSH;
+    const text = list[Math.floor(Math.random() * list.length)];
+    const res = await fetch('https://api.onesignal.com/notifications?c=push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+        body: JSON.stringify({
+            app_id: env.ONESIGNAL_APP_ID,
+            target_channel: 'push',
+            filters: [{ field: 'tag', key: 'coach', relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: 'coach', relation: '=', value: 'on' }],
+            headings: { en: 'المعلم', ar: 'المعلم' },
+            contents: { en: text, ar: text },
+            url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?coach=' + encodeURIComponent(text),
+            web_push_topic: 'isp-coach',
+            ttl: 3 * 3600,
+        }),
+    });
+    if (!res.ok) console.error('coach push', res.status, await res.text().catch(() => ''));
+    return res.ok ? 'sent' : 'error_' + res.status;
+}
+
 export default {
+    async scheduled(event, env, ctx) {
+        ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
+    },
+
     async fetch(req, env, ctx) {
         const headers = cors(req, env);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });

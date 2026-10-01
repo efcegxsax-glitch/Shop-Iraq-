@@ -545,6 +545,11 @@
                     // a newer version was saved in the background (the app itself opened from the saved copy)
                     navigator.serviceWorker.addEventListener('message', (e) => {
                         if (e.data && e.data.type === 'isp-update' && e.data.ver !== window.APP_VER) this._updateReady();
+                        // a tap on one of the app's notifications
+                        if (e.data && e.data.type === 'isp-open') {
+                            if (e.data.tag === 'isp-coach') this.setTab('tutor');
+                            else if (/^isp-nut-/.test(e.data.tag)) this.goToFood();
+                        }
                     });
                     setTimeout(() => this._warmParts(), 6000);
                 }
@@ -653,6 +658,13 @@
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
+                try {
+                    const q = new URLSearchParams(location.search).get('coach');
+                    if (q) {
+                        this._coachPending = q.replace(/[<>]/g, '').trim().slice(0, 300);
+                        history.replaceState(null, '', location.pathname);
+                    }
+                } catch (e) {}
                 // Opened from the phone's file manager (content:// or file://) Firebase sign-in,
                 // notifications and saved data don't work — the page needs to be served over https.
                 if (!/^https?:$/.test(location.protocol)) {
@@ -2233,6 +2245,9 @@
                     this._ttNudgeSoon();
                     this._smPing();
                     this._restoreChat();
+                    this._coachOpen();
+                    if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
+                    this._coachTag(this._coachGet().on);
                     this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
@@ -3651,7 +3666,7 @@
             // Once a minute (and whenever the app comes back): is a meal coming up, or time for water?
             _nutStart() {
                 if (this._nutT) return;
-                this._nutT = setInterval(() => this._nutTick(), 60000);
+                this._nutT = setInterval(() => { this._nutTick(); this._coachTick(); }, 60000);
                 document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._nutTick(), 1500); });
                 setTimeout(() => this._nutTick(), 20000);
             },
@@ -3712,6 +3727,41 @@
                 p.querySelector('.nt-no').onclick = close;
                 setTimeout(() => { if (p.isConnected) close(); }, 15000);
             },
+            // ----- the tutor's own messages (texts and choice in js/tutor.js _coachSend) -----
+            // isp:coach:<uid> = { on, every (minutes), tone, from, to, last, used }. Every 4 hours by
+            // default, only between from and to, never during a call or a study/focus session.
+            _coachGet() {
+                let c = null;
+                try { c = JSON.parse(localStorage.getItem('isp:coach:' + (this.authUid || 'guest')) || 'null'); } catch (e) {}
+                return Object.assign({ on: true, every: 240, tone: 'mix', from: '09:00', to: '23:00', last: 0, used: [] }, c && typeof c === 'object' ? c : {});
+            },
+            _coachSave(c) { try { localStorage.setItem('isp:coach:' + (this.authUid || 'guest'), JSON.stringify(c)); } catch (e) {} },
+            // the push service skips students who switched the messages off (tag coach=off)
+            _coachTag(on) {
+                try { if (window.OneSignal && OneSignal.User && OneSignal.User.addTag) OneSignal.User.addTag('coach', on ? 'on' : 'off'); } catch (e) {}
+            },
+            _coachTick() {
+                const cfg = this.siteConfig || {};
+                if ((cfg.features && cfg.features.coach === false) || !this.isLoggedIn || !this.authUid) return;
+                const c = this._coachGet();
+                if (!c.on || this._cl || this._focus || this._forest || this._gwar || this.studyTimerRunning) return;
+                const now = new Date(), min = now.getHours() * 60 + now.getMinutes();
+                if (min < this._nutMin(c.from) || min > this._nutMin(c.to)) return;
+                // the first message comes a while after the app opens, not straight away
+                if (!c.last) { c.last = Date.now() - c.every * 60000 + 20 * 60000; this._coachSave(c); return; }
+                if (Date.now() - c.last < c.every * 60000) return;
+                c.last = Date.now();
+                this._coachSave(c);
+                this._need('tutor').then(() => this._coachSend && this._coachSend()).catch(() => {});
+            },
+            // a push from the tutor opened the app (?coach=<text>): it joins the chat with the tutor
+            _coachOpen() {
+                const t = this._coachPending;
+                this._coachPending = null;
+                if (!t || !this.isLoggedIn) return;
+                this._need('tutor').then(() => { this._coachDeliver(t); this.setTab('tutor'); }).catch(() => {});
+            },
+
             // A short line for the tutor's report on the student.
             _nutSummary() {
                 const o = this._nutGet(), d = o.days[this._nutToday()];

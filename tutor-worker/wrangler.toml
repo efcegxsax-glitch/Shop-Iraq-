@@ -8,6 +8,10 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 FIREBASE_PROJECT_ID = "iraqi-student-platform-9918d"
+FIREBASE_DB_URL = "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com"
+# the tutor's push messages (needs the ONESIGNAL_REST_API_KEY secret)
+ONESIGNAL_APP_ID = "6ab91884-6fd7-43a1-a318-a4975260944e"
+APP_URL = "https://efcegxsax-glitch.github.io/Shop-Iraq-/"
 # pages allowed to call the tutor (comma separated)
 ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-platform-9918d.web.app,https://iraqi-student-platform-9918d.firebaseapp.com"
 
@@ -22,3 +26,7 @@ simple = { limit = 6, period = 60 }
 name = "PER_CALL"
 namespace_id = "1002"
 simple = { limit = 10, period = 60 }
+
+# the tutor's messages: 9:07, 13:07, 17:07 and 21:07 Baghdad time (UTC+3)
+[triggers]
+crons = ["7 6,10,14,18 * * *"]
