@@ -393,6 +393,7 @@ const DEV = 'abcdefghij0123456789', DEV2 = 'zzzzzzzzzz0123456789';
 await ok('claim a phone', set(ref(db('o1'), 'deviceOwners/' + DEV), 'o1'));
 await ok('anyone reads a phone owner', get(ref(db(null), 'deviceOwners/' + DEV)));
 await no('take a claimed phone', set(ref(db('o2'), 'deviceOwners/' + DEV), 'o2'));
+await seed('users/o1', { fullName: 'o1' });
 await no('free a phone yourself', set(ref(db('o1'), 'deviceOwners/' + DEV), null));
 await no('claim for someone else', set(ref(db('o2'), 'deviceOwners/' + DEV2), 'o1'));
 await no('bad phone id', set(ref(db('o2'), 'deviceOwners/BAD'), 'o2'));
@@ -428,6 +429,23 @@ await no('the other one\'s read receipt', set(ref(db('c2'), 'privateChats/c1_c2/
 await no('outsider writes', set(ref(db('c3'), 'privateChats/c1_c2/messages/3'), { id: 3, from: 'c3', text: 'x' }));
 await no('outsider reads', get(ref(db('c3'), 'privateChats/c1_c2')));
 await ok('delete own message', set(ref(db('c1'), 'privateChats/c1_c2/messages/1'), null));
+
+// deleting my account
+await seed('users/z1', { fullName: 'زيد', points: 50, balance: 3 });
+await seed('friends/z1/z2', { name: 'x' }); await seed('friends/z2/z1', { name: 'زيد' });
+await seed('userChats/z1/z2', { lastMessage: 'x' }); await seed('userChats/z2/z1', { lastMessage: 'x' });
+await seed('shopMine/z1/o1', true); await seed('deviceOwners/zzzzzzzzzzzzzzzz1111', 'z1');
+await ok('delete my record', set(ref(db('z1'), 'users/z1'), null));
+await no('delete someone else record', set(ref(db('z2'), 'users/z3'), null));
+await no('replace my record wholesale', set(ref(db('z2'), 'users/z2'), { points: 999999 }));
+await ok('delete my friends list', set(ref(db('z1'), 'friends/z1'), null));
+await ok('remove me from a friend list', set(ref(db('z1'), 'friends/z2/z1'), null));
+await ok('delete my inbox', set(ref(db('z1'), 'userChats/z1'), null));
+await ok('remove me from their inbox', set(ref(db('z1'), 'userChats/z2/z1'), null));
+await ok('delete my order list', set(ref(db('z1'), 'shopMine/z1'), null));
+await ok('free my phone', set(ref(db('z1'), 'deviceOwners/zzzzzzzzzzzzzzzz1111'), null));
+await seed('deviceOwners/zzzzzzzzzzzzzzzz2222', 'z2');
+await no('free someone else phone', set(ref(db('z1'), 'deviceOwners/zzzzzzzzzzzzzzzz2222'), null));
 
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();

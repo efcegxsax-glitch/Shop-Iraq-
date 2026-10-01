@@ -193,7 +193,9 @@ rules = {
     "deviceOwners": {
         "$d": {
             ".read": True,
-            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid")),
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid"),
+                          # freed by its owner only once their account is deleted (حذف حسابي)
+                          ands(SIGNED, "!newData.exists()", "data.val() == auth.uid", "!root.child('users/' + auth.uid).exists()")),
             ".validate": "!newData.exists() || ($d.matches(/^[a-z0-9]{16,40}$/) && newData.isString())",
         },
     },
@@ -207,6 +209,8 @@ rules = {
     "users": {
         "$uid": {
             ".read": OWNER,
+            # deleting the whole account (حذف حسابي); single fields keep their own rules below
+            ".write": ands(OWNER, "!newData.exists()"),
             # each field is written on its own (update), so a student can't delete points/balance
             "points": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": POINTS},
             "balance": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": BALANCE},
@@ -373,7 +377,7 @@ rules = {
             "note": {".validate": s_max("newData", 300)},
         },
     },
-    "shopMine": {"$uid": {".read": OWNER, "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")), ".validate": "newData.val() === true"}}},
+    "shopMine": {"$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")), ".validate": "newData.val() === true"}}},
 
     # ----- store -----
     "stores": {".read": True, "$uid": {".write": ors(OWNER, ADMIN)}},
@@ -403,13 +407,14 @@ rules = {
     "friends": {
         "$uid": {
             ".read": OWNER,
+            ".write": ands(OWNER, "!newData.exists()"),
             "$other": {".write": ors(OWNER, ADMIN,
                                     "auth != null && auth.uid == $other && !newData.exists()",
                                     "auth != null && auth.uid == $other && root.child('friendRequests/' + auth.uid + '/' + $uid).exists()")},
         },
     },
     "userChats": {
-        "$uid": {".read": OWNER, "$other": {".write": ors(OWNER, ADMIN, "auth != null && auth.uid == $other")}},
+        "$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$other": {".write": ors(OWNER, ADMIN, "auth != null && auth.uid == $other")}},
     },
     # each of the two writes, edits and deletes only their own messages (no message in the other's
     # name), and only their own read receipt and "deleted for me" list
