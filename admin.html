@@ -463,6 +463,10 @@
                         <div class="sw-text"><strong>رسائل المعلم</strong><span>المعلم يراسل الطلاب بأوقات مختلفة يعاتبهم ويشجعهم على الدراسة</span></div>
                         <label class="switch"><input type="checkbox" data-cfg="features.coach" aria-label="رسائل المعلم"><span class="track"></span></label>
                     </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>حساب واحد لكل جهاز</strong><span>الجهاز يشتغل بأول حساب ينفتح بيه، وما يقبل حساب ثاني إلا إذا فكيت ربطه من حظر طالب</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.oneAccount" aria-label="حساب واحد لكل جهاز"><span class="track"></span></label>
+                    </div>
                 </div>
 
                 <div class="card">
@@ -1535,25 +1539,26 @@
                         <div class="ic"><i data-lucide="ban"></i></div>
                         <div>
                             <h3>حظر طالب</h3>
-                            <p>يُسجَّل خروجه تلقائياً ولا يستطيع الدخول للمنصة مرة أخرى حتى يُرفع الحظر</p>
+                            <p>يطلع من المنصة فوراً وتطلعله شاشة حمرا "تم حظرك"، ويتحظر جهازه هم فما يكدر يسوي حساب جديد عليه</p>
                         </div>
                     </div>
                     <div class="field">
-                        <label>رقم الطالب *</label>
-                        <input type="text" id="ban_number" placeholder="مثال: 12345">
+                        <label>ابحث عن الطالب</label>
+                        <input type="search" id="ban_q" placeholder="الاسم أو الإيميل أو رقم الطالب أو الهاتف" autocomplete="off">
                     </div>
                     <div class="field">
                         <label>سبب الحظر (اختياري)</label>
-                        <input type="text" id="ban_reason" placeholder="مثال: مخالفة قوانين المنتدى">
+                        <input type="text" id="ban_reason" placeholder="مثال: سب وشتم بالمنتدى">
                     </div>
-                    <button class="btn btn-danger mt-4" id="ban_add">حظر الطالب</button>
+                    <div id="banResults"></div>
                 </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="list"></i></div>
-                        <div><h3>الطلاب المحظورون</h3></div>
+                        <div><h3>المحظورون</h3><p>رفع الحظر يرجعله حسابه وجهازه</p></div>
                     </div>
                     <div id="bannedList"></div>
+                    <div id="oldBannedList"></div>
                 </div>
             </div>
 
@@ -2182,27 +2187,72 @@
         };
 
         // ---------- Ban Student ----------
-        window.banStudent = async () => {
-            const number = val('ban_number');
-            if (!number) { toast('أدخل رقم الطالب', false); return; }
-            try {
-                // FIX: a raw key containing "/" or "." either throws or writes a nested path
-                // the student app never checks, so the ban silently did nothing.
-                await set(ref(db, 'bannedStudents/' + sanitize(number)), {
-                    studentNumber: number,
-                    reason: val('ban_reason'),
-                    bannedAt: serverTimestamp()
-                });
-                toast('تم حظر الطالب');
-                el('ban_number').value = ''; el('ban_reason').value = '';
-            } catch (e) {
-                console.warn(e);
-                toast('فشل الحظر', false);
-            }
+        // A ban is on the account (bannedUsers/{uid}) and on every phone it used (users/{uid}/dev ->
+        // bannedDevices/{id}), so the student can't come back with a new account on the same phone.
+        let bannedUsersData = {}, bannedDevicesData = {};
+        const devsOf = (uid) => Object.keys(((usersData[uid] || {}).dev) || {});
+        const userLine = (uid) => { const u = usersData[uid] || {}; return [u.fullName || 'طالب', u.email || '', u.studentNumber ? 'رقم ' + u.studentNumber : '', u.phone || ''].filter(Boolean); };
+        function renderBanSearch() {
+            const box = el('banResults');
+            if (!box) return;
+            const q = String(el('ban_q').value || '').trim().toLowerCase();
+            if (q.length < 2) { box.innerHTML = '<p class="list-empty">اكتب حرفين أو أكثر حتى تطلع النتائج</p>'; return; }
+            const hits = Object.keys(usersData).filter((uid) => {
+                const u = usersData[uid] || {};
+                return [u.fullName, u.email, u.studentNumber, u.phone, uid].some((x) => String(x || '').toLowerCase().includes(q));
+            }).slice(0, 20);
+            if (!hits.length) { box.innerHTML = '<p class="list-empty">ما لكيت طالب بهذا البحث</p>'; return; }
+            box.innerHTML = hits.map((uid) => {
+                const [name, ...rest] = userLine(uid), banned = !!bannedUsersData[uid], n = devsOf(uid).length;
+                return `<div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(name)}${banned ? ' <span style="color:#F87171">(محظور)</span>' : ''}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(rest.join(' · '))}${n ? ' · ' + n + (n === 1 ? ' جهاز' : ' أجهزة') : ''}</div>
+                    </div>
+                    ${banned ? `<button class="btn-sm" onclick="unbanUser(${jsArg(uid)})">رفع الحظر</button>` : `<button class="del" onclick="banUser(${jsArg(uid)})">احظر</button>`}
+                    ${n ? `<button class="btn-sm" onclick="freeDevices(${jsArg(uid)})" title="خلي جهازه يقبل حساب ثاني">فك ربط الجهاز</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+        el('ban_q').addEventListener('input', renderBanSearch);
+        window.banUser = async (uid) => {
+            const [name] = userLine(uid);
+            if (!(await ask({ icon: 'ban', tone: 'warn', title: 'تحظر ' + name + '؟', text: 'يطلع من المنصة فوراً، ويتحظر جهازه هم.', ok: 'احظر' }))) return;
+            const reason = val('ban_reason').slice(0, 200);
+            const upd = { ['bannedUsers/' + uid]: { reason, name: String(name).slice(0, 80), at: serverTimestamp() } };
+            devsOf(uid).forEach((d) => { if (/^[a-z0-9]{16,40}$/.test(d)) upd['bannedDevices/' + d] = { uid, reason, at: serverTimestamp() }; });
+            try { await update(ref(db), upd); toast('تم حظر ' + name); el('ban_reason').value = ''; } catch (e) { console.warn(e); toast('فشل الحظر', false); }
         };
-        el('ban_add').addEventListener('click', banStudent);
+        window.unbanUser = async (uid) => {
+            const upd = { ['bannedUsers/' + uid]: null };
+            devsOf(uid).forEach((d) => { upd['bannedDevices/' + d] = null; });
+            Object.keys(bannedDevicesData).forEach((d) => { if ((bannedDevicesData[d] || {}).uid === uid) upd['bannedDevices/' + d] = null; });
+            try { await update(ref(db), upd); toast('تم رفع الحظر'); } catch (e) { console.warn(e); toast('فشل رفع الحظر', false); }
+        };
+        // the phone can then take a different account (a shared family phone, a new account)
+        window.freeDevices = async (uid) => {
+            if (!(await ask({ icon: 'smartphone', title: 'تفك ربط أجهزته؟', text: 'جهازه يصير يقبل حساب ثاني.', ok: 'فك الربط' }))) return;
+            const upd = {};
+            devsOf(uid).forEach((d) => { upd['deviceOwners/' + d] = null; });
+            try { await update(ref(db), upd); toast('انفك ربط الجهاز'); } catch (e) { console.warn(e); toast('فشل', false); }
+        };
+        function renderBanned() {
+            const box = el('bannedList');
+            if (!box) return;
+            const ids = Object.keys(bannedUsersData).sort((a, b) => (bannedUsersData[b].at || 0) - (bannedUsersData[a].at || 0));
+            box.innerHTML = ids.length ? ids.map((uid) => {
+                const b = bannedUsersData[uid] || {}, [name, ...rest] = usersData[uid] ? userLine(uid) : [b.name || uid];
+                return `<div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate">${escapeHtml(name)}</div>
+                        <div class="text-slate-400 text-xs">${escapeHtml(rest.join(' · '))}${rest.length ? ' · ' : ''}${escapeHtml(b.reason || 'بدون سبب محدد')}${b.at ? ' · ' + new Date(b.at).toLocaleDateString('ar-IQ') : ''}</div>
+                    </div>
+                    <button class="btn-sm" onclick="unbanUser(${jsArg(uid)})">رفع الحظر</button>
+                </div>`;
+            }).join('') : '<p class="list-empty">لا يوجد طلاب محظورون</p>';
+        }
         window.unbanStudent = (number) => {
-            remove(ref(db, 'bannedStudents/' + number)).then(() => toast('تم رفع الحظر')).catch((e) => toast('فشل رفع الحظر', false));
+            remove(ref(db, 'bannedStudents/' + number)).then(() => toast('انحذف')).catch(() => toast('فشل', false));
         };
 
         // ---------- Site Images ----------
@@ -2392,6 +2442,7 @@
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
+                renderBanSearch(); renderBanned();
                 if (typeof renderVerified === 'function') renderVerified();
                 if (typeof renderAppStats === 'function') renderAppStats();
             });
@@ -2489,19 +2540,21 @@
                 storeProductsData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
                 renderStoreProductsAdminList();
             });
+            onValue(ref(db, 'bannedUsers'), (snap) => { bannedUsersData = snap.val() || {}; renderBanned(); renderBanSearch(); }, () => {});
+            onValue(ref(db, 'bannedDevices'), (snap) => { bannedDevicesData = snap.val() || {}; }, () => {});
+            // bans from before (by student number) no longer do anything; they can be cleared here
             onValue(ref(db, 'bannedStudents'), (snap) => {
-                const box = el('bannedList');
+                const box = el('oldBannedList');
                 if (!box) return;
-                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا يوجد طلاب محظورون</p>'; return; }
-                const vals = entriesWithKey(snap.val());
-                box.innerHTML = vals.map(b => `
+                const vals = snap.exists() ? entriesWithKey(snap.val()) : [];
+                box.innerHTML = vals.length ? '<p class="text-slate-400 text-xs" style="margin:14px 0 6px">حظر قديم برقم الطالب (ما يشتغل بعد، احظرهم من البحث فوك واحذف هذا):</p>' + vals.map(b => `
                     <div class="row-item">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">رقم الطالب: ${escapeHtml(b.studentNumber || '')}</div>
                             <div class="text-slate-400 text-xs">${escapeHtml(b.reason || 'بدون سبب محدد')}</div>
                         </div>
-                        <button class="del" onclick="unbanStudent(${jsArg(b._key)})">رفع الحظر</button>
-                    </div>`).join('');
+                        <button class="del" onclick="unbanStudent(${jsArg(b._key)})">حذف</button>
+                    </div>`).join('') : '';
             });
         }
 

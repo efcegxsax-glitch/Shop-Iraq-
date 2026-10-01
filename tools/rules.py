@@ -177,6 +177,24 @@ rules = {
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
                                   "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio"]},
     "bannedStudents": signed_admin,
+    # bans by account, and the phones that account used (an id the app keeps on the phone); a
+    # banned student's own app reports its phone, so a new account there is refused too
+    "bannedUsers": {"$uid": {".read": ors(OWNER, ADMIN), ".write": ADMIN}},
+    "bannedDevices": {
+        "$d": {
+            ".read": True,
+            ".write": ors(ADMIN, ands(SIGNED, "root.child('bannedUsers/' + auth.uid).exists()", "!data.exists()", "newData.child('uid').val() == auth.uid")),
+            ".validate": "!newData.exists() || ($d.matches(/^[a-z0-9]{16,40}$/) && newData.child('uid').isString())",
+        },
+    },
+    # one account per phone: the first account signed in on a phone owns it (the panel can free it)
+    "deviceOwners": {
+        "$d": {
+            ".read": True,
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid")),
+            ".validate": "!newData.exists() || ($d.matches(/^[a-z0-9]{16,40}$/) && newData.isString())",
+        },
+    },
     # voice note counters (anyone, one step at a time) and who listened (signed-in, own row; admin reads)
     "voiceNoteStats": {".read": True, "$id": {"plays": {".write": True, ".validate": counter()}, "done": {".write": True, ".validate": counter()}}},
     "voiceListeners": {".read": ADMIN, "$id": {"$uid": {".write": OWNER, ".validate": s_max("newData.child('n')", 60) + " && newData.child('at').isNumber()"}}},

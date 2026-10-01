@@ -673,6 +673,8 @@
                 this.loadTheme();
                 this.loadCustomThemeColor();
                 this.loadUserData();
+                this._devInit();
+                this._banBoot();
                 this.checkInterruptedFocus();
                 this.checkInterruptedForest();
                 this.checkInterruptedGarden();
@@ -850,7 +852,7 @@
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
-                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff'].forEach((key) => {
+                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff', '_banLive'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -1068,6 +1070,7 @@
                     const { signInWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await signInWithEmailAndPassword(window.firebaseAuth, loginEmail, password);
                     this.authUid = credential.user.uid;
+                    if (!(await this._accountGuard(credential.user.uid))) return;
                     this._stateLoadedFor = credential.user.uid;
                     this.resetUserScopedListeners();
                     this.currentUser = {
@@ -1140,11 +1143,13 @@
                     this.showToast('لا يوجد اتصال بخدمة المصادقة');
                     return;
                 }
+                if (!(await this._deviceFreeForNewAccount())) return;
                 this._authFlowInProgress = true;
                 try {
                     const { createUserWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
                     this.authUid = credential.user.uid;
+                    if (!(await this._accountGuard(credential.user.uid))) return;
                     this._stateLoadedFor = credential.user.uid;
                     this.resetUserScopedListeners();
                     this.currentUser = {
@@ -2210,14 +2215,13 @@
                     return;
                 }
                 const { ref, get } = window.firebaseDbHelpers;
+                if (!(await this._accountGuard(safeUid))) return;
                 try {
                     const snap = await get(ref(window.firebaseDb, 'users/' + safeUid));
                     if (snap.exists()) {
                         this.currentUser = { ...this.currentUser, ...snap.val() };
                         this.isLoggedIn = true;
                         this.saveUserData();
-                        if (await this.checkIfBanned(this.currentUser.studentNumber)) return;
-                        this.watchBanStatus(this.currentUser.studentNumber);
                     } else {
                         if (!this.currentUser) this.currentUser = {};
                         if (!this.currentUser.studentNumber) {
@@ -2265,6 +2269,171 @@
                     console.warn('Realtime Database read failed:', err);
                     this.saveUserData();
                 }
+            },
+
+            // ===== Bans and one account per phone =====
+            // A ban is on the account (bannedUsers/{uid}) and on the phones it used
+            // (bannedDevices/{id}); the phone's id is random and kept in three places (local storage,
+            // a cookie and IndexedDB) so clearing one doesn't change it. The first account used on a
+            // phone owns it (deviceOwners/{id}); another account can't sign in or sign up there unless
+            // the panel frees the phone or switches the rule off (siteConfig/features/oneAccount).
+            _devId() {
+                if (this._did) return this._did;
+                let id = '';
+                try { id = localStorage.getItem('isp_did') || ''; } catch (e) {}
+                if (!/^[a-z0-9]{16,40}$/.test(id)) { const m = document.cookie.match(/(?:^|; )isp_did=([a-z0-9]{16,40})/); id = m ? m[1] : ''; }
+                if (!/^[a-z0-9]{16,40}$/.test(id)) {
+                    const b = new Uint8Array(16);
+                    (window.crypto || window.msCrypto).getRandomValues(b);
+                    id = Array.from(b, (x) => (x % 36).toString(36)).join('') + Date.now().toString(36).slice(-6);
+                }
+                this._did = id;
+                this._devStore(id);
+                return id;
+            },
+            _devStore(id) {
+                try { localStorage.setItem('isp_did', id); } catch (e) {}
+                try { document.cookie = 'isp_did=' + id + '; max-age=34560000; path=/; SameSite=Lax'; } catch (e) {}
+                try {
+                    const rq = indexedDB.open('isp-dev', 1);
+                    rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+                    rq.onsuccess = () => { try { rq.result.transaction('kv', 'readwrite').objectStore('kv').put(id, 'did'); } catch (e) {} };
+                } catch (e) {}
+            },
+            // the id kept in IndexedDB wins when local storage and the cookie were cleared
+            _devInit() {
+                if (this._devReady) return this._devReady;
+                this._devReady = new Promise((resolve) => {
+                    let had = '';
+                    try { had = localStorage.getItem('isp_did') || ''; } catch (e) {}
+                    if (!had) { const m = document.cookie.match(/(?:^|; )isp_did=([a-z0-9]{16,40})/); had = m ? m[1] : ''; }
+                    if (/^[a-z0-9]{16,40}$/.test(had)) { this._devId(); resolve(); return; }
+                    const done = (v) => { if (/^[a-z0-9]{16,40}$/.test(v || '')) { this._did = v; this._devStore(v); } else this._devId(); resolve(); };
+                    try {
+                        const rq = indexedDB.open('isp-dev', 1);
+                        rq.onupgradeneeded = () => rq.result.createObjectStore('kv');
+                        rq.onsuccess = () => {
+                            try { const g = rq.result.transaction('kv').objectStore('kv').get('did'); g.onsuccess = () => done(g.result); g.onerror = () => done(''); } catch (e) { done(''); }
+                        };
+                        rq.onerror = () => done('');
+                    } catch (e) { done(''); }
+                    setTimeout(() => done(''), 1500);
+                });
+                return this._devReady;
+            },
+
+            // At start: a phone that was banned shows the ban at once (even offline), then the server
+            // is asked again, so a ban the panel lifted goes away.
+            async _banBoot() {
+                let saved = null;
+                try { saved = JSON.parse(localStorage.getItem('isp_ban') || 'null'); } catch (e) {}
+                if (saved) this._banScreen(saved.r || '', true);
+                await this._devInit();
+                if (!window.firebaseDb) return;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const d = await get(ref(window.firebaseDb, 'bannedDevices/' + this._devId()));
+                    if (d.exists()) { this._banScreen((d.val() || {}).reason || (saved && saved.r) || ''); return; }
+                    if (saved) {
+                        // the phone isn't banned any more; the account is checked again when it signs in
+                        try { localStorage.removeItem('isp_ban'); } catch (e) {}
+                        document.getElementById('banWall')?.remove();
+                        document.body.classList.remove('is-banned');
+                    }
+                } catch (e) { /* offline: the saved ban stays */ }
+            },
+
+            // Before a new account is made on this phone.
+            async _deviceFreeForNewAccount() {
+                await this._devInit();
+                if (!window.firebaseDb) return true;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const id = this._devId();
+                    const [ban, owner] = await Promise.all([get(ref(window.firebaseDb, 'bannedDevices/' + id)), get(ref(window.firebaseDb, 'deviceOwners/' + id))]);
+                    if (ban.exists()) { this._banScreen((ban.val() || {}).reason || ''); return false; }
+                    const cfg = this.siteConfig || {};
+                    if (owner.exists() && !(cfg.features && cfg.features.oneAccount === false)) {
+                        this.showToast('هذا الجهاز بيه حساب مسجل من قبل. سجّل دخول بحسابك');
+                        this.setAuthMode && this.setAuthMode('login');
+                        return false;
+                    }
+                } catch (e) { /* can't check now: let it through, the sign-in check runs anyway */ }
+                return true;
+            },
+
+            // After every sign-in (and when a saved session comes back). False = this account
+            // can't be used here; it has been signed out.
+            async _accountGuard(uid) {
+                if (!uid || !window.firebaseDb) return true;
+                if (this._guardOk === uid) return true;
+                await this._devInit();
+                const { ref, get, set, onValue, serverTimestamp } = window.firebaseDbHelpers;
+                const db = window.firebaseDb, id = this._devId();
+                try {
+                    const [ban, dban, owner] = await Promise.all([
+                        get(ref(db, 'bannedUsers/' + uid)), get(ref(db, 'bannedDevices/' + id)), get(ref(db, 'deviceOwners/' + id)),
+                    ]);
+                    if (ban.exists() || dban.exists()) {
+                        const reason = ((ban.exists() ? ban.val() : dban.val()) || {}).reason || '';
+                        if (ban.exists() && !dban.exists()) await set(ref(db, 'bannedDevices/' + id), { uid, reason: String(reason).slice(0, 200), at: serverTimestamp() }).catch(() => {});
+                        this._banScreen(reason);
+                        return false;
+                    }
+                    const cfg = this.siteConfig || {};
+                    const one = !(cfg.features && cfg.features.oneAccount === false);
+                    if (one && owner.exists() && owner.val() !== uid) {
+                        this._signOutHere();
+                        this._wall('lock', 'هذا الجهاز مربوط بحساب ثاني', 'كل جهاز يشتغل بيه حساب واحد بس. سجّل دخول بحسابك الأصلي، وإذا تحتاج تغيره تواصل ويا إدارة المنصة.', 'سجّل دخول بحسابي');
+                        return false;
+                    }
+                    if (!owner.exists()) await set(ref(db, 'deviceOwners/' + id), uid).catch(() => {});
+                    set(ref(db, 'users/' + uid + '/dev/' + id), serverTimestamp()).catch(() => {});
+                } catch (e) {
+                    console.warn('Account check failed:', e);
+                    return true;
+                }
+                this._guardOk = uid;
+                // a ban from the panel while the app is open takes effect at once
+                if (this._banLive) { try { this._banLive(); } catch (e) {} }
+                this._banLive = onValue(ref(db, 'bannedUsers/' + uid), (snap) => {
+                    if (!snap.exists()) return;
+                    const reason = (snap.val() || {}).reason || '';
+                    set(ref(db, 'bannedDevices/' + id), { uid, reason: String(reason).slice(0, 200), at: serverTimestamp() }).catch(() => {});
+                    this._banScreen(reason);
+                }, () => {});
+                return true;
+            },
+            _signOutHere() {
+                this._guardOk = null;
+                this.resetUserScopedListeners();
+                this.isLoggedIn = false;
+                this.currentUser = null;
+                this.authUid = null;
+                this._stateLoadedFor = null;
+                try { localStorage.removeItem('iraqiStudentUser'); } catch (e) {}
+                if (window.firebaseAuth && window.firebaseAuth.currentUser && window.firebaseAuthHelpers) {
+                    window.firebaseAuthHelpers.signOut(window.firebaseAuth).catch(() => {});
+                }
+            },
+            // the red screen: no way past it until the panel lifts the ban
+            _banScreen(reason, fromSaved) {
+                if (!fromSaved) {
+                    try { localStorage.setItem('isp_ban', JSON.stringify({ r: String(reason || '').slice(0, 200), at: Date.now() })); } catch (e) {}
+                    this._signOutHere();
+                }
+                this._wall('ban', 'تم حظرك', (reason ? 'السبب: ' + reason + '. ' : '') + 'ما تكدر تستخدم المنصة من هذا الجهاز، ولا تسوي حساب جديد. إذا تشوف إن الحظر غلط تواصل ويا إدارة المنصة.', '', true);
+            },
+            _wall(icon, title, text, btn, red) {
+                document.getElementById('banWall')?.remove();
+                const w = document.createElement('div');
+                w.id = 'banWall';
+                w.className = 'ban-wall' + (red ? ' red' : '');
+                w.innerHTML = `<div class="ban-in"><span class="ban-ic"><i data-lucide="${red ? 'shield-ban' : icon}"></i></span><h2>${escapeHtml(title)}</h2><p>${escapeHtml(text)}</p>${btn ? `<button type="button">${escapeHtml(btn)}</button>` : ''}</div>`;
+                document.body.appendChild(w);
+                if (red) document.body.classList.add('is-banned');
+                if (btn) w.querySelector('button').onclick = () => { w.remove(); this.goToAuth('login'); };
+                lucide.createIcons();
             },
 
             // FIX: the admin panel promises a banned student is "logged out automatically",
