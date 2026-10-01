@@ -1214,6 +1214,96 @@
                 }
             },
 
+            // ===== Delete my account (required by the app stores, and the student's right) =====
+            // The password is asked again (Firebase needs a recent sign-in to delete an account), then
+            // everything kept under the student's account is removed, the phone is freed for a new
+            // account, and the sign-in account itself is deleted. Messages already sent stay with the
+            // person they were sent to, like any messaging app (see privacy.html).
+            openDeleteAccount() {
+                if (!this.isLoggedIn || !this.authUid) { this.goToAuth('login'); return; }
+                document.getElementById('fdSheet')?.remove();
+                const el = document.createElement('div');
+                el.id = 'fdSheet'; el.className = 'fd-sheet';
+                el.innerHTML = `<div class="fd-back" onclick="app.closeDeleteAccount()"></div><div class="fd-card">
+                    <div class="fd-grab"></div>
+                    <div class="fd-sh"><span class="fd-mi" style="background:linear-gradient(135deg,#EF4444,#B91C1C)"><i data-lucide="user-x"></i></span><div><b>حذف حسابي نهائياً</b><small>ما يرجع بعد ما ينحذف</small></div></div>
+                    <div class="fd-note" style="background:rgba(239,68,68,.08)"><i data-lucide="triangle-alert" style="color:#DC2626"></i><p>راح تنحذف معلوماتك ونقاطك ورصيدك ودرجاتك ومهامك وأصدقاؤك ومحادثاتك من قائمتك. الرسائل اللي دزيتها لغيرك تبقى عنده مثل أي تطبيق مراسلة.</p></div>
+                    <label class="fd-times" style="grid-template-columns:1fr"><label><span>اكتب كلمة السر للتأكيد</span><input type="password" id="delPass" autocomplete="current-password" placeholder="كلمة السر"></label></label>
+                    <button class="fd-main" id="delGo" style="background:linear-gradient(135deg,#EF4444,#B91C1C);box-shadow:0 10px 24px rgba(220,38,38,.3)" onclick="app.deleteAccount()"><i data-lucide="trash-2"></i>احذف حسابي</button>
+                    <button class="fd-perm" style="background:var(--input-bg);color:var(--text2)" onclick="app.closeDeleteAccount()">لا، رجعني</button>
+                </div>`;
+                document.body.appendChild(el);
+                requestAnimationFrame(() => el.classList.add('on'));
+                lucide.createIcons();
+            },
+            closeDeleteAccount() {
+                const el = document.getElementById('fdSheet');
+                if (!el) return;
+                el.classList.remove('on');
+                setTimeout(() => el.remove(), 280);
+            },
+            async deleteAccount() {
+                const pass = (document.getElementById('delPass') || {}).value || '';
+                const btn = document.getElementById('delGo');
+                const fa = window.firebaseAuth, h = window.firebaseAuthHelpers;
+                const user = fa && fa.currentUser;
+                if (!user || !h || !h.deleteUser) { this.showToast('سجّل دخول أول'); return; }
+                if (!pass) { this.showToast('اكتب كلمة السر'); return; }
+                if (btn) { btn.disabled = true; btn.innerHTML = '<span class="tt-typing"><i></i><i></i><i></i></span> جاي ينحذف'; }
+                const fail = (msg) => { this.showToast(msg); if (btn) { btn.disabled = false; btn.innerHTML = 'احذف حسابي'; } };
+                try {
+                    await h.reauthenticateWithCredential(user, h.EmailAuthProvider.credential(user.email, pass));
+                } catch (e) {
+                    const c = e && e.code;
+                    fail(c === 'auth/wrong-password' || c === 'auth/invalid-credential' ? 'كلمة السر غلط' : c === 'auth/too-many-requests' ? 'محاولات كثيرة، جرب بعد شوية' : 'ما كدرت أتأكد منك، تأكد من النت');
+                    return;
+                }
+                const uid = user.uid, db = window.firebaseDb;
+                if (db) {
+                    const { ref, get, set } = window.firebaseDbHelpers;
+                    const del = (p) => set(ref(db, p), null).catch(() => {});
+                    // friends and inbox entries that point at this account, on the other side
+                    try {
+                        const [fr, ch] = await Promise.all([get(ref(db, 'friends/' + uid)), get(ref(db, 'userChats/' + uid))]);
+                        await Promise.all([
+                            ...Object.keys(fr.val() || {}).map((o) => del('friends/' + o + '/' + uid)),
+                            ...Object.keys(ch.val() || {}).map((o) => del('userChats/' + o + '/' + uid)),
+                        ]);
+                    } catch (e) {}
+                    const u = this.currentUser || {};
+                    const pk = this._phoneKey ? this._phoneKey(u.phone || '') : '';
+                    const paths = ['pub/', 'leaderboard/', 'presence/', 'studyRoom/', 'focusLive/', 'studentMap/', 'userNewsState/', 'userTasks/', 'userActivity/', 'tokens/',
+                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'userDuels/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/']
+                        .map((p) => p + uid);
+                    if (/^[0-9]{3,12}$/.test(String(u.studentNumber || ''))) paths.push('numIndex/' + u.studentNumber);
+                    if (pk) paths.push('phoneIndex/' + pk);
+                    await Promise.all(paths.map(del));
+                    await del('users/' + uid);
+                    // the phone can take a new account once this one is gone
+                    try { await this._devInit(); await del('deviceOwners/' + this._devId()); } catch (e) {}
+                }
+                try {
+                    await h.deleteUser(user);
+                } catch (e) {
+                    console.warn('Delete account failed:', e);
+                    fail('ما كدرت أحذف الحساب، جرب مرة ثانية');
+                    return;
+                }
+                // what this phone kept for the account
+                try {
+                    Object.keys(localStorage).filter((k) => k.indexOf(uid) >= 0 || k === 'iraqiStudentUser').forEach((k) => localStorage.removeItem(k));
+                } catch (e) {}
+                this.closeDeleteAccount();
+                this._guardOk = null;
+                this.resetUserScopedListeners();
+                this.isLoggedIn = false;
+                this.currentUser = null;
+                this.authUid = null;
+                this._wall('circle-check', 'انحذف حسابك', 'انحذفت معلوماتك من المنصة. شكراً لأنك جنت ويانا، وبالتوفيق بدراستك.', 'تمام');
+                const w = document.getElementById('banWall');
+                if (w) { w.style.background = 'radial-gradient(120% 90% at 50% 0%, #0F766E, #134E4A 60%, #0B2E2B)'; const b = w.querySelector('button'); if (b) b.onclick = () => { w.remove(); this.goToAuth('register'); }; }
+            },
+
             async logout() {
                 if (await this.ask({ icon: 'log-out', title: 'تسجيل الخروج', text: 'متأكد تريد تطلع من حسابك؟', ok: 'اطلع', cancel: 'ابقَ' })) {
                     this.leaveStudyRoom();

@@ -519,6 +519,10 @@
                         <label for="cfg_tagline">الوصف تحت الاسم</label>
                         <input type="text" id="cfg_tagline" placeholder="أخبار وزارة التربية أولاً بأول" maxlength="60">
                     </div>
+                    <div class="field">
+                        <label for="cfg_contact">إيميل التواصل (يطلع بصفحة سياسة الخصوصية)</label>
+                        <input type="email" id="cfg_contact" placeholder="مثال: support@example.com" maxlength="80" dir="ltr">
+                    </div>
                     <button class="btn mt-2" id="cfg_save_brand">حفظ الاسم والوصف</button>
                 </div>
 
@@ -2342,6 +2346,7 @@
             });
             setFieldIfIdle('cfg_name', cfgGet('branding.name'));
             setFieldIfIdle('cfg_tagline', cfgGet('branding.tagline'));
+            setFieldIfIdle('cfg_contact', cfgGet('branding.contact'));
             setFieldIfIdle('cfg_ann_text', cfgGet('announcement.text'));
             const tone = cfgGet('announcement.tone') || 'info';
             document.querySelectorAll('input[name="cfg_ann_tone"]').forEach(r => { r.checked = r.value === tone; });
@@ -2366,7 +2371,7 @@
         });
 
         el('cfg_save_brand').addEventListener('click', () => cfgWrite({
-            'branding/name': val('cfg_name'), 'branding/tagline': val('cfg_tagline')
+            'branding/name': val('cfg_name'), 'branding/tagline': val('cfg_tagline'), 'branding/contact': val('cfg_contact')
         }, 'تم حفظ الاسم والوصف'));
 
         el('cfg_save_ann').addEventListener('click', () => {

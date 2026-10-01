@@ -4146,3 +4146,5 @@ body.is-banned { overflow: hidden; }
 .ban-wall h2 { font-size: 28px; font-weight: 900; }
 .ban-wall p { font-size: 15px; line-height: 1.9; opacity: .9; }
 .ban-wall button { margin-top: 6px; padding: 13px 22px; border-radius: 16px; background: #fff; color: #0F172A; font-weight: 900; font-size: 15px; }
+.pf-delete { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 11px; border-radius: 16px; font-size: 13px; font-weight: 700; color: var(--text2); background: transparent; border: 1px dashed var(--border); cursor: pointer; }
+.pf-delete svg { width: 16px; height: 16px; }

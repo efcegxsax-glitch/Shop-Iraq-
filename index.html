@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '7423335a81';
+        window.APP_VER = '9132a55a83';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -43,7 +43,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
-        import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
+        import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
@@ -79,7 +79,7 @@
             } catch (e) {
                 window.firebaseAuth = getAuth(app);
             }
-            window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged };
+            window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider };
             window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, startAt, endAt };
             window.firebaseMessagingHelpers = { getToken };
             // FIX: submitStoreProduct() (My Store → add product) used to embed the raw
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=fb451f1b69">
+    <link rel="stylesheet" href="css/app.css?v=f41867a405">
     <link rel="stylesheet" href="css/tw.css?v=d735b95f20">
 </head>
 <body class="antialiased">
@@ -521,6 +521,7 @@
                         <button type="submit" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-2">
                             إنشاء الحساب
                         </button>
+                        <p class="text-xs text-center mt-3 theme-transition" style="color: var(--text2);">بإنشاء الحساب توافق على <a href="privacy.html" style="color: rgb(var(--p)); font-weight: 700;">سياسة الخصوصية</a></p>
                     </div>
                 </form>
 
@@ -689,11 +690,17 @@
                                 <span class="pf-row-text"><b>حول التطبيق</b></span>
                                 <i data-lucide="chevron-left" class="pf-chev"></i>
                             </button>
+                            <a href="privacy.html" class="pf-row" style="text-decoration:none">
+                                <span class="pf-row-ic" style="--c:#0F766E"><i data-lucide="shield-check"></i></span>
+                                <span class="pf-row-text"><b>سياسة الخصوصية</b></span>
+                                <i data-lucide="chevron-left" class="pf-chev"></i>
+                            </a>
                         </div>
                     </section>
 
                     <section class="pf-group" style="padding-bottom: 24px;">
                         <button onclick="app.logout()" class="pf-logout btn-press"><i data-lucide="log-out"></i>تسجيل الخروج</button>
+                        <button onclick="app.openDeleteAccount()" class="pf-delete btn-press"><i data-lucide="user-x"></i>حذف حسابي</button>
                     </section>
                 </div>
             </div>
@@ -1889,7 +1896,7 @@
     </nav>
 
     <script src="js/pickers.js?v=5c0a8e0be2"></script>
-    <script src="js/app.js?v=9ae8033c9b"></script>
+    <script src="js/app.js?v=dd65d649d7"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
