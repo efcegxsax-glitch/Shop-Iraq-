@@ -852,7 +852,7 @@
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
                     '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
-                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff', '_banLive'].forEach((key) => {
+                    '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff'].forEach((key) => {
                     if (typeof this[key] === 'function') {
                         try { this[key](); } catch (e) { /* already detached */ }
                     }
@@ -901,6 +901,9 @@
                     } else {
                         this.authUid = null;
                         this._stateLoadedFor = null;
+                        // the ban watch belongs to the account that just signed out
+                        this._guardOk = null;
+                        if (this._banLive) { try { this._banLive(); } catch (e) {} this._banLive = null; }
                         this.resetUserScopedListeners();
                         userTasks.length = 0;
                         if (this.isLoggedIn) {
@@ -2406,6 +2409,7 @@
             },
             _signOutHere() {
                 this._guardOk = null;
+                if (this._banLive) { try { this._banLive(); } catch (e) {} this._banLive = null; }
                 this.resetUserScopedListeners();
                 this.isLoggedIn = false;
                 this.currentUser = null;
