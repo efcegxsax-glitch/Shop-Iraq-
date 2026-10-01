@@ -369,7 +369,7 @@
                     ${s.mealOn ? `<div class="fd-times">${['breakfast', 'lunch', 'dinner'].map((k) => `<label><span>${this.NUT_MEALS[k][0]}</span><input type="time" value="${s.meals[k]}" onchange="app.fdSet('meal.${k}', this.value)"></label>`).join('')}</div>` : ''}
                     <label class="fd-sw"><span><b>تذكير الماي</b><small>يذكرك تشرب لحد ما تكمل هدفك</small></span><input type="checkbox" ${s.waterOn ? 'checked' : ''} onchange="app.fdSet('waterOn', this.checked)"><i></i></label>
                     ${s.waterOn ? `<div class="fd-times">
-                        <label><span>كل</span>${sel('every', [45, 60, 90, 120, 180], s.every, (v) => v < 60 ? v + ' دقيقة' : v === 60 ? 'ساعة' : v === 90 ? 'ساعة ونص' : v / 60 + ' ساعات')}</label>
+                        <label><span>كل شكد</span>${sel('every', [45, 60, 90, 120, 180], s.every, (v) => v < 60 ? v + ' دقيقة' : v === 60 ? 'ساعة' : v === 90 ? 'ساعة ونص' : v / 60 + ' ساعات')}</label>
                         <label><span>من</span><input type="time" value="${s.from}" onchange="app.fdSet('from', this.value)"></label>
                         <label><span>إلى</span><input type="time" value="${s.to}" onchange="app.fdSet('to', this.value)"></label>
                     </div>` : ''}

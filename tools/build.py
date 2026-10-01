@@ -29,6 +29,7 @@ v = {
     'css/tw.css': h('css/tw.css'),
     'js/app.js': h('js/app.js'),
     'js/vendor/lucide.min.js': h('js/vendor/lucide.min.js'),
+    'js/pickers.js': h('js/pickers.js'),
 }
 import glob
 v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', 'js/uni.js', 'js/ytroom.js', 'js/garden.js', 'js/gardenui.js', 'js/tutor.js', 'js/moodmap.js', 'js/mistakes.js', 'js/shop.js', 'js/spots.js', 'js/ventfilter.js', 'js/vent.js', 'js/ideas.js', 'js/calls.js', 'js/food.js', 'js/dhikr.js', *sorted(glob.glob('js/bio/*.js')))

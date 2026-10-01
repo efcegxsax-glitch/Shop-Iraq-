@@ -564,7 +564,7 @@
                 <div class="fd-sh"><span class="fd-mi" style="background:linear-gradient(135deg,#6366F1,#8B5CF6)"><i data-lucide="message-circle-warning"></i></span><div><b>رسائل المعلم</b><small>يذكّرك بمستقبلك ويعاتبك إذا تكاسلت</small></div></div>
                 <label class="fd-sw"><span><b>خلي المعلم يراسلني</b><small>رسائل بلهجتنا تشد حيلك</small></span><input type="checkbox" ${c.on ? 'checked' : ''} onchange="app.ttCoachSet('on', this.checked)"><i></i></label>
                 ${c.on ? `<div class="fd-times">
-                    <label><span>كل</span>${sel('every', [[60, 'ساعة'], [120, 'ساعتين'], [240, '4 ساعات'], [360, '6 ساعات']], c.every)}</label>
+                    <label><span>كل شكد</span>${sel('every', [[60, 'ساعة'], [120, 'ساعتين'], [240, '4 ساعات'], [360, '6 ساعات']], c.every)}</label>
                     <label><span>الأسلوب</span>${sel('tone', [['scold', 'عتاب وشدة'], ['mix', 'عتاب وتشجيع'], ['soft', 'تشجيع هادي']], c.tone)}</label>
                 </div>
                 <div class="fd-times">
