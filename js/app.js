@@ -561,7 +561,7 @@
                     if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
                     const cn = navigator.connection || {};
                     if (cn.saveData || /(^|-)2g$/.test(cn.effectiveType || '')) return;
-                    const parts = ['calls', 'food', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
+                    const parts = ['calls', 'food', 'dhikr', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
                     navigator.serviceWorker.controller.postMessage({ type: 'isp-warm', urls: parts.map((n) => 'js/' + n + '.js?v=' + (window.APP_VER || '1')) });
                 } catch (e) { /* only a speed-up */ }
             },
@@ -606,7 +606,7 @@
                 let o = null;
                 try { o = JSON.parse(localStorage.getItem('isp:lastView') || 'null'); } catch (e) {}
                 if (!o || Date.now() - (o.at || 0) > 30 * 60000 || this.currentView !== 'homeView') return;
-                const tabs = { foodView: 'food', resourcesView: 'resources', holidaysView: 'holidays', leaderboardView: 'leaderboard', storeView: 'store', messagesView: 'messages', profileView: 'profile', moreView: 'more', tutorView: 'tutor' };
+                const tabs = { dhikrView: 'dhikr', foodView: 'food', resourcesView: 'resources', holidaysView: 'holidays', leaderboardView: 'leaderboard', storeView: 'store', messagesView: 'messages', profileView: 'profile', moreView: 'more', tutorView: 'tutor' };
                 const needsLogin = { messagesView: 1, profileView: 1, chatThreadView: 1, tutorView: 1 };
                 if (needsLogin[o.v] && !this.isLoggedIn) return;
                 try {
@@ -2596,6 +2596,12 @@
                 const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
+                // Pages the panel can switch off for everyone (siteConfig/features/<name> = false)
+                this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
+                this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
+                if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
+                if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
+
                 // Bottom navigation
                 ['resources', 'holidays', 'store', 'leaderboard', 'wallet', 'messages'].forEach(k => {
                     document.querySelector(`#bottomNav .nav-item[data-tab="${k}"]`)?.classList.toggle('cfg-off', !on('nav', k));
@@ -3716,6 +3722,15 @@
                 if (meals.length) L.push('أكله اليوم: ' + meals.map((x) => (this.NUT_MEALS[x.meal] || [''])[0] + ': ' + x.r.items.map((i) => i.name + (i.v === 'bad' ? ' (يضر)' : '')).join('، ')).join(' / '));
                 return L.join(' ');
             },
+            // ===== روحانيات: prayer beads, istighfar, duas, Ramadan deeds (js/dhikr.js) =====
+            goToDhikr() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.dhikr === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('dhikrView');
+                if (this._withPart('dhikr', () => typeof this.dkOpen === 'function', 'dhikrView', () => this.goToDhikr())) return;
+                this.dkOpen();
+            },
+
             goToFood(meal) {
                 this._fdMeal = typeof meal === 'string' ? meal : null;
                 this.switchView('foodView');
@@ -7376,6 +7391,7 @@
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
                 { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'tools' },
+                { id: 'dhikr', fn: 'goToDhikr', t: 'روحانيات', d: 'مسبحة وأدعية تريح القلب وأعمال رمضان', ic: 'moon-star', c: '#0D9488', g: 'tools', feat: 'dhikr' },
                 { id: 'food', fn: 'goToFood', t: 'غذائي ومائي', d: 'أكل يقوي ذاكرتك وتذكير بالماي', ic: 'apple', c: '#16A34A', g: 'study' },
                 { id: 'mistakes', fn: 'goToMistakes', t: 'دفتر الغلطات', d: 'غلطاتك ترجعلك لحد ما تتقنها', ic: 'notebook-pen', c: '#E11D48', g: 'study' },
                 { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
@@ -13041,6 +13057,7 @@
                 else if (tab === 'more') this.goToMore();
                 else if (tab === 'tutor') this.goToTutor();
                 else if (tab === 'food') this.goToFood();
+                else if (tab === 'dhikr') this.goToDhikr();
                 this.viewHistory = [];
             },
 
@@ -13105,6 +13122,7 @@
                 if (this.currentView === 'spotsView' && viewId !== 'spotsView' && this.spClose) this.spClose();
                 if (this.currentView === 'ventView' && viewId !== 'ventView' && this.vtClose) this.vtClose();
                 if (this.currentView === 'foodView' && viewId !== 'foodView' && this.fdClose) this.fdClose();
+                if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
