@@ -561,7 +561,7 @@
                     if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
                     const cn = navigator.connection || {};
                     if (cn.saveData || /(^|-)2g$/.test(cn.effectiveType || '')) return;
-                    const parts = ['calls', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
+                    const parts = ['calls', 'food', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
                     navigator.serviceWorker.controller.postMessage({ type: 'isp-warm', urls: parts.map((n) => 'js/' + n + '.js?v=' + (window.APP_VER || '1')) });
                 } catch (e) { /* only a speed-up */ }
             },
@@ -606,7 +606,7 @@
                 let o = null;
                 try { o = JSON.parse(localStorage.getItem('isp:lastView') || 'null'); } catch (e) {}
                 if (!o || Date.now() - (o.at || 0) > 30 * 60000 || this.currentView !== 'homeView') return;
-                const tabs = { resourcesView: 'resources', holidaysView: 'holidays', leaderboardView: 'leaderboard', storeView: 'store', messagesView: 'messages', profileView: 'profile', moreView: 'more', tutorView: 'tutor' };
+                const tabs = { foodView: 'food', resourcesView: 'resources', holidaysView: 'holidays', leaderboardView: 'leaderboard', storeView: 'store', messagesView: 'messages', profileView: 'profile', moreView: 'more', tutorView: 'tutor' };
                 const needsLogin = { messagesView: 1, profileView: 1, chatThreadView: 1, tutorView: 1 };
                 if (needsLogin[o.v] && !this.isLoggedIn) return;
                 try {
@@ -711,6 +711,7 @@
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 this._restoreView();
+                this._nutStart();
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderHolidays(); }, 60000);
@@ -3599,6 +3600,127 @@
                 this.switchView('mistakesView');
                 if (this._withPart('mistakes', () => typeof this.mkOpen === 'function', 'mistakesView', () => this.goToMistakes())) return;
                 this.mkOpen();
+            },
+
+            // ===== غذائي ومائي: meals judged for focus and memory, water, and their reminders =====
+            // The page is js/food.js; the reminders live here so they run on any page. Everything is
+            // kept on the phone: isp:nut:<uid> = { set, days: { 'YYYY-MM-DD': { m: [meals], w: [cup times], g } }, sent }.
+            NUT_MEALS: { breakfast: ['الفطور', '07:30', 'sunrise'], lunch: ['الغدا', '14:00', 'sun'], dinner: ['العشا', '20:30', 'moon'], snack: ['وجبة خفيفة', '17:00', 'apple'] },
+            _nutKey() { return 'isp:nut:' + (this.authUid || 'guest'); },
+            _nutGet() {
+                let o = null;
+                try { o = JSON.parse(localStorage.getItem(this._nutKey()) || 'null'); } catch (e) {}
+                o = o && typeof o === 'object' ? o : {};
+                o.set = Object.assign({ meals: {}, mealOn: true, waterOn: true, goal: 8, cup: 250, every: 90, from: '08:00', to: '23:00' }, o.set || {});
+                Object.keys(this.NUT_MEALS).forEach((k) => { if (!/^\d\d:\d\d$/.test(o.set.meals[k] || '')) o.set.meals[k] = this.NUT_MEALS[k][1]; });
+                o.days = o.days || {};
+                o.sent = o.sent || {};
+                return o;
+            },
+            _nutSave(o) {
+                // two weeks are enough for the page and the tutor
+                const keep = Object.keys(o.days).sort().slice(-14);
+                Object.keys(o.days).forEach((d) => { if (!keep.includes(d)) delete o.days[d]; });
+                Object.keys(o.sent).forEach((k) => { if (k.slice(0, 10) < keep[0]) delete o.sent[k]; });
+                try { localStorage.setItem(this._nutKey(), JSON.stringify(o)); } catch (e) {}
+            },
+            _nutToday() { return this.localDateStr(new Date()); },
+            _nutDayOf(o, d) { o.days[d] = o.days[d] || { m: [], w: [] }; return o.days[d]; },
+            _nutMin(hhmm) { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); },
+
+            // A cup of water (n = -1 takes the last one back). Reaching the day's goal gives 5 points once.
+            nutDrink(n) {
+                const o = this._nutGet(), day = this._nutDayOf(o, this._nutToday());
+                if (n < 0) day.w.pop(); else day.w.push(Date.now());
+                const reached = day.w.length >= o.set.goal && !day.g;
+                if (reached) day.g = 1;
+                this._nutSave(o);
+                if (reached && this.isLoggedIn) {
+                    this.addPointsAtomic(5).then((p) => { if (p != null) this.showToast('كمّلت ماي اليوم، +5 نقاط'); });
+                }
+                if (this.currentView === 'foodView' && this._fdRender) this._fdRender();
+                return day.w.length;
+            },
+
+            // Once a minute (and whenever the app comes back): is a meal coming up, or time for water?
+            _nutStart() {
+                if (this._nutT) return;
+                this._nutT = setInterval(() => this._nutTick(), 60000);
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._nutTick(), 1500); });
+                setTimeout(() => this._nutTick(), 20000);
+            },
+            _nutTick() {
+                const o = this._nutGet(), s = o.set, now = new Date(), d = this._nutToday();
+                const min = now.getHours() * 60 + now.getMinutes();
+                const day = o.days[d] || { m: [], w: [] };
+                // a call, a focus session or a forest session is never interrupted
+                if (this._cl || this._focus || this._forest || this._gwar) return;
+                if (s.mealOn) {
+                    for (const k of ['breakfast', 'lunch', 'dinner']) {
+                        const t = this._nutMin(s.meals[k]);
+                        const key = d + ':' + k;
+                        if (min >= t - 15 && min <= t + 45 && !o.sent[key] && !day.m.some((x) => x.meal === k)) {
+                            o.sent[key] = 1;
+                            this._nutSave(o);
+                            this._nutNotify('meal', k, t - min);
+                            return;
+                        }
+                    }
+                }
+                if (s.waterOn && day.w.length < s.goal) {
+                    const from = this._nutMin(s.from), to = this._nutMin(s.to);
+                    if (min < from || min > to) return;
+                    const start = new Date(now); start.setHours(Math.floor(from / 60), from % 60, 0, 0);
+                    const last = Math.max(day.w.length ? day.w[day.w.length - 1] : 0, o.sent[d + ':w'] || 0, start.getTime());
+                    if (Date.now() - last >= s.every * 60000) {
+                        o.sent[d + ':w'] = Date.now();
+                        this._nutSave(o);
+                        this._nutNotify('water', null, 0, day.w.length, s.goal);
+                    }
+                }
+            },
+            _nutNotify(kind, meal, inMin, cups, goal) {
+                const M = this.NUT_MEALS[meal] || [];
+                const title = kind === 'water' ? 'وكت الماي' : 'قرب موعد ' + M[0];
+                const body = kind === 'water'
+                    ? 'شربت ' + (cups || 0) + ' من ' + goal + ' أكواب اليوم. كوب ماي هسه يصحّي مخك ويرجعلك التركيز.'
+                    : (inMin > 0 ? 'باقي ' + inMin + ' دقيقة على ' + M[0] + '. ' : '') + 'لا تفوّت ' + M[0] + '، الأكل الزين يقوي ذاكرتك. سجّل شنو أكلت حتى أكلك رأيي بيه.';
+                if (document.hidden) {
+                    if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+                        navigator.serviceWorker.ready.then((r) => r.showNotification(title, { body, tag: 'isp-nut-' + kind, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './' } })).catch(() => {});
+                    }
+                    return;
+                }
+                const old = document.getElementById('ntPop');
+                if (old) old.remove();
+                const p = document.createElement('div');
+                p.id = 'ntPop';
+                p.className = 'nt-pop ' + kind;
+                p.innerHTML = `<span class="nt-ic"><i data-lucide="${kind === 'water' ? 'glass-water' : M[2] || 'utensils'}"></i></span>
+                    <div class="nt-tx"><b>${escapeHtml(title)}</b><small>${escapeHtml(body)}</small>
+                    <div class="nt-btns"><button type="button" class="nt-ok">${kind === 'water' ? 'شربت كوب' : 'سجّل أكلي'}</button><button type="button" class="nt-no">بعدين</button></div></div>`;
+                document.body.appendChild(p);
+                lucide.createIcons();
+                const close = () => { p.classList.add('out'); setTimeout(() => p.remove(), 300); };
+                p.querySelector('.nt-ok').onclick = () => { close(); if (kind === 'water') this.nutDrink(1); else this.goToFood(meal); };
+                p.querySelector('.nt-no').onclick = close;
+                setTimeout(() => { if (p.isConnected) close(); }, 15000);
+            },
+            // A short line for the tutor's report on the student.
+            _nutSummary() {
+                const o = this._nutGet(), d = o.days[this._nutToday()];
+                if (!d) return '';
+                const L = [];
+                L.push('شرب ماي اليوم: ' + d.w.length + ' من ' + o.set.goal + ' أكواب.');
+                const meals = d.m.filter((x) => x.r && x.r.items && x.r.items.length);
+                if (meals.length) L.push('أكله اليوم: ' + meals.map((x) => (this.NUT_MEALS[x.meal] || [''])[0] + ': ' + x.r.items.map((i) => i.name + (i.v === 'bad' ? ' (يضر)' : '')).join('، ')).join(' / '));
+                return L.join(' ');
+            },
+            goToFood(meal) {
+                this._fdMeal = typeof meal === 'string' ? meal : null;
+                this.switchView('foodView');
+                if (this._withPart('food', () => typeof this.fdOpen === 'function', 'foodView', () => this.goToFood(meal))) return;
+                this.fdOpen();
             },
 
             // ===== صندوق الأفكار: students suggest features and vote (js/ideas.js) =====
@@ -7254,6 +7376,7 @@
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
                 { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'tools' },
+                { id: 'food', fn: 'goToFood', t: 'غذائي ومائي', d: 'أكل يقوي ذاكرتك وتذكير بالماي', ic: 'apple', c: '#16A34A', g: 'study' },
                 { id: 'mistakes', fn: 'goToMistakes', t: 'دفتر الغلطات', d: 'غلطاتك ترجعلك لحد ما تتقنها', ic: 'notebook-pen', c: '#E11D48', g: 'study' },
                 { id: 'uni', fn: 'goToUni', t: 'حاسبة القبول', d: 'وين يدخلك معدلك', ic: 'school', c: '#0F766E', g: 'study' },
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
@@ -12917,6 +13040,7 @@
                 else if (tab === 'holidays') this.goToHolidays();
                 else if (tab === 'more') this.goToMore();
                 else if (tab === 'tutor') this.goToTutor();
+                else if (tab === 'food') this.goToFood();
                 this.viewHistory = [];
             },
 
@@ -12980,6 +13104,7 @@
                 if (this.currentView === 'storeView' && viewId !== 'storeView' && this.shClose) this.shClose();
                 if (this.currentView === 'spotsView' && viewId !== 'spotsView' && this.spClose) this.spClose();
                 if (this.currentView === 'ventView' && viewId !== 'ventView' && this.vtClose) this.vtClose();
+                if (this.currentView === 'foodView' && viewId !== 'foodView' && this.fdClose) this.fdClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
