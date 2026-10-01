@@ -374,6 +374,8 @@
             else L.push('ما مسجل درجات بالتطبيق.');
             if (f.exams.length) L.push('امتحانات قريبة: ' + f.exams.slice(0, 4).map((x) => x.s + (x.days === 0 ? ' اليوم' : ' بعد ' + x.days + ' يوم')).join('، '));
             if (f.mkDue) L.push('بدفتر غلطاته ' + f.mkDue + ' سؤال غلط بيه قبل ومستحق يراجعه اليوم.');
+            const nut = this._nutSummary ? this._nutSummary() : '';
+            if (nut) L.push(nut);
             if (f.quizzes.length) L.push('آخر اختباراته المفاجئة: ' + f.quizzes.map((q) => q.s + ' ' + q.r + '/' + q.n).join('، '));
             return L.join('\n').slice(0, 2400);
         },

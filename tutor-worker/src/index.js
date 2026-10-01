@@ -10,6 +10,8 @@
 //   mode "quiz": { subject, topic?, context? } -> JSON { title, questions: [{ q, choices[4], answer, why }] }
 //   mode "nudge": { reasons: [...], context? } -> JSON { text }  (a short message the tutor sends first)
 //   mode "cards": { image: { type, data }, subject? } -> JSON { title, cards: [{ q, a }] }  (review cards from a page)
+//   mode "food": { text, meal? } -> JSON { items: [{ name, v, why }], score, brain, tip, next[] }  (what the
+//     student ate, judged for a student's focus and memory); { ideas: true, meal? } -> varied meal ideas
 //   mode "turn": {} -> JSON { iceServers }  (short-lived Cloudflare TURN credentials for voice calls,
 //     when the TURN_KEY_ID and TURN_KEY_API_TOKEN secrets are set; works without a model key)
 // context: a short report of the student's studying, written by the app, used to hold them to it.
@@ -53,6 +55,31 @@ function cleanCards(r) {
     const cards = (r && Array.isArray(r.cards) ? r.cards : []).filter((c) => c && typeof c.q === 'string' && typeof c.a === 'string' && c.q.trim() && c.a.trim())
         .slice(0, 20).map((c) => ({ q: c.q.trim().slice(0, 300), a: c.a.trim().slice(0, 600) }));
     return { title: String((r && r.title) || '').slice(0, 80), cards };
+}
+
+const FOOD_SYSTEM = `أنت "المعلم" بتطبيق منصة الطالب العراقي، وهنا تساعد الطالب بأكله حتى يركز ويحفظ أحسن. الطالب يكتبلك شنو أكل (أكل عراقي غالباً). لكل أكلة: اسمها، وحكمك عليها (good زين، ok عادي، bad يضر إذا يكثر منه) وسبب قصير بجملة وحدة بلهجة عراقية خفيفة عن تأثيرها على التركيز والذاكرة والطاقة والنوم. بعدين: درجة الوجبة من 1 إلى 10، وجملة عن تأثيرها على الدماغ والدراسة، ونصيحة وحدة عملية، و3 اقتراحات متنوعة لأكلات عراقية بسيطة ورخيصة تقوي الذاكرة يكدر يجربها بالوجبة الجاية. كن واقعي ولطيف وبدون تخويف، ولا تعطي نصائح طبية أو حمية قاسية، ولا تستخدم إيموجي. إذا اللي كتبه مو أكل، رجع قائمة أكلات فارغة.`;
+const FOOD_IDEAS_SYSTEM = `أنت "المعلم" بتطبيق منصة الطالب العراقي. اقترح على الطالب 5 وجبات عراقية بسيطة ورخيصة ومتنوعة للوجبة المطلوبة، تقوي الذاكرة والتركيز وتعطي طاقة ثابتة للدراسة. لكل وجبة: اسمها بكلمات قليلة، والحكم good، وسبب قصير بجملة وحدة شنو تفيد بالدراسة. نوّع بين البروتين والخضرة والحبوب الكاملة والفواكه والمكسرات، وتجنب التكرار. الدرجة 10، وجملة عامة عن الأكل والدراسة، ونصيحة وحدة، والاقتراحات next فارغة. بلهجة عراقية خفيفة وبدون إيموجي.`;
+const Food = z.object({
+    items: z.array(z.object({ name: z.string(), v: z.enum(['good', 'ok', 'bad']), why: z.string() })),
+    score: z.number().int(), brain: z.string(), tip: z.string(), next: z.array(z.string()),
+});
+const FOOD_JSON_SCHEMA = {
+    type: 'object',
+    properties: {
+        items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, v: { type: 'string', enum: ['good', 'ok', 'bad'] }, why: { type: 'string' } }, required: ['name', 'v', 'why'] } },
+        score: { type: 'integer' }, brain: { type: 'string' }, tip: { type: 'string' }, next: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['items', 'score', 'brain', 'tip', 'next'],
+};
+function cleanFood(r) {
+    const items = (r && Array.isArray(r.items) ? r.items : []).filter((x) => x && typeof x.name === 'string' && x.name.trim())
+        .slice(0, 12).map((x) => ({ name: x.name.trim().slice(0, 60), v: ['good', 'ok', 'bad'].includes(x.v) ? x.v : 'ok', why: String(x.why || '').trim().slice(0, 240) }));
+    const sc = Math.round(Number(r && r.score));
+    return {
+        items, score: sc >= 1 && sc <= 10 ? sc : 0,
+        brain: String((r && r.brain) || '').trim().slice(0, 300), tip: String((r && r.tip) || '').trim().slice(0, 300),
+        next: (r && Array.isArray(r.next) ? r.next : []).map((x) => String(x).trim().slice(0, 100)).filter(Boolean).slice(0, 5),
+    };
 }
 
 const Quiz = z.object({
@@ -179,6 +206,17 @@ async function claudeCards(env, image, prompt, uid) {
     return res.parsed_output;
 }
 
+async function claudeFood(env, system, prompt, context, uid) {
+    const res = await claudeClient(env).messages.parse({
+        model: CLAUDE_MODEL, max_tokens: 4000, system: claudeSystem(system, context),
+        messages: [{ role: 'user', content: prompt }],
+        output_config: { effort: 'low', format: zodOutputFormat(Food) },
+        metadata: { user_id: uid },
+    });
+    if (res.stop_reason === 'refusal') return null;
+    return res.parsed_output;
+}
+
 // ---------- Gemini ----------
 function geminiClient(env) { return new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}) }); }
 const geminiSystem = (base, context) => (context ? base + '\n\nتقرير الطالب من التطبيق:\n' + context : base);
@@ -240,6 +278,14 @@ async function geminiCards(env, image, prompt) {
     const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
         model, contents: [{ role: 'user', parts: [{ inlineData: { mimeType: image.type, data: image.data } }, { text: prompt }] }],
         config: { systemInstruction: CARDS_SYSTEM, responseMimeType: 'application/json', responseJsonSchema: CARDS_JSON_SCHEMA, maxOutputTokens: 8000 },
+    }));
+    try { return JSON.parse(res.text || ''); } catch { return null; }
+}
+
+async function geminiFood(env, system, prompt, context) {
+    const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
+        model, contents: prompt,
+        config: { systemInstruction: geminiSystem(system, context), responseMimeType: 'application/json', responseJsonSchema: FOOD_JSON_SCHEMA, maxOutputTokens: 4000 },
     }));
     try { return JSON.parse(res.text || ''); } catch { return null; }
 }
@@ -325,6 +371,24 @@ export default {
                 return json(200, r, headers);
             } catch (err) {
                 console.error('cards', err && err.message);
+                return json(502, { error: errorCode(err) }, headers);
+            }
+        }
+
+        if (body.mode === 'food') {
+            const meals = { breakfast: 'الفطور', lunch: 'الغدا', dinner: 'العشا', snack: 'وجبة خفيفة' };
+            const meal = meals[body.meal] || '';
+            const ideas = body.ideas === true;
+            const text = str(body.text, 400);
+            if (!ideas && !text) return json(400, { error: 'empty' }, headers);
+            const system = ideas ? FOOD_IDEAS_SYSTEM : FOOD_SYSTEM;
+            const prompt = ideas ? 'اقترحلي وجبات ' + (meal ? 'لل' + meal.replace(/^ال/, '') : 'لليوم') + ' تقوي الذاكرة.'
+                : 'أكلت' + (meal ? ' بال' + meal.replace(/^ال/, '') : '') + ': ' + text;
+            try {
+                const r = cleanFood(useClaude ? await claudeFood(env, system, prompt, context, uid) : await geminiFood(env, system, prompt, context));
+                return json(200, r, headers);
+            } catch (err) {
+                console.error('food', err && err.message);
                 return json(502, { error: errorCode(err) }, headers);
             }
         }
