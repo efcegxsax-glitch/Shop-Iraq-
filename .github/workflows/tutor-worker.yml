@@ -3,7 +3,8 @@
 # Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, and at least one model key:
 # GEMINI_API_KEY (free tier) or ANTHROPIC_API_KEY. With both, the Worker uses Claude.
 # Voice calls also use TURN_KEY_ID and TURN_KEY_API_TOKEN (Cloudflare -> Realtime -> TURN Server),
-# when they are set. Until the required secrets exist the job skips itself instead of failing.
+# when they are set, and the tutor's push messages use ONESIGNAL_REST_API_KEY (OneSignal ->
+# Settings -> Keys & IDs). Until the required secrets exist the job skips itself instead of failing.
 name: Deploy AI tutor
 on:
   push:
@@ -20,6 +21,7 @@ jobs:
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       TURN_KEY_ID: ${{ secrets.TURN_KEY_ID }}
       TURN_KEY_API_TOKEN: ${{ secrets.TURN_KEY_API_TOKEN }}
+      ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
     steps:
       - name: Check the secrets are set
         id: chk
@@ -46,7 +48,7 @@ jobs:
         run: |
           node -e '
             const o = {};
-            for (const k of ["GEMINI_API_KEY", "ANTHROPIC_API_KEY", "TURN_KEY_ID", "TURN_KEY_API_TOKEN"]) if (process.env[k]) o[k] = process.env[k];
+            for (const k of ["GEMINI_API_KEY", "ANTHROPIC_API_KEY", "TURN_KEY_ID", "TURN_KEY_API_TOKEN", "ONESIGNAL_REST_API_KEY"]) if (process.env[k]) o[k] = process.env[k];
             require("fs").writeFileSync("keys.json", JSON.stringify(o), { mode: 0o600 });
           '
           npx wrangler secret bulk keys.json
