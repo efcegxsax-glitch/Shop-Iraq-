@@ -2399,10 +2399,13 @@
                 this._guardOk = uid;
                 // a ban from the panel while the app is open takes effect at once
                 if (this._banLive) { try { this._banLive(); } catch (e) {} }
-                this._banLive = onValue(ref(db, 'bannedUsers/' + uid), (snap) => {
+                this._banLive = onValue(ref(db, 'bannedUsers/' + uid), async (snap) => {
                     if (!snap.exists()) return;
                     const reason = (snap.val() || {}).reason || '';
-                    set(ref(db, 'bannedDevices/' + id), { uid, reason: String(reason).slice(0, 200), at: serverTimestamp() }).catch(() => {});
+                    // the panel usually banned this phone already; if not, the app reports it (before signing out)
+                    try {
+                        if (!(await get(ref(db, 'bannedDevices/' + id))).exists()) await set(ref(db, 'bannedDevices/' + id), { uid, reason: String(reason).slice(0, 200), at: serverTimestamp() });
+                    } catch (e) {}
                     this._banScreen(reason);
                 }, () => {});
                 return true;
