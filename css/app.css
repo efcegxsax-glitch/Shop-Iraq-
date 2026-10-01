@@ -3901,3 +3901,9 @@ body.vt-on #bottomNav, body.vt-on #appHeaderBar { display: none !important; }
 .cm-day { display: flex; justify-content: center; margin: 12px 0 6px; }
 .cm-day span { padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--text2); background: var(--surface); border: 1px solid var(--border); }
 .cm-newpill { position: fixed; z-index: 45; left: 50%; bottom: calc(92px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; background: var(--primary, #0F766E); color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 8px 24px rgba(0,0,0,.2); animation: clPill .3s ease; }
+
+/* ---------- a new version is ready (js/app.js _updateReady) ---------- */
+.upd-bar { position: fixed; z-index: 9000; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 16px; background: #0F172A; color: #fff; font-size: 13px; font-weight: 700; box-shadow: 0 12px 30px rgba(0,0,0,.25); animation: clPill .35s ease; }
+.upd-bar span { flex: 1; }
+.upd-bar button { padding: 7px 12px; border-radius: 10px; background: rgb(var(--p)); color: #fff; font-weight: 800; font-size: 12px; }
+.upd-bar .upd-x { background: rgba(255,255,255,.12); }

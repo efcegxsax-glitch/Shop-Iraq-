@@ -542,11 +542,88 @@
                 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
                     const reg = () => navigator.serviceWorker.register('OneSignalSDKWorker.js', { scope: './' }).catch(() => {});
                     if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg);
+                    // a newer version was saved in the background (the app itself opened from the saved copy)
+                    navigator.serviceWorker.addEventListener('message', (e) => {
+                        if (e.data && e.data.type === 'isp-update' && e.data.ver !== window.APP_VER) this._updateReady();
+                    });
+                    setTimeout(() => this._warmParts(), 6000);
                 }
                 const bar = () => document.body.classList.toggle('is-offline', navigator.onLine === false);
                 window.addEventListener('online', () => { bar(); this.showToast('رجع النت'); });
                 window.addEventListener('offline', bar);
                 bar();
+            },
+
+            // The pages that load their own file are saved on the phone ahead of time, so the first
+            // time one opens it comes from the phone, not the network (skipped on data saver).
+            _warmParts() {
+                try {
+                    if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+                    const cn = navigator.connection || {};
+                    if (cn.saveData || /(^|-)2g$/.test(cn.effectiveType || '')) return;
+                    const parts = ['calls', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
+                    navigator.serviceWorker.controller.postMessage({ type: 'isp-warm', urls: parts.map((n) => 'js/' + n + '.js?v=' + (window.APP_VER || '1')) });
+                } catch (e) { /* only a speed-up */ }
+            },
+
+            // A new version is ready: it is used the next time the app opens. If the student is on
+            // the home page when they leave the app, it is put in place quietly; otherwise a small
+            // bar offers it.
+            _updateReady() {
+                if (this._updShown) return;
+                this._updShown = true;
+                const busy = () => !!(this._cl || this._focus || this._forest || this._gwar || this._garden);
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && this.currentView === 'homeView' && !busy()) location.reload();
+                });
+                setTimeout(() => {
+                    if (busy() || document.getElementById('updBar')) return;
+                    const b = document.createElement('div');
+                    b.id = 'updBar'; b.className = 'upd-bar';
+                    b.innerHTML = '<span>صار تحديث جديد للتطبيق</span><button type="button">حدّث هسه</button><button type="button" class="upd-x" aria-label="بعدين">بعدين</button>';
+                    b.children[1].onclick = () => location.reload();
+                    b.children[2].onclick = () => b.remove();
+                    document.body.appendChild(b);
+                }, 1500);
+            },
+
+            // Like an installed app: opening it again soon after (the phone may have closed it in
+            // the background) goes back to the page the student was on.
+            _rememberView(viewId) {
+                if (!this._restored) return; // start-up pages don't count until the last one is restored
+                try {
+                    const o = { v: viewId, at: Date.now() };
+                    if (viewId === 'chatThreadView' && this.currentChatUid) {
+                        const c = this.currentChatOther || {};
+                        o.chat = { uid: this.currentChatUid, n: c.name || '', s: c.studentNumber || '' };
+                    }
+                    localStorage.setItem('isp:lastView', JSON.stringify(o));
+                } catch (e) {}
+            },
+            _restoreView() {
+                if (this._restored) return;
+                this._restored = true;
+                let o = null;
+                try { o = JSON.parse(localStorage.getItem('isp:lastView') || 'null'); } catch (e) {}
+                if (!o || Date.now() - (o.at || 0) > 30 * 60000 || this.currentView !== 'homeView') return;
+                const tabs = { resourcesView: 'resources', holidaysView: 'holidays', leaderboardView: 'leaderboard', storeView: 'store', messagesView: 'messages', profileView: 'profile', moreView: 'more', tutorView: 'tutor' };
+                const needsLogin = { messagesView: 1, profileView: 1, chatThreadView: 1, tutorView: 1 };
+                if (needsLogin[o.v] && !this.isLoggedIn) return;
+                try {
+                    if (o.v === 'chatThreadView' && o.chat && o.chat.uid) {
+                        // the chat itself opens once the sign-in is back (_restoreChat)
+                        this._pendingChatRestore = o.chat;
+                        this.setTab('messages');
+                    } else if (tabs[o.v]) {
+                        this.setTab(tabs[o.v]);
+                    }
+                } catch (e) { /* stay on the home page */ }
+            },
+            _restoreChat() {
+                const c = this._pendingChatRestore;
+                this._pendingChatRestore = null;
+                if (!c || this.currentView !== 'messagesView') return;
+                try { this.openChat(c.uid, c.n, undefined, c.s); } catch (e) {}
             },
 
             // Loads a part of the app that only some pages need (js/<name>.js), once.
@@ -633,6 +710,7 @@
                 this.listenForStudyRoom();
                 this.setupPullToRefresh();
                 lucide.createIcons();
+                this._restoreView();
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderHolidays(); }, 60000);
@@ -2153,6 +2231,7 @@
                     this.checkDailyStreak();
                     this._ttNudgeSoon();
                     this._smPing();
+                    this._restoreChat();
                     this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
@@ -12920,6 +12999,7 @@
                 }
                 this.previousView = this.currentView;
                 this.currentView = viewId;
+                this._rememberView(viewId);
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
