@@ -164,11 +164,11 @@
             }
         },
 
-        // The other person's real photo (profile photos are kept in users/{uid}/avatar).
+        // The other person's real photo (the leaderboard keeps every student's photo; full records are private).
         async _clAvatar(c) {
             try {
                 const { ref, get } = H();
-                const v = (await get(ref(db(), 'users/' + c.other.uid + '/avatar'))).val();
+                const v = (await get(ref(db(), 'leaderboard/' + c.other.uid + '/avatar'))).val();
                 if (v && this._cl === c && personAvatarSrc(v, '') === v) { c.other.avatar = v; this._clPaintAv(c); }
             } catch (e) {}
         },

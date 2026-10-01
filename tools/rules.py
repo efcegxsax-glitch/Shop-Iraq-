@@ -123,6 +123,8 @@ def own_write(extra=None):
 
 
 public_admin = {".read": True, ".write": ADMIN}
+# one of the two people in a chat (chat ids are the two uids, sorted, joined by _)
+CHAT_MEMBER = "(auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))"
 
 # the 19 governorates, as a rules regular expression
 GOV_RE = "/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/"
@@ -200,9 +202,11 @@ rules = {
     "voiceListeners": {".read": ADMIN, "$id": {"$uid": {".write": OWNER, ".validate": s_max("newData.child('n')", 60) + " && newData.child('at').isNumber()"}}},
 
     # ----- students -----
+    # a student's full record (email, phone, balance, grades, phones used) is theirs and the
+    # panel's only; others find them through pub and numIndex below
     "users": {
-        ".read": SIGNED,
         "$uid": {
+            ".read": OWNER,
             # each field is written on its own (update), so a student can't delete points/balance
             "points": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": POINTS},
             "balance": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": BALANCE},
@@ -213,6 +217,22 @@ rules = {
             "bt": {".write": ors(OWNER, ADMIN), ".validate": "newData.isString() && newData.val().matches(/^[A-Z0-9-]{4,24}$/)"},
             "bi": {".write": ors(OWNER, ADMIN), ".validate": "newData.isString() && newData.val().matches(/^tr_[0-9]+_[0-9]+$/)"},
             "$field": {".write": ors(OWNER, ADMIN)},
+        },
+    },
+    # the public directory: name, student number, governorate (for search, friends, transfers)
+    "pub": {
+        ".read": SIGNED,
+        "$uid": {
+            ".write": ors(OWNER, ADMIN),
+            ".validate": "!newData.exists() || (" + ands(s_max("newData.child('n')", 80), "(!newData.child('s').exists() || " + s_max("newData.child('s')", 12) + ")", "(!newData.child('g').exists() || " + s_max("newData.child('g')", 30) + ")") + ")",
+        },
+    },
+    # student number -> uid, claimed once by its owner
+    "numIndex": {
+        "$n": {
+            ".read": SIGNED,
+            ".write": ors(ADMIN, ands(SIGNED, "(!data.exists() || data.val() == auth.uid)", "(!newData.exists() || newData.val() == auth.uid)")),
+            ".validate": "!newData.exists() || ($n.matches(/^[0-9]{3,12}$/) && newData.isString())",
         },
     },
     "leaderboard": {
@@ -391,10 +411,21 @@ rules = {
     "userChats": {
         "$uid": {".read": OWNER, "$other": {".write": ors(OWNER, ADMIN, "auth != null && auth.uid == $other")}},
     },
+    # each of the two writes, edits and deletes only their own messages (no message in the other's
+    # name), and only their own read receipt and "deleted for me" list
     "privateChats": {
         "$chat": {
-            ".read": "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))",
-            ".write": ors(ADMIN, "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))"),
+            ".read": CHAT_MEMBER,
+            ".write": ADMIN,
+            "messages": {
+                "$m": {
+                    ".write": ands(CHAT_MEMBER, "(data.exists() ? data.child('from').val() == auth.uid : newData.child('from').val() == auth.uid)"),
+                    ".validate": "!newData.exists() || (newData.child('from').val() == auth.uid || " + ADMIN + ")",
+                },
+            },
+            "deletedFor": {"$uid": {".write": ands(CHAT_MEMBER, OWNER)}},
+            "readReceipts": {"$uid": {".write": ands(CHAT_MEMBER, OWNER)}},
+            "$other": {".write": CHAT_MEMBER},
         },
     },
     "reports": {"$id": {".write": ors(ADMIN, "auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid")}},
@@ -693,10 +724,25 @@ rules = {
     "ideaLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 600000)"}},
 
     # ----- usage numbers and error reports (also before signing in) -----
-    "devices": {"$id": {".write": True, ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"}},
+    # anyone (signed in or not) pings with these fields only, each small
+    "devices": {"$id": {
+        ".write": True,
+        ".validate": "$id.length <= 64 && newData.hasChildren(['last']) && newData.child('last').isNumber()",
+        "gov": {".validate": s_max("newData", 30)}, "push": {".validate": s_max("newData", 12)}, "app": {".validate": s_max("newData", 10)},
+        "installed": {".validate": "newData.isBoolean()"}, "member": {".validate": "newData.isNumber()"}, "last": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }},
     "stats": {"daily": {"$d": {"opens": {".read": True, ".write": True, ".validate": counter()}}}},
     "newsViews": {"$k": {".read": True, ".write": True, ".validate": counter()}},
-    "errors": {"$k": {".read": True, ".write": "newData.exists()", ".validate": "newData.child('msg').isString() && newData.child('msg').val().length <= 600 && newData.child('n').isNumber()"}},
+    "errors": {"$k": {
+        ".read": True, ".write": "newData.exists()",
+        ".validate": "$k.length <= 40 && newData.child('msg').isString() && newData.child('msg').val().length <= 600 && newData.child('n').isNumber()",
+        "msg": {".validate": s_max("newData", 600)}, "n": {".validate": "newData.isNumber()"},
+        "src": {".validate": s_max("newData", 400)}, "stack": {".validate": s_max("newData", 1500)}, "view": {".validate": s_max("newData", 40)},
+        "dev": {".validate": s_max("newData", 80)}, "ver": {".validate": s_max("newData", 20)},
+        "line": {".validate": "newData.isNumber()"}, "col": {".validate": "newData.isNumber()"}, "first": {".validate": "newData.isNumber()"}, "last": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }},
 }
 
 with open(os.path.join(ROOT, 'database.rules.json'), 'w', encoding='utf-8') as f:

@@ -2186,6 +2186,34 @@
             } catch (e) { console.warn(e); toast('فشل الرفض', false); }
         };
 
+        // ---------- the public student directory (pub, numIndex) ----------
+        // Full student records are private; search, friends and transfers use pub/{uid} and
+        // numIndex/{number}. Each student's app keeps its own entry; here the panel fills in the
+        // students who haven't opened the app since, once per visit.
+        let directoryDone = false;
+        async function fillDirectory() {
+            if (directoryDone || !Object.keys(usersData).length) return;
+            directoryDone = true;
+            try {
+                const [pubSnap, idxSnap] = await Promise.all([get(ref(db, 'pub')), get(ref(db, 'numIndex'))]);
+                const pub = pubSnap.val() || {}, idx = idxSnap.val() || {}, upd = {};
+                Object.keys(usersData).forEach((uid) => {
+                    const u = usersData[uid] || {};
+                    const rec = { n: String(u.fullName || 'طالب').slice(0, 80), s: String(u.studentNumber || '').slice(0, 12), g: String(u.governorate || '').slice(0, 30) };
+                    const cur = pub[uid] || {};
+                    if (cur.n !== rec.n || (cur.s || '') !== rec.s || (cur.g || '') !== rec.g) upd['pub/' + uid] = rec;
+                    if (/^[0-9]{3,12}$/.test(rec.s) && !idx[rec.s]) { upd['numIndex/' + rec.s] = uid; idx[rec.s] = uid; }
+                });
+                const keys = Object.keys(upd);
+                for (let i = 0; i < keys.length; i += 400) {
+                    const part = {};
+                    keys.slice(i, i + 400).forEach((k) => { part[k] = upd[k]; });
+                    await update(ref(db), part);
+                }
+                if (keys.length) console.log('directory filled:', keys.length);
+            } catch (e) { console.warn('directory fill failed', e); directoryDone = false; }
+        }
+
         // ---------- Ban Student ----------
         // A ban is on the account (bannedUsers/{uid}) and on every phone it used (users/{uid}/dev ->
         // bannedDevices/{id}), so the student can't come back with a new account on the same phone.
@@ -2443,6 +2471,7 @@
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
                 renderBanSearch(); renderBanned();
+                fillDirectory();
                 if (typeof renderVerified === 'function') renderVerified();
                 if (typeof renderAppStats === 'function') renderAppStats();
             });

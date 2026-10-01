@@ -327,6 +327,7 @@ async function turnServers(env) {
 // Four times a day (wrangler.toml [triggers]); only when the panel hasn't switched them off
 // (siteConfig/features/coach) and only to students who didn't switch them off (tag coach=off).
 // A tap opens the app with the message, which then joins the student's chat with the tutor.
+// (js/tutor.js COACH_PUSHED keeps the same texts: the app only accepts these from a link)
 const COACH_PUSH = [
     'هذا مستقبلك انت، مو مستقبل أحد غيرك. محد راح يفيدك غير تعبك.',
     'بالامتحان محد راح يكون وياك. لا صديق ولا تلفون. بس انت واللي حفظته.',

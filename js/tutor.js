@@ -13,6 +13,29 @@
     const KEEP = 40, SEND = 20, IMG_MAX = 1280;
     const QUIZ_PTS = 2, QUIZ_DAY_CAP = 30; // points per right answer, and at most this many a day from quizzes
     const DAY = 86400000;
+    // The messages the tutor's server pushes to closed apps (tutor-worker/src/index.js COACH_PUSH and
+    // COACH_NIGHT, kept word for word). A push opens the app with ?coach=<text>; only these texts are
+    // accepted, so a made-up link can't put words in the tutor's mouth.
+    const COACH_PUSHED = [
+    'هذا مستقبلك انت، مو مستقبل أحد غيرك. محد راح يفيدك غير تعبك.',
+    'بالامتحان محد راح يكون وياك. لا صديق ولا تلفون. بس انت واللي حفظته.',
+    'هاي شدة وتخلص. تعب نفسك هسه، وترتاح باچر.',
+    'التلفون يكدر ينتظر، الامتحان ما ينتظر أحد.',
+    'كل ساعة تضيعها هسه راح تتمناها ليلة الامتحان، وما راح ترجع.',
+    'أهلك تعبوا عليك سنين. ردلهم التعب بنتيجة يرفعون بيها راسهم.',
+    'شكد مرة كلت باچر أبدي؟ باچر ما يجي. ابدي هسه ولو بعشر دقايق.',
+    'ليش متكاسل؟ وراك ناس تنتظر تشوفك تطيح حتى تشمت. لا تنطيهم هالفرحة.',
+    'التعب يروح، بس النتيجة تبقى وياك العمر كله.',
+    'محد يشيل همك. شيل همك انت وافتح الكتاب.',
+    'الندم أصعب من الدراسة بهواية. اختار التعب اللي ينفعك.',
+    'الناس راح تسأل شجبت، محد راح يسأل شكد تعبت. خلي الجواب يرفع راسك.',
+    'اللي يزرع هسه يحصد باچر. شنو زرعت اليوم؟',
+    'الأيام تركض، والامتحان يقرب يوم بعد يوم. وانت وين؟',
+    'حتى خطوة صغيرة اليوم تفرق. افتح كتابك ولو عشر دقايق.',
+    'ترضى تشوف زملاءك بالكلية اللي تحلم بيها وانت لا؟ يلا گوم.',
+    'صار الليل. إذا درست اليوم نام زين، النوم يثبت الحفظ. وإذا ما درست، ربع ساعة قبل النوم وباچر صفحة جديدة.',
+    'لا تسهر على التلفون. نومك المبكر نص نجاحك باچر.'
+    ];
     // the tutor's reminders ({name}, {n} days to the {s} exam, {d} days without studying)
     const COACH = {
         scold: [
@@ -550,6 +573,8 @@
             try { if (navigator.vibrate) navigator.vibrate([80, 60, 80]); } catch (e) {}
             this._ttPop(text);
         },
+
+        _coachKnown(t) { return COACH_PUSHED.includes(String(t || '').trim()); },
 
         // settings, from the bell in the tutor's header
         ttCoachSettings() {

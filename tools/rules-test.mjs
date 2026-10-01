@@ -28,7 +28,17 @@ await ok('admin writes admission', set(ref(db('adm'), 'admission/base/med'), 98)
 await no('student writes admission', set(ref(db('u1'), 'admission/base/med'), 60));
 await ok('guest reads admission', get(ref(db(null), 'admission')));
 await no('guest reads users', get(ref(db(null), 'users')));
-await ok('student reads users', get(ref(db('u1'), 'users')));
+await no('student reads every record', get(ref(db('u1'), 'users')));
+await no('student reads another record', get(ref(db('u1'), 'users/u2')));
+await ok('student reads own record', get(ref(db('u1'), 'users/u1')));
+await ok('public directory entry', set(ref(db('u1'), 'pub/u1'), { n: 'علي', s: '12345', g: 'بغداد' }));
+await no('directory entry for someone else', set(ref(db('u2'), 'pub/u1'), { n: 'x' }));
+await ok('students read the directory', get(ref(db('u2'), 'pub')));
+await no('guests read the directory', get(ref(db(null), 'pub')));
+await ok('claim own number', set(ref(db('u1'), 'numIndex/12345'), 'u1'));
+await no('take a claimed number', set(ref(db('u2'), 'numIndex/12345'), 'u2'));
+await no('claim a number for someone else', set(ref(db('u2'), 'numIndex/55555'), 'u1'));
+await ok('look up a number', get(ref(db('u2'), 'numIndex/12345')));
 
 // new user
 await ok('new user profile', update(ref(db('n1'), 'users/n1'), { fullName: 'a', points: 0, balance: 0 }));
@@ -397,6 +407,27 @@ await no('banned student clears own phone', set(ref(db('o2'), 'bannedDevices/' +
 await ok('guest reads a phone ban', get(ref(db(null), 'bannedDevices/' + DEV2)));
 await ok('panel lifts a phone ban', set(ref(db('adm'), 'bannedDevices/' + DEV2), null));
 await ok('student records own phone', set(ref(db('o1'), 'users/o1/dev/' + DEV), TS));
+
+// open writes stay small
+await ok('device ping', update(ref(db(null), 'devices/d123'), { last: Date.now(), gov: 'baghdad', installed: false, push: 'default', app: 'web', member: 0 }));
+await no('device ping with junk', update(ref(db(null), 'devices/d124'), { last: Date.now(), junk: 'x'.repeat(5000) }));
+await ok('error report', set(ref(db(null), 'errors/e1'), { msg: 'TypeError', src: 'app.js', line: 1, col: 2, stack: 'at x', first: 1, n: 1, last: 2, view: 'homeView', dev: 'Android', ver: 'abc' }));
+await no('error report with junk', set(ref(db(null), 'errors/e2'), { msg: 'x', n: 1, blob: 'x'.repeat(5000) }));
+await no('huge stack', set(ref(db(null), 'errors/e3'), { msg: 'x', n: 1, stack: 'x'.repeat(5000) }));
+
+// chats: only your own messages
+await ok('send a message', set(ref(db('c1'), 'privateChats/c1_c2/messages/1'), { id: 1, from: 'c1', to: 'c2', text: 'هلو', createdAt: 1 }));
+await no('message in the other one\'s name', set(ref(db('c1'), 'privateChats/c1_c2/messages/2'), { id: 2, from: 'c2', to: 'c1', text: 'x', createdAt: 2 }));
+await no('edit the other one\'s message', set(ref(db('c2'), 'privateChats/c1_c2/messages/1/text'), 'x'));
+await no('delete the other one\'s message', set(ref(db('c2'), 'privateChats/c1_c2/messages/1'), null));
+await ok('edit own message', set(ref(db('c1'), 'privateChats/c1_c2/messages/1/text'), 'هلو شلونك'));
+await ok('hide for me', set(ref(db('c2'), 'privateChats/c1_c2/deletedFor/c2/1'), true));
+await no('hide for the other one', set(ref(db('c2'), 'privateChats/c1_c2/deletedFor/c1/1'), true));
+await ok('own read receipt', set(ref(db('c2'), 'privateChats/c1_c2/readReceipts/c2'), 5));
+await no('the other one\'s read receipt', set(ref(db('c2'), 'privateChats/c1_c2/readReceipts/c1'), 5));
+await no('outsider writes', set(ref(db('c3'), 'privateChats/c1_c2/messages/3'), { id: 3, from: 'c3', text: 'x' }));
+await no('outsider reads', get(ref(db('c3'), 'privateChats/c1_c2')));
+await ok('delete own message', set(ref(db('c1'), 'privateChats/c1_c2/messages/1'), null));
 
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();

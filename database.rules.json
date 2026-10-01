@@ -123,8 +123,8 @@
       }
     },
     "users": {
-      ".read": "auth != null",
       "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
         "points": {
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
           ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() <= 200 || data.exists() && newData.val() <= data.val() || (data.exists() && newData.val() - data.val() <= 200 && newData.parent().child('pAt').isNumber() && newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)) || (newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^auctionBids\\/[A-Za-z0-9_-]+\\/refunds\\/[A-Za-z0-9_-]+\\/[0-9]+$/) && newData.parent().child('pc').val().contains('/refunds/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('pc').val() + '/amount').val())))"
@@ -160,6 +160,20 @@
         "$field": {
           ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
         }
+      }
+    },
+    "pub": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "!newData.exists() || ((newData.child('n').isString() && newData.child('n').val().length <= 80 && (!newData.child('s').exists() || newData.child('s').isString() && newData.child('s').val().length <= 12) && (!newData.child('g').exists() || newData.child('g').isString() && newData.child('g').val().length <= 30)))"
+      }
+    },
+    "numIndex": {
+      "$n": {
+        ".read": "auth != null",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && (!data.exists() || data.val() == auth.uid) && (!newData.exists() || newData.val() == auth.uid)))",
+        ".validate": "!newData.exists() || ($n.matches(/^[0-9]{3,12}$/) && newData.isString())"
       }
     },
     "leaderboard": {
@@ -422,8 +436,27 @@
     },
     "privateChats": {
       "$chat": {
-        ".read": "auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))",
-        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))"
+        ".read": "(auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))",
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        "messages": {
+          "$m": {
+            ".write": "((auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))) && (data.exists() ? data.child('from').val() == auth.uid : newData.child('from').val() == auth.uid))",
+            ".validate": "!newData.exists() || (newData.child('from').val() == auth.uid || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
+          }
+        },
+        "deletedFor": {
+          "$uid": {
+            ".write": "((auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))) && (auth != null && auth.uid == $uid))"
+          }
+        },
+        "readReceipts": {
+          "$uid": {
+            ".write": "((auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid))) && (auth != null && auth.uid == $uid))"
+          }
+        },
+        "$other": {
+          ".write": "(auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))"
+        }
       }
     },
     "reports": {
@@ -1064,7 +1097,28 @@
     "devices": {
       "$id": {
         ".write": true,
-        ".validate": "newData.hasChildren(['last']) && newData.child('last').isNumber()"
+        ".validate": "$id.length <= 64 && newData.hasChildren(['last']) && newData.child('last').isNumber()",
+        "gov": {
+          ".validate": "newData.isString() && newData.val().length <= 30"
+        },
+        "push": {
+          ".validate": "newData.isString() && newData.val().length <= 12"
+        },
+        "app": {
+          ".validate": "newData.isString() && newData.val().length <= 10"
+        },
+        "installed": {
+          ".validate": "newData.isBoolean()"
+        },
+        "member": {
+          ".validate": "newData.isNumber()"
+        },
+        "last": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "stats": {
@@ -1089,7 +1143,43 @@
       "$k": {
         ".read": true,
         ".write": "newData.exists()",
-        ".validate": "newData.child('msg').isString() && newData.child('msg').val().length <= 600 && newData.child('n').isNumber()"
+        ".validate": "$k.length <= 40 && newData.child('msg').isString() && newData.child('msg').val().length <= 600 && newData.child('n').isNumber()",
+        "msg": {
+          ".validate": "newData.isString() && newData.val().length <= 600"
+        },
+        "n": {
+          ".validate": "newData.isNumber()"
+        },
+        "src": {
+          ".validate": "newData.isString() && newData.val().length <= 400"
+        },
+        "stack": {
+          ".validate": "newData.isString() && newData.val().length <= 1500"
+        },
+        "view": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "dev": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "ver": {
+          ".validate": "newData.isString() && newData.val().length <= 20"
+        },
+        "line": {
+          ".validate": "newData.isNumber()"
+        },
+        "col": {
+          ".validate": "newData.isNumber()"
+        },
+        "first": {
+          ".validate": "newData.isNumber()"
+        },
+        "last": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }
