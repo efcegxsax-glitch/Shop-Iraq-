@@ -378,6 +378,26 @@ await no('call for another pair', set(ref(db('k1'), 'calls/k1_k2'), { id: 'c3', 
 await no('huge sdp', update(ref(db('k1'), 'calls/k1_k2'), { offer: { sdp: 'x'.repeat(20001), type: 'offer', v: 2 } }));
 await ok('hang up', update(ref(db('k2'), 'calls/k1_k2'), { st: 'end', by: 'k2' }));
 
+// bans by account and phone, one account per phone
+const DEV = 'abcdefghij0123456789', DEV2 = 'zzzzzzzzzz0123456789';
+await ok('claim a phone', set(ref(db('o1'), 'deviceOwners/' + DEV), 'o1'));
+await ok('anyone reads a phone owner', get(ref(db(null), 'deviceOwners/' + DEV)));
+await no('take a claimed phone', set(ref(db('o2'), 'deviceOwners/' + DEV), 'o2'));
+await no('free a phone yourself', set(ref(db('o1'), 'deviceOwners/' + DEV), null));
+await no('claim for someone else', set(ref(db('o2'), 'deviceOwners/' + DEV2), 'o1'));
+await no('bad phone id', set(ref(db('o2'), 'deviceOwners/BAD'), 'o2'));
+await ok('panel frees a phone', set(ref(db('adm'), 'deviceOwners/' + DEV), null));
+await no('student bans someone', set(ref(db('o1'), 'bannedUsers/o2'), { reason: 'x', at: TS }));
+await ok('panel bans', set(ref(db('adm'), 'bannedUsers/o2'), { reason: 'سب', at: TS }));
+await ok('banned student reads own ban', get(ref(db('o2'), 'bannedUsers/o2')));
+await no('others read the ban', get(ref(db('o1'), 'bannedUsers/o2')));
+await ok('banned student reports own phone', set(ref(db('o2'), 'bannedDevices/' + DEV2), { uid: 'o2', at: TS }));
+await no('unbanned student bans a phone', set(ref(db('o1'), 'bannedDevices/' + DEV), { uid: 'o1', at: TS }));
+await no('banned student clears own phone', set(ref(db('o2'), 'bannedDevices/' + DEV2), null));
+await ok('guest reads a phone ban', get(ref(db(null), 'bannedDevices/' + DEV2)));
+await ok('panel lifts a phone ban', set(ref(db('adm'), 'bannedDevices/' + DEV2), null));
+await ok('student records own phone', set(ref(db('o1'), 'users/o1/dev/' + DEV), TS));
+
 console.log('passed', pass, 'failed', fail);
 await env.cleanup();
 process.exit(fail ? 1 : 0);

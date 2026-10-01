@@ -80,6 +80,26 @@
       ".read": "auth != null",
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
+    "bannedUsers": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+      }
+    },
+    "bannedDevices": {
+      "$d": {
+        ".read": true,
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && root.child('bannedUsers/' + auth.uid).exists() && !data.exists() && newData.child('uid').val() == auth.uid))",
+        ".validate": "!newData.exists() || ($d.matches(/^[a-z0-9]{16,40}$/) && newData.child('uid').isString())"
+      }
+    },
+    "deviceOwners": {
+      "$d": {
+        ".read": true,
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.val() == auth.uid))",
+        ".validate": "!newData.exists() || ($d.matches(/^[a-z0-9]{16,40}$/) && newData.isString())"
+      }
+    },
     "voiceNoteStats": {
       ".read": true,
       "$id": {

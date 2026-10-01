@@ -4133,3 +4133,16 @@ body.vt-on #bottomNav, body.vt-on #appHeaderBar { display: none !important; }
 .dk-juz button { aspect-ratio: 1; border-radius: 12px; background: var(--surface); border: 1px solid var(--border); color: var(--text2); font-size: 13px; font-weight: 800; transition: all .25s; }
 .dk-juz button.on { background: linear-gradient(135deg, #14B8A6, #0F766E); border-color: #0F766E; color: #fff; animation: dkPop .3s ease; }
 @media (prefers-reduced-motion: reduce) { .dk-star, .dk-ring circle.next, .dk-moon { animation: none; } }
+
+/* ---------- ban screen and "this phone has another account" (app._wall) ---------- */
+.ban-wall { position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center; padding: 24px; background: radial-gradient(120% 90% at 50% 0%, #1E293B, #0F172A); color: #fff; text-align: center; animation: banIn .4s ease; }
+.ban-wall.red { background: radial-gradient(120% 90% at 50% 10%, #DC2626, #7F1D1D 60%, #450A0A); }
+body.is-banned { overflow: hidden; }
+@keyframes banIn { from { opacity: 0; } }
+.ban-in { max-width: 360px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ban-ic { width: 96px; height: 96px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,.12); box-shadow: 0 0 0 14px rgba(255,255,255,.06); animation: banPulse 2.4s ease-in-out infinite; }
+.ban-ic svg { width: 46px; height: 46px; }
+@keyframes banPulse { 50% { box-shadow: 0 0 0 22px rgba(255,255,255,.03); } }
+.ban-wall h2 { font-size: 28px; font-weight: 900; }
+.ban-wall p { font-size: 15px; line-height: 1.9; opacity: .9; }
+.ban-wall button { margin-top: 6px; padding: 13px 22px; border-radius: 16px; background: #fff; color: #0F172A; font-weight: 900; font-size: 15px; }
