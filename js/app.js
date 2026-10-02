@@ -4305,12 +4305,23 @@
             // Tell the server a call or a message was just written, so it can push to the receiver's phone (the server
             // checks the record itself, see notifyPush in the Worker). Fire and forget.
             async _notifyPush(kind, to, mid) {
+                let step = 'start';
                 try {
                     const url = this._tutorUrl();
                     if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !window.firebaseAuth || !window.firebaseAuth.currentUser) return;
+                    step = 'token';
                     const token = await window.firebaseAuth.currentUser.getIdToken();
-                    fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'notify', kind, to, mid }) }).catch(() => {});
-                } catch (e) { /* the push is a bonus; the call and the message are already saved */ }
+                    step = 'request';
+                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'notify', kind, to, mid }) });
+                    if (!res.ok) {
+                        let code = '';
+                        try { code = (await res.json()).error || ''; } catch (e) {}
+                        // shows in the panel's error page, so a push that does not go out is not a silent failure
+                        this._reportError({ msg: 'push ' + kind + ' refused: ' + res.status + ' ' + code, src: 'notify', line: 0 });
+                    }
+                } catch (e) {
+                    this._reportError({ msg: 'push ' + kind + ' could not be asked (' + step + '): ' + String(e && e.message || e).replace(/Failed to fetch|Load failed|NetworkError/gi, 'network error').slice(0, 80), src: 'notify', line: 0 });
+                }
             },
             // a tap on a call or message push: open that chat once the student is signed in
             _openChatFromPush(uid, name) {
