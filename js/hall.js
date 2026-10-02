@@ -49,7 +49,7 @@
             const box = document.getElementById('hlContent');
             if (!box) return;
             if (!this.isLoggedIn || !window.firebaseDb) {
-                box.innerHTML = '<div class="hl-wrap"><div class="hl-hero"><div class="hl-flame-big" aria-hidden="true"><i></i><i></i><i></i></div>'
+                box.innerHTML = '<div class="hl-wrap"><div class="hl-hero"><div class="hl-flame-big" aria-hidden="true"></div>'
                     + '<h2>قاعة الهمّة</h2><p>سجّل دخولك حتى تدخل القاعة وتشوف زملاءك من كل المحافظات.</p>'
                     + '<button class="hl-btn" onclick="app.goToAuth(\'login\')">تسجيل الدخول</button></div></div>';
                 return;
@@ -57,7 +57,7 @@
             if (!document.getElementById('hlGrid')) {
                 box.innerHTML = '<div class="hl-wrap">'
                     + '<div class="hl-hero"><div class="hl-embers" aria-hidden="true">' + Array.from({ length: 10 }, (_, i) => '<b style="--i:' + i + '"></b>').join('') + '</div>'
-                    + '<div class="hl-flame-big" aria-hidden="true"><i></i><i></i><i></i></div>'
+                    + '<div class="hl-flame-big" aria-hidden="true"></div>'
                     + '<div class="hl-count"><span id="hlCount">0</span> طالب بالقاعة</div>'
                     + '<div class="hl-mine" id="hlMine"><small>وقتك بالقاعة</small><b id="hlMyClock">00:00</b></div>'
                     + '<button class="hl-btn" id="hlBtn" onclick="app.hlToggle()">ادخل القاعة</button></div>'
@@ -134,7 +134,7 @@
                     n = document.createElement('div');
                     n.className = 'hl-card hl-in';
                     n.style.animationDelay = Math.min(i, 12) * 45 + 'ms';
-                    n.innerHTML = '<div class="hl-av"><div class="hl-fire" aria-hidden="true"><i></i><i></i><i></i></div><div class="hl-ring"></div>' + avatarHtml(r) + '</div>'
+                    n.innerHTML = '<div class="hl-av"><div class="hl-fire" aria-hidden="true"></div><div class="hl-ring"></div>' + avatarHtml(r) + '</div>'
                         + '<div class="hl-n">' + esc(r.n) + (this.vb ? this.vb(r.u) : '') + '</div>'
                         + '<div class="hl-g">' + esc(r.g || 'العراق') + '</div><div class="hl-t">00:00</div>';
                     n.dataset.at = r.at;
