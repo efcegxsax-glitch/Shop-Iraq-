@@ -11,6 +11,8 @@ FIREBASE_PROJECT_ID = "iraqi-student-platform-9918d"
 FIREBASE_DB_URL = "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com"
 # the tutor's push messages (needs the ONESIGNAL_REST_API_KEY secret)
 ONESIGNAL_APP_ID = "6ab91884-6fd7-43a1-a318-a4975260944e"
+# the admin panel's account: only it may send pushes to every phone
+ADMIN_EMAIL = "panel.admin@iraqi-student-platform.app"
 APP_URL = "https://efcegxsax-glitch.github.io/Shop-Iraq-/"
 # pages allowed to call the tutor (comma separated)
 ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-platform-9918d.web.app,https://iraqi-student-platform-9918d.firebaseapp.com,https://localhost,capacitor://localhost"
