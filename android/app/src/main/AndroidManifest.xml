@@ -20,6 +20,9 @@
             </intent-filter>
         </activity>
 
+        <!-- notification: the app's green behind the small white icon -->
+        <meta-data android:name="com.onesignal.NotificationAccentColor.DEFAULT" android:value="FF0F766E" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

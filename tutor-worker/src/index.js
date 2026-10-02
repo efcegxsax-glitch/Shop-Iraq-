@@ -26,6 +26,14 @@ const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
 const GEMINI_MODELS = ['gemini-flash-latest', 'gemini-3.8-flash', 'gemini-flash-lite-latest', 'gemini-3.8-flash-lite'];
 const MAX_TURNS = 20, MAX_CHARS = 4000, MAX_CONTEXT = 3400, MAX_IMAGE_B64 = 2_000_000;
+// How a push looks and behaves on Android: big app icon, the app's green, high priority (it shows on the lock screen
+// and pops up), visible on the lock screen. No `url` on purpose: a `url` opens the browser; without it a tap opens the
+// app itself (web push uses web_url instead).
+const PUSH_LOOK = (env) => ({
+    large_icon: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + 'icons/icon-192.png',
+    android_accent_color: 'FF0F766E', priority: 10, android_visibility: 1,
+    web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
+});
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المدارس العراقية داخل تطبيق منصة الطالب العراقي، وأغلبهم بالسادس الإعدادي.
@@ -372,7 +380,9 @@ async function coachPush(env, when) {
             filters: [{ field: 'tag', key: 'coach', relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: 'coach', relation: '=', value: 'on' }],
             headings: { en: 'المعلم', ar: 'المعلم' },
             contents: { en: text, ar: text },
-            url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?coach=' + encodeURIComponent(text),
+            ...PUSH_LOOK(env),
+            web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?coach=' + encodeURIComponent(text),
+            data: { coach: text },
             web_push_topic: 'isp-coach',
             ttl: 3 * 3600,
         }),
@@ -404,7 +414,7 @@ async function tbSync(env, uid, body) {
                 body: JSON.stringify({
                     app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [uid] },
                     headings: { en: i.title, ar: i.title }, contents: { en: i.body, ar: i.body },
-                    send_after: when, ttl: 900, data: { tb: 1 }, url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/'),
+                    send_after: when, ttl: 900, data: { tb: 1 }, ...PUSH_LOOK(env),
                 }),
             });
             const j = await r.json().catch(() => ({}));
@@ -453,7 +463,7 @@ export default {
                 : { included_segments: ['Total Subscriptions'] };
             const r = await fetch('https://api.onesignal.com/notifications?c=push', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
-                body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/' }),
+                body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env) }),
             });
             const j = await r.json().catch(() => ({}));
             if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
