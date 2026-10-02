@@ -1,5 +1,9 @@
 apply plugin: 'com.android.application'
 
+// the build workflow passes -Pvcode=<run number> -Pvname=<x.y.z>; Google Play needs each upload to be higher
+def appVersionCode = (rootProject.findProperty('vcode') ?: '1').toString().toInteger()
+def appVersionName = (rootProject.findProperty('vname') ?: '1.0').toString()
+
 android {
     namespace "iq.studentplatform.app"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,9 +11,8 @@ android {
         applicationId "iq.studentplatform.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // the build workflow passes -Pvcode=<run number> -Pvname=<x.y.z>; Google Play needs each upload to be higher
-        versionCode (project.findProperty("vcode") ?: "1").toInteger()
-        versionName (project.findProperty("vname") ?: "1.0")
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
