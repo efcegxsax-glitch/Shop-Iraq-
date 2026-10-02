@@ -380,6 +380,39 @@ async function coachPush(env, when) {
     return res.ok ? 'sent' : 'error_' + res.status;
 }
 
+// ---------- lecture reminders (timetable): scheduled pushes that arrive even when the app is closed ----------
+// The app sends the student's next lectures (a few lines each); this schedules one OneSignal push per
+// lecture for that student only (external id = Firebase uid) and returns the ids so the app can
+// cancel them when the timetable changes. Nothing is stored here.
+async function tbSync(env, uid, body) {
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return { error: 'no_key' };
+    const H = { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY };
+    const cancel = (Array.isArray(body.cancel) ? body.cancel : []).filter((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x)).slice(0, 16);
+    await Promise.all(cancel.map((id) => fetch('https://api.onesignal.com/notifications/' + id + '?app_id=' + encodeURIComponent(env.ONESIGNAL_APP_ID), { method: 'DELETE', headers: H }).catch(() => null)));
+    const now = Date.now();
+    const items = (Array.isArray(body.items) ? body.items : []).map((i) => ({ at: Number(i && i.at), title: str(i && i.title, 80), body: str(i && i.body, 200) }))
+        .filter((i) => i.title && i.at > now + 20000 && i.at < now + 8 * 86400000).sort((a, b) => a.at - b.at).slice(0, 14);
+    const pad = (n) => String(n).padStart(2, '0');
+    const ids = [];
+    await Promise.all(items.map(async (i) => {
+        const d = new Date(i.at);
+        const when = d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()) + ' ' + pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':00 GMT+0000';
+        try {
+            const r = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: H,
+                body: JSON.stringify({
+                    app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [uid] },
+                    headings: { en: i.title, ar: i.title }, contents: { en: i.body, ar: i.body },
+                    send_after: when, ttl: 900, data: { tb: 1 }, url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/'),
+                }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (r.ok && j.id) ids.push(j.id); else console.error('tbsync', r.status, JSON.stringify(j).slice(0, 200));
+        } catch (e) { console.error('tbsync', e && e.message); }
+    }));
+    return { ids, scheduled: ids.length, wanted: items.length };
+}
+
 export default {
     async scheduled(event, env, ctx) {
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
@@ -400,6 +433,15 @@ export default {
             }
             const iceServers = await turnServers(env);
             return iceServers ? json(200, { iceServers }, headers) : json(503, { error: 'turn' }, headers);
+        }
+
+        if (body.mode === 'tbsync') {
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const r = await tbSync(env, uid, body);
+            return r.error ? json(503, r, headers) : json(200, r, headers);
         }
 
         const useClaude = !!env.ANTHROPIC_API_KEY;
