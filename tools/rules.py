@@ -553,13 +553,26 @@ rules = {
         ".read": True,
         "$id": {
             ".write": ors(ADMIN, "auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid)"),
+            ".validate": "!newData.exists() || (" + ands(
+                "(!newData.child('body').exists() || " + s_max("newData.child('body')", 3000) + ")",
+                "(!newData.child('title').exists() || " + s_max("newData.child('title')", 150) + ")",
+                "(!newData.child('imageUrl').exists() || " + s_max("newData.child('imageUrl')", 600000) + ")",
+                "(!newData.child('subject').exists() || " + s_max("newData.child('subject')", 20) + ")",
+                "(!newData.child('kind').exists() || newData.child('kind').val() == 'q' || newData.child('kind').val() == 'chat' || newData.child('kind').val() == 'tip')",
+                "(!newData.child('authorGov').exists() || " + s_max("newData.child('authorGov')", 30) + ")",
+                "(!newData.child('best').exists() || newData.child('best').isNumber())") + ")",
             "answersCount": {".write": SIGNED, ".validate": counter()},
             "likes": {"$uid": {".write": OWNER}},
         },
     },
     "forumAnswers": {
         ".read": True,
-        "$t": {"$id": {".write": ors(ADMIN, "auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid)")}},
+        "$t": {"$id": {
+            ".write": ors(ADMIN, "auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid)"),
+            ".validate": "!newData.exists() || (" + ands(s_max("newData.child('body')", 2000), "(!newData.child('authorGov').exists() || " + s_max("newData.child('authorGov')", 30) + ")") + ")",
+            # a "helpful" vote on someone's answer: each student writes only their own mark
+            "likes": {"$uid": {".write": OWNER}},
+        }},
     },
 
     # ----- forest, governorate war, golden hour, dreams, polls -----

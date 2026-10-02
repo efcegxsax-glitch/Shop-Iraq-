@@ -651,6 +651,7 @@
       ".read": true,
       "$id": {
         ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid))",
+        ".validate": "!newData.exists() || (((!newData.child('body').exists() || newData.child('body').isString() && newData.child('body').val().length <= 3000) && (!newData.child('title').exists() || newData.child('title').isString() && newData.child('title').val().length <= 150) && (!newData.child('imageUrl').exists() || newData.child('imageUrl').isString() && newData.child('imageUrl').val().length <= 600000) && (!newData.child('subject').exists() || newData.child('subject').isString() && newData.child('subject').val().length <= 20) && (!newData.child('kind').exists() || newData.child('kind').val() == 'q' || newData.child('kind').val() == 'chat' || newData.child('kind').val() == 'tip') && (!newData.child('authorGov').exists() || newData.child('authorGov').isString() && newData.child('authorGov').val().length <= 30) && (!newData.child('best').exists() || newData.child('best').isNumber())))",
         "answersCount": {
           ".write": "auth != null",
           ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || newData.isNumber() && newData.val() >= (data.exists() ? data.val() : 0) && newData.val() <= (data.exists() ? data.val() : 0) + 1)"
@@ -666,7 +667,13 @@
       ".read": true,
       "$t": {
         "$id": {
-          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid))"
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && (data.exists() ? data.child('authorUid').val() == auth.uid : newData.child('authorUid').val() == auth.uid))",
+          ".validate": "!newData.exists() || ((newData.child('body').isString() && newData.child('body').val().length <= 2000 && (!newData.child('authorGov').exists() || newData.child('authorGov').isString() && newData.child('authorGov').val().length <= 30)))",
+          "likes": {
+            "$uid": {
+              ".write": "(auth != null && auth.uid == $uid)"
+            }
+          }
         }
       }
     },
