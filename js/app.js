@@ -479,17 +479,6 @@
 
         const userTasks = [];
 
-        const forumSubjects = [
-            { id: 'all', label: 'الكل' },
-            { id: 'arabic', label: 'اللغة العربية' },
-            { id: 'english', label: 'اللغة الإنجليزية' },
-            { id: 'math', label: 'الرياضيات' },
-            { id: 'chemistry', label: 'الكيمياء' },
-            { id: 'physics', label: 'الفيزياء' },
-            { id: 'biology', label: 'الأحياء' },
-            { id: 'other', label: 'أخرى' }
-        ];
-
         // 18 governorates + Halabja. Older records may say "الموصل" — that's Nineveh.
         const IRAQ_GOVERNORATES = ['بغداد', 'البصرة', 'نينوى', 'أربيل', 'السليمانية', 'دهوك', 'حلبجة', 'كركوك', 'الأنبار', 'صلاح الدين', 'ديالى', 'بابل', 'كربلاء', 'النجف', 'واسط', 'القادسية', 'ذي قار', 'ميسان', 'المثنى'];
         const GOVERNORATE_ALIASES = { 'الموصل': 'نينوى', 'الديوانية': 'القادسية', 'الناصرية': 'ذي قار', 'العمارة': 'ميسان', 'السماوة': 'المثنى', 'الكوت': 'واسط', 'الرمادي': 'الأنبار', 'الحلة': 'بابل', 'بعقوبة': 'ديالى', 'تكريت': 'صلاح الدين' };
@@ -520,8 +509,6 @@
             offlineResourcesMeta: [],
             currentResourceId: null,
             currentNewsId: null,
-            activeForumSubject: 'all',
-            currentForumThreadId: null,
             studyTimerDuration: 25 * 60,
             studyTimerRemaining: 25 * 60,
             studyTimerRunning: false,
@@ -9414,11 +9401,12 @@
             },
 
             // ==================== FORUM ====================
+            // The page itself (feed, tabs, composer, thread, best answer, votes) is js/forum.js. Here is only
+            // the live list of the newest posts it reads, started when the page opens.
             goToForum() {
-                this.renderForumSubjectTabs();
-                this.renderForumThreads();
                 this.switchView('forumView');
-                lucide.createIcons();
+                if (this._withPart('forum', () => typeof this.fmOpen === 'function', 'forumView', () => this.goToForum())) return;
+                this.fmOpen();
             },
 
             listenForForumThreads() {
@@ -9431,326 +9419,8 @@
                     forumThreads.length = 0;
                     forumThreads.push(...list);
                     this._forumGot = true;
-                    if (this.currentView === 'forumView') { this.renderForumThreads(); lucide.createIcons(); }
-                });
-            },
-
-            renderForumSubjectTabs() {
-                const container = document.getElementById('forumSubjectTabs');
-                if (!container) return;
-                container.innerHTML = forumSubjects.map(subj => `
-                    <button onclick="app.setForumSubjectFilter(${jsArg(subj.id)})"
-                        class="flex-shrink-0 px-4 py-2 rounded-pill text-sm font-medium transition-all whitespace-nowrap ${this.activeForumSubject === subj.id ? 'bg-primary text-white' : 'theme-transition'}"
-                        style="${this.activeForumSubject !== subj.id ? 'background-color: var(--input-bg); color: var(--text2);' : ''}">
-                        ${subj.label}
-                    </button>
-                `).join('');
-            },
-
-            setForumSubjectFilter(id) {
-                this.activeForumSubject = id;
-                this.renderForumSubjectTabs();
-                this.renderForumThreads();
-                lucide.createIcons();
-            },
-
-            renderForumThreads() {
-                const filtered = this.activeForumSubject === 'all' ? forumThreads : forumThreads.filter(t => t.subject === this.activeForumSubject);
-                const container = document.getElementById('forumThreadsList');
-                const empty = document.getElementById('forumEmptyState');
-                if (!container || !empty) return;
-                if (filtered.length === 0 && !this._forumGot) {
-                    // not an empty forum yet: the threads are still coming
-                    container.innerHTML = '<div class="skeleton h-24 rounded-2xl"></div>'.repeat(3);
-                    container.classList.remove('hidden');
-                    empty.classList.add('hidden');
-                    return;
-                }
-                if (filtered.length === 0) {
-                    container.innerHTML = '';
-                    container.classList.add('hidden');
-                    empty.classList.remove('hidden');
-                    return;
-                }
-                container.classList.remove('hidden');
-                empty.classList.add('hidden');
-                container.innerHTML = filtered.map(t => this.createForumThreadCard(t)).join('');
-            },
-
-            createForumThreadCard(thread) {
-                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || '';
-                const likesCount = thread.likes ? Object.keys(thread.likes).length : 0;
-                const iLiked = !!(thread.likes && this.authUid && thread.likes[this.authUid]);
-                const commentsCount = Number(thread.answersCount) || 0;
-                return `
-                    <div class="file-card rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="flex items-center gap-2.5 p-3.5 pb-2">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">${escapeHtml(thread.authorName || 'طالب')}</div>
-                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(thread.id)}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
-                            </div>
-                        </div>
-                        <div class="cursor-pointer" onclick="app.openForumThread(${jsNum(thread.id)})">
-                            ${thread.body ? `<div class="px-3.5 pb-3"><p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p></div>` : ''}
-                            ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full max-h-80 object-cover" alt="">` : ''}
-                        </div>
-                        ${(likesCount > 0 || commentsCount > 0) ? `
-                        <div class="flex items-center justify-between px-3.5 pb-2 text-xs theme-transition" style="color: var(--text2);">
-                            <span class="inline-flex items-center gap-1">${likesCount > 0 ? '<i data-lucide="thumbs-up" class="w-3.5 h-3.5"></i>' + likesCount : ''}</span>
-                            <span>${commentsCount > 0 ? commentsCount + ' تعليق' : ''}</span>
-                        </div>` : ''}
-                        <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
-                            <button onclick="app.toggleForumLike(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
-                                <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب
-                            </button>
-                            <button onclick="app.openForumThread(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
-                                <i data-lucide="message-circle" class="w-4 h-4"></i>تعليق
-                            </button>
-                        </div>
-                    </div>
-                `;
-            },
-
-            async openForumThread(id) {
-                const thread = forumThreads.find(t => t.id === id);
-                if (!thread) return;
-                this.currentForumThreadId = id;
-                if (!forumAnswers[id]) forumAnswers[id] = [];
-                this.renderForumThreadDetail();
-                this.switchView('forumThreadView');
-                lucide.createIcons();
-                if (!window.firebaseDb) return;
-                const { ref, get } = window.firebaseDbHelpers;
-                try {
-                    const snap = await get(ref(window.firebaseDb, 'forumAnswers/' + id));
-                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
-                    list.sort((a, b) => a.id - b.id);
-                    forumAnswers[id] = list;
-                    if (this.currentForumThreadId === id) { this.renderForumThreadDetail(); lucide.createIcons(); }
-                } catch (err) {
-                    console.warn('Forum answers load failed:', err);
-                }
-            },
-
-            renderForumThreadDetail() {
-                const thread = forumThreads.find(t => t.id === this.currentForumThreadId);
-                const content = document.getElementById('forumThreadContent');
-                if (!content || !thread) return;
-                const subjLabel = (forumSubjects.find(s => s.id === thread.subject) || {}).label || '';
-                const answers = forumAnswers[thread.id] || [];
-                const likesCount = thread.likes ? Object.keys(thread.likes).length : 0;
-                const iLiked = !!(thread.likes && this.authUid && thread.likes[this.authUid]);
-                content.innerHTML = `
-                    <div class="px-4 pt-4 pb-1 border-b theme-transition" style="border-color: var(--border);">
-                        <div class="flex items-center gap-2.5 mb-3">
-                            <img src="${personAvatarSrc(thread.authorAvatar, thread.authorName)}" alt="${escapeHtml(thread.authorName || 'طالب')}" class="w-11 h-11 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromThread(${jsNum(thread.id)})">${escapeHtml(thread.authorName || 'طالب')}</div>
-                                <div class="text-[11px] theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(thread.id)}">${timeAgo(thread.id)}</span>${subjLabel ? ' • ' + escapeHtml(subjLabel) : ''}</div>
-                            </div>
-                        </div>
-                        ${thread.body ? `<p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">${escapeHtml(thread.body)}</p>` : ''}
-                        ${thread.imageUrl ? `<img src="${safeImage(thread.imageUrl)}" class="w-full rounded-xl mb-3 max-h-96 object-cover" alt="">` : ''}
-                        <div class="flex items-center border-t theme-transition" style="border-color: var(--border);">
-                            <button onclick="app.toggleForumLike(${jsNum(thread.id)})" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold ${iLiked ? 'text-primary' : 'theme-transition'}" style="${!iLiked ? 'color: var(--text2);' : ''}">
-                                <i data-lucide="thumbs-up" class="w-4 h-4"></i>إعجاب${likesCount > 0 ? ' (' + likesCount + ')' : ''}
-                            </button>
-                            <span class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold theme-transition" style="color: var(--text2);">
-                                <i data-lucide="message-circle" class="w-4 h-4"></i>${answers.length} تعليق
-                            </span>
-                        </div>
-                    </div>
-                    <div class="px-4 pt-4">
-                        <div class="flex flex-col gap-3">
-                            ${answers.length === 0 ? `<p class="text-sm text-center py-6 theme-transition" style="color: var(--text2);">لا توجد تعليقات بعد، كن أول من يعلّق</p>` : answers.map(a => `
-                                <div class="flex items-start gap-2.5">
-                                    <img src="${personAvatarSrc(a.authorAvatar, a.authorName)}" alt="${escapeHtml(a.authorName || 'طالب')}" class="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openAuthorProfileFromAnswer(${jsNum(thread.id)}, ${jsNum(a.id)})">
-                                    <div class="flex-1 min-w-0">
-                                        <div class="rounded-2xl px-3.5 py-2.5 theme-transition inline-block max-w-full" style="background-color: var(--input-bg);">
-                                            <div class="text-xs font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openAuthorProfileFromAnswer(${jsNum(thread.id)}, ${jsNum(a.id)})">${escapeHtml(a.authorName || 'طالب')}</div>
-                                            <p class="text-sm leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(a.body)}</p>
-                                        </div>
-                                        <div class="text-[10px] mt-1 theme-transition" style="color: var(--text2);"><span data-timeago="${jsNum(a.id)}">${timeAgo(a.id)}</span></div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            },
-
-            openAskQuestionModal() {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للنشر');
-                    this.goToAuth('login');
-                    return;
-                }
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'منشور جديد';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = `
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <img src="${personAvatarSrc(this.currentUser.avatar, this.currentUser.fullName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
-                        <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(this.currentUser.fullName || 'طالب')}</div>
-                    </div>
-                    <div class="flex flex-col gap-3">
-                        <textarea id="askQuestionBody" rows="5" placeholder="شنو بخاطرك؟ شارك سؤال أو خبر أو أي شي يفيد زملائك..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
-                        <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">صورة (اختياري)</label>
-                            <input type="file" id="askQuestionImage" accept="image/*" onchange="app.previewForumImage(event)" class="w-full text-sm">
-                            <img id="askQuestionImagePreview" class="hidden mt-2 rounded-xl w-full max-h-48 object-cover" alt="معاينة">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold mb-1.5 theme-transition" style="color: var(--text);">القسم (اختياري)</label>
-                            <select id="askQuestionSubject" class="w-full h-12 px-4 rounded-xl auth-input text-sm appearance-none cursor-pointer">
-                                ${forumSubjects.filter(s => s.id !== 'all').map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
-                            </select>
-                        </div>
-                        <button id="forumPostSubmitBtn" onclick="app.submitForumQuestion()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press mt-1">نشر</button>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
-            previewForumImage(event) {
-                const file = event.target.files && event.target.files[0];
-                const preview = document.getElementById('askQuestionImagePreview');
-                if (!file || !preview) return;
-                const reader = new FileReader();
-                reader.onload = (e) => { preview.src = e.target.result; preview.classList.remove('hidden'); };
-                reader.readAsDataURL(file);
-            },
-
-            async submitForumQuestion() {
-                const subjectEl = document.getElementById('askQuestionSubject');
-                const bodyEl = document.getElementById('askQuestionBody');
-                const imageEl = document.getElementById('askQuestionImage');
-                const btn = document.getElementById('forumPostSubmitBtn');
-                if (!subjectEl || !bodyEl) return;
-                const body = bodyEl.value.trim();
-                const imageFile = imageEl && imageEl.files && imageEl.files[0];
-                if (!body && !imageFile) {
-                    this.showToast('اكتب شي أو أضف صورة أول ما تنشر');
-                    return;
-                }
-                if (!window.firebaseDb) {
-                    this.showToast('لا يوجد اتصال بقاعدة البيانات');
-                    return;
-                }
-                const bodyFilter = filterBadWords(body);
-                if (bodyFilter.filtered) {
-                    this.showToast('تم حذف كلمات غير لائقة من منشورك');
-                }
-                if (btn) { btn.disabled = true; btn.textContent = 'جاري النشر...'; }
-                let imageUrl = '';
-                if (imageFile) {
-                    imageUrl = (await compressForumImage(imageFile)) || '';
-                    if (!imageUrl) this.showToast('تعذرت معالجة الصورة، تم النشر بدونها');
-                }
-                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
-                const id = Date.now();
-                const payload = {
-                    id: id,
-                    subject: subjectEl.value,
-                    title: '',
-                    body: bodyFilter.clean,
-                    imageUrl: imageUrl,
-                    authorName: (this.currentUser && this.currentUser.fullName) || 'طالب',
-                    authorAvatar: (this.currentUser && this.currentUser.avatar) || '',
-                    authorStudentNumber: (this.currentUser && this.currentUser.studentNumber) || '',
-                    authorUid: this.currentUid(),
-                    answersCount: 0,
-                    likes: {},
-                    createdAt: serverTimestamp()
-                };
-                set(ref(window.firebaseDb, 'forumThreads/' + id), payload).then(() => {
-                    this.closeWalletModal();
-                    this.showToast('تم نشر منشورك');
-                }).catch((err) => {
-                    console.warn('Forum post publish failed:', err);
-                    this.showToast('تعذر النشر، حاول مجدداً');
-                    if (btn) { btn.disabled = false; btn.textContent = 'نشر'; }
-                });
-            },
-
-            submitForumAnswer() {
-                const input = document.getElementById('forumAnswerInput');
-                if (!input) return;
-                const body = input.value.trim();
-                if (!body) return;
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للإجابة');
-                    this.goToAuth('login');
-                    return;
-                }
-                if (!window.firebaseDb || !this.currentForumThreadId) return;
-                const bodyFilter = filterBadWords(body);
-                if (bodyFilter.filtered) {
-                    this.showToast('تم حذف كلمات غير لائقة من إجابتك');
-                }
-                const threadId = this.currentForumThreadId;
-                const { ref, set, serverTimestamp, runTransaction } = window.firebaseDbHelpers;
-                const answerId = Date.now();
-                const payload = {
-                    id: answerId,
-                    body: bodyFilter.clean,
-                    authorName: this.currentUser.fullName || 'طالب',
-                    authorAvatar: this.currentUser.avatar || '',
-                    authorStudentNumber: this.currentUser.studentNumber || '',
-                    authorUid: this.currentUid(),
-                    createdAt: serverTimestamp()
-                };
-                set(ref(window.firebaseDb, 'forumAnswers/' + threadId + '/' + answerId), payload).then(() => {
-                    input.value = '';
-                    if (!forumAnswers[threadId]) forumAnswers[threadId] = [];
-                    forumAnswers[threadId].push(payload);
-                    const thread = forumThreads.find(t => t.id === threadId);
-                    if (thread) thread.answersCount = (Number(thread.answersCount) || 0) + 1;
-                    this.renderForumThreadDetail();
-                    lucide.createIcons();
-                    runTransaction(ref(window.firebaseDb, 'forumThreads/' + threadId + '/answersCount'), (cur) => (cur || 0) + 1).catch((err) => {
-                        console.warn('Forum answersCount update failed:', err);
-                    });
-                }).catch((err) => {
-                    console.warn('Forum answer publish failed:', err);
-                    this.showToast('تعذر نشر الإجابة، حاول مجدداً');
-                });
-            },
-
-            // FIX: the local like/unlike toggle used to be applied optimistically with no
-            // rollback if the Firebase write actually failed (offline, permission error) —
-            // the heart/like stayed visually toggled with no indication anything went wrong
-            // until the next full `forumThreads` re-sync happened to correct it. On failure
-            // the local state is now reverted immediately and the user is told it didn't go
-            // through.
-            toggleForumLike(threadId) {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للإعجاب');
-                    this.goToAuth('login');
-                    return;
-                }
-                if (!window.firebaseDb) return;
-                const thread = forumThreads.find(t => t.id === threadId);
-                if (!thread) return;
-                const uid = this.currentUid();
-                if (!thread.likes) thread.likes = {};
-                const alreadyLiked = !!thread.likes[uid];
-                if (alreadyLiked) delete thread.likes[uid]; else thread.likes[uid] = true;
-                if (this.currentView === 'forumView') this.renderForumThreads();
-                if (this.currentView === 'forumThreadView' && this.currentForumThreadId === threadId) this.renderForumThreadDetail();
-                lucide.createIcons();
-                const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'forumThreads/' + threadId + '/likes/' + uid), alreadyLiked ? null : true).catch((err) => {
-                    console.warn('Toggle like failed:', err);
-                    if (alreadyLiked) thread.likes[uid] = true;
-                    else delete thread.likes[uid];
-                    if (this.currentView === 'forumView') this.renderForumThreads();
-                    if (this.currentView === 'forumThreadView' && this.currentForumThreadId === threadId) this.renderForumThreadDetail();
-                    lucide.createIcons();
-                    this.showToast('تعذر تسجيل الإعجاب، حاول مجدداً');
+                    if (this.currentView === 'forumView' && this.fmRender) this.fmRender();
+                    if (this.currentView === 'forumThreadView' && this.fmThreadRender) this.fmThreadRender();
                 });
             },
 
@@ -13781,6 +13451,7 @@
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
+                if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
