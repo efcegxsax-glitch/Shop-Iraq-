@@ -11593,32 +11593,29 @@
                     get(ref(window.firebaseDb, 'numIndex/' + rec.s)).then((sn) => { if (!sn.exists()) return set(ref(window.firebaseDb, 'numIndex/' + rec.s), uid); }).catch(() => {});
                 }
             },
-            // a small copy of the student's photo goes to file storage once, and its web address is kept in pub/{uid}/p,
-            // so a push notification to a friend can show this student's photo (a push needs a web address, not stored image data)
+            // a small copy of the student's photo goes to the tutor server once (free Cloudflare KV), so a push notification
+            // to a friend can show this student's photo: a push needs a web address, not stored image data
             async _avatarPush(uid, u) {
                 try {
                     const src = u && u.avatar;
-                    if (!uid || typeof src !== 'string' || src.indexOf('data:image') !== 0) return;
+                    if (!uid || typeof src !== 'string' || src.indexOf('data:image') !== 0 || !this._tutorUrl) return;
                     const sig = uid + ':' + src.length + ':' + src.slice(-24);
                     let seen = ''; try { seen = localStorage.getItem('isp_avp') || ''; } catch (e) {}
                     if (seen === sig || this._avpBusy) return;
                     this._avpBusy = true;
                     try {
-                        if (window.firebaseEnsureStorage) await window.firebaseEnsureStorage();
-                        if (!window.firebaseStorage || !window.firebaseStorageHelpers) return;
+                        const base = this._tutorUrl();
+                        const user = window.firebaseAuth && window.firebaseAuth.currentUser;
+                        if (!base || !user) return;
                         const img = new Image(); img.src = src; await img.decode();
                         const cv = document.createElement('canvas'); cv.width = cv.height = 192;
                         const cx = cv.getContext('2d'), m = Math.min(img.width, img.height);
                         cx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, 192, 192);
-                        const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.8));
-                        if (!blob) return;
-                        const { storageRef, uploadBytes, getDownloadURL } = window.firebaseStorageHelpers;
-                        const sRef = storageRef(window.firebaseStorage, 'avatars/' + uid + '.jpg');
-                        await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
-                        const url = await getDownloadURL(sRef);
-                        const { ref, update } = window.firebaseDbHelpers;
-                        await update(ref(window.firebaseDb, 'pub/' + uid), { p: url });
-                        try { localStorage.setItem('isp_avp', sig); } catch (e) {}
+                        let data = cv.toDataURL('image/jpeg', 0.75);
+                        if (data.length > 58000) data = cv.toDataURL('image/jpeg', 0.5);
+                        const tok = await user.getIdToken();
+                        const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ mode: 'avatar', img: data }) });
+                        if (r.ok) { try { localStorage.setItem('isp_avp', sig); } catch (e) {} }
                     } finally { this._avpBusy = false; }
                 } catch (e) { /* the photo in the push is a bonus; the app image shows instead */ }
             },
