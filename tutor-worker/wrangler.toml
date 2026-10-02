@@ -13,7 +13,7 @@ FIREBASE_DB_URL = "https://iraqi-student-platform-9918d-default-rtdb.firebaseio.
 ONESIGNAL_APP_ID = "6ab91884-6fd7-43a1-a318-a4975260944e"
 APP_URL = "https://efcegxsax-glitch.github.io/Shop-Iraq-/"
 # pages allowed to call the tutor (comma separated)
-ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-platform-9918d.web.app,https://iraqi-student-platform-9918d.firebaseapp.com"
+ALLOWED_ORIGINS = "https://efcegxsax-glitch.github.io,https://iraqi-student-platform-9918d.web.app,https://iraqi-student-platform-9918d.firebaseapp.com,https://localhost,capacitor://localhost"
 
 # per student: at most 6 questions a minute
 [[ratelimits]]

@@ -313,8 +313,10 @@
             if (field === 'mealOn' || field === 'waterOn') this._fdSheet();
         },
         async fdAllowNotes() {
-            if (!('Notification' in window)) { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
-            const p = await Notification.requestPermission().catch(() => 'denied');
+            let p = 'denied';
+            if (this._os) { await this._os.Notifications.requestPermission().catch(() => {}); p = this._pushPerm(); }
+            else if ('Notification' in window) p = await Notification.requestPermission().catch(() => 'denied');
+            else { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
             this.showToast(p === 'granted' ? 'تمام، راح توصلك التنبيهات حتى والتطبيق بالخلفية' : 'ما انسمحت الإشعارات، فعّلها من إعدادات المتصفح');
             this._fdSheet();
         },
@@ -361,7 +363,7 @@
                     <button class="fd-main" onclick="app._fdCloseSheet()">تمام</button>`;
             } else if (sh.kind === 'set') {
                 const s = this._nutGet().set;
-                const perm = 'Notification' in window ? Notification.permission : 'denied';
+                const perm = this._pushPerm();
                 const sel = (f, list, cur, lbl) => `<select onchange="app.fdSet('${f}', this.value)">${list.map((v) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${lbl(v)}</option>`).join('')}</select>`;
                 card.innerHTML = `<div class="fd-grab"></div>
                     <div class="fd-sh"><span class="fd-mi"><i data-lucide="bell-ring"></i></span><div><b>التنبيهات</b><small>تكدر تطفيها أو تغير أوقاتها</small></div></div>

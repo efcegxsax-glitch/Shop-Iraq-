@@ -590,7 +590,8 @@
             // The service worker (OneSignalSDKWorker.js: push + saved copy of the app) lets the app
             // open without internet; a thin bar says when there is no connection.
             initOffline() {
-                if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+                // inside the Android / iPhone app the files are already on the phone, no service worker needed
+                if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !this._isNative()) {
                     const reg = () => navigator.serviceWorker.register('OneSignalSDKWorker.js', { scope: './' }).catch(() => {});
                     if (document.readyState === 'complete') reg(); else window.addEventListener('load', reg);
                     // a newer version was saved in the background (the app itself opened from the saved copy)
@@ -758,6 +759,7 @@
                 this.listenForExamSchedule();
                 this.listenForHolidays();
                 this.listenForDayStatus();
+                this.initNativeApp();
                 this.initWebPush();
                 this.listenForPolls();
                 this.listenForVerified();
@@ -4282,7 +4284,7 @@
                     let st = {};
                     try { st = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
                     st.ids = st.ids || [];
-                    const on = !!(d && d.rem && d.rem.on && 'Notification' in window && Notification.permission === 'granted' && this._os);
+                    const on = !!(d && d.rem && d.rem.on && this._pushPerm() === 'granted' && this._os);
                     const items = [];
                     if (on) {
                         const now = Date.now();
@@ -4628,7 +4630,7 @@
                     gov: this.GOV_CODES[gov] || '',
                     last: Date.now(),
                     installed: standalone || !!w,
-                    push: 'Notification' in window ? Notification.permission : 'na',
+                    push: this._pushPerm(),
                     app: w ? w.os : (standalone ? 'pwa' : 'web'),
                     member: this.isLoggedIn ? 1 : 0
                 }).catch(() => {});
@@ -4756,11 +4758,95 @@
             // so one governorate can be targeted from the OneSignal dashboard.
             ONESIGNAL_APP_ID: '6ab91884-6fd7-43a1-a318-a4975260944e',
 
+            // ===== The Android / iPhone app (Capacitor wraps this same site; see tools/mobile-build.py) =====
+            _isNative() {
+                return !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+            },
+            // 'granted' | 'denied' | 'default': the system's answer, from OneSignal in the app and the browser otherwise
+            _pushPerm() {
+                if (this._isNative()) return this._nativePerm || 'default';
+                return 'Notification' in window ? Notification.permission : 'denied';
+            },
+            initNativeApp() {
+                if (!this._isNative() || this._nativeInit) return;
+                this._nativeInit = true;
+                document.documentElement.classList.add('is-native');
+                const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+                try {
+                    if (P.App) {
+                        // the phone's back button works like the page's back arrow, and leaves the app from the home page
+                        P.App.addListener('backButton', () => { if (!this.nativeBack()) P.App.exitApp(); });
+                        P.App.addListener('appStateChange', (st) => { if (st && st.isActive) setTimeout(() => { this._nutTick(); this._tbTick(); }, 800); });
+                    }
+                    if (P.StatusBar) { P.StatusBar.setStyle({ style: 'DARK' }); P.StatusBar.setBackgroundColor({ color: '#0F766E' }); }
+                } catch (e) { console.warn('Native setup failed:', e); }
+            },
+            // true when it handled the press (closed a sheet or went back a page)
+            nativeBack() {
+                const close = [
+                    ['.pk-sheet', (el) => { const b = el.querySelector('.pk-back'); if (b) b.click(); }],
+                    ['.fm-sheet.on', () => this.fmCloseCompose && this.fmCloseCompose()],
+                    ['.tb-sheet.on', () => this._tbSheetClose && this._tbSheetClose()],
+                    ['.fd-sheet.on', () => this._fdCloseSheet && this._fdCloseSheet()],
+                    ['#walletModal:not(.hidden)', () => this.closeWalletModal && this.closeWalletModal()],
+                ];
+                for (const [sel, fn] of close) { const el = document.querySelector(sel); if (el) { fn(el); return true; } }
+                if (this.viewHistory && this.viewHistory.length) { this.goBack(); return true; }
+                if (this.currentView && this.currentView !== 'homeView') { this.setTab('home'); return true; }
+                return false;
+            },
+            // OneSignal's own app plugin stands in for the web SDK; the rest of the code keeps using the same calls
+            initNativePush() {
+                if (this._osInit) return;
+                this._osInit = true;
+                let tries = 0;
+                const start = () => {
+                    const O = window.plugins && window.plugins.OneSignal;
+                    if (!O) { if (++tries < 40) setTimeout(start, 500); return; }
+                    try {
+                        O.initialize(this.ONESIGNAL_APP_ID);
+                        const setPerm = (g) => { this._nativePerm = g ? 'granted' : (this._nativePerm === 'granted' ? 'denied' : (this._nativePerm || 'default')); };
+                        const refresh = () => Promise.resolve(O.Notifications.getPermissionAsync()).then((g) => {
+                            this._nativePerm = g ? 'granted' : (this._nativePerm === 'denied' ? 'denied' : 'default');
+                            this.syncWebPush();
+                        }).catch(() => {});
+                        O.Notifications.addEventListener('permissionChange', (g) => { this._nativePerm = g ? 'granted' : 'denied'; this.syncWebPush(); if (this.currentView === 'holidaysView') this.renderDayStatus(); });
+                        // a lecture reminder pushed by the server: while the app is open its own popup shows it
+                        O.Notifications.addEventListener('foregroundWillDisplay', (ev) => {
+                            try {
+                                const n = ev.getNotification ? ev.getNotification() : ev.notification;
+                                if (n && n.additionalData && n.additionalData.tb) { ev.preventDefault(); return; }
+                                if (ev.getNotification) ev.getNotification().display();
+                            } catch (e) {}
+                        });
+                        O.Notifications.addEventListener('click', (ev) => {
+                            try {
+                                const url = String((ev.notification && (ev.notification.launchURL || ev.notification.launchUrl)) || '');
+                                const m = /[?&]coach=([^&#]+)/.exec(url);
+                                if (m) { this._coachPending = decodeURIComponent(m[1]); this._coachOpen(); }
+                            } catch (e) {}
+                        });
+                        this._os = {
+                            login: (id) => O.login(String(id)),
+                            User: { addTags: (t) => O.User.addTags(t), addTag: (k, v) => O.User.addTag(k, v) },
+                            Notifications: { requestPermission: () => Promise.resolve(O.Notifications.requestPermission(true)).then((g) => { this._nativePerm = g ? 'granted' : 'denied'; return g; }) },
+                            Slidedown: { promptPush: () => this._os.Notifications.requestPermission() },
+                        };
+                        refresh();
+                        this.syncWebPush();
+                        this._maybePromptPush();
+                    } catch (e) { console.warn('Native OneSignal failed:', e); }
+                };
+                document.addEventListener('deviceready', start, { once: true });
+                start();
+            },
+
             _webPushOk() {
                 return (location.protocol === 'https:' || location.hostname === 'localhost') && 'Notification' in window && 'serviceWorker' in navigator && !this._wtn();
             },
 
             initWebPush() {
+                if (this._isNative()) { this.initNativePush(); return; }
                 if (this._osInit || !this._webPushOk()) return;
                 this._osInit = true;
                 const base = location.pathname.replace(/[^/]*$/, ''); // e.g. /Shop-Iraq-/
@@ -4809,12 +4895,12 @@
 
             // Asks once, a little after the visit starts, and not again for a week if dismissed.
             _maybePromptPush() {
-                if (!this._os || Notification.permission !== 'default') return;
+                if (!this._os || this._pushPerm() !== 'default') return;
                 let asked = 0;
                 try { asked = Number(localStorage.getItem('isp_push_asked')) || 0; } catch (e) {}
                 if (Date.now() - asked < 7 * 86400000) return;
                 setTimeout(() => {
-                    if (!this._os || Notification.permission !== 'default') return;
+                    if (!this._os || this._pushPerm() !== 'default') return;
                     try { localStorage.setItem('isp_push_asked', String(Date.now())); } catch (e) {}
                     Promise.resolve(this._os.Slidedown.promptPush()).catch(() => {});
                 }, 25000);
@@ -4923,9 +5009,9 @@
 
             // Push notifications need https, a supported browser and the VAPID key in the config.
             _dsPushRow() {
-                if (!this._webPushOk()) return '';
-                if (Notification.permission === 'granted') return '<div class="ds-push on"><i data-lucide="bell-ring"></i>الإشعارات مفعّلة: يوصلك خبر العطلة حتى لو التطبيق مسدود</div>';
-                if (Notification.permission === 'denied') return '<div class="ds-push"><i data-lucide="bell-off"></i>الإشعارات مسدودة. فعّلها من إعدادات المتصفح حتى يوصلك خبر العطلة</div>';
+                if (!this._webPushOk() && !this._isNative()) return '';
+                if (this._pushPerm() === 'granted') return '<div class="ds-push on"><i data-lucide="bell-ring"></i>الإشعارات مفعّلة: يوصلك خبر العطلة حتى لو التطبيق مسدود</div>';
+                if (this._pushPerm() === 'denied') return '<div class="ds-push"><i data-lucide="bell-off"></i>الإشعارات مسدودة. فعّلها من إعدادات المتصفح حتى يوصلك خبر العطلة</div>';
                 return '<button class="ds-push btn-press" onclick="app.enableWebPush()"><i data-lucide="bell-plus"></i>فعّل الإشعارات حتى يوصلك خبر العطلة أول بأول</button>';
             },
 

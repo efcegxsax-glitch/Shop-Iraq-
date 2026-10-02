@@ -175,7 +175,7 @@
         _tbRemHtml(d) {
             const r = d.rem || { on: false, before: 10 };
             const opts = [5, 10, 15, 30].map((m) => '<button type="button" class="tb-pick' + (r.before === m ? ' on' : '') + '" onclick="app.tbRem(\'before\',' + m + ')">' + m + ' د</button>').join('');
-            const allowed = !('Notification' in window) || Notification.permission === 'granted';
+            const allowed = this._pushPerm() === 'granted';
             return '<div class="tb-card"><div class="tb-head"><h3>تنبيه قبل المحاضرة</h3><label class="tb-sw"><input type="checkbox" ' + (r.on ? 'checked' : '') + ' onchange="app.tbRem(\'on\',this.checked)"><span></span></label></div>'
                 + (r.on ? '<div class="tb-hint" style="margin-bottom:8px">نبّهني قبل المحاضرة بـ</div><div class="tb-picks" style="margin:0">' + opts + '</div>'
                     + (allowed ? '' : '<button class="tb-sec" onclick="app.tbAllow()">فعّل الإشعارات حتى توصلك والتطبيق بالخلفية</button>')
@@ -188,14 +188,16 @@
             d.rem[k] = v;
             this._tbSave(d);
             try { localStorage.removeItem('isp:tb:sent:' + (this.authUid || 'guest')); } catch (e) {}
-            if (k === 'on' && v && 'Notification' in window && Notification.permission === 'default') this.tbAllow(); else this._tbRender();
+            if (k === 'on' && v && this._pushPerm() === 'default') this.tbAllow(); else this._tbRender();
             if (k === 'on' && v) this.showToast('راح أنبّهك قبل كل محاضرة');
             this._tbTick();
         },
         async tbAllow() {
-            if (!('Notification' in window)) { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
-            const p = await Notification.requestPermission().catch(() => 'denied');
-            if (p !== 'granted') this.showToast('ما انسمحت الإشعارات، التنبيه راح يطلع داخل التطبيق بس');
+            if (this._os) await this._os.Notifications.requestPermission().catch(() => {});
+            else if ('Notification' in window) await Notification.requestPermission().catch(() => {});
+            else { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
+            if (this._pushPerm() !== 'granted') this.showToast('ما انسمحت الإشعارات، التنبيه راح يطلع داخل التطبيق بس');
+            this._tbPushSync();
             this._tbRender();
         },
 

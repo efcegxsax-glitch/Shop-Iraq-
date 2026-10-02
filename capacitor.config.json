@@ -1,0 +1,25 @@
+{
+  "appId": "iq.studentplatform.app",
+  "appName": "منصة الطالب العراقي",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor"
+  },
+  "android": {
+    "allowMixedContent": false,
+    "adjustMarginsForEdgeToEdge": "force"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0,
+      "launchAutoHide": true,
+      "backgroundColor": "#0F766E"
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#0F766E"
+    }
+  },
+  "backgroundColor": "#F1F5F3"
+}
