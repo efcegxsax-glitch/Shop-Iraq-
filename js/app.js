@@ -93,7 +93,7 @@
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
 
-        function compressForumImage(file, maxWidth) {
+        function compressForumImage(file, maxWidth, quality) {
             return new Promise((resolve) => {
                 createImageBitmap(file).then((bitmap) => {
                     const maxW = maxWidth || 1280;
@@ -108,7 +108,7 @@
                         reader.onload = () => resolve(reader.result);
                         reader.onerror = () => resolve(null);
                         reader.readAsDataURL(blob);
-                    }, 'image/jpeg', 0.88);
+                    }, 'image/jpeg', quality || 0.88);
                 }).catch((e) => {
                     console.warn('Image compression failed:', e);
                     resolve(null);
@@ -549,6 +549,21 @@
             // ===== Error reports =====
             // Errors on students' phones go to errors/{day_key}: one entry per distinct error per
             // day with a counter, so the admin panel shows what breaks before anyone complains.
+            // A photo that cannot load (offline, a bad link) becomes a round letter instead of a broken image.
+            initImageFallback() {
+                if (this._imgFb) return;
+                this._imgFb = true;
+                const colors = ['#0D9488', '#2563EB', '#7C3AED', '#DB2777', '#EA580C', '#16A34A'];
+                document.addEventListener('error', (e) => {
+                    const im = e.target;
+                    if (!im || im.tagName !== 'IMG' || im.dataset.fb || !/rounded-full|avatar|fm-av|lb-/.test(im.className + ' ' + (im.id || ''))) return;
+                    im.dataset.fb = '1';
+                    const name = String(im.alt || '').trim() || '؟';
+                    let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+                    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="' + colors[h % colors.length] + '"/><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Tahoma,Arial,sans-serif" font-size="46" font-weight="700" fill="#fff">' + escapeHtml(Array.from(name)[0]) + '</text></svg>';
+                    im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+                }, true);
+            },
             initErrorReporting() {
                 this._errSent = 0;
                 window.__errReport = (e) => this._reportError(e);
@@ -738,6 +753,7 @@
 
             init() {
                 this.initErrorReporting();
+                this.initImageFallback();
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
@@ -11651,7 +11667,8 @@
                     }
                 }
                 this.currentChatUid = otherUid;
-                this.currentChatOther = { name: otherName || 'طالب', avatar: otherAvatar || '', studentNumber: otherStudentNumber || '' };
+                this.currentChatOther = { name: otherName || 'طالب', avatar: otherAvatar || '', studentNumber: otherStudentNumber || '', known: !!otherName };
+                if (!otherName || !otherAvatar) this._resolveChatPeer(otherUid);
                 const nameEl = document.getElementById('chatThreadName');
                 const avatarEl = document.getElementById('chatThreadAvatar');
                 if (nameEl) nameEl.innerHTML = escapeHtml(this.currentChatOther.name) + this.vb(otherUid);
@@ -11660,6 +11677,7 @@
                 chatMessages.length = 0;
                 this._openMessageActionsId = null;
                 this._animatedMsgIds = new Set();
+                this._chatLimit = 60;
                 this.currentChatClearedAt = 0;
                 this.currentChatDeletedFor = {};
                 this.currentChatOtherReadAt = 0;
@@ -11702,9 +11720,13 @@
                 const chatId = this.getChatId(this.currentChatUid);
                 const clearedAt = this.currentChatClearedAt || 0;
                 const deletedFor = this.currentChatDeletedFor || {};
-                const { ref, onValue } = window.firebaseDbHelpers;
-                this._chatMsgUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), (snap) => {
+                const { ref, onValue, query, orderByKey, limitToLast } = window.firebaseDbHelpers;
+                // the newest messages only (a long chat used to come down in full, photos and voice notes included)
+                const limit = this._chatLimit || 60;
+                this._chatMsgUnsub = onValue(query(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), orderByKey(), limitToLast(limit)), (snap) => {
                     const list = [];
+                    const more = document.getElementById('chatOlder');
+                    if (more) more.classList.toggle('hidden', !(snap.exists() && Object.keys(snap.val()).length >= limit));
                     if (snap.exists()) {
                         const vals = snap.val();
                         Object.keys(vals).forEach((k) => {
@@ -11718,6 +11740,31 @@
                     chatMessages.push(...list);
                     if (this.currentView === 'chatThreadView') { this.renderChatMessages(); lucide.createIcons(); }
                 });
+            },
+
+            // The name and photo of the other student, when the chat was opened without them (for example after the
+            // conversation was deleted): read from the public directory and the leaderboard instead of showing "طالب".
+            async _resolveChatPeer(uid) {
+                try {
+                    if (!window.firebaseDb) return;
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const [p, lb] = await Promise.all([get(ref(window.firebaseDb, 'pub/' + uid)), get(ref(window.firebaseDb, 'leaderboard/' + uid))]);
+                    if (this.currentChatUid !== uid) return;
+                    const pub = p.val() || {}, board = lb.val() || {};
+                    const o = this.currentChatOther || (this.currentChatOther = {});
+                    if (pub.n && (!o.known || !o.name || o.name === 'طالب')) { o.name = String(pub.n); o.known = true; }
+                    if (!o.avatar && board.avatar) o.avatar = board.avatar;
+                    if (!o.studentNumber && pub.s) o.studentNumber = String(pub.s);
+                    const nameEl = document.getElementById('chatThreadName'), avatarEl = document.getElementById('chatThreadAvatar');
+                    if (nameEl) nameEl.innerHTML = escapeHtml(o.name) + this.vb(uid);
+                    if (avatarEl) avatarEl.src = personAvatarSrc(o.avatar, o.name);
+                } catch (e) { /* the chat works with the placeholder name */ }
+            },
+
+            loadOlderChat() {
+                this._chatLimit = (this._chatLimit || 60) + 60;
+                this._chatKeys = [];
+                this.listenForChatMessages();
             },
 
             listenForReadReceipts() {
@@ -12012,20 +12059,30 @@
 
             async deleteEntireChat() {
                 if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف المحادثة؟', text: 'تنحذف من عندك بس، وتبقى عند الطرف الثاني.', ok: 'احذف' }))) return;
-                const otherUid = this.currentChatUid;
-                const { ref, set } = window.firebaseDbHelpers;
-                Promise.all([
-                    set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + otherUid), null),
-                    set(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid), Date.now())
-                ]).then(() => {
+                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف المحادثة؟', text: 'تنحذف من عندك، ورسائلك اللي دزيتها تنحذف من النظام، وتبقى رسائل الطرف الثاني عنده.', ok: 'احذف' }))) return;
+                const otherUid = this.currentChatUid, me = this.authUid, chatId = this.getChatId(otherUid);
+                const { ref, update, get } = window.firebaseDbHelpers;
+                try {
+                    const up = {
+                        ['userChats/' + me + '/' + otherUid]: null,
+                        ['chatClearedAt/' + me + '/' + otherUid]: Date.now(),
+                        ['privateChats/' + chatId + '/deletedFor/' + me]: null,
+                        ['privateChats/' + chatId + '/readReceipts/' + me]: null,
+                    };
+                    // the database rules let each of the two remove only their own messages
+                    const snap = await get(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'));
+                    if (snap.exists()) {
+                        const all = snap.val();
+                        Object.keys(all).forEach((k) => { if (all[k] && all[k].from === me) up['privateChats/' + chatId + '/messages/' + k] = null; });
+                    }
+                    await update(ref(window.firebaseDb), up);
                     this.showToast('تم حذف المحادثة');
                     this.closeWalletModal();
                     this.goBack();
-                }).catch((err) => {
+                } catch (err) {
                     console.warn('Delete chat failed:', err);
                     this.showToast('تعذر حذف المحادثة');
-                });
+                }
             },
 
             openChatOptionsMenu() {
@@ -12182,7 +12239,11 @@
                 const chatId = this.getChatId(this.currentChatUid);
                 const msgId = Date.now();
                 const payload = Object.assign({ id: msgId, from: this.authUid, to: this.currentChatUid, createdAt: msgId }, extra);
-                const myEntry = { otherUid: this.currentChatUid, otherName: this.currentChatOther.name, otherAvatar: this.currentChatOther.avatar, otherStudentNumber: this.currentChatOther.studentNumber, lastMessage: previewText, lastAt: msgId, unread: false };
+                const co = this.currentChatOther || {};
+                const myEntry = { otherUid: this.currentChatUid, lastMessage: previewText, lastAt: msgId, unread: false };
+                if (co.known || (co.name && co.name !== 'طالب')) myEntry.otherName = co.name;
+                if (co.avatar) myEntry.otherAvatar = co.avatar;
+                if (co.studentNumber) myEntry.otherStudentNumber = co.studentNumber;
                 const theirEntry = { otherUid: this.authUid, otherName: this.currentUser.fullName || 'طالب', otherAvatar: this.currentUser.avatar || '', otherStudentNumber: this.currentUser.studentNumber || '', lastMessage: previewText, lastAt: msgId, unread: true };
                 const updates = {};
                 updates['privateChats/' + chatId + '/messages/' + msgId] = payload;
@@ -12215,7 +12276,8 @@
                 event.target.value = '';
                 if (!file || !this.currentChatUid) return;
                 if (file.type.startsWith('image/')) {
-                    compressForumImage(file).then((dataUrl) => {
+                    // a chat photo is kept small (about 80 KB) so sending is quick and the chat stays light
+                    compressForumImage(file, 900, 0.7).then((dataUrl) => {
                         if (!dataUrl) { this.showToast('تعذرت معالجة الصورة'); return; }
                         this.sendChatAttachment({ type: 'image', imageUrl: dataUrl });
                     });
