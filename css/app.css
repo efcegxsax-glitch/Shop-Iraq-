@@ -4445,3 +4445,7 @@ button.fm-act:active { transform: scale(.9); }
 @keyframes fmShim { to { background-position: -200% 0; } }
 @keyframes fmFab { 0%, 100% { transform: translateY(0); box-shadow: 0 10px 26px rgba(124,58,237,.45); } 50% { transform: translateY(-4px); box-shadow: 0 16px 30px rgba(219,39,119,.4); } }
 @media (prefers-reduced-motion: reduce) { .fm-hero, .fm-hero::before, .fm-hero::after, .fm-card, .fm-ans, .fm-fab, .fm-empty-i, .fm-sk { animation: none !important; } }
+
+/* the strip behind the system navigation bar: same colour as the page, under the floating bottom bar */
+#sysBottom { position: fixed; left: 0; right: 0; bottom: 0; height: var(--safe-b); background: var(--bg, #F1F5F3); z-index: 49; pointer-events: none; }
+body.focus-mode #sysBottom, body.forest-on #sysBottom { display: none; }
