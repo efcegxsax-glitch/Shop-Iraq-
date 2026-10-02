@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '9f78035803';
+        window.APP_VER = 'e168ac39ce';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -117,7 +117,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=0243084519">
+    <link rel="stylesheet" href="css/app.css?v=032f2d3d5a">
     <link rel="stylesheet" href="css/tw.css?v=eff6a2a8f1">
 </head>
 <body class="antialiased">
@@ -1881,6 +1881,8 @@
     </div>
 
     <!-- ==================== BOTTOM NAVIGATION ==================== -->
+    <!-- solid strip behind the phone's navigation bar (Android app / iPhone), so pages never scroll under its buttons -->
+    <div id="sysBottom" aria-hidden="true"></div>
     <nav id="bottomNav" aria-label="التنقل الرئيسي" class="fixed z-50 theme-transition">
         <div class="nav-track">
             <span class="nav-indicator" aria-hidden="true"></span>
