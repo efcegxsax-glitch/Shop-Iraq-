@@ -4235,6 +4235,39 @@
                 this.hlOpen();
             },
 
+            goToTable() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.table === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('tableView');
+                if (this._withPart('table', () => typeof this.tbOpen === 'function', 'tableView', () => this.goToTable())) return;
+                this.tbOpen();
+            },
+
+            // the weekly lecture timetable (js/table.js) is kept on the phone; the tutor reads this summary
+            _tbKey() { return 'isp:tb:' + (this.authUid || 'guest'); },
+            _tbGet() {
+                try { const o = JSON.parse(localStorage.getItem(this._tbKey()) || 'null'); return o && o.v === 1 && Array.isArray(o.times) && o.subs && o.days && o.cells ? o : null; } catch (e) { return null; }
+            },
+            _tbSummary() {
+                const d = this._tbGet();
+                if (!d) return '';
+                const NM = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+                const nm = (id) => { const s = d.subs.find((x) => x.id === id); return s ? s.n : ''; };
+                const day = (g) => (d.cells[g] || []).map((c, i) => (c && nm(c.s) ? nm(c.s) + ' (' + d.times[i][0] + ')' : '')).filter(Boolean);
+                const work = [6, 0, 1, 2, 3, 4, 5].filter((g) => d.days[g] === 1);
+                const per = {}; let total = 0;
+                work.forEach((g) => (d.cells[g] || []).forEach((c) => { if (c && nm(c.s)) { per[nm(c.s)] = (per[nm(c.s)] || 0) + 1; total++; } }));
+                if (!total) return '';
+                const L = ['جدول محاضراته الأسبوعي (' + total + ' محاضرة): ' + work.map((g) => NM[g] + ': ' + (day(g).map((x) => x.replace(/ \(.*\)/, '')).join('، ') || 'فاضي')).join(' | ')];
+                L.push('عدد محاضرات كل مادة بالأسبوع: ' + Object.keys(per).map((k) => k + ' ' + per[k]).join('، '));
+                const off = [0, 1, 2, 3, 4, 5, 6].filter((g) => d.days[g] === 2).map((g) => NM[g]);
+                if (off.length) L.push('أيام العطلة: ' + off.join('، '));
+                const now = new Date(), g = now.getDay(), tm = new Date(now.getTime() + 86400000).getDay();
+                const t = (x) => (d.days[x] === 2 ? 'عطلة' : d.days[x] === 1 ? (day(x).join('، ') || 'ماكو محاضرات') : 'مو من أيام جدوله');
+                L.push('اليوم (' + NM[g] + '): ' + t(g) + '. باچر (' + NM[tm] + '): ' + t(tm) + '. الساعة هسه ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + '.');
+                return L.join('\n').slice(0, 1000);
+            },
+
             goToFood(meal) {
                 this._fdMeal = typeof meal === 'string' ? meal : null;
                 this.switchView('foodView');
@@ -7915,6 +7948,7 @@
                 { id: 'twin', fn: 'goToTwin', t: 'توأم المذاكرة', d: 'زميل يشجعك وتشجعه', ic: 'users-round', c: '#A855F7', g: 'people' },
                 { id: 'sroom', fn: 'goToStudyRoom', t: 'غرفة المذاكرة', d: 'منو يذاكر هسه', ic: 'users', c: '#0D9488', g: 'people' },
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
+                { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
                 { id: 'calm', fn: 'goToCalm', t: 'قبل الامتحان', d: 'تنفّس ودعاء وتجهيز', ic: 'heart-handshake', c: '#DB2777', g: 'tools' },
@@ -13646,6 +13680,7 @@
                 if (this.currentView === 'foodView' && viewId !== 'foodView' && this.fdClose) this.fdClose();
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
+                if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }

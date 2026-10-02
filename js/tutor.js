@@ -472,8 +472,10 @@
             if (f.mkDue) L.push('بدفتر غلطاته ' + f.mkDue + ' سؤال غلط بيه قبل ومستحق يراجعه اليوم.');
             const nut = this._nutSummary ? this._nutSummary() : '';
             if (nut) L.push(nut);
+            const tb = this._tbSummary ? this._tbSummary() : '';
+            if (tb) L.push(tb);
             if (f.quizzes.length) L.push('آخر اختباراته المفاجئة: ' + f.quizzes.map((q) => q.s + ' ' + q.r + '/' + q.n).join('، '));
-            return L.join('\n').slice(0, 2400);
+            return L.join('\n').slice(0, 3300);
         },
 
         // real reasons for the tutor to write first; none means it stays quiet
