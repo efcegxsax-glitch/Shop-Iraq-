@@ -723,7 +723,7 @@
                     <div class="chk-row">
                         <label class="chk"><input type="checkbox" id="n_urgent"> عاجل</label>
                         <label class="chk"><input type="checkbox" id="n_pinned"> مثبت</label>
-                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب</label>
+                        <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب (يوصل للهاتف أيضاً)</label>
                     </div>
 
                     <button class="btn mt-4" id="n_publish">نشر الخبر</button>
@@ -787,6 +787,7 @@
                         <input type="file" id="r_pdf" accept="application/pdf">
                     </div>
 
+                    <div class="chk-row"><label class="chk"><input type="checkbox" id="r_notify" checked> إشعار للطلاب بالملزمة الجديدة</label></div>
                     <button class="btn mt-4" id="r_publish">نشر الملزمة</button>
                 </div>
                 <div class="card">
@@ -1826,7 +1827,12 @@
                         type: urgent ? 'urgent' : 'announcement', createdAt: serverTimestamp()
                     });
                 }
-                toast('تم نشر الخبر بنجاح');
+                let msg = 'تم نشر الخبر بنجاح';
+                if (sendNotif) {
+                    const pr = await pushPhones((urgent ? 'عاجل: ' : '') + title, val('n_excerpt'), []);
+                    msg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                }
+                toast(msg);
                 el('n_title').value = ''; el('n_excerpt').value = '';
                 clearPreview('n_image', 'n_preview');
                 el('n_urgent').checked = false; el('n_pinned').checked = false;
@@ -1869,7 +1875,12 @@
                     fileUrl: 'db:' + id,
                     createdAt: serverTimestamp()
                 });
-                toast('تم نشر الملزمة بنجاح');
+                let rmsg = 'تم نشر الملزمة بنجاح';
+                if (el('r_notify').checked) {
+                    const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', []);
+                    rmsg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                }
+                toast(rmsg);
                 el('r_title').value = ''; el('r_desc').value = '';
                 clearPreview('r_cover', 'r_preview'); el('r_pdf').value = '';
             } catch (e) {
