@@ -1885,14 +1885,15 @@
         async function pushPhones(title, body, govs) {
             const url = (siteConfig || {}).tutorUrl;
             if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
+            let token;
+            try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
             try {
-                const token = await getAuth().currentUser.getIdToken();
                 const codes = (govs || []).map((g) => GOV_CODES[g]).filter(Boolean);
                 const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes }) });
                 const j = await r.json().catch(() => ({}));
-                if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : 'رفضه OneSignal (' + (j.status || r.status) + ')' };
+                if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
                 return { ok: true, n: j.recipients };
-            } catch (e) { return { ok: false, why: 'ما وصلت للسيرفر' }; }
+            } catch (e) { return { ok: false, why: 'ما وصلت للسيرفر (' + String(e && e.message || e).slice(0, 60) + ') من ' + location.origin }; }
         }
 
         // ---------- Send Notification ----------
