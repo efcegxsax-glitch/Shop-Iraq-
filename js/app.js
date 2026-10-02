@@ -586,6 +586,19 @@
                 } catch (er) { /* reporting must never break the app */ }
             },
 
+            // An old saved index.html can end up next to a newer app.js (the files are cached separately). When the page
+            // lacks something this script needs, clear the saved copies and load everything fresh, once.
+            _skewCheck() {
+                const h = window.firebaseDbHelpers;
+                if (!h || (h.orderByKey && h.endBefore)) return;
+                try { if (sessionStorage.getItem('isp_skew')) return; sessionStorage.setItem('isp_skew', '1'); } catch (e) { return; }
+                const done = () => location.reload();
+                Promise.all([
+                    navigator.serviceWorker ? navigator.serviceWorker.getRegistrations().then((rs) => Promise.all(rs.map((r) => r.unregister()))) : null,
+                    window.caches ? caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k)))) : null,
+                ].map((p) => (p ? p.catch(() => {}) : p))).then(done, done);
+            },
+
             // ===== Offline =====
             // The service worker (OneSignalSDKWorker.js: push + saved copy of the app) lets the app
             // open without internet; a thin bar says when there is no connection.
@@ -768,6 +781,7 @@
                 setTimeout(() => this.pingDevice(), 3000);
                 this.initInstallBar();
                 setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
+                setTimeout(() => this._skewCheck(), 6000);
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 this._restoreView();
