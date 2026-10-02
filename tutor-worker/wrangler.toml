@@ -35,6 +35,12 @@ name = "PER_NOTIFY"
 namespace_id = "1003"
 simple = { limit = 12, period = 60 }
 
+# students' small photos for push notifications. The deploy workflow creates this store (free) and puts its id
+# here; if the Cloudflare token cannot manage KV, the workflow removes this block and everything else still deploys.
+[[kv_namespaces]]
+binding = "AVATARS"
+id = "AVATARS_KV_ID"
+
 # the tutor's messages: 9:07, 13:07, 17:07 and 21:07 Baghdad time (UTC+3)
 [triggers]
 crons = ["7 6,10,14,18 * * *"]

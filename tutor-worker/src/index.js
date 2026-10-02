@@ -403,7 +403,7 @@ async function dbGet(env, path, token) {
         return r.ok ? await r.json() : null;
     } catch { return null; }
 }
-async function notifyPush(env, uid, token, body, headers) {
+async function notifyPush(env, uid, token, body, headers, origin) {
     const kind = body.kind === 'call' ? 'call' : body.kind === 'msg' ? 'msg' : '';
     const to = typeof body.to === 'string' ? body.to : '';
     if (!kind || !UID_RE.test(to) || to === uid) return json(400, { error: 'bad' }, headers);
@@ -415,8 +415,8 @@ async function notifyPush(env, uid, token, body, headers) {
     const chat = [uid, to].sort().join('_'), now = Date.now();
     let title, text;
     const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
-    const photo = str(await dbGet(env, 'pub/' + uid + '/p', token), 600);
-    const photoOk = /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[\w.-]+\/o\/avatars%2F[\w.%-]+\?[\w=&%.-]+$/.test(photo);
+    let photoUrl = '';
+    if (env.AVATARS) { try { const m = await env.AVATARS.getWithMetadata('a:' + uid); if (m && m.value) photoUrl = origin + '/a/' + uid + '.jpg?v=' + ((m.metadata && m.metadata.t) || 1); } catch {} }
     if (kind === 'call') {
         const c = await dbGet(env, 'calls/' + chat, token);
         const at = Number(c && c.at);
@@ -435,7 +435,7 @@ async function notifyPush(env, uid, token, body, headers) {
         body: JSON.stringify({
             app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [to] },
             headings: { en: title, ar: title }, contents: { en: text, ar: text },
-            ...PUSH_LOOK(env), ...(photoOk ? { large_icon: photo } : {}), data: { kind, from: uid, fromName: name }, ttl: kind === 'call' ? 45 : 3600,
+            ...PUSH_LOOK(env), ...(photoUrl ? { large_icon: photoUrl } : {}), data: { kind, from: uid, fromName: name }, ttl: kind === 'call' ? 45 : 3600,
             ...(kind === 'msg' ? { collapse_id: 'chat-' + uid, web_push_topic: 'chat-' + uid.slice(0, 20) } : {}),
         }),
     });
@@ -484,6 +484,15 @@ export default {
     async fetch(req, env, ctx) {
         const headers = cors(req, env);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
+        // a student's small photo, shown in the push notification (public on purpose: the phone fetches it without signing in)
+        if (req.method === 'GET') {
+            const m = /^\/a\/([A-Za-z0-9]{20,40})\.jpg$/.exec(new URL(req.url).pathname);
+            const b64 = m && env.AVATARS ? await env.AVATARS.get('a:' + m[1]) : null;
+            if (!b64) return new Response('not found', { status: 404 });
+            const bin = atob(b64), bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' } });
+        }
         if (req.method !== 'POST') return json(405, { error: 'method' }, headers);
         const who = {};
         const uid = await verifyStudent(req, env, who);
@@ -522,9 +531,22 @@ export default {
             return json(r.ok ? 200 : 502, r.ok ? { id: j.id || '', recipients: j.recipients, errors: j.errors || null } : { error: 'onesignal', status: r.status, detail: j.errors || null }, headers);
         }
 
+        // the student's own small photo (a 192px JPEG, at most ~40KB) for the push notification
+        if (body.mode === 'avatar') {
+            if (!env.AVATARS) return json(503, { error: 'no_store' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: 'av' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const img = typeof body.img === 'string' ? body.img.replace(/^data:image\/jpeg;base64,/, '') : '';
+            if (!img || img.length > 60000 || !/^\/9j\/[A-Za-z0-9+\/=]+$/.test(img)) return json(400, { error: 'bad_image' }, headers);
+            await env.AVATARS.put('a:' + uid, img, { metadata: { t: Date.now() } });
+            return json(200, { ok: true }, headers);
+        }
+
         if (body.mode === 'notify') {
             const tok = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
-            return notifyPush(env, uid, tok ? tok[1] : '', body, headers);
+            return notifyPush(env, uid, tok ? tok[1] : '', body, headers, new URL(req.url).origin);
         }
 
         if (body.mode === 'tbsync') {
