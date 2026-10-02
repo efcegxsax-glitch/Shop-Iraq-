@@ -50,6 +50,19 @@ await no('vote as someone else', set(ref(db('u1'), 'forumAnswers/10/5/likes/u2')
 await no('edit someone else answer', set(ref(db('u1'), 'forumAnswers/10/5/body'), 'x'));
 await ok('author deletes own thread', set(ref(db('u1'), 'forumThreads/10'), null));
 await no('other deletes a thread', (async () => { await seed('forumThreads/20', { id: 20, body: 'x', authorUid: 'u1' }); await set(ref(db('u2'), 'forumThreads/20'), null); })());
+// news reactions
+await ok('student reacts like', U('u1', { 'userNewsReact/u1/5': 'like', 'newsReactCounts/5/like': 1 }));
+await no('inflate a counter alone', U('u2', { 'newsReactCounts/5/like': 2 }));
+await no('count by two', U('u2', { 'userNewsReact/u2/5': 'like', 'newsReactCounts/5/like': 3 }));
+await ok('second student reacts like', U('u2', { 'userNewsReact/u2/5': 'like', 'newsReactCounts/5/like': 2 }));
+await ok('student switches to love', U('u1', { 'userNewsReact/u1/5': 'love', 'newsReactCounts/5/like': 1, 'newsReactCounts/5/love': 1 }));
+await no('switch without lowering the old count', U('u2', { 'userNewsReact/u2/5': 'sad', 'newsReactCounts/5/sad': 1 }));
+await no('unknown reaction', U('u3', { 'userNewsReact/u3/5': 'cry', 'newsReactCounts/5/cry': 1 }));
+await ok('student removes the reaction', U('u1', { 'userNewsReact/u1/5': null, 'newsReactCounts/5/love': 0 }));
+await no('lower a count of someone else reaction', U('u3', { 'newsReactCounts/5/like': 0 }));
+await no('write another student reaction', set(ref(db('u3'), 'userNewsReact/u1/5'), 'angry'));
+await ok('guest reads the counts', get(ref(db(null), 'newsReactCounts')));
+await no('read another student reactions', get(ref(db('u3'), 'userNewsReact/u1')));
 await ok('admin writes admission', set(ref(db('adm'), 'admission/base/med'), 98));
 await no('student writes admission', set(ref(db('u1'), 'admission/base/med'), 60));
 await ok('guest reads admission', get(ref(db(null), 'admission')));
