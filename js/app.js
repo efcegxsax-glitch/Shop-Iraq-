@@ -160,6 +160,70 @@
             try { localStorage.setItem('isp_news_cache', JSON.stringify(data)); } catch (e) {}
         }
 
+        // News carry their photos inside the record, so a few of them overflowed localStorage and the
+        // saved copy silently failed. IndexedDB holds them (and keeps every news ever seen).
+        const newsStore = {
+            _p: null,
+            open() {
+                if (!this._p) this._p = new Promise((resolve) => {
+                    try {
+                        const rq = indexedDB.open('isp-news', 2);
+                        rq.onupgradeneeded = () => {
+                            if (!rq.result.objectStoreNames.contains('n')) rq.result.createObjectStore('n', { keyPath: 'id' });
+                            if (!rq.result.objectStoreNames.contains('k')) rq.result.createObjectStore('k', { keyPath: 'k' });
+                        };
+                        rq.onsuccess = () => resolve(rq.result);
+                        rq.onerror = () => resolve(null);
+                        rq.onblocked = () => resolve(null);
+                    } catch (e) { resolve(null); }
+                });
+                return this._p;
+            },
+            async all() {
+                const db = await this.open();
+                if (!db) return [];
+                return new Promise((resolve) => {
+                    try { const r = db.transaction('n').objectStore('n').getAll(); r.onsuccess = () => resolve(r.result || []); r.onerror = () => resolve([]); } catch (e) { resolve([]); }
+                });
+            },
+            async put(items) {
+                const db = await this.open();
+                if (!db || !items.length) return;
+                return new Promise((resolve) => {
+                    try {
+                        const tx = db.transaction('n', 'readwrite'), st = tx.objectStore('n');
+                        items.forEach((it) => { try { st.put(it); } catch (e) {} });
+                        tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
+                    } catch (e) { resolve(); }
+                });
+            },
+            async kvGet(k) {
+                const db = await this.open();
+                if (!db) return null;
+                return new Promise((resolve) => {
+                    try { const r = db.transaction('k').objectStore('k').get(k); r.onsuccess = () => resolve(r.result ? r.result.v : null); r.onerror = () => resolve(null); } catch (e) { resolve(null); }
+                });
+            },
+            async kvPut(k, v) {
+                const db = await this.open();
+                if (!db) return;
+                return new Promise((resolve) => {
+                    try { const tx = db.transaction('k', 'readwrite'); tx.objectStore('k').put({ k, v }); tx.oncomplete = tx.onerror = tx.onabort = () => resolve(); } catch (e) { resolve(); }
+                });
+            },
+            async remove(ids) {
+                const db = await this.open();
+                if (!db || !ids.length) return;
+                return new Promise((resolve) => {
+                    try {
+                        const tx = db.transaction('n', 'readwrite'), st = tx.objectStore('n');
+                        ids.forEach((id) => { try { st.delete(id); } catch (e) {} });
+                        tx.oncomplete = tx.onerror = tx.onabort = () => resolve();
+                    } catch (e) { resolve(); }
+                });
+            },
+        };
+
         function loadNewsCache() {
             try {
                 const raw = localStorage.getItem('isp_news_cache');
@@ -681,7 +745,7 @@
                 this.checkInterruptedGovWar();
                 this.loadNotifPrefs();
                 this.watchAuthState();
-                this.hydrateNewsCache();
+                this._newsBootP = this._newsBoot();
                 this.hydrateOfflineResources();
                 this.loadData();
                 window.addEventListener('online', () => {
@@ -699,10 +763,6 @@
                 this.renderNotificationsList();
                 this.renderNewsTicker();
                 this.renderDailyTip();
-                this.loadNewsFromDatabase();
-                this.listenForNews();
-                this.loadResourcesFromDatabase();
-                this.listenForResources();
                 this.listenForTicker();
                 this.listenForVoiceNote();
                 this.listenForSiteConfig();
@@ -719,9 +779,6 @@
                 setTimeout(() => this.pingDevice(), 3000);
                 this.initInstallBar();
                 setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
-                this.listenForForumThreads();
-                this.listenForLeaderboard();
-                this.listenForStudyRoom();
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 this._restoreView();
@@ -1405,7 +1462,6 @@
                 this.loadNewsFromDatabase();
                 setTimeout(() => {
                     if (this.isOnline || newsData.length > 0) {
-                        this.showNewsList();
                         this.renderNews();
                         this.renderCarousel();
                         this.initSwiper();
@@ -1698,9 +1754,22 @@
                 const container = document.getElementById('newsList');
                 const newsCountEl = document.getElementById('newsCount');
                 if (newsCountEl) newsCountEl.textContent = `${filtered.length} خبر`;
-                if (filtered.length === 0) { this.showEmpty(); return; }
+                if (filtered.length === 0) {
+                    // not an empty list yet: the server hasn't answered, so show the placeholders
+                    if (!this._newsGot && !newsData.length) { this.showLoading(); this._newsWatch(); return; }
+                    this.showEmpty();
+                    this._newsMoreBtn();
+                    return;
+                }
                 this.showNewsList();
                 if (container) container.innerHTML = filtered.map(news => this.createNewsCard(news)).join('');
+                this._newsMoreBtn();
+            },
+
+            // "عرض أخبار أقدم" under the list while there may be more on the server
+            _newsMoreBtn() {
+                const wrap = document.getElementById('newsMore');
+                if (wrap) wrap.classList.toggle('hidden', !!this._newsAllLoaded || !newsData.length);
             },
 
             // News card v2: photo on the right, bold title, 2-line excerpt, divider, then
@@ -2687,25 +2756,11 @@
                 }
             },
 
+            // Retry / back online: listen again (only what is new is asked for).
             loadNewsFromDatabase() {
                 if (!window.firebaseDb) return;
-                const { ref, get } = window.firebaseDbHelpers;
-                get(ref(window.firebaseDb, 'news')).then((snap) => {
-                    if (!snap.exists()) return;
-                    const deletedIds = this.getDeletedNewsIds();
-                    withNumericIds(Object.values(snap.val())).forEach((item) => {
-                        if (!newsData.some(n => n.id === item.id) && !deletedIds.has(item.id)) newsData.unshift(item);
-                    });
-                    cacheNewsData(newsData);
-                    this.renderNews();
-                    this.renderNewsTicker();
-                    this.renderCarousel();
-                    if (this.swiper) { this.swiper.destroy(true, true); this.swiper = null; }
-                    this.initSwiper();
-                    lucide.createIcons();
-                }).catch((err) => {
-                    console.warn('News load failed:', err);
-                });
+                if (this._newsListener) { try { this._newsListener(); } catch (e) {} this._newsListener = null; }
+                this.listenForNews();
             },
 
             // FIX: the previous "is this item new" check was `seenIds.size > 0` inside the
@@ -2719,12 +2774,22 @@
             // wasn't seen before).
             listenForNews() {
                 if (!window.firebaseDb || this._newsListener) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                const seenIds = new Set();
-                let isFirstSnapshot = true;
-                this._newsListener = onValue(ref(window.firebaseDb, 'news'), (snap) => {
+                // the saved copy is read first, so that only what is new is downloaded
+                if (!this._newsBootDone) { if (this._newsBootP) this._newsBootP.then(() => this.listenForNews()); return; }
+                const { ref, onValue, query, orderByKey, limitToLast, startAt } = window.firebaseDbHelpers;
+                const known = newsData.map((n) => n.id).filter((id) => Number.isFinite(id));
+                const maxId = known.length ? Math.max(...known) : 0;
+                const base = ref(window.firebaseDb, 'news');
+                // returning student: only news newer than the newest they already have; first time: the newest page
+                const q = maxId ? query(base, orderByKey(), startAt(String(maxId + 1))) : query(base, orderByKey(), limitToLast(this.NEWS_PAGE));
+                const seenIds = new Set(known);
+                let isFirstSnapshot = true, windowStart = maxId + 1;
+                this._newsWatch();
+                this._newsListener = onValue(q, (snap) => {
+                    this._newsGot = true;
                     const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
                     list.sort((a, b) => b.id - a.id);
+                    if (!maxId && isFirstSnapshot) windowStart = list.length ? list[list.length - 1].id : Infinity;
                     let newItem = null;
                     if (!isFirstSnapshot) {
                         newItem = list.find((item) => !seenIds.has(item.id)) || null;
@@ -2732,10 +2797,20 @@
                     list.forEach((item) => seenIds.add(item.id));
                     isFirstSnapshot = false;
                     const deletedIds = this.getDeletedNewsIds();
-                    const visibleList = list.filter((item) => !deletedIds.has(item.id));
-                    newsData.length = 0;
-                    newsData.push(...visibleList);
-                    cacheNewsData(newsData);
+                    const present = new Set(list.map((n) => n.id));
+                    const changed = [];
+                    list.forEach((item) => {
+                        if (deletedIds.has(item.id)) return;
+                        const old = newsData.find((n) => n.id === item.id);
+                        if (old) Object.assign(old, item); else newsData.push(item);
+                        changed.push(item);
+                    });
+                    // news inside the window that the admin removed
+                    const gone = newsData.filter((n) => n.id >= windowStart && !present.has(n.id));
+                    gone.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
+                    newsData.sort((a, b) => b.id - a.id);
+                    newsStore.put(changed);
+                    newsStore.remove(gone.map((n) => n.id));
                     this.applyUserNewsState();
                     this.renderNews();
                     this.renderNewsTicker();
@@ -2803,7 +2878,9 @@
                 this._adminNotifListener = true;
                 const { ref, get, onChildAdded } = window.firebaseDbHelpers;
                 const seenIds = new Set();
-                const notifRef = ref(window.firebaseDb, 'notifications');
+                const { query, orderByKey, limitToLast } = window.firebaseDbHelpers;
+                // the newest ones only (the whole history used to come down at every start)
+                const notifRef = query(ref(window.firebaseDb, 'notifications'), orderByKey(), limitToLast(60));
                 get(notifRef).then((snap) => {
                     if (snap.exists()) Object.values(snap.val()).forEach((v) => { if (v) seenIds.add(Number(v.id)); });
                 }).catch(() => {}).then(() => {
@@ -3079,29 +3156,78 @@
                 });
             },
 
-            listenForSiteImages() {
-                if (!window.firebaseDb) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                onValue(ref(window.firebaseDb, 'settings/logo'), (snap) => {
-                    const v = snap.val();
-                    const img = document.getElementById('appLogoImg');
-                    if (v && v.url && img) img.src = safeImage(v.url);
+            _dbBase() {
+                return String((window.firebaseDb && window.firebaseDb.app && window.firebaseDb.app.options && window.firebaseDb.app.options.databaseURL) || 'https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com').replace(/\/$/, '');
+            },
+            // The logo and the slider hold photos, so they are kept on the phone and checked with tiny
+            // requests (the logo's update time, the slider's list of keys); a photo is downloaded only
+            // when it is new. Checked at start and whenever the app comes back after a while.
+            async listenForSiteImages() {
+                if (!window.firebaseDb || this._siteImgsOn) return;
+                this._siteImgsOn = true;
+                try {
+                    const [logo, car] = await Promise.all([newsStore.kvGet('logo'), newsStore.kvGet('carousel')]);
+                    if (logo && logo.url) this._applyLogo(logo.url);
+                    if (Array.isArray(car) && car.length && !(this.adminCarousel && this.adminCarousel.length)) this._applyCarousel(car);
+                } catch (e) {}
+                this._siteImgsSync();
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden && Date.now() - (this._siteSyncAt || 0) > 120000) this._siteImgsSync();
                 });
-                onValue(ref(window.firebaseDb, 'carousel'), (snap) => {
+            },
+            _applyLogo(url) {
+                const img = document.getElementById('appLogoImg');
+                if (url && img) img.src = safeImage(url);
+            },
+            _applyCarousel(list) {
+                this.adminCarousel = list;
+                if (this.currentView === 'homeView') {
+                    this.renderCarousel();
+                    if (this.swiper) { this.swiper.destroy(true, true); this.swiper = null; }
+                    this.initSwiper();
+                    lucide.createIcons();
+                }
+            },
+            async _siteImgsSync() {
+                this._siteSyncAt = Date.now();
+                const base = this._dbBase();
+                const get = async (path, q) => {
+                    const ctl = new AbortController();
+                    const t = setTimeout(() => ctl.abort(), 20000);
+                    try {
+                        const r = await fetch(base + '/' + path + '.json' + (q ? '?' + q : ''), { signal: ctl.signal });
+                        if (!r.ok) throw new Error('http ' + r.status);
+                        return await r.json();
+                    } finally { clearTimeout(t); }
+                };
+                try {
+                    // logo: its update time decides
+                    const t = await get('settings/logo/updatedAt');
+                    const saved = await newsStore.kvGet('logo');
+                    if (t !== null && (!saved || saved.t !== t)) {
+                        const url = await get('settings/logo/url');
+                        if (url) { await newsStore.kvPut('logo', { t, url }); this._applyLogo(url); }
+                    }
+                } catch (e) { /* offline: the saved logo stays */ }
+                try {
+                    // slider: the keys decide; only photos that aren't on the phone yet are downloaded
+                    const keys = Object.keys((await get('carousel', 'shallow=true')) || {});
+                    const cached = (await newsStore.kvGet('carousel')) || [];
+                    const have = new Map(cached.map((c) => [c._k, c]));
+                    if (keys.length === cached.length && keys.every((k) => have.has(k))) {
+                        if (!(this.adminCarousel && this.adminCarousel.length) && cached.length) this._applyCarousel(cached);
+                        return;
+                    }
                     const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (b.id || 0) - (a.id || 0));
+                    for (const k of keys) {
+                        if (have.has(k)) { list.push(have.get(k)); continue; }
+                        const item = await get('carousel/' + encodeURIComponent(k));
+                        if (item && typeof item === 'object') list.push(Object.assign({ _k: k }, item));
                     }
-                    this.adminCarousel = list;
-                    if (this.currentView === 'homeView') {
-                        this.renderCarousel();
-                        if (this.swiper) { this.swiper.destroy(true, true); this.swiper = null; }
-                        this.initSwiper();
-                        lucide.createIcons();
-                    }
-                });
+                    list.sort((a, b) => (b.id || 0) - (a.id || 0));
+                    await newsStore.kvPut('carousel', list);
+                    this._applyCarousel(list);
+                } catch (e) { /* offline: the saved slider stays */ }
             },
 
             // ==================== EXAM COUNTDOWN ====================
@@ -7443,19 +7569,8 @@
                 if (track) { track.classList.remove('hl-sliding'); track.style.transform = ''; }
             },
 
-            loadResourcesFromDatabase() {
-                if (!window.firebaseDb) return;
-                const { ref, get } = window.firebaseDbHelpers;
-                get(ref(window.firebaseDb, 'resources')).then((snap) => {
-                    if (!snap.exists()) return;
-                    withNumericIds(Object.values(snap.val())).forEach((item) => {
-                        if (!resourcesData.some(r => r.id === item.id)) resourcesData.unshift(item);
-                    });
-                    if (this.currentView === 'resourcesView') { this.renderResourcesList(); lucide.createIcons(); }
-                }).catch((err) => {
-                    console.warn('Resources load failed:', err);
-                });
-            },
+            // (kept for old callers) the resources list is one live listener now, started on the page
+            loadResourcesFromDatabase() { this.listenForResources(); },
 
             publishNews(item) {
                 if (!window.firebaseDb) {
@@ -7912,7 +8027,7 @@
                 this.switchView('resourcesView');
             },
             loadResources() {
-                this.loadResourcesFromDatabase();
+                this.listenForResources();
                 this.showResourcesNormal();
                 this.renderStageTabs();
                 this.renderSubjects();
@@ -8712,7 +8827,8 @@
                     }
                     leaderboardStudents.length = 0;
                     leaderboardStudents.push(...list);
-                    if (this.currentView === 'leaderboardView') { this.renderLeaderboard(); lucide.createIcons(); }
+                    this._lbGot = true;
+                    if (this.currentView === 'leaderboardView') { this.showLeaderboardList(); this.renderLeaderboard(); lucide.createIcons(); }
                 });
             },
 
@@ -8720,13 +8836,15 @@
                 this.showLeaderboardLoading();
                 setTimeout(() => {
                     if (this.isOnline) {
-                        this.showLeaderboardList();
-                        this.renderLeaderboard();
+                        // the list comes with the first answer from the server (see listenForLeaderboard)
+                        if (this._lbGot) { this.showLeaderboardList(); this.renderLeaderboard(); }
                     } else {
                         this.showLeaderboardError();
                     }
                     lucide.createIcons();
                 }, 800);
+                clearTimeout(this._lbWatch);
+                this._lbWatch = setTimeout(() => { if (!this._lbGot && this.currentView === 'leaderboardView') this.showLeaderboardError(); }, 20000);
             },
 
             showLeaderboardList() {
@@ -9163,11 +9281,13 @@
             listenForForumThreads() {
                 if (!window.firebaseDb || this._forumListener) return;
                 const { ref, onValue } = window.firebaseDbHelpers;
-                this._forumListener = onValue(ref(window.firebaseDb, 'forumThreads'), (snap) => {
+                const { query, orderByKey, limitToLast } = window.firebaseDbHelpers;
+                this._forumListener = onValue(query(ref(window.firebaseDb, 'forumThreads'), orderByKey(), limitToLast(40)), (snap) => {
                     const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
                     list.sort((a, b) => b.id - a.id);
                     forumThreads.length = 0;
                     forumThreads.push(...list);
+                    this._forumGot = true;
                     if (this.currentView === 'forumView') { this.renderForumThreads(); lucide.createIcons(); }
                 });
             },
@@ -9196,6 +9316,13 @@
                 const container = document.getElementById('forumThreadsList');
                 const empty = document.getElementById('forumEmptyState');
                 if (!container || !empty) return;
+                if (filtered.length === 0 && !this._forumGot) {
+                    // not an empty forum yet: the threads are still coming
+                    container.innerHTML = '<div class="skeleton h-24 rounded-2xl"></div>'.repeat(3);
+                    container.classList.remove('hidden');
+                    empty.classList.add('hidden');
+                    return;
+                }
                 if (filtered.length === 0) {
                     container.innerHTML = '';
                     container.classList.add('hidden');
@@ -12948,6 +13075,7 @@
                     this.showToast('الصورة كبيرة جداً — اختر صورة أصغر (أقل من 8MB)');
                     return;
                 }
+                if (window.firebaseEnsureStorage) { try { await window.firebaseEnsureStorage(); } catch (e) {} }
                 if (!window.firebaseStorage || !window.firebaseStorageHelpers) {
                     this.showToast('خدمة تخزين الملفات غير متاحة حالياً، حاول لاحقاً');
                     return;
@@ -13491,7 +13619,13 @@
                 lucide.createIcons();
             },
 
+            // Pages whose data is big (every student's photo, forum photos, the PDFs): downloaded when the
+            // page is opened, not every time the app starts.
+            LAZY_LISTEN: { leaderboardView: 'listenForLeaderboard', forumView: 'listenForForumThreads', forumThreadView: 'listenForForumThreads', studyRoomView: 'listenForStudyRoom', resourcesView: 'listenForResources', resourceDetailView: 'listenForResources' },
+
             switchView(viewId) {
+                const lazy = this.LAZY_LISTEN[viewId];
+                if (lazy && typeof this[lazy] === 'function') this[lazy]();
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
                 if (this._garden && viewId !== 'gardenView' && this.gdFail) this.gdFail('طلعت من صفحة شجرتي', true);
                 if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
@@ -13821,11 +13955,89 @@
                 else bar.classList.add('hidden-bar');
             },
 
-            hydrateNewsCache() {
-                const cached = Array.isArray(loadNewsCache()) ? withNumericIds(loadNewsCache()) : [];
-                if (cached.length && newsData.length === 0) {
-                    newsData.push(...cached);
+            // The home page shows what this phone saved last time at once (no waiting for the network), then
+            // the server is asked only for what is new since (see listenForNews).
+            NEWS_PAGE: 10,
+            async _newsBoot() {
+                let items = [];
+                try { items = await newsStore.all(); } catch (e) {}
+                if (!items.length) {
+                    // the copy the app kept in localStorage before: moved over once
+                    const legacy = loadNewsCache();
+                    if (Array.isArray(legacy) && legacy.length) { items = withNumericIds(legacy); await newsStore.put(items); }
                 }
+                try { localStorage.removeItem('isp_news_cache'); } catch (e) {}
+                if (items.length && newsData.length === 0) {
+                    const deleted = this.getDeletedNewsIds();
+                    withNumericIds(items).filter((n) => !deleted.has(n.id)).sort((a, b) => b.id - a.id).forEach((n) => newsData.push(n));
+                }
+                this._newsBootDone = true;
+                if (newsData.length) {
+                    this.applyUserNewsState();
+                    this.renderNews();
+                    this.renderNewsTicker();
+                    lucide.createIcons();
+                }
+                this.listenForNews();
+                this._newsPrune();
+            },
+            // News the admin deleted while this phone was away: a keys-only request (a few bytes).
+            async _newsPrune() {
+                if (!newsData.length || !window.firebaseDb) return;
+                try {
+                    const base = String((window.firebaseDb.app && window.firebaseDb.app.options && window.firebaseDb.app.options.databaseURL) || 'https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com').replace(/\/$/, '');
+                    const ctl = new AbortController();
+                    const t = setTimeout(() => ctl.abort(), 10000);
+                    const r = await fetch(base + '/news.json?shallow=true', { signal: ctl.signal });
+                    clearTimeout(t);
+                    if (!r.ok) return;
+                    const keys = await r.json();
+                    const have = new Set(Object.keys(keys || {}).map(Number));
+                    const gone = newsData.filter((n) => !have.has(n.id));
+                    if (!gone.length) return;
+                    gone.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
+                    newsStore.remove(gone.map((n) => n.id));
+                    this.renderNews();
+                    this.renderNewsTicker();
+                    lucide.createIcons();
+                } catch (e) { /* offline: the saved copy stays */ }
+            },
+            // Older news, a page at a time (the home page starts with the newest ones only).
+            async loadOlderNews() {
+                if (this._newsOlderBusy || !window.firebaseDb || !newsData.length) return;
+                this._newsOlderBusy = true;
+                const btn = document.getElementById('newsMoreBtn');
+                if (btn) { btn.disabled = true; btn.textContent = 'جاري التحميل...'; }
+                try {
+                    const { ref, get, query, orderByKey, endBefore, limitToLast } = window.firebaseDbHelpers;
+                    const minId = Math.min(...newsData.map((n) => n.id));
+                    const snap = await get(query(ref(window.firebaseDb, 'news'), orderByKey(), endBefore(String(minId)), limitToLast(this.NEWS_PAGE)));
+                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    const deleted = this.getDeletedNewsIds();
+                    const added = list.filter((n) => !deleted.has(n.id) && !newsData.some((x) => x.id === n.id));
+                    added.forEach((n) => newsData.push(n));
+                    newsData.sort((a, b) => b.id - a.id);
+                    newsStore.put(added);
+                    if (list.length < this.NEWS_PAGE) this._newsAllLoaded = true;
+                    this.applyUserNewsState();
+                    this.renderNews();
+                    lucide.createIcons();
+                } catch (e) {
+                    console.warn('Older news failed:', e);
+                    this.showToast('ما كدرت أجيب الأخبار الأقدم، تأكد من النت');
+                } finally {
+                    this._newsOlderBusy = false;
+                    const b2 = document.getElementById('newsMoreBtn');
+                    if (b2) { b2.disabled = false; b2.textContent = 'عرض أخبار أقدم'; }
+                }
+            },
+            // If the server hasn't answered after a while and there is nothing to show, say so
+            _newsWatch() {
+                if (this._newsWatchT || this._newsGot) return;
+                this._newsWatchT = setTimeout(() => {
+                    this._newsWatchT = null;
+                    if (!this._newsGot && !newsData.length) this.showError();
+                }, 15000);
             },
 
             // ==================== OFFLINE RESOURCES ====================
@@ -13846,12 +14058,28 @@
                 }
             },
 
+            // The PDF itself: inside the record for old resources (a data: URL), or in resourceFiles/{id}
+            // for new ones (fileUrl 'db:<id>'), so the list of resources stays light and the file is
+            // downloaded only when the student asks for it.
+            async _resFile(res) {
+                const f = String(res.fileUrl || '');
+                if (f.indexOf('data:') === 0) return f;
+                if (f.indexOf('db:') === 0 && window.firebaseDb) {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const v = (await get(ref(window.firebaseDb, 'resourceFiles/' + f.slice(3)))).val();
+                    if (typeof v === 'string' && v.indexOf('data:') === 0) return v;
+                }
+                return '';
+            },
             async downloadResourceOffline(id) {
-                const res = resourcesData.find(r => r.id === id) || this.offlineResourcesMeta.find(r => r.id === id);
-                if (!res) { this.showToast('الملف غير متوفر'); return; }
-                if (!res.fileUrl) { this.showToast('رابط الملف غير متوفر لهذه الملزمة'); return; }
+                const res0 = resourcesData.find(r => r.id === id) || this.offlineResourcesMeta.find(r => r.id === id);
+                if (!res0) { this.showToast('الملف غير متوفر'); return; }
+                if (!res0.fileUrl) { this.showToast('رابط الملف غير متوفر لهذه الملزمة'); return; }
                 this.showToast('جاري الحفظ للاستخدام بدون نت...');
                 try {
+                    const fileUrl = await this._resFile(res0);
+                    if (!fileUrl) { this.showToast('تعذر تحميل الملف، تأكد من النت وحاول مرة ثانية'); return; }
+                    const res = Object.assign({}, res0, { fileUrl });
                     await offlineResourcesDB.save(res);
                     this.offlineResourceIds.add(id);
                     if (!this.offlineResourcesMeta.some(r => r.id === id)) {
