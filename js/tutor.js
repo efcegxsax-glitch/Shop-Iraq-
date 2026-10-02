@@ -184,7 +184,7 @@
             }
         },
 
-        _ttUrl() { const c = this.siteConfig || {}; return /^https:\/\/[^\s]+$/.test(String(c.tutorUrl || '')) ? c.tutorUrl : ''; },
+        _ttUrl() { const u = this._tutorUrl(); return /^https:\/\/[^\s]+$/.test(String(u || '')) ? u : ''; },
 
         _ttRender() {
             const box = document.getElementById('ttBody');

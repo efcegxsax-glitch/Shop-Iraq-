@@ -267,7 +267,7 @@
 
         // the tutor's server; null when it is off, busy or there is no internet
         async _fdAsk(body) {
-            const url = (this.siteConfig || {}).tutorUrl;
+            const url = this._tutorUrl();
             if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !window.firebaseAuth || !window.firebaseAuth.currentUser || navigator.onLine === false) return null;
             try {
                 const token = await window.firebaseAuth.currentUser.getIdToken();

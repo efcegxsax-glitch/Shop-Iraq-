@@ -3988,7 +3988,7 @@
             // there is a reason to (days without studying, a grade that fell, an exam soon).
             _ttNudgeSoon() {
                 if (this.authUid) this._ttBadge();
-                if (this._ttNudgeT || !this.isLoggedIn || !this.authUid || !(this.siteConfig || {}).tutorUrl) return;
+                if (this._ttNudgeT || !this.isLoggedIn || !this.authUid || !this._tutorUrl()) return;
                 try { if (localStorage.getItem('isp_tutor_nudge_' + this.authUid) === this.localDateStr()) return; } catch (e) {}
                 this._ttNudgeT = setTimeout(() => {
                     this._need('tutor').then(() => this._ttNudge && this._ttNudge()).catch(() => {});
@@ -4306,7 +4306,7 @@
             // checks the record itself, see notifyPush in the Worker). Fire and forget.
             async _notifyPush(kind, to, mid) {
                 try {
-                    const url = (this.siteConfig || {}).tutorUrl;
+                    const url = this._tutorUrl();
                     if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !window.firebaseAuth || !window.firebaseAuth.currentUser) return;
                     const token = await window.firebaseAuth.currentUser.getIdToken();
                     fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'notify', kind, to, mid }) }).catch(() => {});
@@ -4328,6 +4328,12 @@
                 if (extra.kind === 'call') return true;
                 return this.currentView === 'chatThreadView' && this.currentChatUid === extra.from;
             },
+            // The tutor Worker's address: the panel's value when it was set (an empty one switches the tutor off),
+            // otherwise the Worker this project deploys.
+            _tutorUrl() {
+                const c = this.siteConfig || {};
+                return typeof c.tutorUrl === 'string' ? c.tutorUrl : 'https://isp-tutor.efceg-xsax.workers.dev';
+            },
             _tbPushOn() {
                 try { return !!(JSON.parse(localStorage.getItem('isp:tb:push:' + (this.authUid || 'guest')) || '{}').ids || []).length; } catch (e) { return false; }
             },
@@ -4347,7 +4353,7 @@
             },
             async _tbPushRun(force) {
                 try {
-                    const url = (this.siteConfig || {}).tutorUrl;
+                    const url = this._tutorUrl();
                     if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !this.isLoggedIn || !this.authUid || !window.firebaseAuth || !window.firebaseAuth.currentUser) return;
                     const d = this._tbGet(), key = 'isp:tb:push:' + this.authUid;
                     let st = {};
