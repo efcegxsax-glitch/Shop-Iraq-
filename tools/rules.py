@@ -178,6 +178,11 @@ rules = {
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
                                   "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio"]},
+    # big files (PDFs) live apart from the lists so opening the app never downloads them
+    "resourceFiles": {
+        ".read": True, ".write": ADMIN,
+        "$id": {".validate": "newData.isString() && newData.val().length < 10000000"},
+    },
     "bannedStudents": signed_admin,
     # bans by account, and the phones that account used (an id the app keeps on the phone); a
     # banned student's own app reports its phone, so a new account there is refused too

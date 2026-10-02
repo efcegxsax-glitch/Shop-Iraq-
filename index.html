@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '8a437e945e';
+        window.APP_VER = '4e53331a17';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -27,12 +27,15 @@
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
     <link rel="manifest" href="manifest.webmanifest">
 
+    <link rel="preconnect" href="https://iraqi-student-platform-9918d-default-rtdb.firebaseio.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <link rel="stylesheet" href="css/swiper-bundle.min.css?v=d3435371e4">
+    <script src="js/vendor/swiper-bundle.min.js?v=9fbbee8565" defer></script>
     <script src="js/vendor/lucide.min.js?v=536d65a6e8"></script>
     <!-- FIX: every screen calls lucide.createIcons(); if the icon CDN is blocked or slow,
          `lucide` is undefined and app.init() threw on its first call — the whole app stayed
@@ -41,10 +44,8 @@
     <script type="module">
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-        import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, startAt, endAt } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
-        import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-messaging.js";
+        import { getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, orderByKey, startAt, endAt, endBefore } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
         import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-storage.js";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -80,51 +81,36 @@
                 window.firebaseAuth = getAuth(app);
             }
             window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider };
-            window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, startAt, endAt };
-            window.firebaseMessagingHelpers = { getToken };
-            // FIX: submitStoreProduct() (My Store → add product) used to embed the raw
-            // image/video file as a base64 data: URL directly in the Realtime Database
-            // record — a 15MB video became a ~20MB string that every visitor's store-feed
-            // listener downloaded in full on every update, whether or not they ever opened
-            // that product. Firebase Storage is now initialized alongside the existing
-            // Database/Auth services (the project's `storageBucket` was already configured
-            // above, just unused) so product media can be uploaded there instead and only
-            // its short download URL stored in the database.
-            try {
-                window.firebaseStorage = getStorage(app);
-                window.firebaseStorageHelpers = { storageRef, uploadBytes, getDownloadURL };
-            } catch (e) {
-                console.warn('Firebase Storage init failed:', e);
-            }
-
-            // الإشعارات عبر FCM تتطلب متصفحاً وسياقاً آمناً (https + Service Worker) — يجب التحقق قبل getMessaging()
-            // لتفادي رفض Promise غير مُعالَج (messaging/unsupported-browser) عند فتح الملف مباشرة (file://) أو في متصفح لا يدعمها
-            isMessagingSupported().then((supported) => {
-                if (!supported) {
-                    // Expected when the page isn't served over https — not an error.
-                    console.info('Firebase Messaging غير مدعوم في هذا المتصفح/السياق');
-                    return;
-                }
-                try {
-                    window.firebaseMessaging = getMessaging(app);
-                    onMessage(window.firebaseMessaging, (payload) => {
-                        // Admin notifications also arrive through the database listener while the app
-                        // is open, which already plays the sound and shows them — don't show them twice.
-                        if (payload.data && payload.data.src === 'isp-admin') return;
-                        if (window.app && window.app.playNotifySound) window.app.playNotifySound();
-                        const title = (payload.notification && payload.notification.title) || 'منصة الطالب العراقي';
-                        const body = (payload.notification && payload.notification.body) || '';
-                        if ('Notification' in window && Notification.permission === 'granted') {
-                            try { new Notification(title, { body: body, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
-                        }
-                        if (window.app && window.app.showToast) window.app.showToast('خبر جديد: ' + body);
-                    });
-                } catch (e) {
-                    console.warn('onMessage setup failed:', e);
-                }
-            }).catch((e) => {
-                console.warn('تعذر التحقق من دعم Firebase Messaging:', e);
-            });
+            window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, orderByKey, startAt, endAt, endBefore };
+            // Messaging and Storage aren't needed to show the first screen, so they are loaded after the
+            // app is up (app start used to wait for both downloads). Storage is also awaited on demand.
+            const FB = 'https://www.gstatic.com/firebasejs/12.18.0/';
+            let storageP = null, messagingP = null;
+            window.firebaseEnsureStorage = () => storageP || (storageP = import(FB + 'firebase-storage.js').then((m) => {
+                window.firebaseStorage = m.getStorage(app);
+                window.firebaseStorageHelpers = { storageRef: m.ref, uploadBytes: m.uploadBytes, getDownloadURL: m.getDownloadURL };
+                return window.firebaseStorage;
+            }).catch((e) => { storageP = null; console.warn('Firebase Storage init failed:', e); return null; }));
+            window.firebaseEnsureMessaging = () => messagingP || (messagingP = import(FB + 'firebase-messaging.js').then(async (m) => {
+                if (!(await m.isSupported())) { console.info('Firebase Messaging غير مدعوم في هذا المتصفح/السياق'); return null; }
+                window.firebaseMessaging = m.getMessaging(app);
+                window.firebaseMessagingHelpers = { getToken: m.getToken };
+                m.onMessage(window.firebaseMessaging, (payload) => {
+                    // Admin notifications also arrive through the database listener while the app
+                    // is open, which already plays the sound and shows them — don't show them twice.
+                    if (payload.data && payload.data.src === 'isp-admin') return;
+                    if (window.app && window.app.playNotifySound) window.app.playNotifySound();
+                    const title = (payload.notification && payload.notification.title) || 'منصة الطالب العراقي';
+                    const body = (payload.notification && payload.notification.body) || '';
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        try { new Notification(title, { body: body, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
+                    }
+                    if (window.app && window.app.showToast) window.app.showToast('خبر جديد: ' + body);
+                });
+                return window.firebaseMessaging;
+            }).catch((e) => { messagingP = null; console.warn('تعذر التحقق من دعم Firebase Messaging:', e); return null; }));
+            const later = () => { window.firebaseEnsureMessaging(); setTimeout(() => window.firebaseEnsureStorage(), 4000); };
+            if (document.readyState === 'complete') setTimeout(later, 3000); else window.addEventListener('load', () => setTimeout(later, 3000));
         } catch (e) {
             console.warn('Firebase init failed:', e);
         }
@@ -274,6 +260,9 @@
                         <span id="newsCount" class="text-xs px-2 py-1 rounded-lg border theme-transition" style="background-color: var(--surface); color: var(--text2); border-color: var(--border);">12 خبر</span>
                     </div>
                     <div id="newsList" class="flex flex-col gap-3"></div>
+                    <div id="newsMore" class="hidden flex justify-center pt-4 pb-2">
+                        <button type="button" id="newsMoreBtn" onclick="app.loadOlderNews()" class="btn-press px-6 py-2.5 rounded-xl text-sm font-bold theme-transition" style="background-color: var(--surface); color: var(--text); border: 1px solid var(--border);">عرض أخبار أقدم</button>
+                    </div>
                 </div>
                 <div id="loadingState" class="hidden">
                     <div class="flex items-center justify-between mb-3">
@@ -1915,7 +1904,7 @@
     </nav>
 
     <script src="js/pickers.js?v=5c0a8e0be2"></script>
-    <script src="js/app.js?v=b47cce13c6"></script>
+    <script src="js/app.js?v=c7e3e922b7"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

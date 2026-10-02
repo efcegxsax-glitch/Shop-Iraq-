@@ -786,6 +786,7 @@
                         <div class="ic"><i data-lucide="list"></i></div>
                         <div><h3>الملازم المنشورة</h3></div>
                     </div>
+                    <button type="button" class="btn-sm go" style="margin-bottom:10px" id="resMigrateBtn" onclick="migrateResources()">تخفيف الملازم القديمة (نقل الملفات لمكان منفصل)</button>
                     <div id="resList"></div>
                 </div>
             </div>
@@ -1842,6 +1843,7 @@
                 const coverUrl = await uploadFile(coverFile, 'covers/');
                 const pdfUrl = await uploadFile(pdfFile, 'pdfs/');
                 const id = Date.now();
+                await set(ref(db, 'resourceFiles/' + id), pdfUrl);
                 await set(ref(db, 'resources/' + id), {
                     id, title,
                     description: val('r_desc') || 'ملزمة منشورة من لوحة التحكم',
@@ -1855,7 +1857,7 @@
                     year: val('r_year') || '2025',
                     isBookmarked: false,
                     isDownloaded: false,
-                    fileUrl: pdfUrl,
+                    fileUrl: 'db:' + id,
                     createdAt: serverTimestamp()
                 });
                 toast('تم نشر الملزمة بنجاح');
@@ -2471,7 +2473,25 @@
         };
 
         // ---------- Lists & Delete ----------
+        window.migrateResources = async () => {
+            const btn = el('resMigrateBtn'); btn.disabled = true;
+            try {
+                const all = (await get(ref(db, 'resources'))).val() || {};
+                let n = 0;
+                for (const k of Object.keys(all)) {
+                    const r = all[k];
+                    if (!r || typeof r.fileUrl !== 'string' || r.fileUrl.indexOf('data:') !== 0) continue;
+                    await set(ref(db, 'resourceFiles/' + k), r.fileUrl);
+                    await update(ref(db, 'resources/' + k), { fileUrl: 'db:' + k });
+                    n++; btn.textContent = 'تم نقل ' + n + ' ...';
+                }
+                toast(n ? 'تم نقل ' + n + ' ملزمة' : 'ما اكو ملازم تحتاج نقل');
+            } catch (e) { toast('فشل النقل: ' + (e.message || e), false); }
+            btn.textContent = 'تخفيف الملازم القديمة (نقل الملفات لمكان منفصل)'; btn.disabled = false;
+        };
+
         window.deleteItem = (node, id) => {
+            if (node === 'resources') remove(ref(db, 'resourceFiles/' + id)).catch(() => {});
             remove(ref(db, node + '/' + id)).then(() => toast('تم الحذف')).catch((e) => toast('فشل الحذف', false));
         };
 
