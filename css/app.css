@@ -4481,3 +4481,5 @@ body.focus-mode #sysBottom, body.forest-on #sysBottom { display: none; }
 @keyframes rxItem { from { opacity: 0; transform: translateY(14px) scale(.4); } to { opacity: 1; transform: none; } }
 @keyframes rxPop { 0% { transform: scale(.85); } 60% { transform: scale(1.1); } 100% { transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rx-pop, .rx-pop button, .rx-me.on { animation: none; } }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

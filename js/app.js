@@ -563,6 +563,12 @@
                     const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="' + colors[h % colors.length] + '"/><text x="50" y="50" dy=".35em" text-anchor="middle" font-family="Tahoma,Arial,sans-serif" font-size="46" font-weight="700" fill="#fff">' + escapeHtml(Array.from(name)[0]) + '</text></svg>';
                     im.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
                 }, true);
+                // every image added later loads only when it is near the screen (saves data on mobile)
+                const lazy = (im) => { if (im.tagName === 'IMG' && !im.hasAttribute('loading')) { im.loading = 'lazy'; im.decoding = 'async'; } };
+                new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => {
+                    if (n.nodeType !== 1) return;
+                    lazy(n); if (n.querySelectorAll) n.querySelectorAll('img').forEach(lazy);
+                }))).observe(document.body, { childList: true, subtree: true });
             },
             initErrorReporting() {
                 this._errSent = 0;
@@ -5175,8 +5181,8 @@
                 bar.id = 'installBar';
                 bar.className = 'inb';
                 bar.innerHTML = ios
-                    ? `<img src="icons/icon-192.png" alt=""><span><b>ثبّت منصة الطالب</b>اضغط زر المشاركة، بعدين "إضافة إلى الشاشة الرئيسية"</span>${x}`
-                    : `<img src="icons/icon-192.png" alt=""><span><b>ثبّت منصة الطالب</b>تنفتح أسرع ويوصلك إشعار العطل</span><button class="inb-go btn-press" onclick="app.installApp()">تثبيت</button>${x}`;
+                    ? `<img src="icons/icon-192.png" alt=""><span><b>ثبّت أكـادمي السادس</b>اضغط زر المشاركة، بعدين "إضافة إلى الشاشة الرئيسية"</span>${x}`
+                    : `<img src="icons/icon-192.png" alt=""><span><b>ثبّت أكـادمي السادس</b>تنفتح أسرع ويوصلك إشعار العطل</span><button class="inb-go btn-press" onclick="app.installApp()">تثبيت</button>${x}`;
                 document.body.appendChild(bar);
             },
 
