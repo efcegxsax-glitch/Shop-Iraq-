@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>منصة الطالب العراقي</title>
     <script>
-        window.APP_VER = '9132a55a83';
+        window.APP_VER = 'a54b96dac3';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -130,7 +130,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=f41867a405">
+    <link rel="stylesheet" href="css/app.css?v=44f72f6b32">
     <link rel="stylesheet" href="css/tw.css?v=d735b95f20">
 </head>
 <body class="antialiased">
@@ -214,6 +214,12 @@
                     <span class="tk-sr" id="tkSr" aria-live="polite"></span>
                     <ul class="tk-list" id="tkList" hidden></ul>
                 </div>
+            </section>
+
+            <section class="px-4" id="dateStripSection">
+                <button type="button" id="dateStrip" class="ds off" aria-live="polite" aria-label="تاريخ اليوم، انقر ثلاث مرات لإظهاره" onclick="app.dateStripTap()">
+                    <span class="ds-chip"><i data-lucide="calendar-days"></i><b id="dateStripText"></b></span>
+                </button>
             </section>
 
             <section class="px-4 pt-1 pb-2 hidden" id="voiceSection" aria-label="بصمة صوتية من الإدارة">
@@ -1728,6 +1734,19 @@
             <div id="idContent"><div class="id-wrap"><div class="id-load"><i></i><i></i></div></div></div>
         </div>
 
+        <div id="weeklyView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold truncate theme-transition" style="color: var(--text);">ملخص للأهل</div>
+                    <div class="text-xs truncate theme-transition" style="color: var(--text2);">أسبوعك بأرقام تفرّح أهلك</div>
+                </div>
+            </div>
+            <div id="wkContent"><div class="wk-wrap"><div class="id-load"><i></i><i></i></div></div></div>
+        </div>
+
         <div id="dhikrView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                 <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
@@ -1896,7 +1915,7 @@
     </nav>
 
     <script src="js/pickers.js?v=5c0a8e0be2"></script>
-    <script src="js/app.js?v=dd65d649d7"></script>
+    <script src="js/app.js?v=39dbcb9390"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

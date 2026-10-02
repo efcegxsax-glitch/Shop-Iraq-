@@ -566,7 +566,7 @@
                     if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
                     const cn = navigator.connection || {};
                     if (cn.saveData || /(^|-)2g$/.test(cn.effectiveType || '')) return;
-                    const parts = ['calls', 'food', 'dhikr', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
+                    const parts = ['calls', 'food', 'dhikr', 'weekly', 'tutor', 'cards', 'shop', 'spots', 'vent', 'ventfilter', 'ideas', 'mistakes', 'moodmap', 'uni', 'ytroom', 'garden', 'gardenui', 'dreams'];
                     navigator.serviceWorker.controller.postMessage({ type: 'isp-warm', urls: parts.map((n) => 'js/' + n + '.js?v=' + (window.APP_VER || '1')) });
                 } catch (e) { /* only a speed-up */ }
             },
@@ -726,6 +726,7 @@
                 lucide.createIcons();
                 this._restoreView();
                 this._nutStart();
+                this._dateStripStart();
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderHolidays(); }, 60000);
@@ -2871,7 +2872,7 @@
                 const $ = (id) => document.getElementById(id);
 
                 // Home sections
-                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
+                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', dateStrip: 'dateStripSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
                 // Pages the panel can switch off for everyone (siteConfig/features/<name> = false)
@@ -3757,7 +3758,7 @@
                 f.golden = this._goldenCredit(f);
                 const pts = f.minutes + f.golden;
                 this.saveFocusStats({ forestTrees: numOr0(u.forestTrees) + 1, forestMinutes: numOr0(u.forestMinutes) + f.minutes });
-                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1 }));
+                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1, minutes: f.minutes }));
                 this._govWarAdd(f.minutes);
                 if (window.firebaseDb) {
                     const { ref, runTransaction, set } = window.firebaseDbHelpers;
@@ -4039,6 +4040,58 @@
                 if (meals.length) L.push('أكله اليوم: ' + meals.map((x) => (this.NUT_MEALS[x.meal] || [''])[0] + ': ' + x.r.items.map((i) => i.name + (i.v === 'bad' ? ' (يضر)' : '')).join('، ')).join(' / '));
                 return L.join(' ');
             },
+            // ===== The date under the news ticker (e.g. الأحد 2026/1/1) =====
+            // Shown for 10 seconds, the first time the home page is seen each day, then it slips away.
+            // It comes back for another 10 seconds the next day, or when the student taps three times
+            // where it was (the thin strip stays tappable under the ticker).
+            _dateText() {
+                const d = new Date();
+                return ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'][d.getDay()] + ' ' + d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+            },
+            _dateStripShow() {
+                const el = document.getElementById('dateStrip'), tx = document.getElementById('dateStripText');
+                if (!el || !tx) return;
+                tx.textContent = this._dateText();
+                el.classList.remove('off');
+                lucide.createIcons();
+                clearTimeout(this._dsTimer);
+                this._dsTimer = setTimeout(() => el.classList.add('off'), 10000);
+            },
+            // a new day (or the very first time) and the home page in front of the student
+            _dateStripCheck() {
+                if (document.hidden || this.currentView !== 'homeView') return;
+                const cfg = this.siteConfig || {};
+                if (cfg.sections && cfg.sections.dateStrip === false) return;
+                const today = this.localDateStr();
+                let last = '';
+                try { last = localStorage.getItem('isp_date_shown') || ''; } catch (e) {}
+                if (last === today) return;
+                try { localStorage.setItem('isp_date_shown', today); } catch (e) {}
+                this._dateStripShow();
+            },
+            dateStripTap() {
+                const now = Date.now();
+                this._dsTaps = (this._dsTaps || []).filter((t) => now - t < 900);
+                this._dsTaps.push(now);
+                if (this._dsTaps.length >= 3) { this._dsTaps = []; this._dateStripShow(); }
+            },
+            _dateStripStart() {
+                if (this._dsStarted) return;
+                this._dsStarted = true;
+                // a day that turns while the app stays open
+                setInterval(() => this._dateStripCheck(), 30000);
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) this._dateStripCheck(); });
+                setTimeout(() => this._dateStripCheck(), 1200);
+            },
+
+            // ===== ملخص الأسبوع للأهل (js/weekly.js) =====
+            goToWeekly() {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخول حتى يطلعلك ملخصك'); this.goToAuth('login'); return; }
+                this.switchView('weeklyView');
+                if (this._withPart('weekly', () => typeof this.wkOpen === 'function', 'weeklyView', () => this.goToWeekly())) return;
+                this.wkOpen();
+            },
+
             // ===== روحانيات: prayer beads, istighfar, duas, Ramadan deeds (js/dhikr.js) =====
             goToDhikr() {
                 const cfg = this.siteConfig || {};
@@ -4888,7 +4941,7 @@
                 if (this.isLoggedIn && this.currentUser) {
                     golden = this._goldenCredit(f);
                     this.addPointsAtomic(f.minutes + golden).then(() => {
-                        this.logDailyActivity({ points: f.minutes + golden, studySessions: 1 });
+                        this.logDailyActivity({ points: f.minutes + golden, studySessions: 1, minutes: f.minutes });
                     });
                     this._govWarAdd(f.minutes);
                 }
@@ -5478,7 +5531,7 @@
                 w.golden = this._goldenCredit(w);
                 const pts = w.minutes + w.golden;
                 this.saveFocusStats({ warWins: numOr0(u.warWins) + 1, warMinutes: numOr0(u.warMinutes) + w.minutes });
-                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1 }));
+                this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1, minutes: w.minutes }));
                 this._gwJustDone = true;
                 this._govWarAdd(w.minutes);
                 try { navigator.vibrate && navigator.vibrate([100, 60, 100, 60, 300]); } catch (e) {}
@@ -7708,6 +7761,7 @@
             // the device and in users/{uid}/moreFavs) and the last few sections they opened.
             MORE_ITEMS: [
                 { id: 'wallet', fn: 'goToWallet', t: 'رصيدي', d: 'محفظتك ونقاطك', ic: 'wallet', c: '#10B981', g: 'tools' },
+                { id: 'weekly', fn: 'goToWeekly', t: 'ملخص للأهل', d: 'ملخص دراستك الأسبوعي ترسله لأهلك', ic: 'file-heart', c: '#0EA5E9', g: 'study' },
                 { id: 'dhikr', fn: 'goToDhikr', t: 'روحانيات', d: 'مسبحة وأدعية تريح القلب وأعمال رمضان', ic: 'moon-star', c: '#0D9488', g: 'tools', feat: 'dhikr' },
                 { id: 'food', fn: 'goToFood', t: 'غذائي ومائي', d: 'أكل يقوي ذاكرتك وتذكير بالماي', ic: 'apple', c: '#16A34A', g: 'study' },
                 { id: 'mistakes', fn: 'goToMistakes', t: 'دفتر الغلطات', d: 'غلطاتك ترجعلك لحد ما تتقنها', ic: 'notebook-pen', c: '#E11D48', g: 'study' },
@@ -10190,7 +10244,7 @@
                         this.currentUser.studySessions = (this.currentUser.studySessions || 0) + 1;
                         this.saveUserData();
                         this.syncUserToDatabase();
-                        this.logDailyActivity({ points: 10, studySessions: 1 });
+                        this.logDailyActivity({ points: 10, studySessions: 1, minutes: Math.round((this.studyTimerDuration || 0) / 60) });
                         const countEl = document.getElementById('studyTimerSessionsCount');
                         if (countEl) countEl.textContent = this.currentUser.studySessions;
                         this.showToast('أحسنت! جلسة مذاكرة مكتملة (+10 نقاط)');
@@ -11036,6 +11090,8 @@
                     c.points = (c.points || 0) + (deltas.points || 0);
                     c.studySessions = (c.studySessions || 0) + (deltas.studySessions || 0);
                     c.tasksDone = (c.tasksDone || 0) + (deltas.tasksDone || 0);
+                    // minutes of real study (timer, focus, forest, war, garden), for the weekly summary
+                    if (deltas.minutes) c.minutes = Math.max(0, (c.minutes || 0) + deltas.minutes);
                     return c;
                 }).then((result) => {
                     if (result && result.committed && result.snapshot.exists()) {
@@ -13472,7 +13528,7 @@
                 document.body.classList.toggle('forest-on', viewId === 'forestView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
+                if (viewId === 'homeView') { this._dateStripCheck(); this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');

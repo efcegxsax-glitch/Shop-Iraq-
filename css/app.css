@@ -4148,3 +4148,57 @@ body.is-banned { overflow: hidden; }
 .ban-wall button { margin-top: 6px; padding: 13px 22px; border-radius: 16px; background: #fff; color: #0F172A; font-weight: 900; font-size: 15px; }
 .pf-delete { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 11px; border-radius: 16px; font-size: 13px; font-weight: 700; color: var(--text2); background: transparent; border: 1px dashed var(--border); cursor: pointer; }
 .pf-delete svg { width: 16px; height: 16px; }
+
+/* ---------- ملخص الأسبوع للأهل (js/weekly.js) ---------- */
+.wk-wrap { padding: 16px 16px 110px; display: flex; flex-direction: column; gap: 14px; }
+.wk-empty, .wk-small { font-size: 12.5px; color: var(--text2); text-align: center; line-height: 1.7; }
+.wk-card { padding: 18px; border-radius: 24px; color: #fff; background: linear-gradient(135deg, #0F766E, #134E4A); box-shadow: 0 14px 30px rgba(15,118,110,.25); animation: chatBubbleIn .4s ease; }
+.wk-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wk-top b { font-size: 18px; font-weight: 900; } .wk-top small { font-size: 12px; opacity: .85; }
+.wk-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.wk-tiles div { padding: 12px 6px; border-radius: 16px; background: rgba(255,255,255,.14); text-align: center; }
+.wk-tiles b { display: block; font-size: 28px; font-weight: 900; line-height: 1.2; } .wk-tiles b small { font-size: 13px; opacity: .7; }
+.wk-tiles span { font-size: 12px; opacity: .85; }
+.wk-bars { display: flex; justify-content: space-between; align-items: flex-end; gap: 6px; height: 96px; margin-top: 14px; }
+.wk-bars div { flex: 1; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+.wk-bars i { display: block; width: 100%; max-width: 26px; border-radius: 8px; background: rgba(255,255,255,.22); transition: height .8s cubic-bezier(.2,.8,.2,1); animation: wkGrow .8s cubic-bezier(.2,.8,.2,1) backwards; }
+.wk-bars i.on { background: #5EEAD4; }
+.wk-bars small { font-size: 10px; opacity: .8; }
+@keyframes wkGrow { from { height: 0; } }
+.wk-delta { margin-top: 10px; font-size: 12.5px; font-weight: 700; opacity: .9; }
+.wk-delta.up { color: #BBF7D0; } .wk-delta.down { color: #FDE68A; }
+.wk-streak { margin-top: 6px; font-size: 12.5px; font-weight: 800; color: #FDE68A; }
+.wk-sec { padding: 12px 14px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.wk-sec.off { opacity: .75; }
+.wk-sw { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.wk-sw span { flex: 1; } .wk-sw b { font-size: 14px; color: var(--text); }
+.wk-sw input { display: none; }
+.wk-sw i { width: 44px; height: 26px; border-radius: 999px; background: var(--border); position: relative; transition: background .25s; flex: none; }
+.wk-sw i::after { content: ''; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); transition: transform .25s; }
+.wk-sw input:checked + i { background: #0F766E; } .wk-sw input:checked + i::after { transform: translateX(-18px); }
+.wk-list { display: flex; flex-direction: column; gap: 6px; }
+.wk-list div { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px; background: var(--input-bg); font-size: 13.5px; }
+.wk-list span { flex: 1; color: var(--text); font-weight: 600; } .wk-list b { color: #0F766E; font-weight: 900; }
+.wk-list em { font-style: normal; font-size: 11.5px; font-weight: 800; } .wk-list em.up { color: #16A34A; } .wk-list em.down { color: #DC2626; }
+.wk-note span { display: block; font-size: 12.5px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+.wk-note textarea { width: 100%; padding: 10px 12px; border-radius: 14px; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); font-size: 14px; resize: none; }
+.wk-prev { padding: 14px; border-radius: 18px; background: var(--surface); border: 1px dashed var(--border); }
+.wk-prev b { font-size: 13px; color: var(--text2); }
+.wk-prev pre { margin: 8px 0 0; white-space: pre-wrap; font-family: inherit; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+.wk-btns { display: flex; gap: 8px; }
+.wk-btns button { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 13px; border-radius: 16px; font-weight: 800; font-size: 14px; }
+.wk-btns svg { width: 18px; height: 18px; }
+.wk-wa { flex: 1; background: #16A34A; color: #fff; box-shadow: 0 10px 22px rgba(22,163,74,.3); }
+.wk-soft { padding: 13px 16px !important; background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+@media (prefers-reduced-motion: reduce) { .wk-bars i { animation: none; } }
+
+/* ---------- the date under the news ticker (app._dateStrip*) ---------- */
+.ds { position: relative; display: flex; justify-content: center; width: 100%; height: 40px; overflow: visible; transition: height .5s cubic-bezier(.2,.8,.2,1); -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }
+.ds.off { height: 16px; }
+.ds::before { content: ''; position: absolute; inset: -6px 0; } /* a bigger tap area while it is hidden */
+.ds-chip { display: inline-flex; align-items: center; gap: 7px; align-self: flex-start; margin-top: 2px; padding: 7px 16px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); color: var(--text); font-size: 13.5px; font-weight: 800; box-shadow: 0 6px 16px rgba(0,0,0,.06); opacity: 1; transform: none; transition: opacity .45s ease, transform .5s cubic-bezier(.2,.8,.2,1); animation: dsIn .5s cubic-bezier(.2,1.2,.4,1); }
+.ds-chip svg { width: 15px; height: 15px; color: rgb(var(--p)); }
+.ds-chip b { font-variant-numeric: tabular-nums; direction: rtl; }
+.ds.off .ds-chip { opacity: 0; transform: translateY(-10px) scale(.92); pointer-events: none; animation: none; }
+@keyframes dsIn { from { opacity: 0; transform: translateY(-10px) scale(.92); } }
+@media (prefers-reduced-motion: reduce) { .ds, .ds-chip { transition: none; animation: none; } }

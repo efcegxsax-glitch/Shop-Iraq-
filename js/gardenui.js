@@ -225,7 +225,7 @@
             f.golden = this._goldenCredit(f);
             const pts = f.minutes + f.golden;
             this.saveFocusStats({ gardenTrees: numOr0(u.gardenTrees) + 1, gardenMinutes: numOr0(u.gardenMinutes) + f.minutes, ['garden_' + f.sp]: numOr0(u['garden_' + f.sp]) + 1 });
-            this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1 }));
+            this.addPointsAtomic(pts).then(() => this.logDailyActivity({ points: pts, studySessions: 1, minutes: f.minutes }));
             this._gdResult = { ok: true, f, pts };
             this._gdRenderResult();
         },
