@@ -2044,6 +2044,11 @@
                 const text = String(news.excerpt || '');
                 const words = (String(news.title || '') + ' ' + text).trim().split(/\s+/).length;
                 const readMin = Math.max(1, Math.round(words / 180));
+                // tidy text: no repeated title as the first line, no stacks of blank lines, one paragraph per block
+                let clean = text.replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').trim();
+                const firstLine = clean.split('\n')[0].trim();
+                if (firstLine && firstLine === String(news.title || '').trim()) clean = clean.slice(clean.indexOf('\n') < 0 ? clean.length : clean.indexOf('\n')).trim();
+                const body = clean ? clean.split(/\n{2,}/).map((para) => '<p>' + escapeHtml(para.trim()).replace(/\n/g, '<br>') + '</p>').join('') : '';
                 const d = new Date(Number(news.id));
                 const dateLabel = isNaN(d) ? escapeHtml(news.date || '') : d.getDate() + ' ' + IRAQI_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
                 const related = newsData.filter(n => n.id !== id && n.category === news.category).slice(0, 3);
@@ -2061,13 +2066,13 @@
                         <div class="nd-body">
                             <h1 class="nd-title">${escapeHtml(news.title)}</h1>
                             <div class="nd-src">
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Flag_of_Iraq.svg/1200px-Flag_of_Iraq.svg.png" alt="">
+                                <span class="nd-flag" aria-hidden="true"><svg viewBox="0 0 36 36"><rect width="36" height="12" fill="#CE1126"/><rect y="12" width="36" height="12" fill="#fff"/><rect y="24" width="36" height="12" fill="#111"/><path d="M11 18h14" stroke="#007A3D" stroke-width="3" stroke-linecap="round"/></svg></span>
                                 <div>
                                     <b>${escapeHtml(news.source || 'وزارة التربية العراقية')}</b>
-                                    <span>${dateLabel} · <span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span> · ${readMin} د قراءة</span>
+                                    <span>${dateLabel}</span><span><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span> · ${readMin} د قراءة</span>
                                 </div>
                             </div>
-                            ${text ? `<div class="nd-text">${escapeHtml(text)}</div>` : ''}
+                            ${body ? `<div class="nd-text">${body}</div>` : ''}
                             ${this.rxBarHtml(Number(news.id))}
                             <div class="nd-actions">
                                 <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>

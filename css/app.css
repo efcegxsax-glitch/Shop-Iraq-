@@ -504,10 +504,16 @@
         .nd-body { padding: 18px 18px 28px; animation: cardIn .55s var(--ease-out) both .1s; }
         .nd-title { margin: 0 0 14px; font-size: 23px; line-height: 1.6; font-weight: 800; color: var(--text); letter-spacing: -0.01em; }
         .nd-src { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--input-bg); }
-        .nd-src img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .nd-src img, .nd-flag { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; flex-shrink: 0; overflow: hidden; box-shadow: 0 0 0 2px var(--surface); }
+.nd-flag svg { display: block; width: 100%; height: 100%; }
+.nd-src > div { min-width: 0; }
+.nd-src span { display: block; margin-top: 2px; line-height: 1.6; }
         .nd-src b { display: block; font-size: 14px; font-weight: 800; color: var(--text); }
         .nd-src span { font-size: 12px; color: var(--text2); }
-        .nd-text { margin-top: 18px; font-size: 18px; line-height: 2.05; font-weight: 500; color: var(--text); white-space: pre-line; }
+        .nd-src span span { display: inline; margin: 0; }
+        .nd-text { margin-top: 18px; font-size: 17px; line-height: 2; font-weight: 500; color: var(--text); overflow-wrap: anywhere; }
+.nd-text p { margin: 0 0 14px; }
+.nd-text p:last-child { margin-bottom: 0; }
         .nd-actions { display: flex; gap: 10px; margin: 22px 0 6px; }
         .nd-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; height: 48px; border-radius: 16px; border: 1px solid var(--border); font-size: 14.5px; font-weight: 800; color: var(--text); background: var(--surface); cursor: pointer; }
         .nd-btn svg { width: 18px; height: 18px; }
