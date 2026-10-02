@@ -391,6 +391,56 @@ async function coachPush(env, when) {
     return res.ok ? 'sent' : 'error_' + res.status;
 }
 
+// ---------- a push for a call or a message (the app asks right after writing it) ----------
+// The Worker never trusts the request: it reads the call or the message from the database with the caller's own
+// sign-in (so the database rules decide what the caller may see) and only pushes when that record really exists, is
+// from this caller to this person, and is fresh. The push goes to the receiver only (OneSignal external id = uid).
+const UID_RE = /^[A-Za-z0-9]{20,40}$/;
+async function dbGet(env, path, token) {
+    if (!env.FIREBASE_DB_URL) return null;
+    try {
+        const r = await fetch(env.FIREBASE_DB_URL.replace(/\/$/, '') + '/' + path + '.json?auth=' + encodeURIComponent(token));
+        return r.ok ? await r.json() : null;
+    } catch { return null; }
+}
+async function notifyPush(env, uid, token, body, headers) {
+    const kind = body.kind === 'call' ? 'call' : body.kind === 'msg' ? 'msg' : '';
+    const to = typeof body.to === 'string' ? body.to : '';
+    if (!kind || !UID_RE.test(to) || to === uid) return json(400, { error: 'bad' }, headers);
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+    if (env.PER_NOTIFY) {
+        const { success } = await env.PER_NOTIFY.limit({ key: uid + ':' + to + ':' + kind });
+        if (!success) return json(429, { error: 'slow_down' }, headers);
+    }
+    const chat = [uid, to].sort().join('_'), now = Date.now();
+    let title, text;
+    const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
+    if (kind === 'call') {
+        const c = await dbGet(env, 'calls/' + chat, token);
+        const at = Number(c && c.at);
+        if (!c || c.from !== uid || c.to !== to || c.st !== 'ring' || !(now - at < 90000 && at - now < 60000)) return json(409, { error: 'no_call' }, headers);
+        title = 'مكالمة صوتية'; text = name + ' يتصل بيك';
+    } else {
+        const mid = Math.floor(Number(body.mid));
+        if (!Number.isFinite(mid) || mid < 1) return json(400, { error: 'bad' }, headers);
+        const m = await dbGet(env, 'privateChats/' + chat + '/messages/' + mid, token);
+        if (!m || m.from !== uid || m.to !== to || !(now - mid < 180000 && mid - now < 60000)) return json(409, { error: 'no_msg' }, headers);
+        title = name;
+        text = typeof m.text === 'string' && m.text ? str(m.text, 90) : m.type === 'image' ? 'أرسل صورة' : m.type === 'voice' ? 'أرسل رسالة صوتية' : m.type === 'file' ? 'أرسل ملف' : 'رسالة جديدة';
+    }
+    const r = await fetch('https://api.onesignal.com/notifications?c=push', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+        body: JSON.stringify({
+            app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [to] },
+            headings: { en: title, ar: title }, contents: { en: text, ar: text },
+            ...PUSH_LOOK(env), data: { kind, from: uid, fromName: name }, ttl: kind === 'call' ? 45 : 3600,
+            ...(kind === 'msg' ? { collapse_id: 'chat-' + uid, web_push_topic: 'chat-' + uid.slice(0, 20) } : {}),
+        }),
+    });
+    if (!r.ok) console.error('notify', r.status, (await r.text().catch(() => '')).slice(0, 200));
+    return json(r.ok ? 200 : 502, { ok: r.ok }, headers);
+}
+
 // ---------- lecture reminders (timetable): scheduled pushes that arrive even when the app is closed ----------
 // The app sends the student's next lectures (a few lines each); this schedules one OneSignal push per
 // lecture for that student only (external id = Firebase uid) and returns the ids so the app can
@@ -468,6 +518,11 @@ export default {
             const j = await r.json().catch(() => ({}));
             if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
             return json(r.ok ? 200 : 502, r.ok ? { id: j.id || '', recipients: j.recipients, errors: j.errors || null } : { error: 'onesignal', status: r.status, detail: j.errors || null }, headers);
+        }
+
+        if (body.mode === 'notify') {
+            const tok = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
+            return notifyPush(env, uid, tok ? tok[1] : '', body, headers);
         }
 
         if (body.mode === 'tbsync') {

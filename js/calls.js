@@ -144,6 +144,7 @@
                 if (this._cl === c) this._clEnd('fail');
                 return;
             }
+            this._notifyPush('call', uid);
             if (this._cl !== c) return;
             c.offs.push(onValue(ref(db(), base), (snap) => this._clSignal(c, snap.val())));
             this._clCands(c, 'ac');
