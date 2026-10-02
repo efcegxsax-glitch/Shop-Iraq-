@@ -4041,8 +4041,8 @@
                 return L.join(' ');
             },
             // ===== The date under the news ticker (e.g. الأحد 2026/1/1) =====
-            // Shown for 10 seconds, the first time the home page is seen each day, then it slips away.
-            // It comes back for another 10 seconds the next day, or when the student taps three times
+            // Shown for 30 seconds, the first time the home page is seen each day, then it slips away.
+            // It comes back for another 30 seconds the next day, or when the student taps three times
             // where it was (the thin strip stays tappable under the ticker).
             _dateText() {
                 const d = new Date();
@@ -4055,7 +4055,7 @@
                 el.classList.remove('off');
                 lucide.createIcons();
                 clearTimeout(this._dsTimer);
-                this._dsTimer = setTimeout(() => el.classList.add('off'), 10000);
+                this._dsTimer = setTimeout(() => el.classList.add('off'), 30000);
             },
             // a new day (or the very first time) and the home page in front of the student
             _dateStripCheck() {
