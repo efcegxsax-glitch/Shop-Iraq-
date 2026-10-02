@@ -32,7 +32,7 @@ v = {
     'js/pickers.js': h('js/pickers.js'),
 }
 import glob
-v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', 'js/uni.js', 'js/ytroom.js', 'js/garden.js', 'js/gardenui.js', 'js/tutor.js', 'js/moodmap.js', 'js/mistakes.js', 'js/shop.js', 'js/spots.js', 'js/ventfilter.js', 'js/vent.js', 'js/ideas.js', 'js/calls.js', 'js/food.js', 'js/dhikr.js', *sorted(glob.glob('js/bio/*.js')))
+v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', 'js/uni.js', 'js/ytroom.js', 'js/garden.js', 'js/gardenui.js', 'js/tutor.js', 'js/moodmap.js', 'js/mistakes.js', 'js/shop.js', 'js/spots.js', 'js/ventfilter.js', 'js/vent.js', 'js/ideas.js', 'js/calls.js', 'js/food.js', 'js/dhikr.js', 'js/weekly.js', *sorted(glob.glob('js/bio/*.js')))
 
 with open('index.html', encoding='utf-8') as f:
     s = f.read()
