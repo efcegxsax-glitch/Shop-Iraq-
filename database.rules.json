@@ -249,6 +249,24 @@
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
       }
     },
+    "userNewsReact": {
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        "$n": {
+          ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^(like|love|laugh|sad|angry)$/))"
+        }
+      }
+    },
+    "newsReactCounts": {
+      ".read": true,
+      "$n": {
+        "$t": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && ((newData.val() == (data.exists() ? data.val() : 0) + 1 && newData.parent().parent().parent().child('userNewsReact').child(auth.uid).child($n).val() == $t && root.child('userNewsReact').child(auth.uid).child($n).val() != $t && (!root.child('userNewsReact').child(auth.uid).child($n).exists() || newData.parent().child(root.child('userNewsReact').child(auth.uid).child($n).val()).val() == root.child('newsReactCounts').child($n).child(root.child('userNewsReact').child(auth.uid).child($n).val()).val() - 1)) || (data.exists() && newData.val() == data.val() - 1 && root.child('userNewsReact').child(auth.uid).child($n).val() == $t && newData.parent().parent().parent().child('userNewsReact').child(auth.uid).child($n).val() != $t))))",
+          ".validate": "$t.matches(/^(like|love|laugh|sad|angry)$/) && newData.isNumber() && newData.val() >= 0"
+        }
+      }
+    },
     "userDuels": {
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",

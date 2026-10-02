@@ -268,6 +268,27 @@ rules = {
     },
     **{k: {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN)}} for k in
        ["userNewsState", "userTasks", "userActivity", "tokens", "walletTransactions", "chatClearedAt", "userCards"]},
+    # reactions on news: each student keeps their own choice, and the public counters may only move by one,
+    # together with that student's own choice changing (the same update), so nobody can inflate a number
+    "userNewsReact": {"$uid": {".read": OWNER, "$n": {
+        ".write": ors(OWNER, ADMIN),
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^(like|love|laugh|sad|angry)$/))",
+    }}},
+    "newsReactCounts": {
+        ".read": True,
+        "$n": {"$t": {
+            ".write": ors(ADMIN, ands(SIGNED, ors(
+                ands("newData.val() == (data.exists() ? data.val() : 0) + 1",
+                     "newData.parent().parent().parent().child('userNewsReact').child(auth.uid).child($n).val() == $t",
+                     "root.child('userNewsReact').child(auth.uid).child($n).val() != $t",
+                     # switching from another reaction: that one's counter goes down by one in the same update
+                     "(!root.child('userNewsReact').child(auth.uid).child($n).exists() || newData.parent().child(root.child('userNewsReact').child(auth.uid).child($n).val()).val() == root.child('newsReactCounts').child($n).child(root.child('userNewsReact').child(auth.uid).child($n).val()).val() - 1)"),
+                ands("data.exists()", "newData.val() == data.val() - 1",
+                     "root.child('userNewsReact').child(auth.uid).child($n).val() == $t",
+                     "newData.parent().parent().parent().child('userNewsReact').child(auth.uid).child($n).val() != $t")))),
+            ".validate": "$t.matches(/^(like|love|laugh|sad|angry)$/) && newData.isNumber() && newData.val() >= 0",
+        }},
+    },
     # the challenger also lists the duel for the other player
     "userDuels": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$id": {".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"}}},
     "presence": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},

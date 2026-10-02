@@ -781,6 +781,7 @@
                 this.loadNotifPrefs();
                 this.watchAuthState();
                 this._newsBootP = this._newsBoot();
+                setTimeout(() => this.listenForReactions(), 600);
                 this.hydrateOfflineResources();
                 this.loadData();
                 window.addEventListener('online', () => {
@@ -964,6 +965,7 @@
                     }
                     this[key] = null;
                 });
+                setTimeout(() => { if (this.listenForReactions) this.listenForReactions(); }, 0);
             },
 
             // Keeps balance/points in sync with the database (incoming transfers, other
@@ -1287,6 +1289,7 @@
                     this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
+                    this.listenForReactions();
                     this.listenForFriends();
                     this.listenForYtInvites();
                     this.listenForFriendRequests();
@@ -1823,6 +1826,119 @@
             // News card v2: photo on the right, bold title, 2-line excerpt, divider, then
             // source · time and a bookmark. Keeps swipe-to-delete (the red layer must stay the
             // article's previous sibling).
+            // ===== Reactions on news: like, love, laugh, sad, angry (drawn icons, not emoji) =====
+            // userNewsReact/{uid}/{newsId} = the student's own choice; newsReactCounts/{newsId}/{type} = the public counters,
+            // which the database rules only let move by one together with that student's own choice.
+            RX_TYPES: ['like', 'love', 'laugh', 'sad', 'angry'],
+            RX_LABEL: { like: 'إعجاب', love: 'حب', laugh: 'ضحك', sad: 'حزن', angry: 'غضب' },
+            RX_COLOR: { like: '#2563EB', love: '#EF4444', laugh: '#F59E0B', sad: '#F59E0B', angry: '#EA580C' },
+            _rxIcon(t, size) {
+                const z = size || 24, id = 'rx' + t + z + Math.floor(Math.random() * 1e6);
+                const face = (g1, g2) => `<defs><radialGradient id="${id}" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="${g1}"/><stop offset="1" stop-color="${g2}"/></radialGradient></defs><circle cx="16" cy="16" r="16" fill="url(#${id})"/>`;
+                const ink = '#4A2C00';
+                const parts = {
+                    like: face('#5B9DFF', '#1D4ED8') + '<path transform="translate(7.2 6.6) scale(.78)" fill="#fff" d="M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/>',
+                    love: face('#FF7A7A', '#DC2626') + '<path fill="#fff" d="M16 25.5C7.5 19 6 14.6 6 12c0-2.6 2-4.5 4.4-4.5 2.4 0 4.2 1.7 5.6 3.7 1.4-2 3.2-3.7 5.6-3.7C24 7.5 26 9.4 26 12c0 2.6-1.5 7-10 13.5z"/>',
+                    laugh: face('#FFE27A', '#F59E0B') + `<path d="M8.5 13.2q2.3-3 4.6 0M18.9 13.2q2.3-3 4.6 0" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/><path d="M8 17.5h16c0 5-3.6 8.5-8 8.5s-8-3.5-8-8.5z" fill="${ink}"/><path d="M11.5 23.4q4.5-3 9 0c-1 1.4-2.7 2.1-4.5 2.1s-3.5-.7-4.5-2.1z" fill="#F87171"/>`,
+                    sad: face('#FFE27A', '#F59E0B') + `<circle cx="11" cy="13.5" r="1.9" fill="${ink}"/><circle cx="21" cy="13.5" r="1.9" fill="${ink}"/><path d="M10.5 24q5.5-5 11 0" fill="none" stroke="${ink}" stroke-width="1.8" stroke-linecap="round"/><path d="M24.5 16.2q2.7 3.2 0 5.2-2.7-2-0-5.2z" fill="#4FA3F7"/>`,
+                    angry: face('#FF9A62', '#DC2626') + `<path d="M7.5 9.5l6.5 3.2M24.5 9.5l-6.5 3.2" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/><circle cx="11.2" cy="15.2" r="1.9" fill="${ink}"/><circle cx="20.8" cy="15.2" r="1.9" fill="${ink}"/><path d="M10.5 24.5q5.5-5 11 0" fill="none" stroke="${ink}" stroke-width="2" stroke-linecap="round"/>`,
+                };
+                return `<svg class="rx-ic" width="${z}" height="${z}" viewBox="0 0 32 32" aria-hidden="true">${parts[t] || ''}</svg>`;
+            },
+            _rxState() { return this._rx || (this._rx = { counts: {}, mine: {} }); },
+            listenForReactions() {
+                if (!window.firebaseDb) return;
+                const { ref, onValue, query, orderByKey, limitToLast } = window.firebaseDbHelpers;
+                const R = this._rxState();
+                if (!this._rxPubListener) {
+                    this._rxPubListener = onValue(query(ref(window.firebaseDb, 'newsReactCounts'), orderByKey(), limitToLast(60)), (snap) => {
+                        R.counts = snap.exists() ? snap.val() : {};
+                        this.rxRefresh();
+                    }, () => {});
+                }
+                if (this.authUid && R.uid !== this.authUid) {
+                    if (typeof this._rxMine === 'function') { try { this._rxMine(); } catch (e) {} }
+                    R.uid = this.authUid; R.mine = {};
+                    this._rxMine = onValue(ref(window.firebaseDb, 'userNewsReact/' + this.authUid), (snap) => { R.mine = snap.exists() ? snap.val() : {}; this.rxRefresh(); }, () => {});
+                } else if (!this.authUid && R.uid) {
+                    if (typeof this._rxMine === 'function') { try { this._rxMine(); } catch (e) {} }
+                    this._rxMine = null; R.uid = null; R.mine = {}; this.rxRefresh();
+                }
+            },
+            _rxTotals(id) {
+                const c = (this._rxState().counts || {})[id] || {};
+                const list = this.RX_TYPES.map((t) => [t, Number(c[t]) || 0]).filter((x) => x[1] > 0).sort((a, b) => b[1] - a[1]);
+                return { list, total: list.reduce((a, x) => a + x[1], 0) };
+            },
+            // the small "icons + number" shown on a news card, and the bar in the news page
+            rxSummaryHtml(id) {
+                const t = this._rxTotals(id);
+                if (!t.total) return '';
+                return '<span class="rx-stack">' + t.list.slice(0, 3).map((x) => this._rxIcon(x[0], 17)).join('') + '</span><b>' + t.total + '</b>';
+            },
+            rxBarHtml(id) {
+                const R = this._rxState(), mine = R.mine[id], t = this._rxTotals(id);
+                const btn = mine
+                    ? `<button class="rx-me on" style="--c:${this.RX_COLOR[mine]}" onclick="app.rxOpen(${id}, event)">${this._rxIcon(mine, 24)}<span>${this.RX_LABEL[mine]}</span></button>`
+                    : `<button class="rx-me" onclick="app.rxOpen(${id}, event)"><i data-lucide="smile-plus"></i><span>تفاعل</span></button>`;
+                const detail = t.total
+                    ? t.list.map((x) => `<span class="rx-chip">${this._rxIcon(x[0], 18)}<b>${x[1]}</b></span>`).join('')
+                    : '<span class="rx-none">كن أول من يتفاعل</span>';
+                return `<div class="rx-bar" data-rxbar="${id}">${btn}<div class="rx-chips">${detail}</div></div>`;
+            },
+            rxRefresh() {
+                document.querySelectorAll('[data-rx]').forEach((el) => { el.innerHTML = this.rxSummaryHtml(Number(el.dataset.rx)); });
+                document.querySelectorAll('[data-rxbar]').forEach((el) => {
+                    const id = Number(el.dataset.rxbar);
+                    el.outerHTML = this.rxBarHtml(id);
+                });
+                if (window.lucide && document.querySelector('.rx-me i[data-lucide]')) lucide.createIcons();
+            },
+            rxOpen(id, ev) {
+                if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+                this.rxClose();
+                const el = ev && (ev.currentTarget || ev.target);
+                const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 200, left: 100, width: 40, bottom: 240 };
+                const mine = this._rxState().mine[id];
+                const pop = document.createElement('div');
+                pop.className = 'rx-pop'; pop.id = 'rxPop';
+                pop.innerHTML = this.RX_TYPES.map((t, i) => `<button class="${mine === t ? 'on' : ''}" style="animation-delay:${i * 45}ms" onclick="app.rxReact(${id}, '${t}'); app.rxClose();" aria-label="${this.RX_LABEL[t]}">${this._rxIcon(t, 38)}<small>${this.RX_LABEL[t]}</small></button>`).join('');
+                document.body.appendChild(pop);
+                const w = pop.offsetWidth, vw = window.innerWidth;
+                let left = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), vw - w - 8);
+                const below = r.top < 90;
+                pop.style.left = left + 'px';
+                pop.style.top = (below ? r.bottom + 8 : r.top - pop.offsetHeight - 8) + 'px';
+                setTimeout(() => document.addEventListener('click', this._rxOut = () => this.rxClose(), { once: true }), 0);
+            },
+            rxClose() { const p = document.getElementById('rxPop'); if (p) p.remove(); if (this._rxOut) { document.removeEventListener('click', this._rxOut); this._rxOut = null; } },
+            async rxReact(id, type) {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى تتفاعل'); this.goToAuth('login'); return; }
+                if (!window.firebaseDb) return;
+                const R = this._rxState(), { ref, update, get } = window.firebaseDbHelpers, uid = this.authUid;
+                const prev = R.mine[id] || null, next = prev === type ? null : type;
+                const counts0 = JSON.parse(JSON.stringify(R.counts[id] || {}));
+                // show it straight away; the write below confirms (or puts it back)
+                const c = R.counts[id] = Object.assign({}, R.counts[id]);
+                if (prev) c[prev] = Math.max(0, (c[prev] || 0) - 1);
+                if (next) c[next] = (c[next] || 0) + 1;
+                if (next) R.mine[id] = next; else delete R.mine[id];
+                this.rxRefresh();
+                let base = counts0;
+                for (let k = 0; k < 3; k++) {
+                    const up = { ['userNewsReact/' + uid + '/' + id]: next };
+                    if (prev) up['newsReactCounts/' + id + '/' + prev] = Math.max(0, (Number(base[prev]) || 0) - 1);
+                    if (next) up['newsReactCounts/' + id + '/' + next] = (Number(base[next]) || 0) + 1;
+                    try { await update(ref(window.firebaseDb), up); return; } catch (e) {
+                        // someone else changed the counter in between: read it again and retry
+                        try { base = (await get(ref(window.firebaseDb, 'newsReactCounts/' + id))).val() || {}; } catch (e2) { break; }
+                    }
+                }
+                R.counts[id] = counts0; if (prev) R.mine[id] = prev; else delete R.mine[id];
+                this.rxRefresh();
+                this.showToast('ما انحسب تفاعلك، حاول مرة ثانية');
+            },
+
             createNewsCard(news) {
                 const isRead = news.isRead;
                 const isBookmarked = news.isBookmarked;
@@ -1847,6 +1963,8 @@
                                     <span class="nw-meta"><i data-lucide="user"></i><span>${escapeHtml(news.source || 'وزارة التربية العراقية')}</span></span>
                                     <span class="nw-sep" aria-hidden="true"></span>
                                     <span class="nw-meta"><i data-lucide="clock"></i><span data-timeago="${id}">${timeAgo(news.id)}</span></span>
+                                    <span class="rx-sum" data-rx="${id}">${this.rxSummaryHtml(news.id)}</span>
+                                    <button onclick="app.rxOpen(${id}, event)" class="nw-bm" aria-label="تفاعل"><i data-lucide="smile-plus"></i></button>
                                     <button onclick="event.stopPropagation(); app.toggleBookmark(${id})" class="nw-bm${isBookmarked ? ' on' : ''}" aria-label="${isBookmarked ? 'إزالة من المحفوظات' : 'حفظ الخبر'}">
                                         <i data-lucide="bookmark"></i>
                                     </button>
@@ -1950,6 +2068,7 @@
                                 </div>
                             </div>
                             ${text ? `<div class="nd-text">${escapeHtml(text)}</div>` : ''}
+                            ${this.rxBarHtml(Number(news.id))}
                             <div class="nd-actions">
                                 <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>
                                 <button onclick="app.shareNewsStory()" class="nd-btn"><i data-lucide="image"></i>ستوري</button>
@@ -2463,6 +2582,7 @@
                     this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
+                    this.listenForReactions();
                     this.listenForFriends();
                     this.listenForYtInvites();
                     this.listenForFriendRequests();
