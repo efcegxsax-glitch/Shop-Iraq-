@@ -4056,8 +4056,8 @@
             // Once a minute (and whenever the app comes back): is a meal coming up, or time for water?
             _nutStart() {
                 if (this._nutT) return;
-                this._nutT = setInterval(() => { this._nutTick(); this._coachTick(); }, 60000);
-                document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => this._nutTick(), 1500); });
+                this._nutT = setInterval(() => { this._nutTick(); this._coachTick(); this._tbTick(); }, 60000);
+                document.addEventListener('visibilitychange', () => { if (!document.hidden) setTimeout(() => { this._nutTick(); this._tbTick(); }, 1500); });
                 setTimeout(() => this._nutTick(), 20000);
             },
             _nutTick() {
@@ -4266,6 +4266,50 @@
                 const t = (x) => (d.days[x] === 2 ? 'عطلة' : d.days[x] === 1 ? (day(x).join('، ') || 'ماكو محاضرات') : 'مو من أيام جدوله');
                 L.push('اليوم (' + NM[g] + '): ' + t(g) + '. باچر (' + NM[tm] + '): ' + t(tm) + '. الساعة هسه ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0') + '.');
                 return L.join('\n').slice(0, 1000);
+            },
+
+            // A reminder a few minutes before each lecture (settings d.rem = { on, before } in the timetable).
+            // It runs while the app is open or in the background; a closed app can't wake itself.
+            _tbTick() {
+                const d = this._tbGet();
+                if (!d || !d.rem || !d.rem.on || this._cl || this._focus || this._forest || this._gwar) return;
+                const now = new Date(), g = now.getDay(), min = now.getHours() * 60 + now.getMinutes();
+                if (d.days[g] !== 1) return;
+                const day = this.localDateStr(), key = 'isp:tb:sent:' + (this.authUid || 'guest');
+                let sent = {};
+                try { sent = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
+                if (sent.d !== day) sent = { d: day, p: {} };
+                for (let p = 0; p < d.times.length; p++) {
+                    const c = (d.cells[g] || [])[p], sb = c && d.subs.find((x) => x.id === c.s);
+                    if (!sb || sent.p[p]) continue;
+                    const t = String(d.times[p][0]).split(':'), at = (+t[0]) * 60 + (+t[1]);
+                    if (min >= at - d.rem.before && min < at) {
+                        sent.p[p] = 1;
+                        try { localStorage.setItem(key, JSON.stringify(sent)); } catch (e) {}
+                        this._tbNotify(sb.n, at - min, d.times[p][0], c.t);
+                        return;
+                    }
+                }
+            },
+            _tbNotify(name, left, at, note) {
+                const title = 'محاضرة ' + name + (left > 0 ? ' بعد ' + left + ' دقيقة' : ' هسه');
+                const body = 'الساعة ' + at + (note ? ' - ' + note : '') + '. جهّز كتابك ودفترك.';
+                if (document.hidden) {
+                    if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
+                        navigator.serviceWorker.ready.then((r) => r.showNotification(title, { body, tag: 'isp-tb', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './' } })).catch(() => {});
+                    }
+                    return;
+                }
+                const old = document.getElementById('ntPop'); if (old) old.remove();
+                const p = document.createElement('div');
+                p.id = 'ntPop'; p.className = 'nt-pop tb';
+                p.innerHTML = `<span class="nt-ic"><i data-lucide="calendar-clock"></i></span><div class="nt-tx"><b>${escapeHtml(title)}</b><small>${escapeHtml(body)}</small><div class="nt-btns"><button type="button" class="nt-ok">جدولي</button><button type="button" class="nt-no">تمام</button></div></div>`;
+                document.body.appendChild(p);
+                lucide.createIcons();
+                const close = () => { p.classList.add('out'); setTimeout(() => p.remove(), 300); };
+                p.querySelector('.nt-ok').onclick = () => { close(); this.goToTable(); };
+                p.querySelector('.nt-no').onclick = close;
+                setTimeout(() => { if (p.isConnected) close(); }, 15000);
             },
 
             goToFood(meal) {

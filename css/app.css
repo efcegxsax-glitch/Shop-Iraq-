@@ -4336,3 +4336,11 @@ body.is-banned { overflow: hidden; }
 @keyframes tbIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
 @keyframes tbNow { 0%, 100% { box-shadow: 0 0 0 2px #F97316, 0 0 8px rgba(249,115,22,.35); } 50% { box-shadow: 0 0 0 2px #F97316, 0 0 18px rgba(249,115,22,.75); } }
 @media (prefers-reduced-motion: reduce) { .tb-hero, .tb-hero::after, .tb-card, .tb-c { animation: none !important; } }
+.nt-pop.tb .nt-ic { background: linear-gradient(135deg, #2563EB, #7C3AED); animation: ntDrop 1.6s ease-in-out infinite; }
+.nt-pop.tb .nt-ok { background: #2563EB; }
+.tb-sw { position: relative; display: inline-block; width: 46px; height: 26px; flex: none; }
+.tb-sw input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 1; }
+.tb-sw span { position: absolute; inset: 0; border-radius: 99px; background: var(--border); transition: background .2s; }
+.tb-sw span::after { content: ''; position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.25); transition: transform .2s; }
+.tb-sw input:checked + span { background: #2563EB; }
+.tb-sw input:checked + span::after { transform: translateX(-20px); }

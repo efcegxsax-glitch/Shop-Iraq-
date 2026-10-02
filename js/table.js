@@ -159,6 +159,7 @@
             return '<div class="tb-hero" id="tbHero"></div>'
                 + '<div class="tb-card tb-gridcard"><div class="tb-head"><h3>جدولي الأسبوعي</h3><span class="tb-hint">اضغط أي خانة تعدّلها</span></div>' + this._tbGridHtml(d) + '</div>'
                 + '<div class="tb-card"><div class="tb-head"><h3>محاضرات الأسبوع</h3><b class="tb-tot">' + total + '</b></div><div class="tb-stats">' + stats + '</div></div>'
+                + this._tbRemHtml(d)
                 + '<div class="tb-acts">'
                 + '<button onclick="app.tbAsk()" class="tb-act hi"><i data-lucide="sparkles"></i>اسأل المعلم عن جدولي</button>'
                 + '<button onclick="app.tbPrint()" class="tb-act"><i data-lucide="printer"></i>طباعة / PDF</button>'
@@ -166,6 +167,33 @@
                 + '<button onclick="app.tbSetup()" class="tb-act"><i data-lucide="settings-2"></i>الأيام والمواد</button>'
                 + '<button onclick="app.tbRedo()" class="tb-act"><i data-lucide="wand-2"></i>وزّع من جديد</button>'
                 + '<button onclick="app.tbClear()" class="tb-act warn"><i data-lucide="trash-2"></i>امسح الجدول</button></div>';
+        },
+
+        _tbRemHtml(d) {
+            const r = d.rem || { on: false, before: 10 };
+            const opts = [5, 10, 15, 30].map((m) => '<button type="button" class="tb-pick' + (r.before === m ? ' on' : '') + '" onclick="app.tbRem(\'before\',' + m + ')">' + m + ' د</button>').join('');
+            const allowed = !('Notification' in window) || Notification.permission === 'granted';
+            return '<div class="tb-card"><div class="tb-head"><h3>تنبيه قبل المحاضرة</h3><label class="tb-sw"><input type="checkbox" ' + (r.on ? 'checked' : '') + ' onchange="app.tbRem(\'on\',this.checked)"><span></span></label></div>'
+                + (r.on ? '<div class="tb-hint" style="margin-bottom:8px">نبّهني قبل المحاضرة بـ</div><div class="tb-picks" style="margin:0">' + opts + '</div>'
+                    + (allowed ? '' : '<button class="tb-sec" onclick="app.tbAllow()">فعّل الإشعارات حتى توصلك والتطبيق بالخلفية</button>')
+                    + '<div class="tb-hint" style="margin-top:8px">يوصلك التنبيه والتطبيق مفتوح أو بالخلفية. إذا سكّرته تماماً ما راح ينبهك.</div>'
+                    : '<div class="tb-hint">يطلعلك تنبيه قبل كل محاضرة بالجدول.</div>') + '</div>';
+        },
+        tbRem(k, v) {
+            const d = this._tbGet(); if (!d) return;
+            d.rem = Object.assign({ on: false, before: 10 }, d.rem);
+            d.rem[k] = v;
+            this._tbSave(d);
+            try { localStorage.removeItem('isp:tb:sent:' + (this.authUid || 'guest')); } catch (e) {}
+            if (k === 'on' && v && 'Notification' in window && Notification.permission === 'default') this.tbAllow(); else this._tbRender();
+            if (k === 'on' && v) this.showToast('راح أنبّهك قبل كل محاضرة');
+            this._tbTick();
+        },
+        async tbAllow() {
+            if (!('Notification' in window)) { this.showToast('متصفحك ما يدعم الإشعارات'); return; }
+            const p = await Notification.requestPermission().catch(() => 'denied');
+            if (p !== 'granted') this.showToast('ما انسمحت الإشعارات، التنبيه راح يطلع داخل التطبيق بس');
+            this._tbRender();
         },
 
         // the lecture now, or the next one today
