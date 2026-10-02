@@ -1,6 +1,6 @@
 {
   "appId": "iq.studentplatform.app",
-  "appName": "منصة الطالب العراقي",
+  "appName": "أكـادمي السادس",
   "webDir": "www",
   "server": {
     "androidScheme": "https",
@@ -14,7 +14,7 @@
     "SplashScreen": {
       "launchShowDuration": 0,
       "launchAutoHide": true,
-      "backgroundColor": "#0F766E"
+      "backgroundColor": "#000000"
     },
     "StatusBar": {
       "style": "DARK",

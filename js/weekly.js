@@ -128,7 +128,7 @@
         _wkText(r, p) {
             const t = r.t, L = [];
             L.push('السلام عليكم');
-            L.push('هذا ملخص دراستي بالأسبوع (من ' + dstr(r.from) + ' إلى ' + dstr(r.to) + ') من تطبيق منصة الطالب العراقي:');
+            L.push('هذا ملخص دراستي بالأسبوع (من ' + dstr(r.from) + ' إلى ' + dstr(r.to) + ') من تطبيق أكـادمي السادس:');
             L.push('');
             L.push('- درست ' + t.days + (t.days === 1 ? ' يوم' : t.days <= 10 && t.days > 2 ? ' أيام' : ' يوم') + ' من 7');
             if (t.min > 0) L.push('- وكت الدراسة: ' + hm(t.min) + (t.ses ? ' (' + t.ses + (t.ses > 2 && t.ses <= 10 ? ' جلسات' : ' جلسة') + ')' : ''));
@@ -238,7 +238,7 @@
                 y += 150;
             }
             x.fillStyle = '#5B6E69'; x.font = '500 28px ' + F; x.textAlign = 'center';
-            x.fillText('منصة الطالب العراقي', W / 2, H - 50);
+            x.fillText('أكـادمي السادس', W / 2, H - 50);
             return new Promise((ok) => c.toBlob((b) => ok(b), 'image/png'));
         },
         _wkRound(x, px, py, w, h, r) {
