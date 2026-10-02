@@ -830,6 +830,7 @@
                         </select>
                     </div>
 
+                    <label class="sw-row" style="margin-top:10px;"><div class="sw-text"><strong>يوصل كإشعار للهاتف</strong><span>يطلع على شاشة الطالب حتى لو التطبيق مسكّر</span></div><span class="switch"><input type="checkbox" id="no_push" checked aria-label="إشعار للهاتف"><span class="track"></span></span></label>
                     <button class="btn mt-4" id="no_send">إرسال الإشعار للجميع</button>
                 </div>
             </div>
@@ -1879,6 +1880,21 @@
         };
         el('r_publish').addEventListener('click', publishResource);
 
+        // A real push to the students' phones (even with the app closed): the tutor Worker sends it through
+        // OneSignal, after checking that this is the panel's own account. govs = governorate names, [] = everyone.
+        async function pushPhones(title, body, govs) {
+            const url = (siteConfig || {}).tutorUrl;
+            if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
+            try {
+                const token = await getAuth().currentUser.getIdToken();
+                const codes = (govs || []).map((g) => GOV_CODES[g]).filter(Boolean);
+                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes }) });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : 'رفضه OneSignal (' + (j.status || r.status) + ')' };
+                return { ok: true, n: j.recipients };
+            } catch (e) { return { ok: false, why: 'ما وصلت للسيرفر' }; }
+        }
+
         // ---------- Send Notification ----------
         window.sendNotification = async () => {
             const title = val('no_title');
@@ -1891,7 +1907,12 @@
                     id, title, description: val('no_desc'), time: 'الآن', read: false,
                     type: val('no_type') || 'announcement', createdAt: serverTimestamp()
                 });
-                toast('تم إرسال الإشعار لجميع الطلاب');
+                let msg = 'تم إرسال الإشعار لجميع الطلاب';
+                if (el('no_push').checked) {
+                    const pr = await pushPhones(title, val('no_desc'), []);
+                    msg += pr.ok ? ' وطلع على الهواتف' + (pr.n ? ' (' + pr.n + ')' : '') : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                }
+                toast(msg);
                 el('no_title').value = ''; el('no_desc').value = '';
             } catch (e) {
                 console.warn(e);
@@ -2721,7 +2742,15 @@
                     const where = allIraq ? 'كل محافظات العراق' : (govs.length <= 3 ? govs.join('، ') : govs.length + ' محافظات');
                     const day = dsDayName(date);
                     const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
-                    showPushHelp(title, reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), allIraq, govs);
+                    const body = reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : '');
+                    let pushed = false;
+                    if (el('ds_notify').checked) {
+                        const pr = await pushPhones(title, body, allIraq ? [] : govs);
+                        pushed = pr.ok;
+                        if (!pr.ok) toast('انتشر الإعلان بس ما طلع كإشعار للهاتف: ' + pr.why, false);
+                    }
+                    if (!pushed) showPushHelp(title, body, allIraq, govs);
+                    else el('dsPushHelp').innerHTML = '';
                 }
                 toast('انتشر الإعلان' + (el('ds_notify').checked ? ' ووصل الإشعار' : ''));
                 el('ds_reason').value = '';

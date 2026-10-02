@@ -98,12 +98,13 @@ const QUIZ_JSON_SCHEMA = {
 };
 
 let jwks;
-async function verifyStudent(req, env) {
+async function verifyStudent(req, env, out) {
     const m = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
     if (!m) return null;
     jwks = jwks || createRemoteJWKSet(new URL(env.JWKS_URL || 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com'));
     try {
         const { payload } = await jwtVerify(m[1], jwks, { issuer: 'https://securetoken.google.com/' + env.FIREBASE_PROJECT_ID, audience: env.FIREBASE_PROJECT_ID });
+        if (out) out.email = typeof payload.email === 'string' ? payload.email.toLowerCase() : '';
         return payload.sub || null;
     } catch {
         return null;
@@ -422,7 +423,8 @@ export default {
         const headers = cors(req, env);
         if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers });
         if (req.method !== 'POST') return json(405, { error: 'method' }, headers);
-        const uid = await verifyStudent(req, env);
+        const who = {};
+        const uid = await verifyStudent(req, env, who);
         if (!uid) return json(401, { error: 'signin' }, headers);
         let body;
         try { body = await req.json(); } catch { return json(400, { error: 'bad_json' }, headers); }
@@ -433,6 +435,29 @@ export default {
             }
             const iceServers = await turnServers(env);
             return iceServers ? json(200, { iceServers }, headers) : json(503, { error: 'turn' }, headers);
+        }
+
+        // the admin panel's own push to phones (all students, or one governorate by its tag)
+        if (body.mode === 'adminpush') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+            const title = str(body.title, 80), text = str(body.body, 300);
+            if (!title) return json(400, { error: 'empty' }, headers);
+            const govs = (Array.isArray(body.govs) ? body.govs : []).map((g) => str(g, 20)).filter((g) => /^[a-z_]+$/.test(g)).slice(0, 19);
+            const target = govs.length
+                ? { filters: govs.flatMap((g, i) => (i ? [{ operator: 'OR' }] : []).concat([{ field: 'tag', key: 'gov', relation: '=', value: g }])) }
+                : { included_segments: ['Total Subscriptions'] };
+            const r = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/' }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
+            return json(r.ok ? 200 : 502, r.ok ? { id: j.id || '', recipients: j.recipients, errors: j.errors || null } : { error: 'onesignal', status: r.status, detail: j.errors || null }, headers);
         }
 
         if (body.mode === 'tbsync') {

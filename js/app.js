@@ -4802,7 +4802,7 @@
                 let tries = 0;
                 const start = () => {
                     const O = window.plugins && window.plugins.OneSignal;
-                    if (!O) { if (++tries < 40) setTimeout(start, 500); return; }
+                    if (!O) { if (++tries < 40) setTimeout(start, 500); else this.showToast('الإشعارات ما تهيّأت بهذا الجهاز'); return; }
                     try {
                         O.initialize(this.ONESIGNAL_APP_ID);
                         const setPerm = (g) => { this._nativePerm = g ? 'granted' : (this._nativePerm === 'granted' ? 'denied' : (this._nativePerm || 'default')); };
@@ -4896,14 +4896,16 @@
             // Asks once, a little after the visit starts, and not again for a week if dismissed.
             _maybePromptPush() {
                 if (!this._os || this._pushPerm() !== 'default') return;
+                const native = this._isNative();
                 let asked = 0;
                 try { asked = Number(localStorage.getItem('isp_push_asked')) || 0; } catch (e) {}
-                if (Date.now() - asked < 7 * 86400000) return;
+                // in the phone app the question comes a few seconds after opening, every time until the student answers
+                if (!native && Date.now() - asked < 7 * 86400000) return;
                 setTimeout(() => {
                     if (!this._os || this._pushPerm() !== 'default') return;
                     try { localStorage.setItem('isp_push_asked', String(Date.now())); } catch (e) {}
                     Promise.resolve(this._os.Slidedown.promptPush()).catch(() => {});
-                }, 25000);
+                }, native ? 4000 : 25000);
             },
 
             enableWebPush() {
