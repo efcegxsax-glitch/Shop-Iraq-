@@ -321,7 +321,7 @@
                 + 'td{height:62px;text-align:center;border-radius:8px;background:#F1F5F3;font-size:14px;padding:4px;vertical-align:middle}td small{display:block;font-size:10px;color:#5B6E69;margin-top:2px}'
                 + 'td.off{background:repeating-linear-gradient(45deg,#E2E8F0,#E2E8F0 8px,#F1F5F3 8px,#F1F5F3 16px);color:#64748B;font-weight:700;font-size:18px}'
                 + '.leg{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px}.leg i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-left:5px;vertical-align:middle}'
-                + '</style></head><body><h1>جدولي الدراسي</h1><p>منصة الطالب العراقي</p><table><thead><tr><th></th>' + cols.map((g) => '<th>' + NAMES[g] + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table><div class="leg">' + leg + '</div></body></html>';
+                + '</style></head><body><h1>جدولي الدراسي</h1><p>أكـادمي السادس</p><table><thead><tr><th></th>' + cols.map((g) => '<th>' + NAMES[g] + '</th>').join('') + '</tr></thead><tbody>' + rows + '</tbody></table><div class="leg">' + leg + '</div></body></html>';
         },
         tbPrint() {
             const d = this._tbGet(); if (!d) return;
@@ -342,7 +342,7 @@
             const rr = (px, py, w, h, r) => { x.beginPath(); x.moveTo(px + r, py); x.arcTo(px + w, py, px + w, py + h, r); x.arcTo(px + w, py + h, px, py + h, r); x.arcTo(px, py + h, px, py, r); x.arcTo(px, py, px + w, py, r); x.closePath(); };
             x.fillStyle = '#F1F5F3'; x.fillRect(0, 0, W, H);
             x.fillStyle = '#0F766E'; x.textAlign = 'right'; x.textBaseline = 'alphabetic'; x.font = '800 54px ' + F; x.fillText('جدولي الدراسي', W - PAD, 90);
-            x.fillStyle = '#5B6E69'; x.font = '500 26px ' + F; x.fillText('منصة الطالب العراقي', W - PAD, 134);
+            x.fillStyle = '#5B6E69'; x.font = '500 26px ' + F; x.fillText('أكـادمي السادس', W - PAD, 134);
             const fit = (t, w) => { let s = String(t); while (s.length > 1 && x.measureText(s).width > w) s = s.slice(0, -1); return s; };
             const colX = (i) => W - PAD - PW - (i + 1) * CW;
             x.textAlign = 'center'; x.textBaseline = 'middle';

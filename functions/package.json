@@ -1,6 +1,6 @@
 {
   "name": "isp-functions",
-  "description": "Push notifications for منصة الطالب العراقي",
+  "description": "Push notifications for أكـادمي السادس",
   "private": true,
   "main": "index.js",
   "engines": {

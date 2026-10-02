@@ -17,7 +17,7 @@
 2. اضغط **الإشعارات والرسائل داخل التطبيق** (Push & In-App)، واختار **Web**، واضغط يكمل.
 3. نوع الربط: **Custom Code**.
 4. املأ:
-   - **Site Name:** منصة الطالب العراقي
+   - **Site Name:** أكـادمي السادس
    - **Site URL:** `https://efcegxsax-glitch.github.io` (بدون `/Shop-Iraq-/`)
    - **Default Icon URL:** `https://efcegxsax-glitch.github.io/Shop-Iraq-/icons/icon-192.png`
 5. احفظ. إذا طلعلك كود، تجاهله لأنه موجود بالموقع.

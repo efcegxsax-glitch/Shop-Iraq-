@@ -544,7 +544,7 @@
             const x = this._sp.spots[this._sp.sel];
             if (!x) return;
             const url = 'https://www.google.com/maps/search/?api=1&query=' + x.lat + ',' + x.lng;
-            const text = x.n + ' (' + (TYPES[x.t] || TYPES.other)[0] + ') مكان حلو للدراسة بـ' + x.g + '، لكيته بتطبيق منصة الطالب العراقي';
+            const text = x.n + ' (' + (TYPES[x.t] || TYPES.other)[0] + ') مكان حلو للدراسة بـ' + x.g + '، لكيته بتطبيق أكـادمي السادس';
             if (navigator.share) navigator.share({ title: x.n, text, url }).catch(() => {});
             else { try { navigator.clipboard.writeText(text + '\n' + url); this.showToast('انتسخ الرابط'); } catch (e) {} }
         },

@@ -47,7 +47,7 @@
             }
         }
 
-        const FALLBACK_IMAGE = 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg';
+        const FALLBACK_IMAGE = 'icons/icon-192.png';
 
         function safeImage(value) {
             return isSafeImageUrl(value) ? value : FALLBACK_IMAGE;
@@ -1817,7 +1817,7 @@
                 const section = document.getElementById('carouselSection');
                 if (!wrapper) return;
                 const slides = (this.adminCarousel && this.adminCarousel.length) ? this.adminCarousel : [
-                    { image: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg', title: 'منصة الطالب العراقي' }
+                    { image: 'icons/icon-192.png', title: 'أكـادمي السادس' }
                 ];
                 if (section) section.classList.remove('hidden');
                 wrapper.innerHTML = slides.map(sl => `
@@ -1939,7 +1939,7 @@
             async shareCurrentNews() {
                 const news = newsData.find(n => n.id === this.currentNewsId);
                 const url = window.location.href;
-                const title = (news && news.title) || 'منصة الطالب العراقي';
+                const title = (news && news.title) || 'أكـادمي السادس';
                 const text = (news && news.excerpt) ? (news.title + '\n' + news.excerpt) : title;
                 try {
                     if (navigator.share) {
@@ -2915,7 +2915,7 @@
                         this.playNotifySound();
                         this.showToast('إشعار جديد: ' + val.title);
                         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
-                            try { new Notification(val.title, { body: val.description || '', icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { /* not allowed outside a service worker */ }
+                            try { new Notification(val.title, { body: val.description || '', icon: 'icons/icon-192.png' }); } catch (e) { /* not allowed outside a service worker */ }
                         }
                     }
                     if (raw.govs) { this.renderDayStatus(); this.updateHolidayNavDot(); }
@@ -2969,7 +2969,7 @@
 
                 // Branding
                 const b = cfg.branding || {};
-                if ($('appTitle')) $('appTitle').textContent = (b.name || '').trim() || 'منصة الطالب العراقي';
+                if ($('appTitle')) $('appTitle').textContent = (b.name || '').trim() || 'أكـادمي السادس';
                 if ($('appTagline')) $('appTagline').textContent = (b.tagline || '').trim() || 'أخبار وزارة التربية أولاً بأول';
                 document.title = (b.name || '').trim() || document.title;
 
@@ -4588,7 +4588,7 @@
             shareDream(id) {
                 const d = (this._dreams || []).find((x) => x.id === id);
                 if (!d) return;
-                this.openStory({ badge: 'حلم من سما الأحلام', badgeColor: '#7C3AED', title: d.t, sub: d.by + (d.amen ? ' · ' + d.amen + ' طالب كالوا آمين' : ''), foot: 'اكتب حلمك إنت هم بمنصة الطالب العراقي' });
+                this.openStory({ badge: 'حلم من سما الأحلام', badgeColor: '#7C3AED', title: d.t, sub: d.by + (d.amen ? ' · ' + d.amen + ' طالب كالوا آمين' : ''), foot: 'اكتب حلمك إنت هم بأكـادمي السادس' });
             },
 
             openMyDreams() {
@@ -4874,7 +4874,7 @@
                             serviceWorkerPath: base.replace(/^\//, '') + 'OneSignalSDKWorker.js',
                             serviceWorkerParam: { scope: base },
                             notifyButton: { enable: false },
-                            welcomeNotification: { title: 'منصة الطالب العراقي', message: 'تفعّلت الإشعارات، يوصلك خبر العطلة أول بأول' },
+                            welcomeNotification: { title: 'أكـادمي السادس', message: 'تفعّلت الإشعارات، يوصلك خبر العطلة أول بأول' },
                             promptOptions: { slidedown: { prompts: [{ type: 'push', autoPrompt: false, text: { actionMessage: 'تريد يوصلك خبر العطلة والأخبار المهمة حتى لو التطبيق مسدود؟', acceptButton: 'نعم، فعّلها', cancelButton: 'لاحقاً' } }] } }
                         });
                         this._os = OneSignal;
@@ -7230,7 +7230,7 @@
 
                 // Brand
                 ctx.direction = 'rtl'; ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
-                const brand = (document.getElementById('appTitle')?.textContent || '').trim() || 'منصة الطالب العراقي';
+                const brand = (document.getElementById('appTitle')?.textContent || '').trim() || 'أكـادمي السادس';
                 ctx.fillStyle = 'rgba(255,255,255,0.14)'; rr(W - 90 - 110, 105, 110, 110, 32); ctx.fill();
                 ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = F(800, 58); ctx.fillText('ط', W - 145, 180);
                 ctx.textAlign = 'right'; ctx.font = F(800, 50); ctx.fillText(brand, W - 230, 158);
@@ -8092,9 +8092,9 @@
                         <div class="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
                             <i data-lucide="graduation-cap" class="w-8 h-8 text-primary"></i>
                         </div>
-                        <h3 class="font-bold text-lg theme-transition" style="color: var(--text);">منصة الطالب العراقي</h3>
+                        <h3 class="font-bold text-lg theme-transition" style="color: var(--text);">أكـادمي السادس</h3>
                     </div>
-                    <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">منصة الطالب العراقي تطبيق مجاني يهدف لخدمة طلاب المرحلة الإعدادية بالعراق (وخصوصاً السادس)، من خلال توفير أخبار وقرارات وزارة التربية أول بأول، ملازم ومصادر دراسية، تنبيهات مواعيد الامتحانات، وتتبع يومي لأدائك الدراسي.</p>
+                    <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">أكـادمي السادس تطبيق مجاني يهدف لخدمة طلاب المرحلة الإعدادية بالعراق (وخصوصاً السادس)، من خلال توفير أخبار وقرارات وزارة التربية أول بأول، ملازم ومصادر دراسية، تنبيهات مواعيد الامتحانات، وتتبع يومي لأدائك الدراسي.</p>
                     <p class="text-sm leading-relaxed mb-3 theme-transition" style="color: var(--text);">كذلك يوفر منتدى للأسئلة والنقاش بين الطلاب، نظام أصدقاء ودردشة خاصة، تحديات ومسابقات تحفزك على المذاكرة، ونظام نقاط ومكافآت.</p>
                     <p class="text-xs theme-transition" style="color: var(--text2);">تواصل معنا عبر قناة الدعم على تلغرام لأي استفسار أو اقتراح.</p>
                 `;
@@ -8548,7 +8548,7 @@
             async shareCurrentResource() {
                 const res = resourcesData.find(r => r.id === this.currentResourceId);
                 const url = window.location.href;
-                const title = (res && res.title) || 'منصة الطالب العراقي';
+                const title = (res && res.title) || 'أكـادمي السادس';
                 const text = (res && res.description) ? (res.title + '\n' + res.description) : title;
                 try {
                     if (navigator.share) {
@@ -11114,7 +11114,7 @@
                 this.showToast('تذكير: ' + summary + ' — لسه ما خلّصتها');
                 if ('Notification' in window && Notification.permission === 'granted') {
                     try {
-                        new Notification('تذكير بمهامك', { body: summary, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' });
+                        new Notification('تذكير بمهامك', { body: summary, icon: 'icons/icon-192.png' });
                     } catch (e) {
                         console.warn('Task notification failed:', e);
                     }

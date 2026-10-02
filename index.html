@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>منصة الطالب العراقي</title>
+    <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = 'beb1bcc369';
+        window.APP_VER = '666d2720d2';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -19,7 +19,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="الطالب العراقي">
+    <meta name="apple-mobile-web-app-title" content="أكـادمي السادس">
     <meta name="theme-color" content="#F1F5F3" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#0F172A" media="(prefers-color-scheme: dark)">
     <meta name="format-detection" content="telephone=no">
@@ -100,10 +100,10 @@
                     // is open, which already plays the sound and shows them — don't show them twice.
                     if (payload.data && payload.data.src === 'isp-admin') return;
                     if (window.app && window.app.playNotifySound) window.app.playNotifySound();
-                    const title = (payload.notification && payload.notification.title) || 'منصة الطالب العراقي';
+                    const title = (payload.notification && payload.notification.title) || 'أكـادمي السادس';
                     const body = (payload.notification && payload.notification.body) || '';
                     if ('Notification' in window && Notification.permission === 'granted') {
-                        try { new Notification(title, { body: body, icon: 'https://i.postimg.cc/kGn7bhGL/images-(14).jpg' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
+                        try { new Notification(title, { body: body, icon: 'icons/icon-192.png' }); } catch (e) { console.warn('تعذر عرض الإشعار:', e); }
                     }
                     if (window.app && window.app.showToast) window.app.showToast('خبر جديد: ' + body);
                 });
@@ -144,10 +144,10 @@
     <header id="appHeaderBar" class="app-header fixed top-0 left-0 right-0 z-50 border-b h-16 flex items-center justify-between px-4 theme-transition" style="background-color: var(--surface); border-bottom: 1px solid var(--border);">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
-                <img id="appLogoImg" src="https://i.postimg.cc/kGn7bhGL/images-(14).jpg" alt="شعار منصة الطالب العراقي" class="w-full h-full object-cover">
+                <img id="appLogoImg" src="icons/icon-192.png" alt="شعار أكـادمي السادس" class="w-full h-full object-cover">
             </div>
             <div class="flex flex-col">
-                <h1 id="appTitle" class="text-base font-bold leading-tight theme-transition" style="color: var(--text);">منصة الطالب العراقي</h1>
+                <h1 id="appTitle" class="text-base font-bold leading-tight theme-transition" style="color: var(--text);">أكـادمي السادس</h1>
                 <p id="appTagline" class="text-xs theme-transition" style="color: var(--text2);">أخبار وزارة التربية أولاً بأول</p>
             </div>
         </div>
@@ -1919,7 +1919,7 @@
     </nav>
 
     <script src="js/pickers.js?v=5c0a8e0be2"></script>
-    <script src="js/app.js?v=8cbf5a0095"></script>
+    <script src="js/app.js?v=c186c9bb91"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

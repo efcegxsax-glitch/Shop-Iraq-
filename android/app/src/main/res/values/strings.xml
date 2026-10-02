@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">منصة الطالب العراقي</string>
-    <string name="title_activity_main">منصة الطالب العراقي</string>
+    <string name="app_name">أكـادمي السادس</string>
+    <string name="title_activity_main">أكـادمي السادس</string>
     <string name="package_name">iq.studentplatform.app</string>
     <string name="custom_url_scheme">iq.studentplatform.app</string>
 </resources>
