@@ -177,6 +177,13 @@
         ".validate": "!newData.exists() || ((newData.child('n').isString() && newData.child('n').val().length <= 80 && (!newData.child('s').exists() || newData.child('s').isString() && newData.child('s').val().length <= 12) && (!newData.child('g').exists() || newData.child('g').isString() && newData.child('g').val().length <= 30)))"
       }
     },
+    "hall": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['n', 'at']) && newData.child('n').isString() && newData.child('n').val().length <= 80 && (!newData.child('g').exists() || newData.child('g').isString() && newData.child('g').val().length <= 30) && (!newData.child('a').exists() || newData.child('a').isString() && newData.child('a').val().length <= 8000) && newData.child('at').isNumber() && newData.child('at').val() <= now + 60000 && newData.child('at').val() >= now - 86400000 && !newData.child('x').exists()))"
+      }
+    },
     "numIndex": {
       "$n": {
         ".read": "auth != null",

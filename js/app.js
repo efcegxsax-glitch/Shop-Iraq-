@@ -4227,6 +4227,14 @@
                 this.dkOpen();
             },
 
+            goToHall() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.hall === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('hallView');
+                if (this._withPart('hall', () => typeof this.hlOpen === 'function', 'hallView', () => this.goToHall())) return;
+                this.hlOpen();
+            },
+
             goToFood(meal) {
                 this._fdMeal = typeof meal === 'string' ? meal : null;
                 this.switchView('foodView');
@@ -7906,6 +7914,7 @@
                 { id: 'msgs', fn: 'goToMessages', t: 'الرسائل', d: 'راسل أي طالب', ic: 'mail', c: '#0EA5E9', g: 'people' },
                 { id: 'twin', fn: 'goToTwin', t: 'توأم المذاكرة', d: 'زميل يشجعك وتشجعه', ic: 'users-round', c: '#A855F7', g: 'people' },
                 { id: 'sroom', fn: 'goToStudyRoom', t: 'غرفة المذاكرة', d: 'منو يذاكر هسه', ic: 'users', c: '#0D9488', g: 'people' },
+                { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
                 { id: 'calm', fn: 'goToCalm', t: 'قبل الامتحان', d: 'تنفّس ودعاء وتجهيز', ic: 'heart-handshake', c: '#DB2777', g: 'tools' },
@@ -13636,6 +13645,7 @@
                 if (this.currentView === 'ventView' && viewId !== 'ventView' && this.vtClose) this.vtClose();
                 if (this.currentView === 'foodView' && viewId !== 'foodView' && this.fdClose) this.fdClose();
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
+                if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
