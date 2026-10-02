@@ -4302,6 +4302,32 @@
 
             // A reminder a few minutes before each lecture (settings d.rem = { on, before } in the timetable).
             // It runs while the app is open or in the background; a closed app can't wake itself.
+            // Tell the server a call or a message was just written, so it can push to the receiver's phone (the server
+            // checks the record itself, see notifyPush in the Worker). Fire and forget.
+            async _notifyPush(kind, to, mid) {
+                try {
+                    const url = (this.siteConfig || {}).tutorUrl;
+                    if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !window.firebaseAuth || !window.firebaseAuth.currentUser) return;
+                    const token = await window.firebaseAuth.currentUser.getIdToken();
+                    fetch(url, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'notify', kind, to, mid }) }).catch(() => {});
+                } catch (e) { /* the push is a bonus; the call and the message are already saved */ }
+            },
+            // a tap on a call or message push: open that chat once the student is signed in
+            _openChatFromPush(uid, name) {
+                if (!uid) return;
+                let n = 0;
+                const go = () => {
+                    if (this.isLoggedIn && this.authUid) { try { this.openChat(uid, name || undefined); } catch (e) {} return; }
+                    if (++n < 30) setTimeout(go, 500);
+                };
+                go();
+            },
+            // while the app is open the call rings by itself and a chat that is open shows its message
+            _pushIsRedundant(extra) {
+                if (!extra || !extra.kind) return false;
+                if (extra.kind === 'call') return true;
+                return this.currentView === 'chatThreadView' && this.currentChatUid === extra.from;
+            },
             _tbPushOn() {
                 try { return !!(JSON.parse(localStorage.getItem('isp:tb:push:' + (this.authUid || 'guest')) || '{}').ids || []).length; } catch (e) { return false; }
             },
@@ -4861,7 +4887,7 @@
                         O.Notifications.addEventListener('foregroundWillDisplay', (ev) => {
                             try {
                                 const n = ev.getNotification ? ev.getNotification() : ev.notification;
-                                if (n && n.additionalData && n.additionalData.tb) { ev.preventDefault(); return; }
+                                if (n && n.additionalData && (n.additionalData.tb || this._pushIsRedundant(n.additionalData))) { ev.preventDefault(); return; }
                                 if (ev.getNotification) ev.getNotification().display();
                             } catch (e) {}
                         });
@@ -4872,6 +4898,7 @@
                                 const m = /[?&]coach=([^&#]+)/.exec(url);
                                 const text = typeof extra.coach === 'string' ? extra.coach : (m ? decodeURIComponent(m[1]) : '');
                                 if (text) { this._coachPending = text; this._coachOpen(); }
+                                if (extra.kind === 'call' || extra.kind === 'msg') this._openChatFromPush(extra.from, extra.fromName);
                             } catch (e) {}
                         });
                         this._os = {
@@ -4911,7 +4938,7 @@
                         });
                         this._os = OneSignal;
                         // a lecture reminder pushed by the server: while the app is open its own popup shows it
-                        try { OneSignal.Notifications.addEventListener('foregroundWillDisplay', (e) => { try { if (e.notification && e.notification.additionalData && e.notification.additionalData.tb) e.preventDefault(); } catch (x) {} }); } catch (x) {}
+                        try { OneSignal.Notifications.addEventListener('foregroundWillDisplay', (e) => { try { if (e.notification && e.notification.additionalData && (e.notification.additionalData.tb || this._pushIsRedundant(e.notification.additionalData))) e.preventDefault(); } catch (x) {} }); } catch (x) {}
                         OneSignal.Notifications.addEventListener('permissionChange', () => {
                             this.syncWebPush();
                             if (this.currentView === 'holidaysView') this.renderDayStatus();
@@ -12141,8 +12168,10 @@
                 updates['privateChats/' + chatId + '/messages/' + msgId] = payload;
                 Object.keys(myEntry).forEach((k) => { updates['userChats/' + this.authUid + '/' + this.currentChatUid + '/' + k] = myEntry[k]; });
                 Object.keys(theirEntry).forEach((k) => { updates['userChats/' + this.currentChatUid + '/' + this.authUid + '/' + k] = theirEntry[k]; });
+                const toUid = this.currentChatUid;
                 update(ref(window.firebaseDb), updates).then(() => {
                     this._sendingMessage = false;
+                    this._notifyPush('msg', toUid, msgId);
                 }).catch((err) => {
                     console.warn('Send message failed:', err);
                     this._sendingMessage = false;

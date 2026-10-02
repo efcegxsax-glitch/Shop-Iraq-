@@ -29,6 +29,12 @@ name = "PER_CALL"
 namespace_id = "1002"
 simple = { limit = 10, period = 60 }
 
+# per student and person: at most 12 call or message pushes a minute
+[[ratelimits]]
+name = "PER_NOTIFY"
+namespace_id = "1003"
+simple = { limit = 12, period = 60 }
+
 # the tutor's messages: 9:07, 13:07, 17:07 and 21:07 Baghdad time (UTC+3)
 [triggers]
 crons = ["7 6,10,14,18 * * *"]
