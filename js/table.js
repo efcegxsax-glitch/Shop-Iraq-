@@ -64,7 +64,10 @@
             this._tbSheetClose();
             const c = document.getElementById('tbContent'); if (c) c.innerHTML = '';
         },
-        _tbSave(d) { try { localStorage.setItem(this._tbKey(), JSON.stringify(d)); } catch (e) { this.showToast('ما كدرت أحفظ الجدول'); } },
+        _tbSave(d) {
+            try { localStorage.setItem(this._tbKey(), JSON.stringify(d)); } catch (e) { this.showToast('ما كدرت أحفظ الجدول'); }
+            clearTimeout(T.ps); T.ps = setTimeout(() => this._tbPushSync(true), 2500);
+        },
 
         _tbRender() {
             const box = document.getElementById('tbContent');
@@ -176,7 +179,7 @@
             return '<div class="tb-card"><div class="tb-head"><h3>تنبيه قبل المحاضرة</h3><label class="tb-sw"><input type="checkbox" ' + (r.on ? 'checked' : '') + ' onchange="app.tbRem(\'on\',this.checked)"><span></span></label></div>'
                 + (r.on ? '<div class="tb-hint" style="margin-bottom:8px">نبّهني قبل المحاضرة بـ</div><div class="tb-picks" style="margin:0">' + opts + '</div>'
                     + (allowed ? '' : '<button class="tb-sec" onclick="app.tbAllow()">فعّل الإشعارات حتى توصلك والتطبيق بالخلفية</button>')
-                    + '<div class="tb-hint" style="margin-top:8px">يوصلك التنبيه والتطبيق مفتوح أو بالخلفية. إذا سكّرته تماماً ما راح ينبهك.</div>'
+                    + '<div class="tb-hint" style="margin-top:8px">يوصلك التنبيه حتى والتطبيق مسكّر، بشرط تسمح بالإشعارات وتكون مسجّل دخول.</div>'
                     : '<div class="tb-hint">يطلعلك تنبيه قبل كل محاضرة بالجدول.</div>') + '</div>';
         },
         tbRem(k, v) {
@@ -288,6 +291,7 @@
         tbClear() {
             if (!confirm('تمسح الجدول كله؟')) return;
             try { localStorage.removeItem(this._tbKey()); } catch (e) {}
+            this._tbPushSync(true);
             T.setup = true; T.draft = null; this._tbRender();
         },
 

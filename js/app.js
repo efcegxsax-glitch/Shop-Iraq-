@@ -4270,7 +4270,60 @@
 
             // A reminder a few minutes before each lecture (settings d.rem = { on, before } in the timetable).
             // It runs while the app is open or in the background; a closed app can't wake itself.
+            _tbPushOn() {
+                try { return !!(JSON.parse(localStorage.getItem('isp:tb:push:' + (this.authUid || 'guest')) || '{}').ids || []).length; } catch (e) { return false; }
+            },
+            // Schedules the next two days of lecture reminders on the server (through the tutor Worker and
+            // OneSignal) so they arrive even when the app is closed; cancels the old ones first. Cheap
+            // when nothing changed: it only talks to the server when the schedule differs or 12 hours passed.
+            async _tbPushSync(force) {
+                if (this._tbPB) { this._tbPQ = this._tbPQ || !!force || 1; return; }
+                this._tbPB = true;
+                try {
+                    await this._tbPushRun(force);
+                } finally {
+                    this._tbPB = false;
+                    const q = this._tbPQ; this._tbPQ = 0;
+                    if (q) this._tbPushSync(q === true);
+                }
+            },
+            async _tbPushRun(force) {
+                try {
+                    const url = (this.siteConfig || {}).tutorUrl;
+                    if (!/^https:\/\/[^\s]+$/.test(String(url || '')) || !this.isLoggedIn || !this.authUid || !window.firebaseAuth || !window.firebaseAuth.currentUser) return;
+                    const d = this._tbGet(), key = 'isp:tb:push:' + this.authUid;
+                    let st = {};
+                    try { st = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
+                    st.ids = st.ids || [];
+                    const on = !!(d && d.rem && d.rem.on && 'Notification' in window && Notification.permission === 'granted' && this._os);
+                    const items = [];
+                    if (on) {
+                        const now = Date.now();
+                        for (let k = 0; k < 3; k++) {
+                            const day = new Date(now + k * 86400000), g = day.getDay();
+                            if (d.days[g] !== 1) continue;
+                            (d.cells[g] || []).forEach((c, p) => {
+                                const sb = c && d.subs.find((x) => x.id === c.s);
+                                if (!sb || !d.times[p]) return;
+                                const t = String(d.times[p][0]).split(':'), at = new Date(day.getFullYear(), day.getMonth(), day.getDate(), +t[0], +t[1] - d.rem.before, 0, 0).getTime();
+                                if (at > now + 30000) items.push({ at, title: 'محاضرة ' + sb.n + ' بعد ' + d.rem.before + ' دقيقة', body: 'الساعة ' + d.times[p][0] + (c.t ? ' - ' + c.t : '') + '. جهّز كتابك ودفترك.' });
+                            });
+                        }
+                        items.sort((a, b) => a.at - b.at);
+                        items.length = Math.min(items.length, 14);
+                    }
+                    const sig = JSON.stringify(items.map((i) => [i.at, i.title]));
+                    if (st.sig === sig && Date.now() - (st.t || 0) < 12 * 3600000) return;
+                    if (!items.length && !st.ids.length) { st = { ids: [], sig, t: Date.now() }; localStorage.setItem(key, JSON.stringify(st)); return; }
+                    const token = await window.firebaseAuth.currentUser.getIdToken();
+                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'tbsync', items, cancel: st.ids }) });
+                    if (!res.ok) return;
+                    const j = await res.json();
+                    localStorage.setItem(key, JSON.stringify({ ids: Array.isArray(j.ids) ? j.ids : [], sig, t: Date.now() }));
+                } catch (e) { /* the in-app reminders still work */ }
+            },
             _tbTick() {
+                this._tbPushSync();
                 const d = this._tbGet();
                 if (!d || !d.rem || !d.rem.on || this._cl || this._focus || this._forest || this._gwar) return;
                 const now = new Date(), g = now.getDay(), min = now.getHours() * 60 + now.getMinutes();
@@ -4295,6 +4348,7 @@
                 const title = 'محاضرة ' + name + (left > 0 ? ' بعد ' + left + ' دقيقة' : ' هسه');
                 const body = 'الساعة ' + at + (note ? ' - ' + note : '') + '. جهّز كتابك ودفترك.';
                 if (document.hidden) {
+                    if (this._tbPushOn()) return; // the server's push shows it
                     if ('Notification' in window && Notification.permission === 'granted' && navigator.serviceWorker) {
                         navigator.serviceWorker.ready.then((r) => r.showNotification(title, { body, tag: 'isp-tb', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', data: { url: './' } })).catch(() => {});
                     }
@@ -4735,6 +4789,8 @@
                             promptOptions: { slidedown: { prompts: [{ type: 'push', autoPrompt: false, text: { actionMessage: 'تريد يوصلك خبر العطلة والأخبار المهمة حتى لو التطبيق مسدود؟', acceptButton: 'نعم، فعّلها', cancelButton: 'لاحقاً' } }] } }
                         });
                         this._os = OneSignal;
+                        // a lecture reminder pushed by the server: while the app is open its own popup shows it
+                        try { OneSignal.Notifications.addEventListener('foregroundWillDisplay', (e) => { try { if (e.notification && e.notification.additionalData && e.notification.additionalData.tb) e.preventDefault(); } catch (x) {} }); } catch (x) {}
                         OneSignal.Notifications.addEventListener('permissionChange', () => {
                             this.syncWebPush();
                             if (this.currentView === 'holidaysView') this.renderDayStatus();
