@@ -599,6 +599,24 @@
                 ].map((p) => (p ? p.catch(() => {}) : p))).then(done, done);
             },
 
+            // If the database hasn't connected 12 seconds after the start although the phone says it is online, a network in
+            // between is probably blocking WebSockets: remember that (isp_lp) and restart once talking over plain HTTPS.
+            _connWatch() {
+                if (!window.firebaseDb || !window.firebaseDbHelpers || this._connWatching) return;
+                this._connWatching = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                let ok = false;
+                onValue(ref(window.firebaseDb, '.info/connected'), (snap) => { if (snap.val() === true) ok = true; });
+                setTimeout(() => {
+                    if (ok || !navigator.onLine) return;
+                    try {
+                        if (localStorage.getItem('isp_lp') === '1' || sessionStorage.getItem('isp_lp_try')) return;
+                        localStorage.setItem('isp_lp', '1'); sessionStorage.setItem('isp_lp_try', '1');
+                    } catch (e) { return; }
+                    location.reload();
+                }, 15000);
+            },
+
             // ===== Offline =====
             // The service worker (OneSignalSDKWorker.js: push + saved copy of the app) lets the app
             // open without internet; a thin bar says when there is no connection.
@@ -782,6 +800,7 @@
                 this.initInstallBar();
                 setTimeout(() => { if ('Notification' in window && Notification.permission === 'granted') this.initPushNotifications(); this.syncNativePush(); }, 4000);
                 setTimeout(() => this._skewCheck(), 6000);
+                setTimeout(() => this._connWatch(), 3000);
                 this.setupPullToRefresh();
                 lucide.createIcons();
                 this._restoreView();
