@@ -4483,3 +4483,5 @@ body.focus-mode #sysBottom, body.forest-on #sysBottom { display: none; }
 @media (prefers-reduced-motion: reduce) { .rx-pop, .rx-pop button, .rx-me.on { animation: none; } }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+body.sub-nav-hidden #bottomNav { display: none; }
+body.sub-nav-hidden #mainContent { padding-bottom: calc(16px + var(--safe-b, 0px)) !important; }

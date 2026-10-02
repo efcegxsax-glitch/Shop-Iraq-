@@ -13853,6 +13853,8 @@
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
+                // the bottom bar only belongs to the main pages; inside any other page it hides to give room
+                document.body.classList.toggle('sub-nav-hidden', !['homeView','holidaysView','resourcesView','leaderboardView','tutorView','storeView','messagesView','profileView','moreView'].includes(viewId));
                 document.body.classList.toggle('forest-on', viewId === 'forestView');
                 window.scrollTo(0, 0);
 
