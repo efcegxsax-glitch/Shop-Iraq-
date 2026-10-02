@@ -4328,11 +4328,14 @@
                 if (extra.kind === 'call') return true;
                 return this.currentView === 'chatThreadView' && this.currentChatUid === extra.from;
             },
-            // The tutor Worker's address: the panel's value when it was set (an empty one switches the tutor off),
-            // otherwise the Worker this project deploys.
+            // The tutor Worker's address: the panel's value when it is a real https address, otherwise the Worker this
+            // project deploys (an empty or broken value used to switch the tutor, the call relay and the pushes off
+            // without anyone noticing). The tutor itself can be switched off from the panel (features.tutor).
             _tutorUrl() {
                 const c = this.siteConfig || {};
-                return typeof c.tutorUrl === 'string' ? c.tutorUrl : 'https://isp-tutor.efceg-xsax.workers.dev';
+                if (c.features && c.features.tutor === false) return '';
+                const u = typeof c.tutorUrl === 'string' ? c.tutorUrl.trim().replace(/\/+$/, '') : '';
+                return /^https:\/\/[^\s]+$/.test(u) ? u : 'https://isp-tutor.efceg-xsax.workers.dev';
             },
             _tbPushOn() {
                 try { return !!(JSON.parse(localStorage.getItem('isp:tb:push:' + (this.authUid || 'guest')) || '{}').ids || []).length; } catch (e) { return false; }

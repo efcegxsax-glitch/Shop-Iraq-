@@ -464,6 +464,10 @@
                         <label class="switch"><input type="checkbox" data-cfg="features.dhikr" aria-label="روحانيات"><span class="track"></span></label>
                     </div>
                     <div class="sw-row">
+                        <div class="sw-text"><strong>المعلم الذكي</strong><span>يفتح للطلاب. إذا طفيته يختفي المعلم، ورسائله وتنبيهاته</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.tutor" aria-label="المعلم الذكي"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
                         <div class="sw-text"><strong>قاعة الهمّة</strong><span>غرفة يدخلها الطلاب ويشوفون بعض ووقت بقاء كل واحد</span></div>
                         <label class="switch"><input type="checkbox" data-cfg="features.hall" aria-label="قاعة الهمّة"><span class="track"></span></label>
                     </div>
@@ -1894,7 +1898,8 @@
         // A real push to the students' phones (even with the app closed): the tutor Worker sends it through
         // OneSignal, after checking that this is the panel's own account. govs = governorate names, [] = everyone.
         async function pushPhones(title, body, govs) {
-            const url = typeof (siteConfig || {}).tutorUrl === 'string' ? siteConfig.tutorUrl : 'https://isp-tutor.efceg-xsax.workers.dev';
+            const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
+            const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
             if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
             let token;
             try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
@@ -3640,11 +3645,11 @@
 
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
-            onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = typeof snap.val() === 'string' ? snap.val() : 'https://isp-tutor.efceg-xsax.workers.dev'; });
+            onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = /^https:\/\/[^\s]+$/.test(String(snap.val() || '')) ? snap.val() : 'https://isp-tutor.efceg-xsax.workers.dev'; });
             el('tt_save').addEventListener('click', async () => {
                 const v = el('tt_url').value.trim().replace(/\/+$/, '');
                 if (v && !/^https:\/\/[a-z0-9.-]+(\/[^\s]*)?$/i.test(v)) { toast('الرابط لازم يبدي بـ https://', false); return; }
-                try { await set(ref(db, 'siteConfig/tutorUrl'), v); toast(v ? 'انحفظ، المعلم صار شغال' : 'انطفى المعلم'); } catch (e) { toast('فشل الحفظ', false); }
+                try { await set(ref(db, 'siteConfig/tutorUrl'), v || null); toast(v ? 'انحفظ العنوان' : 'رجع للعنوان الافتراضي'); } catch (e) { toast('فشل الحفظ', false); }
             });
         }
 
