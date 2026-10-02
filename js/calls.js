@@ -329,7 +329,7 @@
             return this._clIceWait;
         },
         async _clIceFetch() {
-            const url = (this.siteConfig || {}).tutorUrl;
+            const url = this._tutorUrl();
             let list = STUN;
             if (/^https:\/\/[^\s]+$/.test(String(url || '')) && window.firebaseAuth && window.firebaseAuth.currentUser) {
                 try {

@@ -1894,7 +1894,7 @@
         // A real push to the students' phones (even with the app closed): the tutor Worker sends it through
         // OneSignal, after checking that this is the panel's own account. govs = governorate names, [] = everyone.
         async function pushPhones(title, body, govs) {
-            const url = (siteConfig || {}).tutorUrl;
+            const url = typeof (siteConfig || {}).tutorUrl === 'string' ? siteConfig.tutorUrl : 'https://isp-tutor.efceg-xsax.workers.dev';
             if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
             let token;
             try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
@@ -3640,11 +3640,11 @@
 
         // ---------- AI tutor server address (siteConfig/tutorUrl) ----------
         function loadTutorUrl() {
-            onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = snap.val() || ''; });
+            onValue(ref(db, 'siteConfig/tutorUrl'), (snap) => { if (document.activeElement !== el('tt_url')) el('tt_url').value = typeof snap.val() === 'string' ? snap.val() : 'https://isp-tutor.efceg-xsax.workers.dev'; });
             el('tt_save').addEventListener('click', async () => {
                 const v = el('tt_url').value.trim().replace(/\/+$/, '');
                 if (v && !/^https:\/\/[a-z0-9.-]+(\/[^\s]*)?$/i.test(v)) { toast('الرابط لازم يبدي بـ https://', false); return; }
-                try { await set(ref(db, 'siteConfig/tutorUrl'), v || null); toast(v ? 'انحفظ، المعلم صار شغال' : 'انطفى المعلم'); } catch (e) { toast('فشل الحفظ', false); }
+                try { await set(ref(db, 'siteConfig/tutorUrl'), v); toast(v ? 'انحفظ، المعلم صار شغال' : 'انطفى المعلم'); } catch (e) { toast('فشل الحفظ', false); }
             });
         }
 
