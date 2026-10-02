@@ -28,6 +28,14 @@ await ok('admin writes resource file', set(ref(db('adm'), 'resourceFiles/1'), 'd
 await no('student writes resource file', set(ref(db('u1'), 'resourceFiles/2'), 'data:x'));
 await ok('guest reads resource file', get(ref(db(null), 'resourceFiles/1')));
 await no('resource file must be a string', set(ref(db('adm'), 'resourceFiles/3'), { a: 1 }));
+await ok('student joins the hall', set(ref(db('u1'), 'hall/u1'), { n: 'علي', g: 'بغداد', a: 'data:image/jpeg;base64,AAAA', at: now }));
+await no('student joins as someone else', set(ref(db('u1'), 'hall/u2'), { n: 'x', at: now }));
+await no('hall time in the future', set(ref(db('u1'), 'hall/u1'), { n: 'علي', at: now + 3600000 }));
+await no('hall extra field', set(ref(db('u1'), 'hall/u1'), { n: 'علي', at: now, x: 1 }));
+await no('hall photo too big', set(ref(db('u1'), 'hall/u1'), { n: 'علي', at: now, a: 'x'.repeat(9000) }));
+await ok('signed student reads the hall', get(ref(db('u2'), 'hall')));
+await no('guest reads the hall', get(ref(db(null), 'hall')));
+await ok('student leaves the hall', set(ref(db('u1'), 'hall/u1'), null));
 await ok('admin writes admission', set(ref(db('adm'), 'admission/base/med'), 98));
 await no('student writes admission', set(ref(db('u1'), 'admission/base/med'), 60));
 await ok('guest reads admission', get(ref(db(null), 'admission')));

@@ -236,6 +236,14 @@ rules = {
             ".validate": "!newData.exists() || (" + ands(s_max("newData.child('n')", 80), "(!newData.child('s').exists() || " + s_max("newData.child('s')", 12) + ")", "(!newData.child('g').exists() || " + s_max("newData.child('g')", 30) + ")") + ")",
         },
     },
+    # قاعة الهمّة: who is in the hall now (name, governorate, a small photo, when they came in)
+    "hall": {
+        ".read": SIGNED,
+        "$uid": {
+            ".write": ors(OWNER, ADMIN),
+            ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'at'])", s_max("newData.child('n')", 80), "(!newData.child('g').exists() || " + s_max("newData.child('g')", 30) + ")", "(!newData.child('a').exists() || " + s_max("newData.child('a')", 8000) + ")", "newData.child('at').isNumber()", "newData.child('at').val() <= now + 60000", "newData.child('at').val() >= now - 86400000", "!newData.child('x').exists()") + ")",
+        },
+    },
     # student number -> uid, claimed once by its owner
     "numIndex": {
         "$n": {
