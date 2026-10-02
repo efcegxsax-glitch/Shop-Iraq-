@@ -1,0 +1,55 @@
+# Builds the Android app from this repository (Capacitor wraps the same site).
+# Run it by hand: GitHub -> Actions -> "Build Android app" -> Run workflow.
+#   release = off: makes a test file (APK) you install on your own phone to try the app.
+#   release = on : makes the signed file (AAB) you upload to Google Play. It needs the signing key
+#                  made once by the "Create Android signing key" workflow and the secret
+#                  ANDROID_KEYSTORE_PASSWORD (see MOBILE.md).
+name: Build Android app
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Make the signed file for Google Play (AAB)'
+        type: boolean
+        default: false
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 21 }
+      - run: npm ci
+      - name: Put the site inside the app
+        run: |
+          python3 tools/mobile-build.py
+          npx cap sync android
+      - name: Test APK
+        if: ${{ !inputs.release }}
+        working-directory: android
+        run: ./gradlew assembleDebug -Pvcode=${{ github.run_number }} -Pvname=1.0.${{ github.run_number }}
+      - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.release }}
+        with:
+          name: android-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Signed AAB for Google Play
+        if: ${{ inputs.release }}
+        working-directory: android
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          test -f ../android-signing/upload.keystore || { echo "No signing key yet: run 'Create Android signing key' first"; exit 1; }
+          test -n "$KS_PASS" || { echo "The secret ANDROID_KEYSTORE_PASSWORD is missing"; exit 1; }
+          ./gradlew bundleRelease -Pvcode=${{ github.run_number }} -Pvname=1.0.${{ github.run_number }}
+          AAB=app/build/outputs/bundle/release/app-release.aab
+          jarsigner -keystore ../android-signing/upload.keystore -storepass "$KS_PASS" -keypass "$KS_PASS" -sigalg SHA256withRSA -digestalg SHA-256 "$AAB" upload
+          jarsigner -verify "$AAB" | tail -1
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.release }}
+        with:
+          name: android-play-aab
+          path: android/app/build/outputs/bundle/release/app-release.aab
