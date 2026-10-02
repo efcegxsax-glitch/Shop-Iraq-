@@ -30,7 +30,7 @@ const MAX_TURNS = 20, MAX_CHARS = 4000, MAX_CONTEXT = 3400, MAX_IMAGE_B64 = 2_00
 // and pops up), visible on the lock screen. No `url` on purpose: a `url` opens the browser; without it a tap opens the
 // app itself (web push uses web_url instead).
 const PUSH_LOOK = (env) => ({
-    large_icon: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + 'icons/icon-192.png',
+    large_icon: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + 'icons/notif-large.png',
     android_accent_color: 'FF0F766E', priority: 10, android_visibility: 1,
     web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
 });
