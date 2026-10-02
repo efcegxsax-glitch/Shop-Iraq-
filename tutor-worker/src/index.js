@@ -413,6 +413,11 @@ async function notifyPush(env, uid, token, body, headers, origin) {
         if (!success) return json(429, { error: 'slow_down' }, headers);
     }
     const chat = [uid, to].sort().join('_'), now = Date.now();
+    // the receiver has this very chat open on screen right now (the app refreshes this every 25 s): no phone notification
+    if (kind === 'msg') {
+        const pr = await dbGet(env, 'chatNow/' + to, token);
+        if (pr && pr.c === uid && now - Number(pr.at || 0) < 70000) return json(200, { ok: true, skipped: 'in_chat' }, headers);
+    }
     let title, text;
     const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
     let photoUrl = '';

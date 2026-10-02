@@ -292,6 +292,9 @@ rules = {
     # the challenger also lists the duel for the other player
     "userDuels": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$id": {".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"}}},
     "presence": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},
+    # which chat a student has open right now: only the person they are chatting with (and they themselves) can read it,
+    # so the server can skip the phone notification for a message that is being read live
+    "chatNow": {"$uid": {".read": "auth != null && (auth.uid == $uid || data.child('c').val() == auth.uid)", ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (newData.hasChildren(['c', 'at']) && " + s_max("newData.child('c')", 40) + " && newData.child('at').isNumber())"}},
     # listened to from the start, before signing in
     "studyRoom": {".read": True, "$uid": {".write": ors(OWNER, ADMIN)}},
     "focusLive": {".read": True, "$uid": {".read": True, ".write": ors(OWNER, ADMIN)}},

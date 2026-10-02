@@ -282,6 +282,13 @@
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
       }
     },
+    "chatNow": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid == $uid || data.child('c').val() == auth.uid)",
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['c', 'at']) && newData.child('c').isString() && newData.child('c').val().length <= 40 && newData.child('at').isNumber())"
+      }
+    },
     "studyRoom": {
       ".read": true,
       "$uid": {

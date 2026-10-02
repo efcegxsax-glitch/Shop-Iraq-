@@ -8193,6 +8193,7 @@
                     this.saveUserData();
                     this.updateProfileView();
                     this.syncUserToDatabase();
+                    this._avatarPush(this.authUid, this.currentUser);
                     this.showToast('تم تحديث الصورة الشخصية');
                 });
             },
@@ -10207,11 +10208,29 @@
                 const { ref, set, onDisconnect } = window.firebaseDbHelpers;
                 const myRef = ref(window.firebaseDb, 'presence/' + this.authUid);
                 set(myRef, { online: true, lastSeen: Date.now() }).catch(() => {});
+                if (!this._chatVis) { this._chatVis = true; document.addEventListener('visibilitychange', () => this._chatNow()); }
+                this._avatarPush(this.authUid, this.currentUser);
                 try {
                     onDisconnect(myRef).set({ online: false, lastSeen: Date.now() });
                 } catch (e) {
                     console.warn('Presence onDisconnect setup failed:', e);
                 }
+            },
+
+            // Tells the server which chat this student has open right now (and that they are looking at it), so the server
+            // does not send a phone notification for a message they are reading live. Refreshed every 25 s while the chat is open.
+            _chatNow() {
+                try {
+                    if (!window.firebaseDb || !this.authUid || !window.firebaseDbHelpers) return;
+                    const inChat = this.currentView === 'chatThreadView' && this.currentChatUid && document.visibilityState !== 'hidden';
+                    const want = inChat ? this.currentChatUid : '';
+                    if (!want && !this._chatNowSent) return;
+                    const { ref, set, remove } = window.firebaseDbHelpers;
+                    (want ? set(ref(window.firebaseDb, 'chatNow/' + this.authUid), { c: want, at: Date.now() }) : remove(ref(window.firebaseDb, 'chatNow/' + this.authUid))).catch(() => {});
+                    this._chatNowSent = !!want;
+                    if (want && !this._chatNowT) this._chatNowT = setInterval(() => this._chatNow(), 25000);
+                    if (!want && this._chatNowT) { clearInterval(this._chatNowT); this._chatNowT = null; }
+                } catch (e) {}
             },
 
             listenForPresence() {
@@ -11616,6 +11635,7 @@
                         const tok = await user.getIdToken();
                         const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tok }, body: JSON.stringify({ mode: 'avatar', img: data }) });
                         if (r.ok) { try { localStorage.setItem('isp_avp', sig); } catch (e) {} }
+                        else { let code = ''; try { code = (await r.json()).error || ''; } catch (e) {} this._reportError({ msg: 'avatar upload refused: ' + r.status + ' ' + code, src: 'avatar', line: 0 }); }
                     } finally { this._avpBusy = false; }
                 } catch (e) { /* the photo in the push is a bonus; the app image shows instead */ }
             },
@@ -13923,6 +13943,7 @@
                 this._rememberView(viewId);
                 document.body.classList.toggle('header-hidden', viewId !== 'homeView');
                 document.body.classList.toggle('chat-nav-hidden', viewId === 'chatThreadView');
+                this._chatNow();
                 document.body.classList.toggle('results-nav-hidden', viewId === 'resultsView');
                 // the bottom bar only belongs to the main pages; inside any other page it hides to give room
                 document.body.classList.toggle('sub-nav-hidden', !['homeView','holidaysView','resourcesView','leaderboardView','tutorView','storeView','messagesView','profileView','moreView'].includes(viewId));
