@@ -415,6 +415,8 @@ async function notifyPush(env, uid, token, body, headers) {
     const chat = [uid, to].sort().join('_'), now = Date.now();
     let title, text;
     const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
+    const photo = str(await dbGet(env, 'pub/' + uid + '/p', token), 600);
+    const photoOk = /^https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[\w.-]+\/o\/avatars%2F[\w.%-]+\?[\w=&%.-]+$/.test(photo);
     if (kind === 'call') {
         const c = await dbGet(env, 'calls/' + chat, token);
         const at = Number(c && c.at);
@@ -433,7 +435,7 @@ async function notifyPush(env, uid, token, body, headers) {
         body: JSON.stringify({
             app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [to] },
             headings: { en: title, ar: title }, contents: { en: text, ar: text },
-            ...PUSH_LOOK(env), data: { kind, from: uid, fromName: name }, ttl: kind === 'call' ? 45 : 3600,
+            ...PUSH_LOOK(env), ...(photoOk ? { large_icon: photo } : {}), data: { kind, from: uid, fromName: name }, ttl: kind === 'call' ? 45 : 3600,
             ...(kind === 'msg' ? { collapse_id: 'chat-' + uid, web_push_topic: 'chat-' + uid.slice(0, 20) } : {}),
         }),
     });
