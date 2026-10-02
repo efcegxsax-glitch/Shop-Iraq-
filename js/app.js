@@ -4835,9 +4835,11 @@
                         });
                         O.Notifications.addEventListener('click', (ev) => {
                             try {
-                                const url = String((ev.notification && (ev.notification.launchURL || ev.notification.launchUrl)) || '');
+                                const n = ev.notification || {}, extra = n.additionalData || {};
+                                const url = String(n.launchURL || n.launchUrl || '');
                                 const m = /[?&]coach=([^&#]+)/.exec(url);
-                                if (m) { this._coachPending = decodeURIComponent(m[1]); this._coachOpen(); }
+                                const text = typeof extra.coach === 'string' ? extra.coach : (m ? decodeURIComponent(m[1]) : '');
+                                if (text) { this._coachPending = text; this._coachOpen(); }
                             } catch (e) {}
                         });
                         this._os = {
