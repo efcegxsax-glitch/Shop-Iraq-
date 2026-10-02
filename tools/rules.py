@@ -233,7 +233,7 @@ rules = {
         ".read": SIGNED,
         "$uid": {
             ".write": ors(OWNER, ADMIN),
-            ".validate": "!newData.exists() || (" + ands(s_max("newData.child('n')", 80), "(!newData.child('s').exists() || " + s_max("newData.child('s')", 12) + ")", "(!newData.child('g').exists() || " + s_max("newData.child('g')", 30) + ")") + ")",
+            ".validate": "!newData.exists() || (" + ands(s_max("newData.child('n')", 80), "(!newData.child('s').exists() || " + s_max("newData.child('s')", 12) + ")", "(!newData.child('g').exists() || " + s_max("newData.child('g')", 30) + ")", "(!newData.child('p').exists() || (" + s_max("newData.child('p')", 600) + " && newData.child('p').val().beginsWith('https://')))") + ")",
         },
     },
     # قاعة الهمّة: who is in the hall now (name, governorate, a small photo, when they came in)

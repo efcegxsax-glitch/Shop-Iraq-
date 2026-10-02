@@ -1963,14 +1963,14 @@
                                 ${news.isUrgent ? '<span class="nw-flag nw-urgent">عاجل</span>' : (cat ? `<span class="nw-flag">${escapeHtml(cat)}</span>` : '')}
                             </div>
                             <div class="nw-body">
-                                <h3 class="nw-title">${!isRead ? '<span class="nw-dot" aria-label="جديد"></span>' : ''}${news.isPinned ? '<i data-lucide="pin" class="nw-pin"></i>' : ''}${escapeHtml(news.title)}</h3>
+                                <h3 class="nw-title"><span class="nw-dot${isRead ? ' read' : ''}" aria-label="${isRead ? 'مقروء' : 'جديد'}"></span>${news.isPinned ? '<i data-lucide="pin" class="nw-pin"></i>' : ''}${escapeHtml(news.title)}</h3>
                                 ${news.excerpt ? `<p class="nw-excerpt">${escapeHtml(news.excerpt)}</p>` : ''}
+                                <span class="rx-sum" data-rx="${id}">${this.rxSummaryHtml(news.id)}</span>
                                 <div class="nw-foot">
                                     <span class="nw-meta"><i data-lucide="user"></i><span>${escapeHtml(news.source || 'وزارة التربية العراقية')}</span></span>
                                     <span class="nw-sep" aria-hidden="true"></span>
                                     <span class="nw-meta"><i data-lucide="clock"></i><span data-timeago="${id}">${timeAgo(news.id)}</span></span>
-                                    <span class="rx-sum" data-rx="${id}">${this.rxSummaryHtml(news.id)}</span>
-                                    <button onclick="app.rxOpen(${id}, event)" class="nw-bm" aria-label="تفاعل"><i data-lucide="smile-plus"></i></button>
+                                    <button style="margin-inline-start:auto" onclick="app.rxOpen(${id}, event)" class="nw-bm" aria-label="تفاعل"><i data-lucide="smile-plus"></i></button>
                                     <button onclick="event.stopPropagation(); app.toggleBookmark(${id})" class="nw-bm${isBookmarked ? ' on' : ''}" aria-label="${isBookmarked ? 'إزالة من المحفوظات' : 'حفظ الخبر'}">
                                         <i data-lucide="bookmark"></i>
                                     </button>
@@ -2028,6 +2028,48 @@
                 });
             },
 
+            // full-screen photo viewer: tap the news photo, pinch or double-tap to zoom, tap outside or the X to close
+            openImageViewer(id) {
+                const news = newsData.find(n => n.id === id);
+                const src = news ? safeImage(news.image) : '';
+                if (!src) return;
+                this.closeImageViewer();
+                const v = document.createElement('div');
+                v.id = 'imgViewer';
+                v.innerHTML = '<button class="iv-x" aria-label="إغلاق" onclick="app.closeImageViewer()"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button><img alt="">';
+                const im = v.querySelector('img'); im.src = src;
+                let scale = 1, x = 0, y = 0, d0 = 0, s0 = 1, sx = 0, sy = 0, lastTap = 0, moved = false;
+                const apply = () => { im.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + scale + ')'; };
+                const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                v.addEventListener('touchstart', (e) => {
+                    moved = false;
+                    if (e.touches.length === 2) { d0 = dist(e.touches); s0 = scale; }
+                    else if (e.touches.length === 1) { sx = e.touches[0].clientX - x; sy = e.touches[0].clientY - y; }
+                }, { passive: true });
+                v.addEventListener('touchmove', (e) => {
+                    moved = true;
+                    if (e.touches.length === 2 && d0) { scale = Math.min(5, Math.max(1, s0 * dist(e.touches) / d0)); apply(); }
+                    else if (e.touches.length === 1 && scale > 1) { x = e.touches[0].clientX - sx; y = e.touches[0].clientY - sy; apply(); }
+                }, { passive: true });
+                v.addEventListener('touchend', (e) => {
+                    if (scale <= 1.02) { scale = 1; x = 0; y = 0; apply(); }
+                    if (!moved && e.touches.length === 0) {
+                        const now = Date.now();
+                        if (now - lastTap < 300) { scale = scale > 1 ? 1 : 2.5; x = 0; y = 0; apply(); lastTap = 0; }
+                        else lastTap = now;
+                    }
+                });
+                v.addEventListener('click', (e) => { if (e.target === v) this.closeImageViewer(); });
+                document.body.appendChild(v);
+                this._ivKey = (e) => { if (e.key === 'Escape') this.closeImageViewer(); };
+                document.addEventListener('keydown', this._ivKey);
+            },
+            closeImageViewer() {
+                const v = document.getElementById('imgViewer');
+                if (v) v.remove();
+                if (this._ivKey) { document.removeEventListener('keydown', this._ivKey); this._ivKey = null; }
+            },
+
             // News details v2: full-bleed photo with category chips, big bold headline, source
             // row with date + reading time, the text in a large readable size, action buttons,
             // then related news using the same cards as the home list.
@@ -2060,8 +2102,9 @@
                 const related = newsData.filter(n => n.id !== id && n.category === news.category).slice(0, 3);
                 content.innerHTML = `
                     <article class="nd">
-                        <div class="nd-hero">
+                        <div class="nd-hero" onclick="app.openImageViewer(${jsNum(news.id)})" role="button" aria-label="فتح الصورة">
                             <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}">
+                            <span class="nd-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>
                             <div class="nd-hero-shade"></div>
                             <div class="nd-tags">
                                 ${news.isUrgent ? '<span class="nd-tag nd-tag-urgent"><span class="tk-dot" aria-hidden="true"></span>عاجل</span>' : ''}
@@ -5023,6 +5066,7 @@
             // true when it handled the press (closed a sheet or went back a page)
             nativeBack() {
                 const close = [
+                    ['#imgViewer', () => this.closeImageViewer()],
                     ['.pk-sheet', (el) => { const b = el.querySelector('.pk-back'); if (b) b.click(); }],
                     ['.fm-sheet.on', () => this.fmCloseCompose && this.fmCloseCompose()],
                     ['.tb-sheet.on', () => this._tbSheetClose && this._tbSheetClose()],
@@ -11544,9 +11588,39 @@
                 if (this._pubLast === uid + key) return;
                 this._pubLast = uid + key;
                 update(ref(window.firebaseDb, 'pub/' + uid), rec).catch(() => {});
+                this._avatarPush(uid, u);
                 if (/^[0-9]{3,12}$/.test(rec.s)) {
                     get(ref(window.firebaseDb, 'numIndex/' + rec.s)).then((sn) => { if (!sn.exists()) return set(ref(window.firebaseDb, 'numIndex/' + rec.s), uid); }).catch(() => {});
                 }
+            },
+            // a small copy of the student's photo goes to file storage once, and its web address is kept in pub/{uid}/p,
+            // so a push notification to a friend can show this student's photo (a push needs a web address, not stored image data)
+            async _avatarPush(uid, u) {
+                try {
+                    const src = u && u.avatar;
+                    if (!uid || typeof src !== 'string' || src.indexOf('data:image') !== 0) return;
+                    const sig = uid + ':' + src.length + ':' + src.slice(-24);
+                    let seen = ''; try { seen = localStorage.getItem('isp_avp') || ''; } catch (e) {}
+                    if (seen === sig || this._avpBusy) return;
+                    this._avpBusy = true;
+                    try {
+                        if (window.firebaseEnsureStorage) await window.firebaseEnsureStorage();
+                        if (!window.firebaseStorage || !window.firebaseStorageHelpers) return;
+                        const img = new Image(); img.src = src; await img.decode();
+                        const cv = document.createElement('canvas'); cv.width = cv.height = 192;
+                        const cx = cv.getContext('2d'), m = Math.min(img.width, img.height);
+                        cx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, 192, 192);
+                        const blob = await new Promise((r) => cv.toBlob(r, 'image/jpeg', 0.8));
+                        if (!blob) return;
+                        const { storageRef, uploadBytes, getDownloadURL } = window.firebaseStorageHelpers;
+                        const sRef = storageRef(window.firebaseStorage, 'avatars/' + uid + '.jpg');
+                        await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
+                        const url = await getDownloadURL(sRef);
+                        const { ref, update } = window.firebaseDbHelpers;
+                        await update(ref(window.firebaseDb, 'pub/' + uid), { p: url });
+                        try { localStorage.setItem('isp_avp', sig); } catch (e) {}
+                    } finally { this._avpBusy = false; }
+                } catch (e) { /* the photo in the push is a bonus; the app image shows instead */ }
             },
             async _pubData(uid, p) {
                 let lb = {};

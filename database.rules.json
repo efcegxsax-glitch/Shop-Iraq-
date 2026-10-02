@@ -174,7 +174,7 @@
       ".read": "auth != null",
       "$uid": {
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
-        ".validate": "!newData.exists() || ((newData.child('n').isString() && newData.child('n').val().length <= 80 && (!newData.child('s').exists() || newData.child('s').isString() && newData.child('s').val().length <= 12) && (!newData.child('g').exists() || newData.child('g').isString() && newData.child('g').val().length <= 30)))"
+        ".validate": "!newData.exists() || ((newData.child('n').isString() && newData.child('n').val().length <= 80 && (!newData.child('s').exists() || newData.child('s').isString() && newData.child('s').val().length <= 12) && (!newData.child('g').exists() || newData.child('g').isString() && newData.child('g').val().length <= 30) && (!newData.child('p').exists() || (newData.child('p').isString() && newData.child('p').val().length <= 600 && newData.child('p').val().beginsWith('https://')))))"
       }
     },
     "hall": {
