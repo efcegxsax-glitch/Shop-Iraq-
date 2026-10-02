@@ -10,6 +10,7 @@
     const DAY = 86400000;
     const MONTHS = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
     const DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const SHORT = ['أحد', 'اثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'];
     const dstr = (d) => d.getDate() + ' ' + MONTHS[d.getMonth()];
     const hm = (m) => {
         m = Math.round(m);
@@ -86,7 +87,7 @@
                         <div><b>${hasMin ? (t.min / 60).toFixed(t.min >= 600 ? 0 : 1).replace(/\.0$/, '') : t.ses}</b><span>${hasMin ? 'ساعة' : 'جلسة'}</span></div>
                         <div><b>${t.tasks}</b><span>مهمة</span></div>
                     </div>
-                    <div class="wk-bars">${r.days.map((x) => { const v = hasMin ? x.min : x.ses; return `<div><i style="height:${Math.max(6, (v / max) * 100)}%" class="${v ? 'on' : ''}"></i><small>${x.name.slice(0, 3)}</small></div>`; }).join('')}</div>
+                    <div class="wk-bars">${r.days.map((x) => { const v = hasMin ? x.min : x.ses; return `<div><i style="height:${Math.max(6, (v / max) * 100)}%" class="${v ? 'on' : ''}"></i><small>${x.name}</small></div>`; }).join('')}</div>
                     ${delta !== null ? `<p class="wk-delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? 'أكثر' : 'أقل'} من الأسبوع اللي قبله بـ ${hm(Math.abs(delta))}</p>` : ''}
                     ${!hasMin && t.ses ? '<p class="wk-delta">الدقائق تنحسب من هسه وطالع، وهالأسبوع نعرض الجلسات.</p>' : ''}
                     ${r.streak > 1 ? `<p class="wk-streak">${r.streak} أيام دخول متتالية</p>` : ''}
@@ -217,7 +218,7 @@
                 const v = hasMin ? d.min : d.ses, h = Math.max(10, (v / max) * bh);
                 const bx = W - PAD - 40 - (i + 1) * bw + 14;
                 x.fillStyle = v ? '#14B8A6' : '#E2E8F0'; this._wkRound(x, bx, by + bh - h, bw - 28, h, 12); x.fill();
-                x.fillStyle = '#5B6E69'; x.textAlign = 'center'; x.font = '500 26px ' + F; x.fillText(d.name.slice(0, 3), bx + (bw - 28) / 2, by + bh + 48);
+                x.fillStyle = '#5B6E69'; x.textAlign = 'center'; x.font = '500 26px ' + F; x.fillText(d.name, bx + (bw - 28) / 2, by + bh + 48);
             });
             let y = by + bh + 170;
             x.textAlign = 'right';
