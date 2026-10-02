@@ -830,6 +830,16 @@
                 if (persist) {
                     try { localStorage.setItem('iraqiStudentTheme', mode); } catch (e) {}
                 }
+                setTimeout(() => this._nativeBars(), 30);
+            },
+            // Android app: the bar icons are dark on a light page and light on a dark one
+            _nativeBars() {
+                try {
+                    if (!this._isNative()) return;
+                    const lum = document.documentElement.classList.contains('dark') ? 0 : 255;
+                    if (window.IspNative) window.IspNative.bars(lum > 140);
+                    else if (window.Capacitor.Plugins.StatusBar) window.Capacitor.Plugins.StatusBar.setStyle({ style: lum > 140 ? 'LIGHT' : 'DARK' });
+                } catch (e) {}
             },
 
             // Kept as a thin alias: some flows still call the old name.
@@ -4785,6 +4795,9 @@
                 if (!this._isNative() || this._nativeInit) return;
                 this._nativeInit = true;
                 document.documentElement.classList.add('is-native');
+                // the size of the status bar and navigation bar, from the Android code
+                window.__ispInsets = (t, b) => { const r = document.documentElement.style; r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); };
+                try { if (window.IspNative) { const [t, b] = String(window.IspNative.insets()).split(','); window.__ispInsets(t, b); this._nativeBars(); } } catch (e) {}
                 const P = (window.Capacitor && window.Capacitor.Plugins) || {};
                 try {
                     if (P.App) {
@@ -4792,7 +4805,7 @@
                         P.App.addListener('backButton', () => { if (!this.nativeBack()) P.App.exitApp(); });
                         P.App.addListener('appStateChange', (st) => { if (st && st.isActive) setTimeout(() => { this._nutTick(); this._tbTick(); }, 800); });
                     }
-                    if (P.StatusBar) { P.StatusBar.setStyle({ style: 'DARK' }); P.StatusBar.setBackgroundColor({ color: '#0F766E' }); }
+                    if (P.StatusBar && !window.IspNative) { P.StatusBar.setStyle({ style: 'DARK' }); }
                 } catch (e) { console.warn('Native setup failed:', e); }
             },
             // true when it handled the press (closed a sheet or went back a page)

@@ -12,7 +12,7 @@
     const css = `
 .pk-sheet { position: fixed; inset: 0; z-index: 99990; display: flex; align-items: flex-end; justify-content: center; font-family: inherit; }
 .pk-back { position: absolute; inset: 0; background: rgba(15,23,42,.45); opacity: 0; transition: opacity .25s; }
-.pk-card { position: relative; width: 100%; max-width: 520px; max-height: 78vh; display: flex; flex-direction: column; background: var(--bg, #F8FAFC); color: var(--text, #0F172A); border-radius: 26px 26px 0 0; padding: 10px 14px calc(14px + env(safe-area-inset-bottom)); transform: translateY(100%); transition: transform .32s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -10px 40px rgba(0,0,0,.18); direction: rtl; }
+.pk-card { position: relative; width: 100%; max-width: 520px; max-height: 78vh; display: flex; flex-direction: column; background: var(--bg, #F8FAFC); color: var(--text, #0F172A); border-radius: 26px 26px 0 0; padding: 10px 14px calc(14px + var(--safe-b, 0px)); transform: translateY(100%); transition: transform .32s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -10px 40px rgba(0,0,0,.18); direction: rtl; }
 .pk-sheet.on .pk-back { opacity: 1; } .pk-sheet.on .pk-card { transform: none; }
 .pk-grab { width: 40px; height: 5px; border-radius: 3px; background: var(--border, #CBD5E1); margin: 0 auto 10px; flex: none; }
 .pk-title { font-size: 15px; font-weight: 900; text-align: center; margin-bottom: 10px; flex: none; }
