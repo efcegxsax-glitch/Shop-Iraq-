@@ -516,6 +516,9 @@ await ok('student records own phone', set(ref(db('o1'), 'users/o1/dev/' + DEV), 
 // open writes stay small
 await ok('device ping', update(ref(db(null), 'devices/d123'), { last: Date.now(), gov: 'baghdad', installed: false, push: 'default', app: 'web', member: 0 }));
 await no('device ping with junk', update(ref(db(null), 'devices/d124'), { last: Date.now(), junk: 'x'.repeat(5000) }));
+await no('student reads error log', get(ref(db('u1'), 'errors')));
+await no('guest reads error log', get(ref(db(null), 'errors')));
+await ok('admin reads error log', get(ref(db('adm'), 'errors')));
 await ok('error report', set(ref(db(null), 'errors/e1'), { msg: 'TypeError', src: 'app.js', line: 1, col: 2, stack: 'at x', first: 1, n: 1, last: 2, view: 'homeView', dev: 'Android', ver: 'abc' }));
 await no('error report with junk', set(ref(db(null), 'errors/e2'), { msg: 'x', n: 1, blob: 'x'.repeat(5000) }));
 await no('huge stack', set(ref(db(null), 'errors/e3'), { msg: 'x', n: 1, stack: 'x'.repeat(5000) }));
