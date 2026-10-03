@@ -383,7 +383,7 @@
         },
         _rmChatDraw() {
             const b = document.getElementById('rmChatBox'); if (!b || !ST) return;
-            b.innerHTML = ST.chat.length ? ST.chat.map((c) => { const m = ST.members[c.u] || {}, me = c.u === this.authUid; return `<div class="rm-msg${me ? ' me' : ''}"><b>${esc(me ? 'أنت' : (m.n || c.n || 'طالب'))}</b><span>${esc(c.m)}</span></div>`; }).join('') : '<div class="rm-mut rm-c">ماكو رسائل بعد. سلّم على أصدقائك!</div>';
+            b.innerHTML = ST.chat.length ? ST.chat.map((c) => { const m = ST.members[c.u] || {}, me = c.u === this.authUid; return `<div class="rm-msg${me ? ' me' : ''}"><b>${esc(me ? 'أنت' : (m.n || c.n || 'طالب'))}${me ? '' : app.rpBtn({ type: 'room', targetUid: c.u, ref: 'rmRooms/' + ST.rid + '/chat/' + c.k, snippet: c.m }, 'rm-rp', '')}</b><span>${esc(c.m)}</span></div>`; }).join('') : '<div class="rm-mut rm-c">ماكو رسائل بعد. سلّم على أصدقائك!</div>';
             b.scrollTop = b.scrollHeight;
         },
         rmSend() {

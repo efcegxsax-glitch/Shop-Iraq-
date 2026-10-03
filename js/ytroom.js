@@ -906,7 +906,7 @@
                 panel.innerHTML = `<div id="yrChatList" class="yr-chat">${list.length ? list.map((c) => {
                     const mine = c.u === this.authUid, q = y.queue[c.k];
                     return `<div class="yr-msg${mine ? ' mine' : ''}${c.s != null ? ' mark' : ''}">
-                        ${mine ? '' : `<small>${esc(c.n)}</small>`}
+                        ${mine ? '' : `<small>${esc(c.n)}${app.rpBtn({ type: 'room', targetUid: c.u, ref: 'ytRooms/' + y.rid + '/chat/' + c.id, snippet: c.m }, 'yr-rp', '')}</small>`}
                         <p>${esc(c.m)}</p>
                         ${c.sv ? `<div class="yr-sug"><img src="${thumb(c.sv)}" alt="" loading="lazy"><span>${esc(c.st || 'فيديو يوتيوب')}</span></div><div class="yr-sug-a">${host ? `<button onclick="app.yrAddVideo(${jsArg(c.sv)}, ${jsArg(c.st || '')}, false)"><i data-lucide="plus"></i>ضيفه للقائمة</button>` : ''}<button onclick="app.yrSolo(${jsArg(c.sv)}, ${jsArg(c.st || '')})"><i data-lucide="play"></i>شوفه</button></div>` : ''}
                         ${c.s != null && q ? `<button onclick="app.yrSeek(${Number(c.s) || 0}, ${jsArg(c.k)})"><i data-lucide="play"></i>${clock(c.s)}${c.k !== y.key ? ' . ' + esc((q.t || 'فيديو').slice(0, 24)) : ''}</button>` : ''}

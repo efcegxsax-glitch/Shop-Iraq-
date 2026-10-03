@@ -2361,7 +2361,7 @@
         // ---------- Reports from students ----------
         let reportsData = {}, rpMode = 'open';
         const RP_TYPES = { user: 'طالب', message: 'رسالة خاصة', thread: 'منشور بالمنتدى', answer: 'إجابة بالمنتدى', dream: 'حلم', idea: 'فكرة', vent: 'فضفضة', room: 'غرفة' };
-        const RP_DEL = /^(forumThreads|forumAnswers|dreams|ideas)\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?$/;
+        const RP_DEL = /^((forumThreads|forumAnswers|dreams|ideas)\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?|(ytRooms|rmRooms)\/[A-Za-z0-9_-]+\/chat\/[A-Za-z0-9_-]+)$/;
         onValue(ref(db, 'reports'), (s) => { reportsData = s.val() || {}; renderReports(); });
         window.rpFilter = (m) => { rpMode = m; renderReports(); };
         function renderReports() {
