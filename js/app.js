@@ -3155,7 +3155,7 @@
                 this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
                 this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
                 if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
-                this.renderPollCard(); this.renderInviteBanner();
+                this.renderPollCard(); this.renderInviteBanner(); this.renderShortcuts(); this._promoSoon();
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
 
                 // Bottom navigation
@@ -8530,12 +8530,71 @@
             _moreSave(favsChanged) {
                 const m = this._moreState();
                 try { localStorage.setItem('isp_more', JSON.stringify({ favs: m.favs, recent: m.recent, local: 1 })); } catch (e) {}
+                this.renderShortcuts();
                 if (favsChanged && this.authUid && window.firebaseDb) {
                     const { ref, set } = window.firebaseDbHelpers;
                     set(ref(window.firebaseDb, 'users/' + this.authUid + '/moreFavs'), m.favs.join(',')).catch(() => {});
                     if (this.currentUser) this.currentUser.moreFavs = m.favs.join(',');
                 }
             },
+
+            // ===== The shortcut bar on the home page: the student's favourite sections, as buttons with the name under =====
+            // The same list as the favourites in the More page (the student adds, removes and orders them there).
+            renderShortcuts() {
+                const sec = document.getElementById('shortcutsSection'), box = document.getElementById('shortcutsBar');
+                if (!sec || !box) return;
+                const m = this._moreState(), byId = (id) => this.MORE_ITEMS.find((x) => x.id === id);
+                const list = m.favs.map(byId).filter(Boolean);
+                if (this.siteConfig && this.siteConfig.sections && this.siteConfig.sections.shortcuts === false) { sec.classList.add('hidden'); return; }
+                sec.classList.remove('hidden');
+                box.innerHTML = list.map((it, i) => `<button class="sc-it" style="--c:${it.c};--i:${i}" onclick="app.moreOpen(${jsArg(it.id)})" aria-label="${escapeHtml(it.t)}">
+                        <span class="sc-ic"><i data-lucide="${it.ic}"></i></span><b>${escapeHtml(it.t)}</b></button>`).join('')
+                    + `<button class="sc-it sc-edit" onclick="app.shortcutsEdit()" aria-label="تخصيص الاختصارات"><span class="sc-ic"><i data-lucide="${list.length ? 'sliders-horizontal' : 'plus'}"></i></span><b>${list.length ? 'تخصيص' : 'أضف اختصاراتك'}</b></button>`;
+                try { lucide.createIcons(); } catch (e) {}
+            },
+            shortcutsEdit() { this.goToMore(); setTimeout(() => this.moreEdit(), 60); },
+
+            // ===== The promo pop-up: siteConfig/promo from the admin panel (title, text, picture, button + link) =====
+            _promoSoon() {
+                clearTimeout(this._promoT);
+                this._promoT = setTimeout(() => this._promoShow(), 2800);
+            },
+            _promoShow() {
+                if (document.getElementById('promoPop')) return;
+                let p = null, preview = false;
+                try { const pv = localStorage.getItem('isp_promo_preview'); if (pv) { p = JSON.parse(pv); preview = true; localStorage.removeItem('isp_promo_preview'); } } catch (e) {}
+                const cfg = this.siteConfig && this.siteConfig.promo;
+                if (!p && cfg && cfg.on === true) p = cfg;
+                if (!p || (!p.title && !p.text && !p.img)) return;
+                if (this.currentView !== 'homeView' || document.hidden || document.querySelector('#mcSet, .rp-w, #maintenanceOverlay:not(.hidden), #walletModal:not(.hidden)')) { if (preview) { try { localStorage.setItem('isp_promo_preview', JSON.stringify(p)); } catch (e) {} } return; }
+                if (!preview) {
+                    const v = String(p.v || 0), day = new Date().toDateString();
+                    let seen = null; try { seen = JSON.parse(localStorage.getItem('isp_promo_seen') || 'null'); } catch (e) {}
+                    if (p.freq === 'always') { try { if (sessionStorage.getItem('isp_promo_sess') === v) return; } catch (e) {} }
+                    else if (seen && seen.v === v && (p.freq !== 'day' || seen.d === day)) return;
+                    try { localStorage.setItem('isp_promo_seen', JSON.stringify({ v, d: day })); sessionStorage.setItem('isp_promo_sess', v); } catch (e) {}
+                }
+                const url = /^https:\/\/[^\s"'<>]+$/i.test(String(p.url || '')) ? p.url : '';
+                const img = p.img && isSafeImageUrl(p.img) ? p.img : '';
+                const w = document.createElement('div');
+                w.id = 'promoPop'; w.className = 'pp-w'; w.setAttribute('role', 'dialog'); w.setAttribute('aria-modal', 'true');
+                w.innerHTML = `<div class="pp-bd" onclick="app.promoClose()"></div>
+                    <div class="pp-card">
+                        <button class="pp-x" onclick="app.promoClose()" aria-label="إغلاق"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+                        ${img ? `<div class="pp-img"><img src="${img}" alt="" decoding="async"></div>` : '<div class="pp-glow" aria-hidden="true"></div>'}
+                        <div class="pp-body">
+                            ${p.title ? `<h3>${escapeHtml(p.title)}</h3>` : ''}
+                            ${p.text ? `<p>${escapeHtml(p.text)}</p>` : ''}
+                            ${url ? `<button class="pp-go" onclick="app.promoGo()">${escapeHtml(p.btn || 'افتح الرابط')}</button>` : ''}
+                            <button class="pp-later" onclick="app.promoClose()">${url ? 'لاحقاً' : 'تمام'}</button>
+                        </div>
+                    </div>`;
+                w._url = url;
+                document.body.appendChild(w);
+                requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('on')));
+            },
+            promoGo() { const w = document.getElementById('promoPop'); const u = w && w._url; this.promoClose(); if (u) window.open(u, '_blank', 'noopener'); },
+            promoClose() { const w = document.getElementById('promoPop'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 280); },
 
             goToMore() {
                 this._mrEdit = false;
@@ -8565,7 +8624,7 @@
             moreFav(id) {
                 const m = this._moreState(), i = m.favs.indexOf(id);
                 if (i >= 0) m.favs.splice(i, 1);
-                else { if (m.favs.length >= 8) { this.showToast('المفضلة تتسع لـ 8 أقسام'); return; } m.favs.push(id); }
+                else { if (m.favs.length >= 12) { this.showToast('المفضلة تتسع لـ 12 قسم'); return; } m.favs.push(id); }
                 this._moreSave(true);
                 this.renderMore(false);
             },
@@ -12657,6 +12716,7 @@
                 if (this.currentView === 'duelView' && viewId !== 'duelView' && this.dlClose) this.dlClose();
                 if (this.currentView === 'inviteView' && viewId !== 'inviteView' && this.ivClose) this.ivClose();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this.chatClose) this.chatClose();
+                if (viewId === 'homeView' && this.currentView !== 'homeView') this._promoSoon();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);

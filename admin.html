@@ -603,6 +603,45 @@
                     <button class="btn mt-2" id="cfg_save_ann">حفظ الإعلان</button>
                 </div>
 
+                <div class="card" id="promoCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="sparkles"></i></div>
+                        <div>
+                            <h3>نافذة ترويج منبثقة</h3>
+                            <p>نافذة جميلة تطلع للطالب أول ما يفتح التطبيق: ترويج لحسابك على انستا، إعلان، أو أي رابط. تقدر تضيف صورة وزر</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار النافذة للطلاب</strong></div>
+                        <label class="switch"><input type="checkbox" id="promo_on" aria-label="نافذة الترويج"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3"><label for="promo_title">العنوان</label><input id="promo_title" maxlength="60" placeholder="مثال: تابعنا على انستغرام"></div>
+                    <div class="field"><label for="promo_text">النص</label><textarea id="promo_text" rows="3" maxlength="240" placeholder="مثال: ملخصات ومعلومات يومية للسادس، تابع الحساب وفعّل الجرس"></textarea></div>
+                    <div class="field">
+                        <label>الصورة (اختياري)</label>
+                        <div class="flex gap-2" style="align-items:center;flex-wrap:wrap">
+                            <input type="file" id="promo_file" accept="image/*" style="max-width:220px">
+                            <button class="btn" type="button" id="promo_img_clear" style="background:#64748b">حذف الصورة</button>
+                        </div>
+                        <input id="promo_img" dir="ltr" placeholder="أو الصق رابط صورة https://..." style="margin-top:8px">
+                        <img id="promo_prev" alt="" style="display:none;margin-top:8px;max-width:100%;max-height:150px;border-radius:12px">
+                    </div>
+                    <div class="field"><label for="promo_btn">كتابة الزر</label><input id="promo_btn" maxlength="24" placeholder="مثال: تابع الآن"></div>
+                    <div class="field"><label for="promo_url">رابط الزر</label><input id="promo_url" dir="ltr" placeholder="https://instagram.com/اسم_الحساب"></div>
+                    <div class="field">
+                        <label for="promo_freq">كل شكد تطلع؟</label>
+                        <select id="promo_freq">
+                            <option value="once">مرة وحدة لكل طالب (حتى تغيّر النافذة)</option>
+                            <option value="day">مرة باليوم</option>
+                            <option value="always">كل ما يفتح التطبيق</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <button class="btn mt-2" id="promo_save">حفظ ونشر</button>
+                        <button class="btn mt-2" id="promo_test" style="background:#64748b">جرّبها على جهازي</button>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="wrench"></i></div>
@@ -2507,6 +2546,7 @@
             setFieldIfIdle('cfg_mt_msg', cfgGet('maintenance.message'));
             setFieldIfIdle('cfg_tk_label', cfgGet('ticker.label'));
             setFieldIfIdle('cfg_tk_duration', String(cfgGet('ticker.duration') || 0));
+            if (typeof fillPromoForm === 'function') fillPromoForm();
         }
 
         document.querySelectorAll('[data-cfg]').forEach(inp => {
@@ -2531,6 +2571,39 @@
             const tone = document.querySelector('input[name="cfg_ann_tone"]:checked')?.value || 'info';
             cfgWrite({ 'announcement/text': val('cfg_ann_text'), 'announcement/tone': tone }, 'تم حفظ الإعلان');
         });
+
+        // ---------- promo pop-up (siteConfig/promo) ----------
+        function fillPromoForm() {
+            const g = (k) => cfgGet('promo.' + k);
+            if (el('promo_on')) el('promo_on').checked = g('on') === true;
+            setFieldIfIdle('promo_title', g('title')); setFieldIfIdle('promo_text', g('text'));
+            setFieldIfIdle('promo_btn', g('btn')); setFieldIfIdle('promo_url', g('url'));
+            if (el('promo_freq') && document.activeElement !== el('promo_freq')) el('promo_freq').value = g('freq') || 'once';
+            if (document.activeElement !== el('promo_img') && !promoPicked) { el('promo_img').value = String(g('img') || '').startsWith('data:') ? '' : (g('img') || ''); showPromoPrev(g('img') || ''); }
+        }
+        let promoPicked = '';
+        function showPromoPrev(src) { const im = el('promo_prev'); if (!im) return; if (src) { im.src = src; im.style.display = 'block'; } else { im.removeAttribute('src'); im.style.display = 'none'; } }
+        function promoImgNow() { return promoPicked || val('promo_img'); }
+        el('promo_file').addEventListener('change', async () => {
+            const f = el('promo_file').files[0]; if (!f) return;
+            try { promoPicked = await shrinkPic(f, 760, 0.74); el('promo_img').value = ''; showPromoPrev(promoPicked); if (promoPicked.length > 140000) toast('الصورة كبيرة شوية، يفضّل صورة أبسط حتى ما تثقل التطبيق'); }
+            catch (e) { toast('تعذر قراءة الصورة'); }
+        });
+        el('promo_img').addEventListener('input', () => { promoPicked = ''; showPromoPrev(/^https:\/\//i.test(val('promo_img')) ? val('promo_img') : ''); });
+        el('promo_img_clear').addEventListener('click', () => { promoPicked = ''; el('promo_img').value = ''; el('promo_file').value = ''; showPromoPrev(''); });
+        function promoData() {
+            const url = val('promo_url'), img = promoImgNow();
+            if (url && !/^https:\/\/[^\s"'<>]+$/i.test(url)) { toast('الرابط لازم يبدأ بـ https://'); return null; }
+            if (img && !(/^data:image\/(jpeg|png|webp);base64,/.test(img) || /^https:\/\/[^\s"'<>]+$/i.test(img))) { toast('رابط الصورة لازم يبدأ بـ https://'); return null; }
+            if (!val('promo_title') && !val('promo_text') && !img) { toast('اكتب عنوان أو نص أو ضيف صورة'); return null; }
+            return { title: val('promo_title'), text: val('promo_text'), btn: val('promo_btn'), url, img, freq: el('promo_freq').value };
+        }
+        el('promo_on').addEventListener('change', () => { const d = promoData(); if (!d && el('promo_on').checked) { el('promo_on').checked = false; return; } cfgWrite({ 'promo/on': el('promo_on').checked }, el('promo_on').checked ? 'تم تشغيل نافذة الترويج' : 'تم إطفاء نافذة الترويج'); });
+        el('promo_save').addEventListener('click', () => {
+            const d = promoData(); if (!d) return;
+            cfgWrite({ 'promo/title': d.title, 'promo/text': d.text, 'promo/btn': d.btn, 'promo/url': d.url, 'promo/img': d.img, 'promo/freq': d.freq, 'promo/v': Date.now(), 'promo/on': el('promo_on').checked }, el('promo_on').checked ? 'تم النشر، الطلاب يشوفونها من أول فتح' : 'انحفظت. شغّل المفتاح فوق حتى تظهر للطلاب');
+        });
+        el('promo_test').addEventListener('click', () => { const d = promoData(); if (!d) return; try { localStorage.setItem('isp_promo_preview', JSON.stringify(d)); } catch (e) {} toast('افتح التطبيق من نفس الجهاز وراح تطلع لك النافذة مرة وحدة للتجربة'); });
 
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({
             'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
