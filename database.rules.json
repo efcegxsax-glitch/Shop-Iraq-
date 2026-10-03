@@ -274,15 +274,6 @@
         ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 900000)"
       }
     },
-    "userDuels": {
-      "$uid": {
-        ".read": "(auth != null && auth.uid == $uid)",
-        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
-        "$id": {
-          ".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"
-        }
-      }
-    },
     "presence": {
       ".read": "auth != null",
       "$uid": {
@@ -516,17 +507,67 @@
         ".validate": "!newData.exists() || ((newData.hasChildren(['reporterUid', 'reason', 'createdAt']) && newData.child('reporterUid').isString() && newData.child('reason').isString() && newData.child('reason').val().length <= 400 && newData.child('createdAt').isNumber() && (!newData.child('note').exists() || newData.child('note').isString() && newData.child('note').val().length <= 400) && (!newData.child('snippet').exists() || newData.child('snippet').isString() && newData.child('snippet').val().length <= 300) && (!newData.child('ref').exists() || (newData.child('ref').isString() && newData.child('ref').val().matches(/^[A-Za-z0-9_\\/-]{1,120}$/))) && (!newData.child('type').exists() || newData.child('type').val().matches(/^(user|message|thread|answer|dream|idea|vent|room)$/)) && (!newData.child('targetUid').exists() || newData.child('targetUid').isString() && newData.child('targetUid').val().length <= 80) && (!newData.child('status').exists() || newData.child('status').val().matches(/^(open|done)$/))))"
       }
     },
-    "duels": {
-      ".read": "auth != null",
-      "$id": {
-        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && (data.exists() ? (data.child('player1Uid').val() == auth.uid || data.child('player2Uid').val() == auth.uid) : newData.child('player1Uid').val() == auth.uid))"
+    "duelRooms": {
+      "$rid": {
+        ".read": "auth != null",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('host').val() == auth.uid && $rid.matches(/^[a-z0-9]{6}$/)) || (auth != null && data.child('host').val() == auth.uid && !newData.exists()))",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['host', 'hn', 'subj', 'qs', 'at']) && newData.child('host').isString() && newData.child('hn').isString() && newData.child('hn').val().length <= 40 && newData.child('subj').val().matches(/^[a-z]{3,8}$/) && newData.child('at').isNumber() && newData.child('qs').child('6').exists() && !newData.child('qs').child('7').exists()))",
+        "qs": {
+          "$k": {
+            ".validate": "(newData.child('q').isString() && newData.child('q').isString() && newData.child('q').val().length <= 300 && newData.child('o').child('3').exists() && !newData.child('o').child('4').exists() && newData.child('o').child('0').isString() && newData.child('o').child('3').isString() && newData.child('c').isNumber() && newData.child('c').val() >= 0 && newData.child('c').val() <= 3)"
+          }
+        },
+        "guest": {
+          ".write": "auth != null && !data.exists() && newData.val() == auth.uid && newData.parent().child('host').val() != auth.uid",
+          ".validate": "newData.isString()"
+        },
+        "gn": {
+          ".write": "auth != null && newData.parent().child('guest').val() == auth.uid",
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "startAt": {
+          ".write": "auth != null && newData.parent().child('host').val() == auth.uid && !data.exists()",
+          ".validate": "newData.isNumber() && newData.val() > now - 5000 && newData.val() < now + 20000 && newData.parent().child('guest').exists()"
+        },
+        "p": {
+          "$uid": {
+            ".validate": "$uid == newData.parent().parent().child('host').val() || $uid == newData.parent().parent().child('guest').val()",
+            "ans": {
+              "$k": {
+                ".write": "auth != null && auth.uid == $uid && !data.exists()",
+                ".validate": "($k.matches(/^[0-6]$/) && newData.hasChildren(['i', 't']) && newData.child('i').isNumber() && newData.child('i').val() >= 0 && newData.child('i').val() <= 3 && newData.child('t').isNumber() && newData.child('t').val() >= 0 && newData.child('t').val() <= 12500)"
+              }
+            },
+            "left": {
+              ".write": "auth != null && auth.uid == $uid",
+              ".validate": "newData.isNumber()"
+            }
+          }
+        }
       }
     },
-    "duelInvites": {
+    "duelQueue": {
+      "$s": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "auth != null && $s.matches(/^[a-z]{3,8}$/) && (auth.uid == $uid || !newData.exists())",
+          ".validate": "!newData.exists() || ((newData.hasChildren(['n', 'at']) && newData.child('n').isString() && newData.child('n').val().length <= 40 && newData.child('at').isNumber()))"
+        }
+      }
+    },
+    "duelMatch": {
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",
-        "$id": {
-          ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && (data.exists() ? data.child('fromUid').val() == auth.uid : newData.child('fromUid').val() == auth.uid))"
+        ".write": "auth != null",
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-z0-9]{6}$/))"
+      }
+    },
+    "duelInv": {
+      "$to": {
+        ".read": "auth != null && auth.uid == $to",
+        "$rid": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && auth.uid == $to && !newData.exists() || (auth != null && newData.child('from').val() == auth.uid && root.child('duelRooms/' + $rid + '/host').val() == auth.uid))",
+          ".validate": "!newData.exists() || ((newData.hasChildren(['from', 'fn', 'subj', 'at']) && newData.child('fn').isString() && newData.child('fn').val().length <= 40 && newData.child('subj').val().matches(/^[a-z]{3,8}$/) && newData.child('at').isNumber()))"
         }
       }
     },
@@ -713,24 +754,6 @@
             "candidate": {
               ".validate": "newData.isString() && newData.val().length <= 1000"
             }
-          }
-        }
-      }
-    },
-    "voiceRoom": {
-      "participants": {
-        ".read": "auth != null",
-        "$uid": {
-          ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))"
-        }
-      },
-      "calls": {
-        "$uid": {
-          ".read": "(auth != null && auth.uid == $uid)",
-          ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
-          "$other": {
-            ".read": "auth != null && auth.uid == $other",
-            ".write": "auth != null && auth.uid == $other"
           }
         }
       }

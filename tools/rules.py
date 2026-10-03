@@ -291,10 +291,8 @@ rules = {
             ".validate": "$t.matches(/^(like|love|laugh|sad|angry)$/) && newData.isNumber() && newData.val() >= 0",
         }},
     },
-    # the challenger also lists the duel for the other player
     # مصاريفي: a copy of the student's money notebook (one JSON text), only theirs
     "userMoney": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 900000)"}},
-    "userDuels": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$id": {".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"}}},
     "presence": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},
     # which chat a student has open right now: only the person they are chatting with (and they themselves) can read it,
     # so the server can skip the phone notification for a message that is being read live
@@ -488,14 +486,43 @@ rules = {
             "(!newData.child('status').exists() || newData.child('status').val().matches(/^(open|done)$/))") + ")",
     }},
 
-    # ----- duels and twins -----
-    "duels": {
+    # ----- live duel: rooms, the waiting queue, match notices and invites -----
+    # The host creates duelRooms/{rid} with the questions. The second player writes only guest/gn (first come, once),
+    # the host sets startAt once, and each player writes only their own answers p/{uid}/ans/{k} (once each).
+    "duelRooms": {"$rid": {
         ".read": SIGNED,
-        "$id": {".write": ors(ADMIN, "auth != null && (data.exists() ? (data.child('player1Uid').val() == auth.uid || data.child('player2Uid').val() == auth.uid) : newData.child('player1Uid').val() == auth.uid)")},
-    },
-    "duelInvites": {
-        "$uid": {".read": OWNER, "$id": {".write": ors(OWNER, ADMIN, "auth != null && (data.exists() ? data.child('fromUid').val() == auth.uid : newData.child('fromUid').val() == auth.uid)")}},
-    },
+        ".write": ors(ADMIN, ands("auth != null", "!data.exists()", "newData.child('host').val() == auth.uid", "$rid.matches(/^[a-z0-9]{6}$/)"),
+                      ands("auth != null", "data.child('host').val() == auth.uid", "!newData.exists()")),
+        ".validate": "!newData.exists() || (" + ands(
+            "newData.hasChildren(['host', 'hn', 'subj', 'qs', 'at'])", "newData.child('host').isString()", s_max("newData.child('hn')", 40),
+            "newData.child('subj').val().matches(/^[a-z]{3,8}$/)", "newData.child('at').isNumber()",
+            "newData.child('qs').child('6').exists()", "!newData.child('qs').child('7').exists()") + ")",
+        "qs": {"$k": {".validate": ands("newData.child('q').isString()", s_max("newData.child('q')", 300), "newData.child('o').child('3').exists()", "!newData.child('o').child('4').exists()",
+                                         "newData.child('o').child('0').isString()", "newData.child('o').child('3').isString()", "newData.child('c').isNumber()", "newData.child('c').val() >= 0", "newData.child('c').val() <= 3")}},
+        "guest": {".write": "auth != null && !data.exists() && newData.val() == auth.uid && newData.parent().child('host').val() != auth.uid", ".validate": "newData.isString()"},
+        "gn": {".write": "auth != null && newData.parent().child('guest').val() == auth.uid", ".validate": s_max("newData", 40)},
+        "startAt": {".write": "auth != null && newData.parent().child('host').val() == auth.uid && !data.exists()",
+                    ".validate": "newData.isNumber() && newData.val() > now - 5000 && newData.val() < now + 20000 && newData.parent().child('guest').exists()"},
+        "p": {"$uid": {
+            ".validate": "$uid == newData.parent().parent().child('host').val() || $uid == newData.parent().parent().child('guest').val()",
+            "ans": {"$k": {".write": "auth != null && auth.uid == $uid && !data.exists()",
+                           ".validate": ands("$k.matches(/^[0-6]$/)", "newData.hasChildren(['i', 't'])", "newData.child('i').isNumber()", "newData.child('i').val() >= 0", "newData.child('i').val() <= 3",
+                                            "newData.child('t').isNumber()", "newData.child('t').val() >= 0", "newData.child('t').val() <= 12500")}},
+            "left": {".write": "auth != null && auth.uid == $uid", ".validate": "newData.isNumber()"},
+        }},
+    }},
+    "duelQueue": {"$s": {".read": SIGNED, "$uid": {
+        ".write": "auth != null && $s.matches(/^[a-z]{3,8}$/) && (auth.uid == $uid || !newData.exists())",
+        ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'at'])", s_max("newData.child('n')", 40), "newData.child('at').isNumber()") + ")",
+    }}},
+    "duelMatch": {"$uid": {".read": OWNER, ".write": "auth != null", ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-z0-9]{6}$/))"}},
+    "duelInv": {"$to": {".read": "auth != null && auth.uid == $to", "$rid": {
+        ".write": ors(ADMIN, "auth != null && auth.uid == $to && !newData.exists()",
+                      ands(SIGNED, "newData.child('from').val() == auth.uid", "root.child('duelRooms/' + $rid + '/host').val() == auth.uid")),
+        ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['from', 'fn', 'subj', 'at'])", s_max("newData.child('fn')", 40), "newData.child('subj').val().matches(/^[a-z]{3,8}$/)", "newData.child('at').isNumber()") + ")",
+    }}},
+
+    # ----- twins -----
     "twinQueue": {
         ".read": SIGNED,
         "$stage": {
@@ -623,10 +650,6 @@ rules = {
             "oc": {"$k": {"candidate": {".validate": s_max("newData", 1000)}}},
             "ac": {"$k": {"candidate": {".validate": s_max("newData", 1000)}}},
         },
-    },
-    "voiceRoom": {
-        "participants": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},
-        "calls": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$other": {".read": "auth != null && auth.uid == $other", ".write": "auth != null && auth.uid == $other"}}},
     },
 
     # ----- forum -----
