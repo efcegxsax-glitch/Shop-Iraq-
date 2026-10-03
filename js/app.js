@@ -2133,7 +2133,7 @@
             },
             async shareCurrentNews() {
                 const news = newsData.find(n => n.id === this.currentNewsId);
-                const url = window.location.href;
+                const url = this._isNative() ? 'https://efcegxsax-glitch.github.io/Shop-Iraq-/' : window.location.href;
                 const title = (news && news.title) || 'أكـادمي السادس';
                 const text = (news && news.excerpt) ? (news.title + '\n' + news.excerpt) : title;
                 try {
@@ -5126,6 +5126,18 @@
                 window.__ispInsets = (t, b) => { const r = document.documentElement.style; r.setProperty('--sat', t + 'px'); r.setProperty('--sab', b + 'px'); };
                 try { if (window.IspNative) { const [t, b] = String(window.IspNative.insets()).split(','); window.__ispInsets(t, b); this._nativeBars(); } } catch (e) {}
                 const P = (window.Capacitor && window.Capacitor.Plugins) || {};
+                // The app's web view has no navigator.share, so every Share button used to fall back to copying a link.
+                // This hands the same call to the phone's own share sheet (WhatsApp, Telegram, ...).
+                try {
+                    if (P.Share && typeof navigator.share !== 'function') {
+                        navigator.share = (d) => {
+                            d = d || {};
+                            return P.Share.share({ title: d.title || undefined, text: d.text || undefined, url: d.url || undefined, dialogTitle: 'مشاركة' })
+                                .then(() => {}, (e) => { const err = new Error('cancelled'); err.name = 'AbortError'; throw err; });
+                        };
+                        navigator.canShare = (d) => !(d && d.files && d.files.length);
+                    }
+                } catch (e) {}
                 try {
                     if (P.App) {
                         // the phone's back button works like the page's back arrow, and leaves the app from the home page
@@ -8901,7 +8913,7 @@
 
             async shareCurrentResource() {
                 const res = resourcesData.find(r => r.id === this.currentResourceId);
-                const url = window.location.href;
+                const url = this._isNative() ? 'https://efcegxsax-glitch.github.io/Shop-Iraq-/' : window.location.href;
                 const title = (res && res.title) || 'أكـادمي السادس';
                 const text = (res && res.description) ? (res.title + '\n' + res.description) : title;
                 try {
