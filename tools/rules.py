@@ -673,6 +673,11 @@ rules = {
     "polls": {".read": True, ".write": ADMIN, "$pid": {"counts": {"$i": {".write": True, ".validate": counter()}}}},
     "pollVotes": {"$pid": {"$voter": {".read": True, ".write": "!data.exists() && ($voter.beginsWith('d_') || (auth != null && auth.uid == $voter))", ".validate": "newData.isNumber()"}}},
 
+    # ----- invites: a new student who came through a friend's link writes refJoin/{friend}/{me} once
+    # (can't name themselves); only the friend (and the admin) can read the list, to count who joined.
+    "refJoin": {"$ref": {".read": ors("auth != null && auth.uid == $ref", ADMIN),
+                         "$me": {".write": "auth != null && auth.uid == $me && $ref != $me && !data.exists()", ".validate": "newData.isNumber()"}}},
+
     # ----- the students' map: each student's governorate and today's mood, and reactions that
     # float up from a governorate for a moment. A reaction comes from the sender's own
     # governorate, at most one every 2.5 seconds (studentMap/{uid}/r moves on in the same write),
