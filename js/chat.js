@@ -87,6 +87,9 @@
         try { lucide.createIcons(); } catch (e) {}
         // the call part and its relay addresses get ready while the chat is open
         app._need('calls').then(() => app._clIce()).catch(() => {});
+        // the study owl counts chat time and may pause the conversation (js/mascot.js)
+        if (typeof app.mcChatEnter === 'function') app.mcChatEnter();
+        else if (!(app.siteConfig && app.siteConfig.features && app.siteConfig.features.mascot === false)) app._need('mascot').then(() => app.mcChatEnter && app.mcChatEnter()).catch(() => {});
     }
 
     function teardown() {
@@ -719,6 +722,7 @@
     // ---------- public ----------
     Object.assign(app, {
         _chatOpen: open,
+        chatStopVoice() { try { stopVoice(false); } catch (e) {} },
         chatClose() { teardown(); },
         chatBack() { if ($('ctSheet')) { closeSheet(); return; } if (T && T.replyTo) { T.replyTo = null; replyBar(); return; } app.goBack(); },
         chatSheetClose() { closeSheet(); },
