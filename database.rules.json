@@ -267,6 +267,13 @@
         }
       }
     },
+    "userMoney": {
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 900000)"
+      }
+    },
     "userDuels": {
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",

@@ -474,6 +474,8 @@
             if (nut) L.push(nut);
             const tb = this._tbSummary ? this._tbSummary() : '';
             if (tb) L.push(tb);
+            const mn = this._mnSummary ? this._mnSummary() : '';
+            if (mn) L.push(mn);
             if (f.quizzes.length) L.push('آخر اختباراته المفاجئة: ' + f.quizzes.map((q) => q.s + ' ' + q.r + '/' + q.n).join('، '));
             return L.join('\n').slice(0, 3300);
         },
