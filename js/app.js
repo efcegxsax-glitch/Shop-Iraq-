@@ -4467,6 +4467,14 @@
                 this.tbOpen();
             },
 
+            goToTimer() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.timer === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('tmView');
+                if (this._withPart('timer', () => typeof this.tmOpen === 'function', 'tmView', () => this.goToTimer())) return;
+                this.tmOpen();
+            },
+
             goToMoney() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.money === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5088,6 +5096,7 @@
                     ['#imgViewer', () => this.closeImageViewer()],
                     ['#rmSheet', () => this._rmCloseSheet()],
                     ['#rmScene', () => this.rmBack()],
+                    ['#tmSheet', () => this.tmSheetClose()],
                     ['.pk-sheet', (el) => { const b = el.querySelector('.pk-back'); if (b) b.click(); }],
                     ['.fm-sheet.on', () => this.fmCloseCompose && this.fmCloseCompose()],
                     ['.tb-sheet.on', () => this._tbSheetClose && this._tbSheetClose()],
@@ -8433,6 +8442,7 @@
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
                 { id: 'money', fn: 'goToMoney', t: 'مصاريفي', d: 'محفظتك وميزانيتك وأهدافك، والمعلم يراقب', ic: 'wallet', c: '#0F766E', g: 'study', feat: 'money' },
                 { id: 'room', fn: 'goToRoom', t: 'غرفتنا', d: 'ادرس ويا أصدقائك بغرفة 3D وشخصيات أنمي', ic: 'door-open', c: '#EC4899', g: 'people', feat: 'room' },
+                { id: 'timer', fn: 'goToTimer', t: 'المؤقت', d: 'بومودورو وعد تنازلي و40 خلفية', ic: 'timer', c: '#7C3AED', g: 'study', feat: 'timer' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
@@ -13973,6 +13983,7 @@
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
+                if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
