@@ -3179,6 +3179,7 @@
                 this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
                 this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
                 if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
+                this.renderPollCard();
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
 
                 // Bottom navigation
@@ -5003,8 +5004,8 @@
             renderPollCard() {
                 const sec = document.getElementById('pollSection'), box = document.getElementById('pollCard');
                 if (!sec || !box) return;
-                const votes = this._pollVotes();
-                const p = (this._polls || []).find((x) => this._pollOpen(x) && (votes[x.id] === undefined || x.id === this._pollJust));
+                const off = !!(this.siteConfig && this.siteConfig.features && this.siteConfig.features.poll === false);
+                const p = off ? null : (this._polls || []).find((x) => this._pollOpen(x));
                 sec.classList.toggle('hidden', !p);
                 box.innerHTML = p ? this._pollHtml(p, true) : '';
                 if (p) lucide.createIcons();
@@ -8424,7 +8425,7 @@
                 { id: 'duels', fn: 'goToDuels', t: 'تحدي مباشر', d: 'مسابقة أسئلة ويا زميلك', ic: 'zap', c: '#F97316', g: 'play' },
                 { id: 'auction', fn: 'goToAuction', t: 'مزاد النقاط', d: 'زايد على جائزة الأسبوع', ic: 'gavel', c: '#D97706', g: 'play' },
                 { id: 'pstore', fn: 'goToPointsStore', t: 'متجر النقاط', d: 'استبدل نقاطك برصيد', ic: 'gift', c: '#EC4899', g: 'play' },
-                { id: 'polls', fn: 'goToPolls', t: 'الاستطلاعات', d: 'صوّت وشوف النتيجة', ic: 'vote', c: '#0891B2', g: 'play' },
+                { id: 'polls', fn: 'goToPolls', t: 'الاستطلاعات', d: 'صوّت وشوف النتيجة', ic: 'vote', c: '#0891B2', g: 'play', feat: 'poll' },
                 { id: 'forum', fn: 'goToForum', t: 'المنتدى', d: 'اسأل وجاوب زملاءك', ic: 'message-circle', c: '#3B82F6', g: 'people' },
                 { id: 'msgs', fn: 'goToMessages', t: 'الرسائل', d: 'راسل أي طالب', ic: 'mail', c: '#0EA5E9', g: 'people' },
                 { id: 'twin', fn: 'goToTwin', t: 'توأم المذاكرة', d: 'زميل يشجعك وتشجعه', ic: 'users-round', c: '#A855F7', g: 'people' },
