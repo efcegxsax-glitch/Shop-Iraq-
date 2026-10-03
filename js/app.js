@@ -763,6 +763,7 @@
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
+                try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
                 try {
                     const q = new URLSearchParams(location.search).get('coach');
                     if (q) {
@@ -1297,7 +1298,7 @@
                     this.listenForUserChats();
                     this.listenForReactions();
                     this.listenForFriends();
-                    this.listenForYtInvites();
+                    this.listenForYtInvites(); this.listenForRmInvites();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -2638,7 +2639,7 @@
                     this.listenForUserChats();
                     this.listenForReactions();
                     this.listenForFriends();
-                    this.listenForYtInvites();
+                    this.listenForYtInvites(); this.listenForRmInvites();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -5084,6 +5085,8 @@
             nativeBack() {
                 const close = [
                     ['#imgViewer', () => this.closeImageViewer()],
+                    ['#rmSheet', () => this._rmCloseSheet()],
+                    ['#rmScene', () => this.rmBack()],
                     ['.pk-sheet', (el) => { const b = el.querySelector('.pk-back'); if (b) b.click(); }],
                     ['.fm-sheet.on', () => this.fmCloseCompose && this.fmCloseCompose()],
                     ['.tb-sheet.on', () => this._tbSheetClose && this._tbSheetClose()],
@@ -8428,6 +8431,7 @@
                 { id: 'sroom', fn: 'goToStudyRoom', t: 'غرفة المذاكرة', d: 'منو يذاكر هسه', ic: 'users', c: '#0D9488', g: 'people' },
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
                 { id: 'money', fn: 'goToMoney', t: 'مصاريفي', d: 'محفظتك وميزانيتك وأهدافك، والمعلم يراقب', ic: 'wallet', c: '#0F766E', g: 'study', feat: 'money' },
+                { id: 'room', fn: 'goToRoom', t: 'غرفتنا', d: 'ادرس ويا أصدقائك بغرفة 3D وشخصيات أنمي', ic: 'door-open', c: '#EC4899', g: 'people', feat: 'room' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
@@ -10625,6 +10629,35 @@
                 this.goBack();
             },
 
+            // غرفتنا: the shared 3D study room (js/sroom.js + js/room3d.js)
+            goToRoom(rid) {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.room === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                if (!this.isLoggedIn || !this.currentUser) { this.showToast('سجّل دخولك حتى تدخل الغرفة'); this.goToAuth('login'); return; }
+                this.switchView('rmView');
+                if (this._withPart('sroom', () => typeof this.rmOpen === 'function', 'rmView', () => this.goToRoom(rid))) return;
+                if (rid) this.rmJoin(rid); else this.rmOpen();
+            },
+            listenForRmInvites() {
+                if (!window.firebaseDb || !this.authUid || this._rmInvListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers, since = Date.now() - 5000;
+                this._rmInvListener = onValue(ref(window.firebaseDb, 'rmInvites/' + this.authUid), (snap) => {
+                    const v = snap.val() || {}, day = Date.now() - 86400000;
+                    this._rmInvites = Object.keys(v).map((rid) => Object.assign({ rid }, v[rid])).filter((x) => (x.at || 0) > day).sort((a, b) => (b.at || 0) - (a.at || 0));
+                    const fresh = this._rmInvites.find((x) => (x.at || 0) > since && !(this._rmShown || {})[x.rid]);
+                    if (fresh) {
+                        this._rmShown = this._rmShown || {}; this._rmShown[fresh.rid] = 1;
+                        document.getElementById('rmInvCard')?.remove();
+                        const el = document.createElement('div'); el.id = 'rmInvCard'; el.className = 'yr-pop rm-pop';
+                        el.innerHTML = `<i data-lucide="door-open"></i><div><b>${escapeHtml(fresh.fn || 'صديقك')} يدعوك لغرفة دراسة</b><small>${escapeHtml(fresh.t || 'غرفتنا')}</small></div>
+                            <button class="go" onclick="document.getElementById('rmInvCard').remove(); app.goToRoom(${jsArg(fresh.rid)})">ادخل</button>
+                            <button onclick="document.getElementById('rmInvCard').remove()" aria-label="بعدين"><i data-lucide="x"></i></button>`;
+                        document.body.appendChild(el); lucide.createIcons(); this.playNotifySound && this.playNotifySound(); setTimeout(() => el.remove(), 20000);
+                    }
+                    if (this.currentView === 'rmView' && this.rmOpen && !document.getElementById('rmScene')) this.rmOpen();
+                }, () => {});
+                if (this._rmPending) { const rid = this._rmPending; this._rmPending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => this.goToRoom(rid), 800); }
+            },
             // Invites to YouTube rooms: a card pops up when a friend invites you while the app is open.
             listenForYtInvites() {
                 if (!window.firebaseDb || !this.authUid || this._yrInvListener) return;
@@ -13939,6 +13972,7 @@
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
+                if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
