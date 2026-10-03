@@ -3155,7 +3155,7 @@
                 this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
                 this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
                 if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
-                this.renderPollCard(); this.renderInviteBanner(); this.renderShortcuts(); this._promoSoon();
+                this.renderPollCard(); this.renderInviteBanner(); this._promoSoon();
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
 
                 // Bottom navigation
@@ -8530,29 +8530,12 @@
             _moreSave(favsChanged) {
                 const m = this._moreState();
                 try { localStorage.setItem('isp_more', JSON.stringify({ favs: m.favs, recent: m.recent, local: 1 })); } catch (e) {}
-                this.renderShortcuts();
                 if (favsChanged && this.authUid && window.firebaseDb) {
                     const { ref, set } = window.firebaseDbHelpers;
                     set(ref(window.firebaseDb, 'users/' + this.authUid + '/moreFavs'), m.favs.join(',')).catch(() => {});
                     if (this.currentUser) this.currentUser.moreFavs = m.favs.join(',');
                 }
             },
-
-            // ===== The shortcut bar on the home page: the student's favourite sections, as buttons with the name under =====
-            // The same list as the favourites in the More page (the student adds, removes and orders them there).
-            renderShortcuts() {
-                const sec = document.getElementById('shortcutsSection'), box = document.getElementById('shortcutsBar');
-                if (!sec || !box) return;
-                const m = this._moreState(), byId = (id) => this.MORE_ITEMS.find((x) => x.id === id);
-                const list = m.favs.map(byId).filter(Boolean);
-                if (this.siteConfig && this.siteConfig.sections && this.siteConfig.sections.shortcuts === false) { sec.classList.add('hidden'); return; }
-                sec.classList.remove('hidden');
-                box.innerHTML = list.map((it, i) => `<button class="sc-it" style="--c:${it.c};--i:${i}" onclick="app.moreOpen(${jsArg(it.id)})" aria-label="${escapeHtml(it.t)}">
-                        <span class="sc-ic"><i data-lucide="${it.ic}"></i></span><b>${escapeHtml(it.t)}</b></button>`).join('')
-                    + `<button class="sc-it sc-edit" onclick="app.shortcutsEdit()" aria-label="تخصيص الاختصارات"><span class="sc-ic"><i data-lucide="${list.length ? 'sliders-horizontal' : 'plus'}"></i></span><b>${list.length ? 'تخصيص' : 'أضف اختصاراتك'}</b></button>`;
-                try { lucide.createIcons(); } catch (e) {}
-            },
-            shortcutsEdit() { this.goToMore(); setTimeout(() => this.moreEdit(), 60); },
 
             // ===== The promo pop-up: siteConfig/promo from the admin panel (title, text, picture, button + link) =====
             _promoSoon() {
