@@ -761,6 +761,7 @@
                 this.initErrorReporting();
                 this.initImageFallback();
                 setTimeout(() => this.renderInviteBanner(), 0);
+                setTimeout(() => { if (!(this.siteConfig && this.siteConfig.features && this.siteConfig.features.mascot === false)) this._need('mascot').catch(() => {}); }, 6000);
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
@@ -4479,6 +4480,10 @@
                 this.tmOpen();
             },
 
+            // the owl advisor (js/mascot.js) is loaded a few seconds after the start; these two are its doors
+            _mcExams() { return examSchedule.slice(); },
+            openMascot() { this._need('mascot').then(() => this.mcSettings()).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية')); },
+
             goToInvite() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.invite === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5133,6 +5138,7 @@
             nativeBack() {
                 const close = [
                     ['#imgViewer', () => this.closeImageViewer()],
+                    ['#mcSet', () => this.mcSetClose()],
                     ['#rpSheet', () => this.rpClose()],
                     ['#rmSheet', () => this._rmCloseSheet()],
                     ['#rmScene', () => this.rmBack()],
@@ -8482,6 +8488,7 @@
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
                 { id: 'money', fn: 'goToMoney', t: 'مصاريفي', d: 'محفظتك وميزانيتك وأهدافك، والمعلم يراقب', ic: 'wallet', c: '#0F766E', g: 'study', feat: 'money' },
                 { id: 'room', fn: 'goToRoom', t: 'غرفتنا', d: 'ادرس ويا أصدقائك بغرفة 3D وشخصيات أنمي', ic: 'door-open', c: '#EC4899', g: 'people', feat: 'room' },
+                { id: 'mascot', fn: 'openMascot', t: 'أبو الهمّة', d: 'مرشد يحثك على الدراسة', ic: 'bird', c: '#B45309', g: 'study', feat: 'mascot' },
                 { id: 'invite', fn: 'goToInvite', t: 'ادعُ زملاءك', d: 'شارك التطبيق وخلّي الكل يدرس', ic: 'megaphone', c: '#E11D48', g: 'people', feat: 'invite' },
                 { id: 'timer', fn: 'goToTimer', t: 'المؤقت', d: 'بومودورو وعد تنازلي و40 خلفية', ic: 'timer', c: '#7C3AED', g: 'study', feat: 'timer' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },

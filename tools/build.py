@@ -34,7 +34,7 @@ v = {
     'css/swiper-bundle.min.css': h('css/swiper-bundle.min.css'),
 }
 import glob
-v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', 'js/uni.js', 'js/ytroom.js', 'js/garden.js', 'js/gardenui.js', 'js/tutor.js', 'js/moodmap.js', 'js/mistakes.js', 'js/shop.js', 'js/spots.js', 'js/ventfilter.js', 'js/vent.js', 'js/ideas.js', 'js/calls.js', 'js/food.js', 'js/dhikr.js', 'js/weekly.js', 'js/hall.js', 'js/table.js', 'js/forum.js', 'js/money.js', 'js/timer.js', 'js/invite.js', 'js/sroom.js', 'js/room3d.js', 'js/anime.js', *sorted(glob.glob('js/bio/*.js')))
+v_all = h('css/app.css', 'css/tw.css', 'js/app.js', 'js/maps.js', 'js/dreams.js', 'js/cards.js', 'js/uni.js', 'js/ytroom.js', 'js/garden.js', 'js/gardenui.js', 'js/tutor.js', 'js/moodmap.js', 'js/mistakes.js', 'js/shop.js', 'js/spots.js', 'js/ventfilter.js', 'js/vent.js', 'js/ideas.js', 'js/calls.js', 'js/food.js', 'js/dhikr.js', 'js/weekly.js', 'js/hall.js', 'js/table.js', 'js/forum.js', 'js/money.js', 'js/timer.js', 'js/invite.js', 'js/mascot.js', 'js/sroom.js', 'js/room3d.js', 'js/anime.js', *sorted(glob.glob('js/bio/*.js')))
 
 with open('index.html', encoding='utf-8') as f:
     s = f.read()
