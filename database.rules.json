@@ -197,6 +197,16 @@
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         "points": {
           ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || newData.isNumber() && newData.val() == newData.parent().parent().parent().child('users/' + $uid + '/points').val())"
+        },
+        "wm": {
+          "$k": {
+            ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || $k.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 6000 && newData.val() <= (data.exists() ? data.val() : 0) + 300)"
+          }
+        },
+        "sm": {
+          "$k": {
+            ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || $k.matches(/^[0-9]{4}-[0-9]{2}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 25000 && newData.val() <= (data.exists() ? data.val() : 0) + 300)"
+          }
         }
       }
     },
