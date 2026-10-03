@@ -163,6 +163,8 @@ SPOT = dict({".validate": SPOT_OK}, **SPOT_FIELDS)
 YR_HOST = "(auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid)"
 YR_MEMBER = "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()"
 YR_MEMBER_NEW = "newData.parent().parent().child('members/' + auth.uid).exists()"
+RM_HOST = "(auth != null && root.child('rmRooms/' + $rid + '/meta/host').val() == auth.uid)"
+RM_MEMBER = "root.child('rmRooms/' + $rid + '/members/' + auth.uid).exists()"
 signed_admin = {".read": SIGNED, ".write": ADMIN}
 
 rules = {
@@ -535,6 +537,47 @@ rules = {
             }},
         },
     },
+    # ----- غرفتنا: the shared 3D study room; the host runs the room, each student writes only their own rows -----
+    "rmRooms": {
+        "$rid": {
+            ".read": SIGNED,
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('meta/host').val() == auth.uid", "newData.child('members/' + auth.uid).exists()"), ands(RM_HOST, "!newData.exists()")),
+            "meta": {
+                ".write": RM_HOST,
+                ".validate": ands("newData.child('host').val() == (data.exists() ? data.child('host').val() : auth.uid)", s_max("newData.child('title')", 40), "newData.child('at').isNumber()"),
+                "pm": {".validate": "newData.hasChildren(['k', 'e']) && newData.child('k').isString() && newData.child('k').val().matches(/^(f|b)$/) && newData.child('e').isNumber()"},
+            },
+            "members": {"$uid": {
+                ".write": ors(ADMIN, ands(OWNER, "root.child('rmRooms/' + $rid + '/meta').exists()", "!root.child('rmRooms/' + $rid + '/kicked/' + $uid).exists()"), ands(RM_HOST, "!newData.exists()"), ands(OWNER, "!newData.exists()")),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'c', 's'])", s_max("newData.child('n')", 40), "newData.child('c').isString() && newData.child('c').val().matches(/^[a-z0-9]{2,12}$/)",
+                                                            "newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 7",
+                                                            "(!newData.child('st').exists() || (newData.child('st').isString() && newData.child('st').val().matches(/^(s|r|z)$/)))",
+                                                            "(!newData.child('at').exists() || newData.child('at').isNumber())",
+                                                            "(!newData.child('m').exists() || (newData.child('m').isNumber() && newData.child('m').val() >= 0 && newData.child('m').val() <= 100000))",
+                                                            "(!newData.child('j').exists() || newData.child('j').isNumber())") + ")",
+                "$other": {".validate": "$other == 'n' || $other == 'c' || $other == 's' || $other == 'st' || $other == 'at' || $other == 'm' || $other == 'j'"},
+            }},
+            "kicked": {"$uid": {".write": RM_HOST}},
+            "ev": {"$id": {
+                ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", RM_MEMBER), ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", RM_HOST, "data.child('at').val() < now - 120000"))),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['u', 't', 'at'])", "newData.child('t').isString() && newData.child('t').val().matches(/^(poke|pet|shake|hi|cheer)$/)",
+                                                            "newData.child('at').isNumber() && newData.child('at').val() <= now + 60000", "(!newData.child('to').exists() || " + s_max("newData.child('to')", 40) + ")") + ")",
+            }},
+            "chat": {"$id": {
+                ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", RM_MEMBER), ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", RM_HOST))),
+                ".validate": "!newData.exists() || (" + s_max("newData.child('m')", 160) + " && newData.child('at').isNumber())",
+            }},
+        },
+    },
+    "rmInvites": {
+        "$to": {
+            ".read": "auth != null && auth.uid == $to",
+            "$rid": {".write": ors(ADMIN, "auth != null && auth.uid == $to && !newData.exists()",
+                                   ands(SIGNED, "newData.child('from').val() == auth.uid", "root.child('rmRooms/' + $rid + '/members/' + auth.uid).exists()"))},
+        },
+    },
+    # minutes studied in the rooms and the chosen character: only the student's own
+    "rmMe": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (" + ands("newData.child('min').isNumber() && newData.child('min').val() >= 0 && newData.child('min').val() <= 10000000", "(!newData.child('c').exists() || (newData.child('c').isString() && newData.child('c').val().matches(/^[a-z0-9]{2,12}$/)))") + ")"}},
     "ytInvites": {
         "$to": {
             ".read": "auth != null && auth.uid == $to",
