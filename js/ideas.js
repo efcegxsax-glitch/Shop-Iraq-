@@ -100,7 +100,7 @@
                     <div class="id-meta"><span class="id-cat"><i data-lucide="${c[1]}"></i>${c[0]}</span><span class="id-st"><i data-lucide="${st[1]}"></i>${st[0]}</span>${crown ? '<span class="id-crown"><i data-lucide="crown"></i>الأولى</span>' : ''}</div>
                     <b class="id-t" dir="auto">${esc(x.t)}</b>
                     ${x.d ? `<p class="id-d${long && !s.open[x.id] ? ' clamp' : ''}" dir="auto">${esc(x.d)}</p>${long ? `<button class="id-more" onclick="app.idMore(${jsArg(x.id)})">${s.open[x.id] ? 'أقل' : 'اقرا أكثر'}</button>` : ''}` : ''}
-                    <div class="id-by"><span>فكرة ${esc(x.n || 'طالب')} · ${ago(x.at)}</span>${mine ? '<em>فكرتك</em>' : ''}${mine && x.st === 'new' ? `<button onclick="app.idDelete(${jsArg(x.id)})"><i data-lucide="trash-2"></i></button>` : ''}</div>
+                    <div class="id-by"><span>فكرة ${esc(x.n || 'طالب')} · ${ago(x.at)}</span>${mine ? '<em>فكرتك</em>' : app.rpBtn({ type: 'idea', targetUid: x.by, ref: 'ideas/' + x.id, snippet: x.t + ' ' + (x.d || '') }, 'id-rp', '')}${mine && x.st === 'new' ? `<button onclick="app.idDelete(${jsArg(x.id)})"><i data-lucide="trash-2"></i></button>` : ''}</div>
                     ${x.r ? `<div class="id-reply"><span><i data-lucide="megaphone"></i>رد الإدارة</span><p dir="auto">${esc(x.r)}</p></div>` : ''}
                     ${x.st === 'done' ? `<div class="id-thanks"><i data-lucide="party-popper"></i>انضافت للتطبيق، شكراً ${esc(x.n || '')}!</div>` : ''}
                 </div>

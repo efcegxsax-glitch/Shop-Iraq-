@@ -4887,6 +4887,7 @@
                         <div class="dr-btns">
                             <button class="pri amen${said ? ' done' : ''}" id="drAmen" onclick="app.sayAmen(${jsArg(d.id)})"><i data-lucide="hand-heart"></i>آمين <b id="drAmenN">${d.amen}</b></button>
                             <button onclick="app.shareDream(${jsArg(d.id)})"><i data-lucide="image"></i>شارك</button>
+                            ${d.o && d.o === this.authUid ? '' : `<button onclick="app.reportContent({ type: 'dream', targetUid: ${jsArg(d.o || '')}, ref: ${jsArg('dreams/' + d.id)}, snippet: ${jsArg(d.t)} })" aria-label="إبلاغ"><i data-lucide="flag"></i></button>`}
                             <button class="x" onclick="app._drClose()" aria-label="إغلاق"><i data-lucide="x"></i></button>
                         </div>
                     </div>`;
@@ -5132,6 +5133,7 @@
             nativeBack() {
                 const close = [
                     ['#imgViewer', () => this.closeImageViewer()],
+                    ['#rpSheet', () => this.rpClose()],
                     ['#rmSheet', () => this._rmCloseSheet()],
                     ['#rmScene', () => this.rmBack()],
                     ['#tmSheet', () => this.tmSheetClose()],
@@ -9952,6 +9954,7 @@
                         ${this.isVerified(uid) ? '<div class="vb-note">حساب موثّق</div>' : ''}
                         ${studentNumber ? `<div class="text-xs mt-1 theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(studentNumber)}</div>` : ''}
                         <div class="w-full mt-4">${actionHtml}</div>
+                        ${isMe ? '' : `<button onclick="app.reportContent({ type: 'user', targetUid: ${jsArg(uid)}, snippet: ${jsArg(name || 'طالب')} })" class="rp-link"><i data-lucide="flag" class="w-3.5 h-3.5"></i>إبلاغ عن هذا الطالب</button>`}
                     </div>
                 `;
                 document.getElementById('walletModal')?.classList.remove('hidden');
@@ -12157,7 +12160,7 @@
                             ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
                             ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
                             <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
-                            ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
+                            ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)}, ${jsArg(isTextMsg ? String(m.text || '').slice(0, 200) : '[صورة]')})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
                         </div>` : ''}
                     </div>`;
             },
@@ -12465,50 +12468,76 @@
                 }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
             },
 
-            openReportModal(targetUid, messageId) {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للإبلاغ');
-                    return;
-                }
-                this._pendingReportTarget = { targetUid, messageId };
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = messageId ? 'إبلاغ عن رسالة' : 'إبلاغ عن مستخدم';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = `
-                    <div class="flex flex-col gap-3">
-                        <textarea id="reportReasonInput" rows="3" placeholder="اشرح سبب الإبلاغ..." class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;"></textarea>
-                        <button onclick="app.submitReport()" class="w-full h-12 bg-error text-white rounded-xl font-bold text-sm btn-press">إرسال البلاغ</button>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
+            // ===== Reports: one sheet for every kind of content (message, forum post, idea, dream, student) =====
+            // reports/{id} is written by the reporter and read by the admin panel only (البلاغات).
+            RP_REASONS: [['abuse', 'شتائم وإساءة'], ['bully', 'تنمر أو تحرش'], ['inappropriate', 'محتوى غير لائق'], ['cheat', 'غش أو معلومات مضللة'], ['spam', 'إعلان أو إزعاج'], ['fake', 'انتحال شخصية'], ['other', 'سبب ثاني']],
+            openReportModal(targetUid, messageId, text) {
+                this.reportContent({ type: messageId ? 'message' : 'user', targetUid, ref: messageId ? 'msg' + messageId : '', snippet: text || '' });
+            },
+            reportContent(o) {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى تبلّغ'); return; }
+                if (o.targetUid && o.targetUid === this.authUid) { this.showToast('هذا المحتوى مالتك'); return; }
+                this.closeWalletModal && this.closeWalletModal();
+                this.rpClose();
+                this._rp = { type: String(o.type || 'user'), targetUid: String(o.targetUid || '').slice(0, 80), ref: String(o.ref || '').slice(0, 120), snippet: String(o.snippet || '').replace(/\s+/g, ' ').trim().slice(0, 300), reason: '' };
+                const w = document.createElement('div');
+                w.id = 'rpSheet'; w.className = 'rp-w';
+                w.innerHTML = '<div class="rp-bd" onclick="app.rpClose()"></div><div class="rp-sheet" role="dialog">' + this._rpBody() + '</div>';
+                document.body.appendChild(w);
+                requestAnimationFrame(() => w.classList.add('on'));
                 lucide.createIcons();
             },
-
-            submitReport() {
-                const input = document.getElementById('reportReasonInput');
-                if (!input || !this._pendingReportTarget || !window.firebaseDb || !this.authUid) return;
-                const reason = input.value.trim();
-                if (!reason) { this.showToast('اكتب سبب الإبلاغ'); return; }
-                const { ref, set } = window.firebaseDbHelpers;
+            _rpBody() {
+                const r = this._rp;
+                return `<div class="rp-h"><span class="rp-ic"><i data-lucide="flag"></i></span><div><b>إبلاغ للإدارة</b><small>ما يعرف الشخص إنك بلّغت</small></div><button class="rp-x" onclick="app.rpClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
+                    ${r.snippet ? `<div class="rp-sn">${escapeHtml(r.snippet)}</div>` : ''}
+                    <div class="rp-lab">شنو المشكلة؟</div>
+                    <div class="rp-chips">${this.RP_REASONS.map((x) => `<button class="${r.reason === x[0] ? 'on' : ''}" onclick="app.rpPick('${x[0]}')">${x[1]}</button>`).join('')}</div>
+                    <textarea id="rpNote" rows="2" maxlength="300" placeholder="تفاصيل إضافية (اختياري)"></textarea>
+                    <button class="rp-go" id="rpGo" onclick="app.rpSend()"><i data-lucide="send"></i>أرسل البلاغ</button>
+                    <p class="rp-foot">الإدارة تراجع البلاغات وتحذف المحتوى المخالف وتحظر اللي يكرر الإساءة.</p>`;
+            },
+            // small helper for modules that build HTML strings: registers the report data and returns the button
+            rpBtn(o, cls, label) {
+                this._rpReg = this._rpReg || {};
+                const k = 'r' + (this._rpN = (this._rpN || 0) + 1);
+                const keys = Object.keys(this._rpReg);
+                if (keys.length > 300) delete this._rpReg[keys[0]];
+                this._rpReg[k] = o;
+                return '<button class="' + (cls || 'fm-act') + '" onclick="event.stopPropagation(); app.reportContent(app._rpReg.' + k + ')" aria-label="إبلاغ"><i data-lucide="flag"></i>' + (label || '') + '</button>';
+            },
+            rpPick(code) {
+                if (!this._rp) return;
+                this._rp.reason = code;
+                document.querySelectorAll('#rpSheet .rp-chips button').forEach((b, i) => b.classList.toggle('on', this.RP_REASONS[i][0] === code));
+            },
+            rpClose() { document.getElementById('rpSheet')?.remove(); },
+            rpSend() {
+                const r = this._rp;
+                if (!r || !window.firebaseDb || !this.authUid) return;
+                if (!r.reason) { this.showToast('اختار نوع المشكلة'); return; }
+                let sent = [];
+                try { sent = JSON.parse(localStorage.getItem('isp_rp_sent') || '[]') || []; } catch (e) {}
+                const key = r.type + '|' + (r.ref || r.targetUid);
+                if (sent.indexOf(key) !== -1) { this.showToast('بلّغت عن هذا من قبل، الإدارة راح تراجعه'); this.rpClose(); return; }
+                let last = 0;
+                try { last = numOr0(localStorage.getItem('isp_rp_at')); } catch (e) {}
+                if (Date.now() - last < 15000) { this.showToast('استنى شوية وبلّغ مرة ثانية'); return; }
+                const note = (document.getElementById('rpNote')?.value || '').trim().slice(0, 300);
+                const label = (this.RP_REASONS.find((x) => x[0] === r.reason) || ['', 'أخرى'])[1];
                 const id = Date.now();
-                const payload = {
-                    id,
-                    reporterUid: this.authUid,
-                    reporterName: this.currentUser.fullName || 'طالب',
-                    targetUid: this._pendingReportTarget.targetUid,
-                    messageId: this._pendingReportTarget.messageId || null,
-                    reason,
-                    createdAt: id,
-                    status: 'open'
-                };
+                const payload = { id, reporterUid: this.authUid, reporterName: String((this.currentUser && this.currentUser.fullName) || 'طالب').slice(0, 60), type: r.type, reason: label, createdAt: id, status: 'open' };
+                if (r.targetUid) payload.targetUid = r.targetUid;
+                if (/^[A-Za-z0-9_\/-]{1,120}$/.test(r.ref)) payload.ref = r.ref;
+                if (r.snippet) payload.snippet = r.snippet;
+                if (note) payload.note = note;
+                const btn = document.getElementById('rpGo'); if (btn) btn.disabled = true;
+                const { ref, set } = window.firebaseDbHelpers;
                 set(ref(window.firebaseDb, 'reports/' + id), payload).then(() => {
-                    this.showToast('تم إرسال البلاغ، شكراً لمساعدتك');
-                    this.closeWalletModal();
-                }).catch((err) => {
-                    console.warn('Report submit failed:', err);
-                    this.showToast('تعذر إرسال البلاغ');
-                });
+                    try { sent.push(key); localStorage.setItem('isp_rp_sent', JSON.stringify(sent.slice(-200))); localStorage.setItem('isp_rp_at', String(Date.now())); } catch (e) {}
+                    const sh = document.querySelector('#rpSheet .rp-sheet');
+                    if (sh) { sh.innerHTML = `<div class="rp-done"><span><i data-lucide="check"></i></span><b>وصل بلاغك، شكراً</b><p>الإدارة تراجعه وتتصرف.</p>${r.targetUid && !this.isBlocked(r.targetUid) ? `<button class="rp-blk" onclick="app.rpClose(); app.blockUser(${jsArg(r.targetUid)})"><i data-lucide="ban"></i>احظره عندي</button>` : ''}<button class="rp-ok" onclick="app.rpClose()">تمام</button></div>`; lucide.createIcons(); }
+                }).catch(() => { if (btn) btn.disabled = false; this.showToast('تعذر إرسال البلاغ، حاول مرة ثانية'); });
             },
 
             sendChatMessage() {
