@@ -260,6 +260,18 @@ await ok('vote guest', runTransaction(ref(db(null), 'pollVotes/p/d_x'), (c) => (
 await no('vote as someone else', set(ref(db('u1'), 'pollVotes/p/u2'), 1));
 await ok('count +1', runTransaction(ref(db(null), 'polls/p/counts/1'), (c) => (c || 0) + 1));
 await no('edit poll', set(ref(db('u1'), 'polls/p/q'), 'x'));
+// reports
+await ok('student reports', set(ref(db('u1'), 'reports/1'), { id: 1, reporterUid: 'u1', reporterName: 'x', type: 'thread', targetUid: 'u2', ref: 'forumThreads/5', snippet: 'abc', reason: 'شتائم', note: 'n', createdAt: now, status: 'open' }));
+await ok('old style report', set(ref(db('u1'), 'reports/2'), { id: 2, reporterUid: 'u1', targetUid: 'u2', messageId: 9, reason: 'x', createdAt: now, status: 'open' }));
+await no('report as someone else', set(ref(db('u1'), 'reports/3'), { id: 3, reporterUid: 'u2', reason: 'x', createdAt: now }));
+await no('overwrite report', set(ref(db('u1'), 'reports/1'), { id: 1, reporterUid: 'u1', reason: 'y', createdAt: now }));
+await no('report huge reason', set(ref(db('u1'), 'reports/4'), { id: 4, reporterUid: 'u1', reason: 'x'.repeat(401), createdAt: now }));
+await no('report bad type', set(ref(db('u1'), 'reports/5'), { id: 5, reporterUid: 'u1', reason: 'x', type: 'bomb', createdAt: now }));
+await no('report bad ref', set(ref(db('u1'), 'reports/6'), { id: 6, reporterUid: 'u1', reason: 'x', ref: '../users/u2', createdAt: now }));
+await no('guest report', set(ref(db(null), 'reports/7'), { id: 7, reporterUid: 'x', reason: 'x', createdAt: now }));
+await no('student reads reports', get(ref(db('u1'), 'reports')));
+await ok('admin reads reports', get(ref(db('adm'), 'reports')));
+await ok('admin closes report', update(ref(db('adm'), 'reports/1'), { status: 'done' }));
 await ok('join through u1 link', set(ref(db('u2'), 'refJoin/u1/u2'), 1700000000000));
 await no('join twice', set(ref(db('u2'), 'refJoin/u1/u2'), 1700000000001));
 await no('join as someone else', set(ref(db('u1'), 'refJoin/u3/u2'), 1));

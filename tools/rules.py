@@ -474,7 +474,19 @@ rules = {
             "$other": {".write": CHAT_MEMBER},
         },
     },
-    "reports": {"$id": {".write": ors(ADMIN, "auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid")}},
+    # reports of content or students: one new record per report, written by the reporter; only the admin reads them
+    "reports": {".read": ADMIN, "$id": {
+        ".write": ors(ADMIN, "auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid"),
+        ".validate": "!newData.exists() || (" + ands(
+            "newData.hasChildren(['reporterUid', 'reason', 'createdAt'])",
+            "newData.child('reporterUid').isString()", s_max("newData.child('reason')", 400), "newData.child('createdAt').isNumber()",
+            "(!newData.child('note').exists() || " + s_max("newData.child('note')", 400) + ")",
+            "(!newData.child('snippet').exists() || " + s_max("newData.child('snippet')", 300) + ")",
+            "(!newData.child('ref').exists() || (newData.child('ref').isString() && newData.child('ref').val().matches(/^[A-Za-z0-9_\\/-]{1,120}$/)))",
+            "(!newData.child('type').exists() || newData.child('type').val().matches(/^(user|message|thread|answer|dream|idea|vent|room)$/))",
+            "(!newData.child('targetUid').exists() || " + s_max("newData.child('targetUid')", 80) + ")",
+            "(!newData.child('status').exists() || newData.child('status').val().matches(/^(open|done)$/))") + ")",
+    }},
 
     # ----- duels and twins -----
     "duels": {

@@ -225,7 +225,7 @@
                 + (t.imageUrl ? '<img class="fm-img full" src="' + safeImage(t.imageUrl) + '" alt="">' : '')
                 + '<div class="fm-foot"><button class="fm-act' + (mine ? ' on' : '') + '" onclick="app.fmLike(' + t.id + ')"><i data-lucide="lightbulb"></i>مفيد' + (lk ? '<b>' + lk + '</b>' : '') + '</button>'
                 + '<button class="fm-act sv' + (sv ? ' on' : '') + '" onclick="app.fmSave(' + t.id + ', event)"><i data-lucide="bookmark"></i>' + (sv ? 'محفوظ' : 'حفظ') + '</button>'
-                + (isMine ? '<button class="fm-act del" onclick="app.fmDelete(' + t.id + ')"><i data-lucide="trash-2"></i>حذف</button>' : '') + '</div></article>'
+                + (isMine ? '<button class="fm-act del" onclick="app.fmDelete(' + t.id + ')"><i data-lucide="trash-2"></i>حذف</button>' : this.rpBtn({ type: 'thread', targetUid: t.authorUid, ref: 'forumThreads/' + t.id, snippet: (t.title || '') + ' ' + (t.body || '') }, 'fm-act', 'إبلاغ')) + '</div></article>'
                 + '<div class="fm-ah"><b>' + (ans.length ? ans.length + (ans.length === 1 ? ' إجابة' : ' إجابات') : 'الإجابات') + '</b></div>'
                 + (ans.length ? ans.map((a) => this._fmAnswer(t, a, isMine)).join('') : '<div class="fm-noans"><i data-lucide="message-circle-question"></i>ماكو إجابات بعد. كون أول واحد يجاوب.</div>')
                 + '</div>';
@@ -239,7 +239,7 @@
                 + '<div class="fm-top"><div class="fm-au" onclick="app.openAuthorProfileFromAnswer(' + t.id + ',' + a.id + ')">' + this._fmWho(a) + '</div></div>'
                 + '<p class="fm-body full">' + esc(a.body) + '</p>'
                 + '<div class="fm-foot"><button class="fm-act' + (mine ? ' on' : '') + '" onclick="app.fmAnsLike(' + t.id + ',' + a.id + ')"><i data-lucide="thumbs-up"></i>مفيدة' + (lk ? '<b>' + lk + '</b>' : '') + '</button>'
-                + (isMine && t.kind === 'q' ? '<button class="fm-act ok" onclick="app.fmBest(' + t.id + ',' + a.id + ')"><i data-lucide="check-check"></i>' + (best ? 'إلغاء الاعتماد' : 'هذا حلّ سؤالي') + '</button>' : '') + '</div></div>';
+                + (isMine && t.kind === 'q' ? '<button class="fm-act ok" onclick="app.fmBest(' + t.id + ',' + a.id + ')"><i data-lucide="check-check"></i>' + (best ? 'إلغاء الاعتماد' : 'هذا حلّ سؤالي') + '</button>' : '') + (this.authUid && a.authorUid === this.authUid ? '' : this.rpBtn({ type: 'answer', targetUid: a.authorUid, ref: 'forumAnswers/' + t.id + '/' + a.id, snippet: a.body }, 'fm-act', 'إبلاغ')) + '</div></div>';
         },
 
         submitForumAnswer() {

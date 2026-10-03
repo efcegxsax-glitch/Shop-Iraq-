@@ -510,8 +510,10 @@
       }
     },
     "reports": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
       "$id": {
-        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid)"
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid)",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['reporterUid', 'reason', 'createdAt']) && newData.child('reporterUid').isString() && newData.child('reason').isString() && newData.child('reason').val().length <= 400 && newData.child('createdAt').isNumber() && (!newData.child('note').exists() || newData.child('note').isString() && newData.child('note').val().length <= 400) && (!newData.child('snippet').exists() || newData.child('snippet').isString() && newData.child('snippet').val().length <= 300) && (!newData.child('ref').exists() || (newData.child('ref').isString() && newData.child('ref').val().matches(/^[A-Za-z0-9_\\/-]{1,120}$/))) && (!newData.child('type').exists() || newData.child('type').val().matches(/^(user|message|thread|answer|dream|idea|vent|room)$/)) && (!newData.child('targetUid').exists() || newData.child('targetUid').isString() && newData.child('targetUid').val().length <= 80) && (!newData.child('status').exists() || newData.child('status').val().matches(/^(open|done)$/))))"
       }
     },
     "duels": {
