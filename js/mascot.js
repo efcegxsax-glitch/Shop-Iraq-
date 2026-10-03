@@ -162,7 +162,7 @@
     function busy(forShake) {
         if (!app.isLoggedIn) return true;
         if (document.hidden) return true;
-        if (app._cl || app._focus || app._forest || app._gwar || app._garden) return true;
+        if (app._cl || app._focus || app._forest || app._gwar || app._garden || app._duelOn) return true;
         const v = app.currentView || '';
         if (/auth|login/i.test(v) || v === 'rmView') return true;
         if (!forShake && v === 'tmView') return true;

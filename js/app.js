@@ -417,7 +417,6 @@
         const userChatsList = [];
         const chatMessages = [];
 
-        const voiceParticipants = [];
 
         const friendsList = [];
         const incomingFriendRequests = [];
@@ -430,25 +429,6 @@
         const myStoreProducts = [];
         const storeCategories = { all: 'الكل', stationery: 'قرطاسية', books: 'كتب', notes: 'ملازم', supplies: 'مستلزمات' };
 
-        const duelInvitesList = [];
-        const duelsListData = [];
-        const duelQuestionBank = [
-            { q: 'كم عدد محافظات العراق؟', options: ['15', '18', '19', '21'], correct: 1 },
-            { q: 'ما ناتج 7 × 8؟', options: ['54', '56', '58', '64'], correct: 1 },
-            { q: 'ما هو الرمز الكيميائي للماء؟', options: ['CO2', 'H2O', 'O2', 'NaCl'], correct: 1 },
-            { q: 'من مؤلف كتاب "الأيام"؟', options: ['نجيب محفوظ', 'طه حسين', 'جبران خليل جبران', 'أحمد شوقي'], correct: 1 },
-            { q: 'ما هو أطول نهر بالعراق؟', options: ['دجلة', 'الفرات', 'ديالى', 'الزاب'], correct: 0 },
-            { q: 'ما ناتج الجذر التربيعي لـ 81؟', options: ['7', '8', '9', '11'], correct: 2 },
-            { q: 'كم عدد أضلاع المثلث؟', options: ['2', '3', '4', '5'], correct: 1 },
-            { q: 'ما هي عاصمة العراق؟', options: ['البصرة', 'أربيل', 'بغداد', 'الموصل'], correct: 2 },
-            { q: 'ما وحدة قياس القوة؟', options: ['واط', 'نيوتن', 'جول', 'أمبير'], correct: 1 },
-            { q: 'ما ناتج 15 - 9؟', options: ['4', '5', '6', '7'], correct: 2 },
-            { q: 'كم عدد أيام السنة الكبيسة؟', options: ['364', '365', '366', '367'], correct: 2 },
-            { q: 'ما هو الغاز الذي يتنفسه الإنسان؟', options: ['ثاني أكسيد الكربون', 'الأوكسجين', 'النيتروجين', 'الهيدروجين'], correct: 1 },
-            { q: 'ما ناتج 12 ÷ 4؟', options: ['2', '3', '4', '6'], correct: 1 },
-            { q: 'من هو مخترع المصباح الكهربائي؟', options: ['نيوتن', 'أديسون', 'أينشتاين', 'غاليليو'], correct: 1 },
-            { q: 'ما هو أكبر كوكب بالمجموعة الشمسية؟', options: ['الأرض', 'المريخ', 'المشتري', 'زحل'], correct: 2 }
-        ];
 
         const pointsStoreOffers = [
             { points: 5000, iqd: 500 },
@@ -535,14 +515,6 @@
             notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true },
             currentChatUid: null,
             currentChatOther: null,
-            currentDuelId: null,
-            currentDuelData: null,
-            currentDuelQuestionIndex: 0,
-            duelAnswers: [],
-            voiceSendPeers: {},
-            voiceRecvPeers: {},
-            voiceLocalStream: null,
-            isVoiceSpeaking: false,
             sentFriendRequests: {},
             _notifiedOverdueTaskIds: null,
 
@@ -681,7 +653,7 @@
             _updateReady() {
                 if (this._updShown) return;
                 this._updShown = true;
-                const busy = () => !!(this._cl || this._focus || this._forest || this._gwar || this._garden);
+                const busy = () => !!(this._cl || this._focus || this._forest || this._gwar || this._garden || this._duelOn);
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden && this.currentView === 'homeView' && !busy()) location.reload();
                 });
@@ -766,6 +738,7 @@
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
                 try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
+                try { const m = location.search.match(/[?&]dl=([a-z0-9]{6})(?![a-z0-9])/i); if (m) this._dlPending = m[1].toLowerCase(); } catch (e) {}
                 // an invite link (?ref=<uid>) is remembered until the visitor creates an account
                 try { const m = location.search.match(/[?&]ref=([A-Za-z0-9]{20,40})/); if (m && !localStorage.getItem('isp_ref')) localStorage.setItem('isp_ref', JSON.stringify({ c: m[1], t: Date.now() })); } catch (e) {}
                 try {
@@ -968,7 +941,7 @@
                 if (this._cl && this._clEnd) this._clEnd('end');
                 ['_tasksListener', '_walletTxListener', '_friendsListener', '_friendRequestsListener',
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
-                    '_userChatsListener', '_userDuelsListener', '_duelInvitesListener',
+                    '_userChatsListener', 
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
                     '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff'].forEach((key) => {
                     if (typeof this[key] === 'function') {
@@ -1303,7 +1276,7 @@
                     this.listenForUserChats();
                     this.listenForReactions();
                     this.listenForFriends();
-                    this.listenForYtInvites(); this.listenForRmInvites();
+                    this.listenForYtInvites(); this.listenForRmInvites(); this.listenForDuelInv();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -1394,7 +1367,7 @@
                     const u = this.currentUser || {};
                     const pk = this._phoneKey ? this._phoneKey(u.phone || '') : '';
                     const paths = ['pub/', 'leaderboard/', 'presence/', 'studyRoom/', 'focusLive/', 'studentMap/', 'userNewsState/', 'userTasks/', 'userActivity/', 'tokens/',
-                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'userDuels/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/']
+                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/']
                         .map((p) => p + uid);
                     if (/^[0-9]{3,12}$/.test(String(u.studentNumber || ''))) paths.push('numIndex/' + u.studentNumber);
                     if (pk) paths.push('phoneIndex/' + pk);
@@ -1428,7 +1401,6 @@
             async logout() {
                 if (await this.ask({ icon: 'log-out', title: 'تسجيل الخروج', text: 'متأكد تريد تطلع من حسابك؟', ok: 'اطلع', cancel: 'ابقَ' })) {
                     this.leaveStudyRoom();
-                    this.leaveVoiceRoom();
                     if (window.firebaseDb && this.authUid) {
                         const { ref, set } = window.firebaseDbHelpers;
                         set(ref(window.firebaseDb, 'presence/' + this.authUid), { online: false, lastSeen: Date.now() }).catch(() => {});
@@ -2644,7 +2616,7 @@
                     this.listenForUserChats();
                     this.listenForReactions();
                     this.listenForFriends();
-                    this.listenForYtInvites(); this.listenForRmInvites();
+                    this.listenForYtInvites(); this.listenForRmInvites(); this.listenForDuelInv();
                     this.listenForFriendRequests();
                     this.listenForSentFriendRequests();
                     this.listenForBlockedUsers();
@@ -4294,7 +4266,7 @@
                 const min = now.getHours() * 60 + now.getMinutes();
                 const day = o.days[d] || { m: [], w: [] };
                 // a call, a focus session or a forest session is never interrupted
-                if (this._cl || this._focus || this._forest || this._gwar) return;
+                if (this._cl || this._focus || this._forest || this._gwar || this._duelOn) return;
                 if (s.mealOn) {
                     for (const k of ['breakfast', 'lunch', 'dinner']) {
                         const t = this._nutMin(s.meals[k]);
@@ -4363,7 +4335,7 @@
                 const cfg = this.siteConfig || {};
                 if ((cfg.features && cfg.features.coach === false) || !this.isLoggedIn || !this.authUid) return;
                 const c = this._coachGet();
-                if (!c.on || this._cl || this._focus || this._forest || this._gwar || this.studyTimerRunning) return;
+                if (!c.on || this._cl || this._focus || this._forest || this._gwar || this._duelOn || this.studyTimerRunning) return;
                 const now = new Date(), min = now.getHours() * 60 + now.getMinutes();
                 if (min < this._nutMin(c.from) || min > this._nutMin(c.to)) return;
                 // the first message comes a while after the app opens, not straight away
@@ -4483,6 +4455,36 @@
             // the owl advisor (js/mascot.js) is loaded a few seconds after the start; these two are its doors
             _mcExams() { return examSchedule.slice(); },
             openMascot() { this._need('mascot').then(() => this.mcSettings()).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية')); },
+
+            // live duel (js/duel.js): the page, and the card that pops up when a friend challenges you
+            goToDuel(rid) {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.duel === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى تتحدى'); this.goToAuth('login'); return; }
+                this.switchView('duelView');
+                if (this._withPart('duel', () => typeof this.dlOpen === 'function', 'duelView', () => this.goToDuel(rid))) return;
+                this.dlOpen(rid);
+            },
+            listenForDuelInv() {
+                if (!window.firebaseDb || !this.authUid || this._dlInvListener) return;
+                const { ref, onValue } = window.firebaseDbHelpers, since = Date.now() - 5000;
+                this._dlInvListener = onValue(ref(window.firebaseDb, 'duelInv/' + this.authUid), (snap) => {
+                    const v = snap.val() || {}, lim = Date.now() - 10 * 60000;
+                    this._dlInvites = Object.keys(v).map((rid) => Object.assign({ rid }, v[rid])).filter((x) => (x.at || 0) > lim).sort((a, b) => (b.at || 0) - (a.at || 0));
+                    const fresh = this._dlInvites.find((x) => (x.at || 0) > since && !(this._dlShown || {})[x.rid]);
+                    if (fresh && !(this.currentView === 'duelView')) {
+                        this._dlShown = this._dlShown || {}; this._dlShown[fresh.rid] = 1;
+                        document.getElementById('dlInvCard')?.remove();
+                        const el = document.createElement('div'); el.id = 'dlInvCard'; el.className = 'yr-pop rm-pop';
+                        el.innerHTML = `<i data-lucide="swords"></i><div><b>${escapeHtml(fresh.fn || 'صديقك')} يتحداك بتحدي مباشر</b><small>اقبل وابدأ هسه</small></div>
+                            <button class="go" onclick="document.getElementById('dlInvCard').remove(); app.goToDuel(${jsArg(fresh.rid)})">اقبل</button>
+                            <button onclick="document.getElementById('dlInvCard').remove()" aria-label="بعدين"><i data-lucide="x"></i></button>`;
+                        document.body.appendChild(el); lucide.createIcons(); this.playNotifySound && this.playNotifySound(); setTimeout(() => el.remove(), 20000);
+                    }
+                    if (this.currentView === 'duelView' && this.dlRefresh) this.dlRefresh();
+                }, () => {});
+                if (this._dlPending) { const rid = this._dlPending; this._dlPending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => this.goToDuel(rid), 800); }
+            },
 
             goToInvite() {
                 const cfg = this.siteConfig || {};
@@ -4662,7 +4664,7 @@
             _tbTick() {
                 this._tbPushSync();
                 const d = this._tbGet();
-                if (!d || !d.rem || !d.rem.on || this._cl || this._focus || this._forest || this._gwar) return;
+                if (!d || !d.rem || !d.rem.on || this._cl || this._focus || this._forest || this._gwar || this._duelOn) return;
                 const now = new Date(), g = now.getDay(), min = now.getHours() * 60 + now.getMinutes();
                 if (d.days[g] !== 1) return;
                 const day = this.localDateStr(), key = 'isp:tb:sent:' + (this.authUid || 'guest');
@@ -5138,6 +5140,7 @@
             nativeBack() {
                 const close = [
                     ['#imgViewer', () => this.closeImageViewer()],
+                    ['#dlRoot', () => this.dlBack()],
                     ['#mcSet', () => this.mcSetClose()],
                     ['#rpSheet', () => this.rpClose()],
                     ['#rmSheet', () => this._rmCloseSheet()],
@@ -8477,7 +8480,7 @@
                 { id: 'grades', fn: 'goToGrades', t: 'تطور درجاتي', d: 'درجاتك برسم بياني', ic: 'chart-line', c: '#22C55E', g: 'study' },
                 { id: 'forest', fn: 'goToForest', t: 'غابة العراق', d: 'ادرس وازرع شجرة بمحافظتك', ic: 'trees', c: '#16A34A', g: 'play' },
                 { id: 'war', fn: 'goToGovWar', t: 'حرب المحافظات', d: 'هاجم لمحافظتك بالدراسة', ic: 'swords', c: '#DC2626', g: 'play' },
-                { id: 'duels', fn: 'goToDuels', t: 'تحدي مباشر', d: 'مسابقة أسئلة ويا زميلك', ic: 'zap', c: '#F97316', g: 'play' },
+                { id: 'duels', fn: 'goToDuel', t: 'تحدي مباشر', d: 'سباق أسئلة لحظة بلحظة ويا صديقك', ic: 'swords', c: '#F97316', g: 'play', feat: 'duel' },
                 { id: 'auction', fn: 'goToAuction', t: 'مزاد النقاط', d: 'زايد على جائزة الأسبوع', ic: 'gavel', c: '#D97706', g: 'play' },
                 { id: 'pstore', fn: 'goToPointsStore', t: 'متجر النقاط', d: 'استبدل نقاطك برصيد', ic: 'gift', c: '#EC4899', g: 'play' },
                 { id: 'polls', fn: 'goToPolls', t: 'الاستطلاعات', d: 'صوّت وشوف النتيجة', ic: 'vote', c: '#0891B2', g: 'play', feat: 'poll' },
@@ -8492,7 +8495,6 @@
                 { id: 'invite', fn: 'goToInvite', t: 'ادعُ زملاءك', d: 'شارك التطبيق وخلّي الكل يدرس', ic: 'megaphone', c: '#E11D48', g: 'people', feat: 'invite' },
                 { id: 'timer', fn: 'goToTimer', t: 'المؤقت', d: 'بومودورو وعد تنازلي و40 خلفية', ic: 'timer', c: '#7C3AED', g: 'study', feat: 'timer' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
-                { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
                 { id: 'calm', fn: 'goToCalm', t: 'قبل الامتحان', d: 'تنفّس ودعاء وتجهيز', ic: 'heart-handshake', c: '#DB2777', g: 'tools' },
                 { id: 'waste', fn: 'goToWaste', t: 'الوقت الضايع', d: 'شكد يروح وقتك بالهاتف', ic: 'hourglass', c: '#E5484D', g: 'tools' },
@@ -11071,299 +11073,6 @@
                 set(ref(window.firebaseDb, 'studyRoom/' + uid), null).catch((err) => console.warn('Leave study room failed:', err));
             },
 
-            // ==================== VOICE CHAT ROOM (WebRTC over Firebase signaling) ====================
-            goToVoiceRoom() {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للانضمام للغرفة الصوتية');
-                    this.goToAuth('login');
-                    return;
-                }
-                this.switchView('voiceRoomView');
-                this.joinVoiceRoom();
-                this.renderVoiceRoom();
-                lucide.createIcons();
-            },
-
-            joinVoiceRoom() {
-                if (!window.firebaseDb || !this.authUid) return;
-                const { ref, set, onDisconnect } = window.firebaseDbHelpers;
-                const myRef = ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid);
-                set(myRef, {
-                    name: this.currentUser.fullName || 'طالب',
-                    avatar: this.currentUser.avatar || '',
-                    speaking: false,
-                    joinedAt: Date.now()
-                }).catch((err) => console.warn('Join voice room failed:', err));
-                try {
-                    onDisconnect(myRef).remove();
-                    onDisconnect(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid)).remove();
-                } catch (e) {
-                    console.warn('onDisconnect setup failed:', e);
-                }
-                this.listenForVoiceParticipants();
-                this.listenForIncomingVoiceCalls();
-            },
-
-            leaveVoiceRoom() {
-                this.stopSpeaking();
-                Object.keys(this.voiceRecvPeers).forEach((uid) => this.closeVoiceRecvPeer(uid));
-                if (this._voiceCallsUnsub) { this._voiceCallsUnsub(); this._voiceCallsUnsub = null; }
-                if (this._voiceParticipantsUnsub) { this._voiceParticipantsUnsub(); this._voiceParticipantsUnsub = null; }
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, set } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid), null).catch(() => {});
-                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid), null).catch(() => {});
-                }
-                voiceParticipants.length = 0;
-            },
-
-            listenForVoiceParticipants() {
-                if (!window.firebaseDb || this._voiceParticipantsUnsub) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                this._voiceParticipantsUnsub = onValue(ref(window.firebaseDb, 'voiceRoom/participants'), (snap) => {
-                    const prevUids = new Set(voiceParticipants.map(p => p.uid));
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((uid) => {
-                            const e = vals[uid];
-                            if (!e) return;
-                            list.push({ uid, name: e.name || 'طالب', avatar: e.avatar || '', speaking: !!e.speaking, joinedAt: e.joinedAt || 0 });
-                        });
-                        list.sort((a, b) => a.joinedAt - b.joinedAt);
-                    }
-                    voiceParticipants.length = 0;
-                    voiceParticipants.push(...list);
-                    if (this.isVoiceSpeaking) {
-                        list.forEach((p) => {
-                            if (p.uid !== this.authUid && !prevUids.has(p.uid) && !this.voiceSendPeers[p.uid]) {
-                                this.createVoiceOffer(p.uid);
-                            }
-                        });
-                    }
-                    const currentUids = new Set(list.map(p => p.uid));
-                    Object.keys(this.voiceSendPeers).forEach((uid) => { if (!currentUids.has(uid)) this.closeVoiceSendPeer(uid); });
-                    Object.keys(this.voiceRecvPeers).forEach((uid) => { if (!currentUids.has(uid)) this.closeVoiceRecvPeer(uid); });
-                    if (this.currentView === 'voiceRoomView') { this.renderVoiceRoom(); lucide.createIcons(); }
-                });
-            },
-
-            renderVoiceRoom() {
-                const countEl = document.getElementById('voiceRoomCount');
-                const listEl = document.getElementById('voiceRoomList');
-                const emptyEl = document.getElementById('voiceRoomEmptyState');
-                const micBtn = document.getElementById('voiceMicBtn');
-                if (!countEl || !listEl || !emptyEl) return;
-                countEl.textContent = voiceParticipants.length + ' بالغرفة الآن';
-                if (voiceParticipants.length === 0) {
-                    listEl.innerHTML = '';
-                    listEl.classList.add('hidden');
-                    emptyEl.classList.remove('hidden');
-                } else {
-                    listEl.classList.remove('hidden');
-                    emptyEl.classList.add('hidden');
-                    listEl.innerHTML = voiceParticipants.map((p) => `
-                        <div class="rounded-2xl border p-3 flex flex-col items-center justify-center text-center relative theme-transition" style="background-color: var(--surface); border-color: var(--border); aspect-ratio: 1;">
-                            ${p.speaking ? '<div class="absolute inset-0 rounded-2xl border-2 border-primary voice-speaking-pulse"></div>' : ''}
-                            <img src="${personAvatarSrc(p.avatar, p.name)}" class="w-14 h-14 rounded-full object-cover mb-2">
-                            <div class="text-sm font-bold line-clamp-1 w-full theme-transition" style="color: var(--text);">${escapeHtml(p.name)}${this.vb(p.uid)}${p.uid === this.authUid ? ' (أنت)' : ''}</div>
-                            <div class="flex items-center gap-1 text-[10px] mt-1 ${p.speaking ? 'font-bold text-primary' : ''}" style="${!p.speaking ? 'color: var(--text2);' : ''}">
-                                <i data-lucide="${p.speaking ? 'mic' : 'mic-off'}" class="w-3 h-3"></i>${p.speaking ? 'يتكلم الآن' : 'مستمع'}
-                            </div>
-                        </div>
-                    `).join('');
-                }
-                if (micBtn) {
-                    if (this.isVoiceSpeaking) {
-                        micBtn.classList.add('bg-error');
-                        micBtn.classList.remove('bg-primary');
-                        micBtn.innerHTML = '<i data-lucide="mic-off" class="w-5 h-5"></i> إيقاف الكلام';
-                    } else {
-                        micBtn.classList.add('bg-primary');
-                        micBtn.classList.remove('bg-error');
-                        micBtn.innerHTML = '<i data-lucide="mic" class="w-5 h-5"></i> ابدأ التحدث';
-                    }
-                    lucide.createIcons();
-                }
-            },
-
-            toggleVoiceSpeak() {
-                if (this.isVoiceSpeaking) this.stopSpeaking(); else this.startSpeaking();
-            },
-
-            async startSpeaking() {
-                if (this.isVoiceSpeaking) return;
-                const activeSpeakers = voiceParticipants.filter(p => p.speaking).length;
-                if (activeSpeakers >= 4) {
-                    this.showToast('الغرفة ممتلئة بالمتحدثين حالياً، حاول لاحقاً');
-                    return;
-                }
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    this.showToast('المتصفح لا يدعم استخدام المايك');
-                    return;
-                }
-                try {
-                    this.voiceLocalStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                } catch (err) {
-                    console.warn('Mic access denied:', err);
-                    this.showToast('تعذر الوصول للمايكروفون — تحقق من الأذونات');
-                    return;
-                }
-                this.isVoiceSpeaking = true;
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, set } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid + '/speaking'), true).catch(() => {});
-                }
-                voiceParticipants.forEach((p) => {
-                    if (p.uid !== this.authUid) this.createVoiceOffer(p.uid);
-                });
-                this.renderVoiceRoom();
-                this.showToast('أنت تتكلم الآن');
-            },
-
-            stopSpeaking() {
-                if (!this.isVoiceSpeaking) return;
-                this.isVoiceSpeaking = false;
-                if (this.voiceLocalStream) {
-                    this.voiceLocalStream.getTracks().forEach((t) => t.stop());
-                    this.voiceLocalStream = null;
-                }
-                Object.keys(this.voiceSendPeers).forEach((uid) => this.closeVoiceSendPeer(uid));
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, set } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'voiceRoom/participants/' + this.authUid + '/speaking'), false).catch(() => {});
-                }
-                if (this.currentView === 'voiceRoomView') this.renderVoiceRoom();
-            },
-
-            async createVoiceOffer(toUid) {
-                if (this.voiceSendPeers[toUid]) return;
-                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-                this.voiceSendPeers[toUid] = pc;
-                if (this.voiceLocalStream) {
-                    this.voiceLocalStream.getTracks().forEach((track) => pc.addTrack(track, this.voiceLocalStream));
-                }
-                const { ref, set, onValue } = window.firebaseDbHelpers;
-                const callPath = 'voiceRoom/calls/' + toUid + '/' + this.authUid;
-                pc.onicecandidate = (event) => {
-                    if (!event.candidate) return;
-                    const cid = Date.now() + '_' + Math.floor(Math.random() * 100000);
-                    set(ref(window.firebaseDb, callPath + '/offerCandidates/' + cid), event.candidate.toJSON()).catch(() => {});
-                };
-                pc.onconnectionstatechange = () => {
-                    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
-                        this.closeVoiceSendPeer(toUid);
-                    }
-                };
-                this._voiceCallUnsubs = this._voiceCallUnsubs || {};
-                try {
-                    const offer = await pc.createOffer();
-                    await pc.setLocalDescription(offer);
-                    await set(ref(window.firebaseDb, callPath + '/offer'), { sdp: offer.sdp, type: offer.type });
-                    const appliedCandidates = new Set();
-                    this._voiceCallUnsubs[toUid] = onValue(ref(window.firebaseDb, callPath), async (snap) => {
-                        if (!snap.exists()) return;
-                        const data = snap.val();
-                        if (data.answer && !pc.currentRemoteDescription) {
-                            try { await pc.setRemoteDescription(new RTCSessionDescription(data.answer)); } catch (e) { console.warn('Set remote answer failed:', e); }
-                        }
-                        if (data.answerCandidates) {
-                            Object.keys(data.answerCandidates).forEach((cid) => {
-                                if (appliedCandidates.has(cid)) return;
-                                appliedCandidates.add(cid);
-                                pc.addIceCandidate(new RTCIceCandidate(data.answerCandidates[cid])).catch(() => {});
-                            });
-                        }
-                    });
-                } catch (err) {
-                    console.warn('Create voice offer failed:', err);
-                }
-            },
-
-            listenForIncomingVoiceCalls() {
-                if (!window.firebaseDb || !this.authUid || this._voiceCallsUnsub) return;
-                const { ref, onChildAdded } = window.firebaseDbHelpers;
-                this._voiceCallsUnsub = onChildAdded(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid), (snap) => {
-                    const fromUid = snap.key;
-                    const data = snap.val();
-                    if (!data || !data.offer) return;
-                    this.answerVoiceCall(fromUid, data.offer);
-                });
-            },
-
-            async answerVoiceCall(fromUid, offer) {
-                if (this.voiceRecvPeers[fromUid]) return;
-                const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-                this.voiceRecvPeers[fromUid] = pc;
-                pc.ontrack = (event) => { this.playRemoteVoiceStream(fromUid, event.streams[0]); };
-                const { ref, set, onValue } = window.firebaseDbHelpers;
-                const callPath = 'voiceRoom/calls/' + this.authUid + '/' + fromUid;
-                pc.onicecandidate = (event) => {
-                    if (!event.candidate) return;
-                    const cid = Date.now() + '_' + Math.floor(Math.random() * 100000);
-                    set(ref(window.firebaseDb, callPath + '/answerCandidates/' + cid), event.candidate.toJSON()).catch(() => {});
-                };
-                pc.onconnectionstatechange = () => {
-                    if (['failed', 'closed', 'disconnected'].includes(pc.connectionState)) {
-                        this.closeVoiceRecvPeer(fromUid);
-                    }
-                };
-                this._voiceCallUnsubs = this._voiceCallUnsubs || {};
-                try {
-                    await pc.setRemoteDescription(new RTCSessionDescription(offer));
-                    const answer = await pc.createAnswer();
-                    await pc.setLocalDescription(answer);
-                    await set(ref(window.firebaseDb, callPath + '/answer'), { sdp: answer.sdp, type: answer.type });
-                    const appliedCandidates = new Set();
-                    this._voiceCallUnsubs['recv_' + fromUid] = onValue(ref(window.firebaseDb, callPath + '/offerCandidates'), (snap2) => {
-                        if (!snap2.exists()) return;
-                        const vals = snap2.val();
-                        Object.keys(vals).forEach((cid) => {
-                            if (appliedCandidates.has(cid)) return;
-                            appliedCandidates.add(cid);
-                            pc.addIceCandidate(new RTCIceCandidate(vals[cid])).catch(() => {});
-                        });
-                    });
-                } catch (err) {
-                    console.warn('Answer voice call failed:', err);
-                }
-            },
-
-            playRemoteVoiceStream(uid, stream) {
-                let audioEl = document.getElementById('voiceAudio_' + uid);
-                if (!audioEl) {
-                    audioEl = document.createElement('audio');
-                    audioEl.id = 'voiceAudio_' + uid;
-                    audioEl.className = 'voice-remote-audio';
-                    audioEl.autoplay = true;
-                    audioEl.style.display = 'none';
-                    document.body.appendChild(audioEl);
-                }
-                audioEl.srcObject = stream;
-            },
-
-            closeVoiceSendPeer(uid) {
-                const pc = this.voiceSendPeers[uid];
-                if (pc) { try { pc.close(); } catch (e) { /* noop */ } delete this.voiceSendPeers[uid]; }
-                if (this._voiceCallUnsubs && this._voiceCallUnsubs[uid]) { this._voiceCallUnsubs[uid](); delete this._voiceCallUnsubs[uid]; }
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, set } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + uid + '/' + this.authUid), null).catch(() => {});
-                }
-            },
-
-            closeVoiceRecvPeer(uid) {
-                const pc = this.voiceRecvPeers[uid];
-                if (pc) { try { pc.close(); } catch (e) { /* noop */ } delete this.voiceRecvPeers[uid]; }
-                if (this._voiceCallUnsubs && this._voiceCallUnsubs['recv_' + uid]) { this._voiceCallUnsubs['recv_' + uid](); delete this._voiceCallUnsubs['recv_' + uid]; }
-                const audioEl = document.getElementById('voiceAudio_' + uid);
-                if (audioEl) audioEl.remove();
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, set } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'voiceRoom/calls/' + this.authUid + '/' + uid), null).catch(() => {});
-                }
-            },
-
             // ==================== DAILY TASKS ====================
             goToTasks() {
                 if (!this.isLoggedIn || !this.currentUser) {
@@ -13536,427 +13245,6 @@
                 });
             },
 
-            // ==================== LIVE DUELS ====================
-            goToDuels() {
-                // Gated for now: reworking this into a bigger feature (live challenge +
-                // voice chat room together) rather than the current text-quiz-only
-                // version. The rest of the duels code below is untouched and ready to
-                // re-enable once that combined feature is built — just remove this guard.
-                // FIX: listenForDuelInvites()/listenForMyDuels() are no longer started from
-                // login/registration while this guard is active (see handleRegister /
-                // loadUserFromDatabase), so duelInvitesBadge can no longer show a pending-
-                // invite count for a feature that immediately bails out here with nothing to
-                // act on.
-                this.showToast('تحدي مباشر مع غرفة دردشة صوتية — قريباً');
-                return;
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول للتحدي');
-                    this.goToAuth('login');
-                    return;
-                }
-                this.switchView('duelsView');
-                this.listenForDuelInvites();
-                this.listenForMyDuels();
-                this.renderDuelInvites();
-                this.renderDuelsList();
-                lucide.createIcons();
-            },
-
-            listenForDuelInvites() {
-                if (!window.firebaseDb || !this.authUid || this._duelInvitesListener) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                this._duelInvitesListener = onValue(ref(window.firebaseDb, 'duelInvites/' + this.authUid), (snap) => {
-                    const list = [];
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
-                        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                    }
-                    duelInvitesList.length = 0;
-                    duelInvitesList.push(...withNumericIds(list, 'duelId'));
-                    this.updateDuelsBadge();
-                    if (this.currentView === 'duelsView') { this.renderDuelInvites(); lucide.createIcons(); }
-                });
-            },
-
-            listenForMyDuels() {
-                if (!window.firebaseDb || !this.authUid || this._userDuelsListener) return;
-                const { ref, onValue, get } = window.firebaseDbHelpers;
-                this._userDuelsListener = onValue(ref(window.firebaseDb, 'userDuels/' + this.authUid), async (snap) => {
-                    const ids = snap.exists() ? Object.keys(snap.val()) : [];
-                    const list = [];
-                    for (const id of ids) {
-                        try {
-                            const dsnap = await get(ref(window.firebaseDb, 'duels/' + id));
-                            if (dsnap.exists()) list.push(dsnap.val());
-                        } catch (e) { /* skip */ }
-                    }
-                    list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-                    duelsListData.length = 0;
-                    duelsListData.push(...withNumericIds(list));
-                    if (this.currentView === 'duelsView') { this.renderDuelsList(); lucide.createIcons(); }
-                });
-            },
-
-            renderDuelInvites() {
-                const container = document.getElementById('duelInvitesList');
-                if (!container) return;
-                if (duelInvitesList.length === 0) {
-                    container.innerHTML = '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد دعوات حالياً</p>';
-                    return;
-                }
-                container.innerHTML = duelInvitesList.map(inv => `
-                    <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <img src="${personAvatarSrc(inv.fromAvatar, inv.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
-                        <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(inv.fromName || 'طالب')} تحدّاك!</div>
-                        <button onclick="app.acceptDuel(${jsNum(inv.duelId)})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
-                        <button onclick="app.declineDuel(${jsNum(inv.duelId)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
-                    </div>
-                `).join('');
-            },
-
-            renderDuelsList() {
-                const container = document.getElementById('duelsList');
-                const empty = document.getElementById('duelsEmptyState');
-                if (!container || !empty) return;
-                if (duelsListData.length === 0) {
-                    container.innerHTML = '';
-                    container.classList.add('hidden');
-                    empty.classList.remove('hidden');
-                    return;
-                }
-                container.classList.remove('hidden');
-                empty.classList.add('hidden');
-                container.innerHTML = duelsListData.map(d => {
-                    const isP1 = d.player1Uid === this.authUid;
-                    const opponentName = isP1 ? d.player2Name : d.player1Name;
-                    const opponentAvatar = isP1 ? d.player2Avatar : d.player1Avatar;
-                    const alreadyPlayed = !!(d.finishedBy && d.finishedBy[this.authUid]);
-                    let statusLabel = 'بانتظار القبول';
-                    let statusColor = 'var(--text2)';
-                    if (d.status === 'active') {
-                        statusLabel = alreadyPlayed ? 'بانتظار الخصم' : 'جارٍ الآن — اضغط للعب';
-                        statusColor = '#F59E0B';
-                    }
-                    if (d.status === 'finished') {
-                        statusLabel = d.winnerUid === this.authUid ? 'فزت' : (d.winnerUid ? 'خسرت' : 'تعادل');
-                        statusColor = d.winnerUid === this.authUid ? '#16A34A' : (d.winnerUid ? '#EF4444' : 'var(--text2)');
-                    }
-                    const canPlay = d.status === 'active' && !alreadyPlayed;
-                    return `
-                        <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition ${canPlay ? 'cursor-pointer' : ''}" ${canPlay ? `onclick="app.startDuelPlay(${jsNum(d.id)})"` : ''} style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(opponentAvatar, opponentName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold truncate theme-transition" style="color: var(--text);">ضد ${escapeHtml(opponentName || 'طالب')}</div>
-                                <div class="text-xs font-bold" style="color: ${statusColor};">${statusLabel}</div>
-                            </div>
-                            ${canPlay ? '<i data-lucide="chevron-left" class="w-5 h-5" style="color: var(--text2);"></i>' : ''}
-                        </div>
-                    `;
-                }).join('');
-            },
-
-            updateDuelsBadge() {
-                const badge = document.getElementById('duelInvitesBadge');
-                if (!badge) return;
-                badge.classList.toggle('hidden', duelInvitesList.length === 0);
-                badge.textContent = duelInvitesList.length;
-            },
-
-            openNewDuelModal() {
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'تحدي جديد';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = `
-                    <div class="flex flex-col gap-3">
-                        <label class="text-sm font-bold theme-transition" style="color: var(--text);">أدخل الرقم التعريفي لمن تريد تحديه (5 أرقام)</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="newDuelSearchInput" inputmode="numeric" maxlength="5" placeholder="مثال: 48321" class="flex-1 h-12 px-4 rounded-xl auth-input text-sm" dir="ltr">
-                            <button onclick="app.searchNewDuelStudent()" class="btn-press px-5 h-12 bg-primary text-white rounded-xl font-bold text-sm flex items-center gap-2 flex-shrink-0"><i data-lucide="search" class="w-4 h-4"></i>بحث</button>
-                        </div>
-                        <div id="newDuelResult"></div>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
-            async searchNewDuelStudent() {
-                const input = document.getElementById('newDuelSearchInput');
-                const result = document.getElementById('newDuelResult');
-                if (!input || !result) return;
-                const query = (input.value || '').trim();
-                if (!/^\d{5}$/.test(query)) {
-                    result.innerHTML = '<p class="text-xs font-bold text-error">أدخل رقماً تعريفياً مكوّناً من 5 أرقام</p>';
-                    return;
-                }
-                if (query === String(this.currentUser.studentNumber)) {
-                    result.innerHTML = '<p class="text-xs font-bold text-error">لا يمكنك تحدي نفسك</p>';
-                    return;
-                }
-                result.innerHTML = '<div class="flex items-center justify-center gap-2 py-3"><i data-lucide="loader-2" class="w-5 h-5 animate-spin" style="color: rgb(var(--p));"></i><span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث...</span></div>';
-                lucide.createIcons();
-                const found = await this.findStudentByNumber(query);
-                if (!found) {
-                    result.innerHTML = '<div class="rounded-xl border border-error/30 bg-error/10 p-3 text-center"><p class="text-xs font-bold text-error">لم يتم العثور على طالب بهذا الرقم</p></div>';
-                    return;
-                }
-                this._pendingDuelTarget = found;
-                result.innerHTML = `
-                    <div class="rounded-xl border p-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="flex items-center gap-3 mb-3">
-                            <img src="${personAvatarSrc(found.data.avatar, found.data.fullName)}" class="w-12 h-12 rounded-full object-cover flex-shrink-0">
-                            <div class="flex-1 min-w-0">
-                                <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(found.data.fullName || 'طالب')}${this.vb(found.uid)}</div>
-                                <div class="text-xs theme-transition" style="color: var(--text2);">رقم: ${escapeHtml(found.data.studentNumber || '—')}</div>
-                            </div>
-                        </div>
-                        <button onclick="app.sendPendingDuelChallenge()" class="w-full h-11 bg-primary text-white rounded-xl font-bold text-sm btn-press"><i data-lucide="swords" class="w-4 h-4 inline ml-1"></i>أرسل التحدي</button>
-                    </div>
-                `;
-                lucide.createIcons();
-            },
-
-            sendPendingDuelChallenge() {
-                if (!this._pendingDuelTarget) return;
-                const t = this._pendingDuelTarget;
-                this.closeWalletModal();
-                this.challengeToDuel(t.uid, t.data.fullName, t.data.avatar);
-            },
-
-            async challengeToDuel(otherUid, otherName, otherAvatar) {
-                if (!window.firebaseDb || !this.authUid || !this.isLoggedIn) {
-                    this.showToast('يجب تسجيل الدخول للتحدي');
-                    return;
-                }
-                if (otherUid === this.authUid) {
-                    this.showToast('لا يمكنك تحدي نفسك');
-                    return;
-                }
-                const { ref, set } = window.firebaseDbHelpers;
-                const duelId = Date.now();
-                const shuffled = [...duelQuestionBank].sort(() => Math.random() - 0.5).slice(0, 5);
-                const duel = {
-                    id: duelId,
-                    player1Uid: this.authUid,
-                    player1Name: this.currentUser.fullName || 'طالب',
-                    player1Avatar: this.currentUser.avatar || '',
-                    player2Uid: otherUid,
-                    player2Name: otherName || 'طالب',
-                    player2Avatar: otherAvatar || '',
-                    questions: shuffled,
-                    status: 'pending',
-                    scores: {},
-                    times: {},
-                    finishedBy: {},
-                    claimed: {},
-                    winnerUid: null,
-                    createdAt: duelId
-                };
-                try {
-                    await set(ref(window.firebaseDb, 'duels/' + duelId), duel);
-                    await set(ref(window.firebaseDb, 'duelInvites/' + otherUid + '/' + duelId), {
-                        duelId, fromUid: this.authUid, fromName: duel.player1Name, fromAvatar: duel.player1Avatar, createdAt: duelId
-                    });
-                    await set(ref(window.firebaseDb, 'userDuels/' + this.authUid + '/' + duelId), true);
-                    await set(ref(window.firebaseDb, 'userDuels/' + otherUid + '/' + duelId), true);
-                    this.showToast('تم إرسال التحدي، بانتظار قبوله');
-                } catch (err) {
-                    console.warn('Challenge failed:', err);
-                    this.showToast('تعذر إرسال التحدي');
-                }
-            },
-
-            async acceptDuel(duelId) {
-                if (!window.firebaseDb || !this.authUid) return;
-                const { ref, set, remove } = window.firebaseDbHelpers;
-                try {
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/status'), 'active');
-                    await remove(ref(window.firebaseDb, 'duelInvites/' + this.authUid + '/' + duelId));
-                    this.startDuelPlay(duelId);
-                } catch (err) {
-                    console.warn('Accept duel failed:', err);
-                    this.showToast('تعذر قبول التحدي');
-                }
-            },
-
-            declineDuel(duelId) {
-                if (!window.firebaseDb || !this.authUid) return;
-                const { ref, remove } = window.firebaseDbHelpers;
-                remove(ref(window.firebaseDb, 'duelInvites/' + this.authUid + '/' + duelId)).catch(() => {});
-                remove(ref(window.firebaseDb, 'duels/' + duelId)).catch(() => {});
-            },
-
-            async startDuelPlay(duelId) {
-                if (!window.firebaseDb) return;
-                const { ref, get } = window.firebaseDbHelpers;
-                try {
-                    const snap = await get(ref(window.firebaseDb, 'duels/' + duelId));
-                    if (!snap.exists()) {
-                        this.showToast('التحدي غير موجود');
-                        return;
-                    }
-                    const duel = snap.val();
-                    if (duel.finishedBy && duel.finishedBy[this.authUid]) {
-                        this.showToast('أجبت على هذا التحدي، بانتظار الخصم');
-                        return;
-                    }
-                    this.currentDuelId = duelId;
-                    this.currentDuelData = duel;
-                    this.currentDuelQuestionIndex = 0;
-                    this.duelAnswers = [];
-                    this.switchView('duelPlayView');
-                    this.renderDuelQuestion();
-                    lucide.createIcons();
-                } catch (err) {
-                    console.warn('Load duel failed:', err);
-                    this.showToast('تعذر تحميل التحدي');
-                }
-            },
-
-            renderDuelQuestion() {
-                const content = document.getElementById('duelPlayContent');
-                const counter = document.getElementById('duelQuestionCounter');
-                if (!content || !this.currentDuelData) return;
-                const questions = this.currentDuelData.questions || [];
-                const idx = this.currentDuelQuestionIndex;
-                if (idx >= questions.length) { this.finishDuelPlay(); return; }
-                if (counter) counter.textContent = (idx + 1) + ' / ' + questions.length;
-                const q = questions[idx];
-                content.innerHTML = `
-                    <h3 class="text-lg font-bold mb-5 leading-relaxed theme-transition" style="color: var(--text);">${escapeHtml(q.q)}</h3>
-                    <div class="flex flex-col gap-3">
-                        ${q.options.map((opt, i) => `
-                            <button onclick="app.answerDuelQuestion(${jsNum(i)})" class="w-full text-right p-4 rounded-2xl border theme-transition btn-press" style="background-color: var(--surface); border-color: var(--border); color: var(--text);">
-                                ${escapeHtml(opt)}
-                            </button>
-                        `).join('')}
-                    </div>
-                `;
-                lucide.createIcons();
-                this._duelQuestionStartedAt = Date.now();
-            },
-
-            answerDuelQuestion(chosenIndex) {
-                const questions = this.currentDuelData.questions || [];
-                const q = questions[this.currentDuelQuestionIndex];
-                const correct = chosenIndex === q.correct;
-                const timeMs = Date.now() - (this._duelQuestionStartedAt || Date.now());
-                this.duelAnswers.push({ chosenIndex, correct, timeMs });
-                if (!correct) this._mkAdd({ src: 'duel', s: 'عام', q: q.q, ch: q.options, a: q.correct, pick: chosenIndex });
-                this.currentDuelQuestionIndex++;
-                this.renderDuelQuestion();
-            },
-
-            async finishDuelPlay() {
-                const score = this.duelAnswers.filter(a => a.correct).length;
-                const totalTime = this.duelAnswers.reduce((s, a) => s + a.timeMs, 0);
-                const content = document.getElementById('duelPlayContent');
-                if (content) {
-                    content.innerHTML = `
-                        <div class="flex flex-col items-center justify-center py-10 text-center">
-                            <div class="text-3xl font-bold text-primary mb-2">${score} / ${this.duelAnswers.length}</div>
-                            <p class="text-sm theme-transition" style="color: var(--text2);">إجاباتك الصحيحة — بانتظار انتهاء الخصم لمعرفة النتيجة</p>
-                        </div>
-                    `;
-                }
-                if (!window.firebaseDb || !this.authUid || !this.currentDuelId) return;
-                const { ref, set } = window.firebaseDbHelpers;
-                const duelId = this.currentDuelId;
-                try {
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/scores/' + this.authUid), score);
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/times/' + this.authUid), totalTime);
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/finishedBy/' + this.authUid), true);
-                    this.listenForDuelResult(duelId);
-                    this.checkDuelCompletion(duelId);
-                } catch (err) {
-                    console.warn('Submit duel score failed:', err);
-                }
-            },
-
-            listenForDuelResult(duelId) {
-                if (!window.firebaseDb) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
-                this._duelResultUnsub = onValue(ref(window.firebaseDb, 'duels/' + duelId), (snap) => {
-                    if (!snap.exists()) return;
-                    const duel = snap.val();
-                    if (duel.status === 'finished' && this.currentView === 'duelPlayView' && this.currentDuelId === duelId) {
-                        if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
-                        this.showDuelResult(duel);
-                        return;
-                    }
-                    const finishedBy = duel.finishedBy || {};
-                    if (duel.status === 'active' && finishedBy[duel.player1Uid] && finishedBy[duel.player2Uid]) {
-                        this.checkDuelCompletion(duelId);
-                    }
-                });
-            },
-
-            async checkDuelCompletion(duelId) {
-                if (!window.firebaseDb) return;
-                const { ref, get, set } = window.firebaseDbHelpers;
-                try {
-                    const snap = await get(ref(window.firebaseDb, 'duels/' + duelId));
-                    if (!snap.exists()) return;
-                    const duel = snap.val();
-                    const p1 = duel.player1Uid, p2 = duel.player2Uid;
-                    const finishedBy = duel.finishedBy || {};
-                    if (!finishedBy[p1] || !finishedBy[p2]) return;
-                    if (duel.status === 'finished') { this.claimDuelReward(duelId, duel.winnerUid); return; }
-                    const scores = duel.scores || {};
-                    const s1 = scores[p1] || 0, s2 = scores[p2] || 0;
-                    const winnerUid = s1 === s2 ? null : (s1 > s2 ? p1 : p2);
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/status'), 'finished');
-                    await set(ref(window.firebaseDb, 'duels/' + duelId + '/winnerUid'), winnerUid);
-                    this.claimDuelReward(duelId, winnerUid);
-                } catch (err) {
-                    console.warn('Duel completion check failed:', err);
-                }
-            },
-
-            claimDuelReward(duelId, winnerUid) {
-                if (!this.isLoggedIn || !this.currentUser || !window.firebaseDb || !this.authUid) return;
-                const { ref, runTransaction } = window.firebaseDbHelpers;
-                runTransaction(ref(window.firebaseDb, 'duels/' + duelId + '/claimed/' + this.authUid), (cur) => {
-                    if (cur) return;
-                    return true;
-                }).then((result) => {
-                    if (!result || !result.committed) return;
-                    const bonus = winnerUid === null ? 20 : (winnerUid === this.authUid ? 50 : 10);
-                    this.addPointsAtomic(bonus).then(() => {
-                        this.logDailyActivity({ points: bonus });
-                        const msg = winnerUid === this.authUid ? 'فزت بالتحدي! +' : (winnerUid === null ? 'تعادل! +' : 'خسرت لكن حصلت على +');
-                        this.showToast(msg + bonus + ' نقطة');
-                    });
-                }).catch((err) => console.warn('Claim reward failed:', err));
-            },
-
-            showDuelResult(duel) {
-                const content = document.getElementById('duelPlayContent');
-                if (!content) return;
-                const myScore = (duel.scores && duel.scores[this.authUid]) || 0;
-                const oppUid = duel.player1Uid === this.authUid ? duel.player2Uid : duel.player1Uid;
-                const oppName = duel.player1Uid === this.authUid ? duel.player2Name : duel.player1Name;
-                const oppScore = (duel.scores && duel.scores[oppUid]) || 0;
-                const won = duel.winnerUid === this.authUid;
-                const draw = !duel.winnerUid;
-                content.innerHTML = `
-                    <div class="flex flex-col items-center justify-center py-8 text-center">
-                        <div class="mb-3 flex justify-center"><i data-lucide="${draw ? 'handshake' : (won ? 'trophy' : 'frown')}" class="w-10 h-10 text-primary"></i></div>
-                        <h3 class="text-lg font-bold mb-1 theme-transition" style="color: var(--text);">${draw ? 'تعادل!' : (won ? 'فزت بالتحدي!' : 'خسرت هالمرة')}</h3>
-                        <p class="text-sm mb-4 theme-transition" style="color: var(--text2);">أنت: ${myScore} • ${escapeHtml(oppName || 'الخصم')}: ${oppScore}</p>
-                        <button onclick="app.goToDuels()" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">رجوع للتحديات</button>
-                    </div>
-                `;
-            },
-
-            exitDuelPlay() {
-                if (this._duelResultUnsub) { this._duelResultUnsub(); this._duelResultUnsub = null; }
-                this.goBack();
-            },
-
             // ==================== NAVIGATION ====================
             setTab(tab) {
                 document.querySelectorAll('.nav-item').forEach(el => {
@@ -14059,6 +13347,7 @@
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
                 if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();
+                if (this.currentView === 'duelView' && viewId !== 'duelView' && this.dlClose) this.dlClose();
                 if (this.currentView === 'inviteView' && viewId !== 'inviteView' && this.ivClose) this.ivClose();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
@@ -14066,14 +13355,13 @@
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
                 if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
-                if (this.currentView === 'voiceRoomView' && viewId !== 'voiceRoomView') this.leaveVoiceRoom();
                 if (this.currentView === 'ytRoomView' && viewId !== 'ytRoomView' && this._yrLeaveView) this._yrLeaveView();
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
                 const view = document.getElementById(viewId);
                 if (!view) return;
                 view.classList.remove('hidden');
-                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'uniView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'ytRoomView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'duelsView' || viewId === 'duelPlayView' || viewId === 'voiceRoomView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
+                view.classList.add(viewId === 'notificationsView' || viewId === 'profileView' || viewId === 'resourcesView' || viewId === 'resourceDetailView' || viewId === 'authView' || viewId === 'walletView' || viewId === 'leaderboardView' || viewId === 'forumView' || viewId === 'forumThreadView' || viewId === 'studyTimerView' || viewId === 'calmView' || viewId === 'gradesView' || viewId === 'cardsView' || viewId === 'uniView' || viewId === 'bioView' || viewId === 'pollsView' || viewId === 'govWarView' || viewId === 'twinView' || viewId === 'wasteView' || viewId === 'auctionView' || viewId === 'youtubeStudyView' || viewId === 'ytRoomView' || viewId === 'pointsStoreView' || viewId === 'studyRoomView' || viewId === 'tasksView' || viewId === 'calendarView' || viewId === 'messagesView' || viewId === 'chatThreadView' || viewId === 'friendsView' || viewId === 'resultsView' || viewId === 'storeView' || viewId === 'storeCartView' || viewId === 'myStoreView' ? 'page-slide-rtl' : 'page-enter');
                 if (!this._skipHistory && viewId !== this.currentView) {
                     const last = this.viewHistory[this.viewHistory.length - 1];
                     if (last !== this.currentView) this.viewHistory.push(this.currentView);

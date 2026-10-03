@@ -224,12 +224,45 @@ await no('outsider reads chat', get(ref(db('f3'), 'privateChats/f1_f2')));
 await ok('member reads chat', get(ref(db('f2'), 'privateChats/f1_f2/messages')));
 await no('outsider reads inbox', get(ref(db('f3'), 'userChats/f1')));
 
-// duels
-await ok('duel create', set(ref(db('d1'), 'duels/5'), { player1Uid: 'd1', player2Uid: 'd2', status: 'pending' }));
-await ok('duel invite', set(ref(db('d1'), 'duelInvites/d2/5'), { fromUid: 'd1' }));
-await ok('userDuels other', set(ref(db('d1'), 'userDuels/d2/5'), true));
-await ok('duel accept', set(ref(db('d2'), 'duels/5/status'), 'active'));
-await no('outsider edits duel', set(ref(db('d3'), 'duels/5/scores/d3'), 5));
+// live duel
+const qsOk = () => Object.fromEntries(Array.from({ length: 7 }, (_, k) => [k, { q: 'سؤال؟', o: ['a', 'b', 'c', 'd'], c: k % 4 }]));
+await ok('duel host creates room', set(ref(db('h1'), 'duelRooms/abc123'), { host: 'h1', hn: 'علي', subj: 'phys', n: 7, at: Date.now(), qs: qsOk() }));
+await no('room for someone else', set(ref(db('h2'), 'duelRooms/abc124'), { host: 'h1', hn: 'x', subj: 'phys', n: 7, at: Date.now(), qs: qsOk() }));
+await no('room with 6 questions', set(ref(db('h2'), 'duelRooms/abc125'), { host: 'h2', hn: 'x', subj: 'phys', n: 7, at: Date.now(), qs: Object.fromEntries(Array.from({ length: 6 }, (_, k) => [k, { q: 'x', o: ['a', 'b', 'c', 'd'], c: 0 }])) }));
+await no('room with bad subject', set(ref(db('h2'), 'duelRooms/abc126'), { host: 'h2', hn: 'x', subj: 'PHYS!', n: 7, at: Date.now(), qs: qsOk() }));
+await no('room with bad id', set(ref(db('h2'), 'duelRooms/AB'), { host: 'h2', hn: 'x', subj: 'phys', n: 7, at: Date.now(), qs: qsOk() }));
+await ok('guest joins', update(ref(db('h2'), 'duelRooms/abc123'), { guest: 'h2', gn: 'زينب' }));
+await no('third player joins', update(ref(db('h3'), 'duelRooms/abc123'), { guest: 'h3', gn: 'x' }));
+await no('host cannot be own guest', update(ref(db('h1'), 'duelRooms/abc123'), { guest: 'h1' }));
+await no('guest sets start', set(ref(db('h2'), 'duelRooms/abc123/startAt'), Date.now() + 4000));
+await ok('host sets start', set(ref(db('h1'), 'duelRooms/abc123/startAt'), Date.now() + 4000));
+await no('start twice', set(ref(db('h1'), 'duelRooms/abc123/startAt'), Date.now() + 5000));
+await ok('my answer', set(ref(db('h2'), 'duelRooms/abc123/p/h2/ans/0'), { i: 2, t: 3400 }));
+await no('answer again', set(ref(db('h2'), 'duelRooms/abc123/p/h2/ans/0'), { i: 1, t: 100 }));
+await no('answer for the other', set(ref(db('h2'), 'duelRooms/abc123/p/h1/ans/0'), { i: 1, t: 100 }));
+await no('answer out of range', set(ref(db('h1'), 'duelRooms/abc123/p/h1/ans/1'), { i: 7, t: 100 }));
+await no('answer too slow', set(ref(db('h1'), 'duelRooms/abc123/p/h1/ans/2'), { i: 1, t: 99999 }));
+await no('answer to question 9', set(ref(db('h1'), 'duelRooms/abc123/p/h1/ans/9'), { i: 1, t: 100 }));
+await no('outsider answers', set(ref(db('h3'), 'duelRooms/abc123/p/h3/ans/0'), { i: 1, t: 100 }));
+await ok('opponent reads room', get(ref(db('h2'), 'duelRooms/abc123')));
+await no('guest reads room', get(ref(db(null), 'duelRooms/abc123')));
+await no('guest deletes room', set(ref(db('h2'), 'duelRooms/abc123'), null));
+await ok('host deletes room', set(ref(db('h1'), 'duelRooms/abc123'), null));
+await ok('join queue', set(ref(db('h1'), 'duelQueue/phys/h1'), { n: 'علي', at: Date.now() }));
+await no('queue as someone else', set(ref(db('h2'), 'duelQueue/phys/h3'), { n: 'x', at: Date.now() }));
+await ok('claim removes the other from queue', set(ref(db('h2'), 'duelQueue/phys/h1'), null));
+await no('queue bad subject', set(ref(db('h1'), 'duelQueue/PHYS!/h1'), { n: 'x', at: Date.now() }));
+await ok('match notice', set(ref(db('h2'), 'duelMatch/h1'), 'abc123'));
+await no('match notice junk', set(ref(db('h2'), 'duelMatch/h1'), 'hello world'));
+await ok('owner reads match', get(ref(db('h1'), 'duelMatch/h1')));
+await no('other reads match', get(ref(db('h2'), 'duelMatch/h1')));
+await ok('host creates room 2', set(ref(db('h1'), 'duelRooms/xyz789'), { host: 'h1', hn: 'علي', subj: 'mix', n: 7, at: Date.now(), qs: qsOk() }));
+await ok('invite friend', set(ref(db('h1'), 'duelInv/h2/xyz789'), { from: 'h1', fn: 'علي', subj: 'mix', at: Date.now() }));
+await no('invite without room', set(ref(db('h3'), 'duelInv/h2/nope11'), { from: 'h3', fn: 'x', subj: 'mix', at: Date.now() }));
+await no('invite as someone else', set(ref(db('h3'), 'duelInv/h2/xyz789'), { from: 'h1', fn: 'x', subj: 'mix', at: Date.now() }));
+await ok('friend reads invites', get(ref(db('h2'), 'duelInv/h2')));
+await no('other reads invites', get(ref(db('h3'), 'duelInv/h2')));
+await ok('friend declines', set(ref(db('h2'), 'duelInv/h2/xyz789'), null));
 
 // twins
 await ok('queue', set(ref(db('t1'), 'twinQueue/s/t1'), { alias: 'a', at: now }));
@@ -285,12 +318,6 @@ await ok('phone claim', set(ref(db('u1'), 'phoneIndex/0770'), { e: 'a@b.c', u: '
 await no('phone steal', set(ref(db('u2'), 'phoneIndex/0770'), { e: 'x@b.c', u: 'u2' }));
 await ok('guest phone lookup', get(ref(db(null), 'phoneIndex/0770')));
 await no('guest lists phones', get(ref(db(null), 'phoneIndex')));
-
-// voice calls
-await ok('call offer', set(ref(db('v1'), 'voiceRoom/calls/v2/v1/offer'), { sdp: 'x', type: 'offer' }));
-await ok('call answer', set(ref(db('v2'), 'voiceRoom/calls/v2/v1/answer'), { sdp: 'y', type: 'answer' }));
-await ok('caller listens', get(ref(db('v1'), 'voiceRoom/calls/v2/v1')));
-await no('outsider listens', get(ref(db('v3'), 'voiceRoom/calls/v2')));
 
 // review cards
 await ok('own cards', update(ref(db('u1'), 'userCards/u1'), { 'cards/c1': { f: 'q', b: 'a', u: 1 }, 'days/2026-01-01': 3 }));
