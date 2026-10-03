@@ -25,6 +25,8 @@
     let ST = null; // the room I am in
     let MOD = null; // the 3D module
     let PORT = null; // portraits
+    let ART = null; // the characters' art (js/anime.js), light: no 3D needed for the lobby
+    const loadArt = () => ART ? Promise.resolve(ART) : import(new URL('js/anime.js?v=' + (window.APP_VER || '1'), document.baseURI).href).then((m) => (ART = m));
 
     const loadMod = () => MOD ? Promise.resolve(MOD) : import(new URL('js/room3d.js?v=' + (window.APP_VER || '1'), document.baseURI).href).then((m) => (MOD = m));
     const webgl = () => { try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); } catch (e) { return false; } };
@@ -64,11 +66,10 @@
             this._rmLeaveScene(true);
             box.innerHTML = '<div class="rm-wrap"><div class="rm-skel"></div><div class="rm-skel"></div></div>';
             this._rmMePull();
-            if (!webgl()) { box.innerHTML = '<div class="rm-wrap"><div class="rm-card"><b>جهازك ما يدعم العرض ثلاثي الأبعاد</b><p class="rm-mut">جرّب متصفح ثاني أو حدّث الجهاز.</p></div></div>'; return; }
-            try { await loadMod(); } catch (e) { box.innerHTML = '<div class="rm-wrap"><div class="rm-card"><b>ما انحملت الغرفة</b><p class="rm-mut">تأكد من النت وحاول مرة ثانية.</p><button class="rm-btn" onclick="app.rmOpen()">أعد المحاولة</button></div></div>'; return; }
+            try { await loadArt(); } catch (e) { box.innerHTML = '<div class="rm-wrap"><div class="rm-card"><b>ما انحملت الصفحة</b><p class="rm-mut">تأكد من النت وحاول مرة ثانية.</p><button class="rm-btn" onclick="app.rmOpen()">أعد المحاولة</button></div></div>'; return; }
             if (this.currentView !== 'rmView') return;
-            const me = this._rmMe(), C = MOD.CHARS, inv = this._rmInvites || [], recent = this._rmRecent();
-            const cur = MOD.charById(me.c), unlocked = C.filter((c) => me.min >= c.unlock).length;
+            const me = this._rmMe(), C = ART.CHARS, inv = this._rmInvites || [], recent = this._rmRecent();
+            const cur = ART.charById(me.c), unlocked = C.filter((c) => me.min >= c.unlock).length;
             const next = C.filter((c) => c.unlock > me.min).sort((a, b) => a.unlock - b.unlock)[0];
             box.innerHTML = `<div class="rm-wrap">
                 <div class="rm-hero"><div class="rm-hero-av" id="rmHeroAv"></div>
@@ -97,10 +98,10 @@
         },
         _rmPortraits() {
             if (PORT) return Promise.resolve(PORT);
-            return loadMod().then((m) => { try { const s = sessionStorage.getItem('isp:rm:ports:v2'); if (s) { PORT = JSON.parse(s); return PORT; } } catch (e) {} PORT = m.portraits(176); try { sessionStorage.setItem('isp:rm:ports:v2', JSON.stringify(PORT)); } catch (e) {} return PORT; });
+            return loadArt().then((a) => { try { const c = sessionStorage.getItem('isp:rm:ports:v3'); if (c) { PORT = JSON.parse(c); return PORT; } } catch (e) {} PORT = {}; a.CHARS.forEach((d) => { PORT[d.id] = a.drawPortrait(d, 200).toDataURL('image/png'); }); try { sessionStorage.setItem('isp:rm:ports:v3', JSON.stringify(PORT)); } catch (e) {} return PORT; });
         },
         rmPick(id) {
-            const def = MOD.charById(id), me = this._rmMe();
+            const def = ART.charById(id), me = this._rmMe();
             if (me.min < def.unlock) { this.showToast('تفتح بعد ' + (def.unlock - me.min) + ' دقيقة دراسة بالغرفة'); return; }
             me.c = id; this._rmMeSave(true);
             if (ST) { this._rmSelf({ c: id }); this._rmCloseSheet(); this._rmDock(); }
@@ -154,7 +155,7 @@
         async rmEnter(rid, created) {
             if (ST) this._rmLeaveScene();
             if (!webgl()) { this.showToast('جهازك ما يدعم 3D'); return; }
-            let mod; try { mod = await loadMod(); } catch (e) { this.showToast('ما انحملت الغرفة، تأكد من النت'); return; }
+            let mod; try { [mod] = await Promise.all([loadMod(), loadArt()]); } catch (e) { this.showToast('ما انحملت الغرفة، تأكد من النت'); return; }
             if (this.currentView !== 'rmView') return;
             const { ref, onValue, onChildAdded, query, limitToLast, onDisconnect, set, serverTimestamp } = H();
             const u = this.currentUser || {}, me = this._rmMe();
@@ -163,7 +164,7 @@
             document.body.appendChild(el); document.body.classList.add('rm-on');
             ST = { rid, el, meta: null, members: {}, chat: [], un: [], seen: {}, off: 0, secs: 0, last: Date.now(), idle: false, me: { c: me.c, st: 's' }, sheet: '', unread: 0, created: !!created, tilt: false };
             let room; try { room = new mod.StudyRoom3D(document.getElementById('rm3d')); } catch (e) { console.warn(e); this.showToast('ما كدرت أشغل العرض ثلاثي الأبعاد'); this._rmLeaveScene(); return; }
-            ST.room = room; this._rmRoom = room; room.onTap = (uid) => this._rmPoke(uid); room.onPet = (uid) => this._rmPet(uid);
+            ST.room = room; this._rmRoom = room; room.onTap = (uid) => { if (uid === this.authUid) this._rmSelfPop(); else { this._rmPopClose(); this._rmPoke(uid); } }; room.onPet = (uid) => this._rmPet(uid); room.onFrame = () => this._rmPopPlace();
             room.start(() => !!ST && document.visibilityState !== 'hidden'); room.setDaytime(new Date());
             ST.dayT = setInterval(() => room.setDaytime(new Date()), 60000);
             this._rmHud();
@@ -202,6 +203,8 @@
             el.addEventListener('pointerdown', ST.touch, true);
             ST.vis = () => { if (document.visibilityState === 'visible') this._rmBeat(); }; document.addEventListener('visibilitychange', ST.vis);
             this._rmSensors();
+            ST.key = (e) => { if (!ST || /INPUT|TEXTAREA/.test((document.activeElement || {}).tagName || '')) { if (e.key === 'Escape') this._rmPopClose(); return; } if (e.key === 'Enter') { e.preventDefault(); this.rmWrite(); } else if (e.key === 's' || e.key === 'S' || e.key === 'س') this.rmShakeBtn(); else if (e.key === 'Escape') this.rmBack(); };
+            document.addEventListener('keydown', ST.key);
             this.showToast(created ? 'انفتحت الغرفة. دز الرمز لأصدقائك' : 'دخلت الغرفة');
             setTimeout(() => { if (ST && ST.rid === rid) this.showToast('اضغط على شخصية تعصّب، وكبسة طويلة تدلّلها'); }, 3500);
             if (created) setTimeout(() => this.rmInvite(), 1200);
@@ -230,27 +233,42 @@
         _rmHud(onlyTop) {
             if (!ST) return;
             const hud = document.getElementById('rmHud'); if (!hud) return;
-            const t = ST.meta ? ST.meta.title : '...', host = ST.meta && ST.meta.host === this.authUid;
+            const t = ST.meta ? ST.meta.title : '...';
             if (!onlyTop || !document.getElementById('rmTop')) {
                 hud.innerHTML = `<div class="rm-top" id="rmTop"><button class="rm-ib" onclick="app.rmBack()" aria-label="خروج"><i data-lucide="chevron-right"></i></button>
                     <div class="rm-tt"><b id="rmTitleTx">${esc(t)}</b><button class="rm-codechip" onclick="app.rmShare()" dir="ltr"><i data-lucide="link"></i>${esc(ST.rid)}</button></div>
                     <span class="rm-cnt"><i data-lucide="users-round"></i><b id="rmCount">${ST.count || 1}</b></span>
-                    <button class="rm-ib" onclick="app.rmMenu()" aria-label="القائمة"><i data-lucide="ellipsis"></i></button></div>
+                    <button class="rm-ib rm-mb" onclick="app.rmMenu()" aria-label="القائمة"><i data-lucide="ellipsis"></i><em id="rmMenuDot" style="display:none"></em></button></div>
                     <button class="rm-timer" id="rmTimer" onclick="app.rmTimerSheet()"><span class="rm-tl" id="rmTl"></span><b id="rmTv">00:00</b><i data-lucide="timer"></i></button>
-                    <div class="rm-dock" id="rmDock"></div>`;
+                    <div class="rm-pop2" id="rmPop" hidden></div>`;
             } else { const tt = document.getElementById('rmTitleTx'); if (tt) tt.textContent = t; }
             this._rmDock(); this._rmTick(true); lucide.createIcons();
         },
-        _rmDock() {
-            const d = document.getElementById('rmDock'); if (!d || !ST) return;
-            const s = ST.me.st, sense = ST.needPerm;
-            d.innerHTML = `<button class="rm-db" onclick="app.rmChat()"><i data-lucide="message-circle"></i><span>دردشة</span>${ST.unread ? '<em>' + ST.unread + '</em>' : ''}</button>
-                <button class="rm-db" onclick="app.rmChars()"><i data-lucide="sparkles"></i><span>شخصيتي</span></button>
-                <button class="rm-main ${s === 'r' ? 'rest' : ''}" onclick="app.rmToggle()"><i data-lucide="${s === 'r' ? 'book-open' : 'coffee'}"></i><span>${s === 'r' ? 'ارجع ادرس' : s === 'z' ? 'صحّيت' : 'استراحة'}</span></button>
-                <button class="rm-db" onclick="app.rmShakeBtn()"><i data-lucide="vibrate"></i><span>هزّة</span></button>
-                <button class="rm-db" onclick="app.rmInvite()"><i data-lucide="user-plus"></i><span>دعوة</span></button>
-                ${sense ? '<button class="rm-sense" onclick="app.rmEnableSensors()"><i data-lucide="smartphone-nfc"></i>فعّل حساس الحركة</button>' : ''}`;
-            lucide.createIcons();
+        // there is no bar of buttons on the screen: everything is on the characters (tap yours) and in the menu
+        _rmDock() { const d = document.getElementById('rmMenuDot'); if (d) d.style.display = ST && ST.unread ? '' : 'none'; },
+        // a small floating panel over my own character
+        _rmSelfPop() {
+            if (!ST) return; const p = document.getElementById('rmPop'); if (!p) return;
+            if (!p.hidden && ST.popKind === 'self') { this._rmPopClose(); return; }
+            const s = ST.me.st;
+            p.innerHTML = `<button onclick="app.rmWrite()"><i data-lucide="message-circle"></i><span>اكتب</span></button>
+                <button onclick="app.rmToggle();app._rmPopClose()"><i data-lucide="${s === 'r' ? 'book-open' : 'coffee'}"></i><span>${s === 'r' ? 'ادرس' : 'استراحة'}</span></button>
+                <button onclick="app._rmPopClose();app.rmChars()"><i data-lucide="sparkles"></i><span>شخصيتي</span></button>
+                <button onclick="app._rmPopClose();app.rmShakeBtn()"><i data-lucide="vibrate"></i><span>هزّة</span></button>`;
+            p.hidden = false; ST.popKind = 'self'; lucide.createIcons(); this._rmPopPlace(); clearTimeout(ST.popT); ST.popT = setTimeout(() => this._rmPopClose(), 7000);
+        },
+        rmWrite() {
+            if (!ST) return; const p = document.getElementById('rmPop'); if (!p) return;
+            p.innerHTML = `<input id="rmMsg" maxlength="140" placeholder="اكتب رسالة..." autocomplete="off" enterkeyhint="send"><button class="go" onclick="app.rmSend()" aria-label="إرسال"><i data-lucide="send"></i></button>`;
+            p.hidden = false; ST.popKind = 'write'; lucide.createIcons(); this._rmPopPlace(); clearTimeout(ST.popT);
+            const i = document.getElementById('rmMsg'); if (i) { i.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); this.rmSend(); } else if (e.key === 'Escape') this._rmPopClose(); }); setTimeout(() => i.focus(), 30); }
+        },
+        _rmPopClose() { const p = document.getElementById('rmPop'); if (p) { p.hidden = true; p.innerHTML = ''; } if (ST) { ST.popKind = ''; clearTimeout(ST.popT); } },
+        _rmPopPlace() {
+            if (!ST || !ST.room) return; const p = document.getElementById('rmPop'); if (!p || p.hidden) return;
+            const pos = ST.room.screenPos(this.authUid), W = ST.el.clientWidth, H = ST.el.clientHeight; if (!pos) return;
+            const w = p.offsetWidth || 240, x = Math.max(8 + w / 2, Math.min(W - 8 - w / 2, pos.x)), y = Math.max(120, Math.min(H - 90, pos.y + 76));
+            p.style.left = x + 'px'; p.style.top = y + 'px';
         },
         rmToggle() { if (!ST) return; this._rmState(ST.me.st === 's' ? 'r' : 's'); },
         rmBack() {
@@ -264,7 +282,7 @@
             try { clearInterval(s.beat); clearInterval(s.tick); clearInterval(s.dayT); clearTimeout(s.hint); } catch (e) {}
             try { s.un.forEach((u) => { try { u(); } catch (e) {} }); } catch (e) {}
             try { if (s.mref) { H().onDisconnect(s.mref).cancel(); H().remove(s.mref).catch(() => {}); } } catch (e) {}
-            try { document.removeEventListener('visibilitychange', s.vis); } catch (e) {}
+            try { document.removeEventListener('visibilitychange', s.vis); document.removeEventListener('keydown', s.key); } catch (e) {}
             this._rmSensorsOff(s);
             try { s.room && s.room.dispose(); } catch (e) {}
             this._rmFlush(s);
@@ -298,7 +316,7 @@
         },
         _rmMinute() {
             const me = this._rmMe(), before = me.min; me.min++; this._rmMeSave(true);
-            const opened = MOD.CHARS.filter((c) => c.unlock > before && c.unlock <= me.min);
+            const opened = ART.CHARS.filter((c) => c.unlock > before && c.unlock <= me.min);
             if (opened.length) {
                 this.showToast('انفتحت شخصية جديدة: ' + opened.map((c) => c.n).join('، ') + '!');
                 if (ST && ST.room) ST.room.react(this.authUid, 'cheer', 'مبروك! شخصية جديدة');
@@ -373,6 +391,7 @@
             const m = filterBadWords(String(i.value || '').trim()).clean.slice(0, 140); if (!m) return;
             const n = Date.now(); if (n - (ST.sentAt || 0) < 900) return; ST.sentAt = n; i.value = ''; ST.last = n;
             H().set(R('rmRooms/' + ST.rid + '/chat/' + newId()), { u: this.authUid, m, at: n }).catch(() => this.showToast('ما انرسلت'));
+            this._rmPopClose();
         },
         _rmChatIn(key, v) {
             if (!ST || !v || ST.seen['c' + key]) return; ST.seen['c' + key] = 1;
@@ -385,7 +404,7 @@
             const txt = String(v.m), pos = POS.some((w) => txt.includes(w)), neg = NEG.some((w) => txt.includes(w));
             let hit = false;
             Object.keys(ST.members).forEach((uid) => {
-                const mm = ST.members[uid], ch = mm && MOD.charById(mm.c);
+                const mm = ST.members[uid], ch = mm && ART.charById(mm.c);
                 if (!ch || uid === v.u) return;
                 if (txt.includes(ch.n) || (mm.n && txt.includes(String(mm.n).split(' ')[0]) && String(mm.n).split(' ')[0].length > 2)) { hit = true; if (neg) ST.room.react(uid, 'poke', 'ليش تكلي هيج؟'), ST.room.react(uid, 'poke'); else if (pos) ST.room.react(uid, 'pet'); else ST.room.react(uid, 'hi'); }
             });
@@ -402,16 +421,22 @@
         _rmCloseSheet(now) { const s = document.getElementById('rmSheet'); if (ST) ST.sheet = ''; if (!s) return; if (now) { s.remove(); return; } s.classList.remove('on'); setTimeout(() => s.remove(), 220); },
         async rmChars() {
             if (!ST) return;
-            const me = this._rmMe(), cur = MOD.charById(ST.me.c || me.c);
-            this._rmSheet(`<div class="rm-sh-t">اختار شخصيتك</div><div class="rm-chars">${MOD.CHARS.map((c) => this._rmCharCard(c, me, cur)).join('')}</div>`, 'chars');
+            const me = this._rmMe(), cur = ART.charById(ST.me.c || me.c);
+            this._rmSheet(`<div class="rm-sh-t">اختار شخصيتك</div><div class="rm-chars">${ART.CHARS.map((c) => this._rmCharCard(c, me, cur)).join('')}</div>`, 'chars');
             this._rmPortraits().then((p) => document.querySelectorAll('#rmSheet [data-ch]').forEach((el) => { const im = el.querySelector('.rm-ph'); if (im && p[el.dataset.ch]) im.src = p[el.dataset.ch]; })).catch(() => {});
         },
         rmMenu() {
-            if (!ST) return; const host = ST.meta && ST.meta.host === this.authUid;
+            if (!ST) return; const host = ST.meta && ST.meta.host === this.authUid, s = ST.me.st;
+            this._rmPopClose();
             this._rmSheet(`<div class="rm-sh-t">${esc(ST.meta ? ST.meta.title : '')}</div>
-                <button class="rm-menu-i" onclick="app.rmShare()"><i data-lucide="share-2"></i>دز رمز الغرفة</button>
-                <button class="rm-menu-i" onclick="app.rmInvite()"><i data-lucide="user-plus"></i>ادعُ أصدقاء</button>
+                <button class="rm-menu-i" onclick="app._rmCloseSheet();app.rmWrite()"><i data-lucide="message-circle"></i>اكتب رسالة</button>
+                <button class="rm-menu-i" onclick="app.rmChat()"><i data-lucide="messages-square"></i>سجل الدردشة${ST.unread ? ' (' + ST.unread + ')' : ''}</button>
+                <button class="rm-menu-i" onclick="app.rmToggle();app._rmCloseSheet()"><i data-lucide="${s === 'r' ? 'book-open' : 'coffee'}"></i>${s === 'r' ? 'ارجع ادرس' : 'استراحة'}</button>
+                <button class="rm-menu-i" onclick="app._rmCloseSheet();app.rmChars()"><i data-lucide="sparkles"></i>غيّر شخصيتي</button>
+                <button class="rm-menu-i" onclick="app._rmCloseSheet();app.rmShakeBtn()"><i data-lucide="vibrate"></i>هزّة للغرفة</button>
                 <button class="rm-menu-i" onclick="app._rmCheer();app._rmCloseSheet()"><i data-lucide="party-popper"></i>شجّع الكل</button>
+                <button class="rm-menu-i" onclick="app.rmInvite()"><i data-lucide="user-plus"></i>ادعُ أصدقاء</button>
+                <button class="rm-menu-i" onclick="app.rmShare()"><i data-lucide="share-2"></i>دز رمز الغرفة</button>
                 ${host ? '<button class="rm-menu-i danger" onclick="app.rmEnd()"><i data-lucide="trash-2"></i>سدّ الغرفة للكل</button>' : ''}
                 <button class="rm-menu-i" onclick="app.rmBack();app.rmBack()"><i data-lucide="log-out"></i>اطلع من الغرفة</button>`, 'menu');
         },
@@ -445,11 +470,11 @@
         _rmSensors() {
             if (!ST) return;
             const need = typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function';
-            if (need) { ST.needPerm = true; this._rmDock(); return; }
+            if (need) { const once = () => { ST && this.rmEnableSensors(); ST && ST.el.removeEventListener('pointerup', once); }; ST.el.addEventListener('pointerup', once); return; }
             this._rmSensorsOn();
         },
         async rmEnableSensors() {
-            try { const r = await DeviceMotionEvent.requestPermission(); if (r === 'granted') { try { await DeviceOrientationEvent.requestPermission(); } catch (e) {} ST.needPerm = false; this._rmDock(); this._rmSensorsOn(); this.showToast('اشتغل الحساس، هزّ موبايلك!'); } else this.showToast('ما انسمح بالحساس'); } catch (e) { this.showToast('الحساس مو متاح'); }
+            try { const r = await DeviceMotionEvent.requestPermission(); if (r === 'granted') { try { await DeviceOrientationEvent.requestPermission(); } catch (e) {} this._rmSensorsOn(); this.showToast('اشتغل الحساس، هزّ موبايلك!'); } else this.showToast('ما انسمح بالحساس'); } catch (e) { this.showToast('الحساس مو متاح'); }
         },
         _rmSensorsOn() {
             if (!ST || ST.tilt) return; ST.tilt = true; let lastMag = 0, hits = 0, hitAt = 0, coolAt = 0;

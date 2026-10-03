@@ -4714,3 +4714,22 @@ body.rm-on { overflow: hidden; }
 .rm-fr { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; } .rm-fr-i { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 16px; background: var(--surface); border: 1px solid var(--border); } .rm-fr-i b { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .rm-fr-i em { font-style: normal; font-size: 12px; color: var(--text2); }
 .rm-pop { background: linear-gradient(135deg, #BE185D, #7C3AED) !important; }
 @media (prefers-reduced-motion: reduce) { .rm-skel, .rm-load span, .rm-spin { animation: none !important; } }
+/* غرفتنا v2: no bar of buttons on the screen; a small panel over your own character; fits every screen size */
+.rm-dock, .rm-sense { display: none !important; }
+.rm-tag { flex-direction: row; align-items: center; gap: 5px; padding: 2px 9px 3px 7px; font-size: 11px; }
+.rm-tag i { width: 7px; height: 7px; border-radius: 50%; background: #34D399; flex: none; } .rm-tag i.rest { background: #FBBF24; } .rm-tag i.sleep { background: #94A3B8; }
+.rm-mb { position: relative; } .rm-mb em { position: absolute; top: 6px; right: 7px; width: 10px; height: 10px; border-radius: 50%; background: #EF4444; border: 2px solid rgba(28,20,38,.9); }
+.rm-pop2[hidden] { display: none !important; }
+.rm-pop2 { position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0); z-index: 6; display: flex; gap: 2px; padding: 6px; border-radius: 22px; background: rgba(28,20,38,.84); backdrop-filter: blur(10px); box-shadow: 0 12px 32px rgba(0,0,0,.45); color: #fff; animation: rmPopIn .18s ease-out; max-width: calc(100% - 16px); }
+@keyframes rmPopIn { from { opacity: 0; margin-top: 8px; } to { opacity: 1; margin-top: 0; } }
+.rm-pop2 button { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 62px; padding: 9px 6px; border: 0; border-radius: 16px; background: transparent; color: #fff; font: inherit; font-size: 11.5px; font-weight: 700; }
+.rm-pop2 button svg { width: 22px; height: 22px; } .rm-pop2 button:hover, .rm-pop2 button:focus-visible { background: rgba(255,255,255,.16); outline: 0; }
+.rm-pop2 input { width: min(66vw, 320px); border: 0; outline: 0; border-radius: 16px; padding: 12px 14px; font: inherit; font-size: 15px; background: #fff; color: #2b2433; }
+.rm-pop2 .go { min-width: 50px; flex-direction: row; justify-content: center; background: linear-gradient(135deg, #F472B6, #A855F7); }
+.rm-wrap { max-width: 780px; margin-inline: auto; width: 100%; box-sizing: border-box; }
+.rm-chars { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); }
+.rm-top { left: 50%; right: auto; width: min(720px, calc(100% - 20px)); transform: translateX(-50%); box-sizing: border-box; }
+.rm-sh { width: min(100%, 560px); }
+@media (min-width: 900px) { .rm-tag { font-size: 13px; padding: 3px 11px 4px 9px; } .rm-bub { font-size: 15px; max-width: 240px; } .rm-timer b { font-size: 21px; } .rm-wrap { padding-top: 26px; } .rm-hero-t b { font-size: 26px; } .rm-hero-av { flex-basis: 140px; width: 140px; height: 140px; } }
+@media (max-height: 520px) { .rm-top { top: calc(6px + var(--safe-t, 0px)); padding: 4px; border-radius: 18px; } .rm-ib { width: 34px; height: 34px; border-radius: 12px; } .rm-timer { top: calc(52px + var(--safe-t, 0px)); padding: 3px 12px 3px 6px; } .rm-timer b { font-size: 15px; } .rm-sh { max-height: 92vh; } .rm-chat { height: 28vh; } }
+@media (hover: hover) { .rm-ch:hover, .rm-menu-i:hover { filter: brightness(1.03); } .rm-ch:hover { transform: translateY(-2px); } .rm-menu-i:hover { background: color-mix(in srgb, #EC4899 8%, transparent); } }
