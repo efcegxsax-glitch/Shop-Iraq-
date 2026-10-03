@@ -9421,6 +9421,8 @@
                                 points: Number(entry.points) || 0,
                                 weeklyChange: Number(entry.weeklyChange) || 0,
                                 avatar: entry.avatar || '',
+                                wm: entry.wm && typeof entry.wm === 'object' ? entry.wm : null,
+                                sm: entry.sm && typeof entry.sm === 'object' ? entry.sm : null,
                                 isCurrentUser: !!(myUid && myUid === uid)
                             });
                         });
@@ -9480,6 +9482,9 @@
                 this.renderLeaderboardTabs();
                 this.renderLeaderboardPodium();
                 this.renderLeaderboardMe();
+                this.renderLeaderboardChampion();
+                const hp = document.getElementById('lbHoursPeriod');
+                if (hp) { hp.classList.toggle('hidden', this.leaderboardSort !== 'hours'); hp.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.p === this.leaderboardHoursPeriod)); }
                 this.renderLeaderboardList();
             },
 
@@ -9495,6 +9500,7 @@
 
             // Everyone from the live leaderboard + the signed-in student's own (freshest) entry.
             getLeaderboardBaseList() {
+                const mine = leaderboardStudents.find(s => s.isCurrentUser) || {};
                 const list = leaderboardStudents.filter(s => !s.isCurrentUser);
                 if (this.isLoggedIn && this.currentUser && typeof this.currentUser.points === 'number') {
                     list.push({
@@ -9503,6 +9509,7 @@
                         grade: this.currentUser.grade || 'scientific',
                         points: numOr0(this.currentUser.points),
                         weeklyChange: numOr0(this.currentUser.weeklyChange),
+                        wm: mine.wm || null, sm: mine.sm || null,
                         isCurrentUser: true,
                         avatar: this.currentUser.avatar || '',
                         studentNumber: this.currentUser.studentNumber || ''
@@ -9515,8 +9522,61 @@
             getLeaderboardRanked() {
                 let list = this.getLeaderboardBaseList();
                 if (this.leaderboardStage !== 'all') list = list.filter(s => s.grade === this.leaderboardStage);
-                return list.sort((a, b) => (b.points - a.points) || String(a.name).localeCompare(String(b.name), 'ar'))
+                const hours = this.leaderboardSort === 'hours';
+                const wk = this._weekKey(), sn = this._lbSeason();
+                list = list.map(s => ({ ...s, wmin: numOr0(s.wm && s.wm[wk]), smin: numOr0(s.sm && s.sm[sn]) }));
+                const val = (s) => hours ? (this.leaderboardHoursPeriod === 'season' ? s.smin : s.wmin) : s.points;
+                return list.map(s => ({ ...s, _v: val(s) }))
+                    .sort((a, b) => (b._v - a._v) || (b.points - a.points) || String(a.name).localeCompare(String(b.name), 'ar'))
                     .map((s, i) => ({ ...s, rank: i + 1 }));
+            },
+
+            // ----- study hours: this week / this season (a season is a calendar month) -----
+            leaderboardHoursPeriod: 'week',
+            _lbSeason(d) { const x = new Date(d || Date.now()); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0'); },
+            _lbPrevSeason() { const x = new Date(); x.setDate(1); x.setMonth(x.getMonth() - 1); return this._lbSeason(x); },
+            _lbSeasonName(key) { const m = Number(String(key).slice(5, 7)); return ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'][m - 1] || ''; },
+            _lbFmtMin(m) { m = Math.max(0, Math.round(m || 0)); const h = Math.floor(m / 60), r = m % 60; return h ? (h + ' س' + (r ? ' ' + r + ' د' : '')) : (r + ' د'); },
+            _lbFmt(s) { return this.leaderboardSort === 'hours' ? this._lbFmtMin(s._v) : s.points.toLocaleString('en-US') + ' نقطة'; },
+            // the winner of the season that just ended, and who leads the current one
+            _lbChampions() {
+                const base = this.getLeaderboardBaseList();
+                const best = (key) => base.map(s => ({ s, m: numOr0(s.sm && s.sm[key]) })).filter(x => x.m > 0)
+                    .sort((a, b) => (b.m - a.m) || String(a.s.name).localeCompare(String(b.s.name), 'ar'))[0] || null;
+                const prevKey = this._lbPrevSeason(), curKey = this._lbSeason();
+                return { prevKey, curKey, prev: best(prevKey), cur: best(curKey) };
+            },
+            renderLeaderboardChampion() {
+                const box = document.getElementById('lbChampion');
+                if (!box) return;
+                const c = this._lbChampions();
+                if (!c.prev && !c.cur) { box.innerHTML = ''; return; }
+                const row = (x, label, key) => x ? `<div class="lb-champ-row" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(x.s.id)})">
+                    <img src="${personAvatarSrc(x.s.avatar, x.s.name)}" alt="">
+                    <div><small>${label} ${this._lbSeasonName(key)}</small><b>${escapeHtml(x.s.name)}</b></div>
+                    <span>${this._lbFmtMin(x.m)}</span></div>` : '';
+                box.innerHTML = `<section class="lb-champ"><div class="lb-champ-h"><i data-lucide="crown"></i><b>بطل الموسم</b><small>أكثر ساعات دراسة بالشهر</small></div>
+                    ${row(c.prev, 'بطل موسم', c.prevKey) || '<div class="lb-champ-none">أول بطل يتوج بنهاية هذا الشهر</div>'}
+                    ${row(c.cur, 'المتصدر الآن بموسم', c.curKey)}</section>`;
+            },
+            setLeaderboardHoursPeriod(p) {
+                this.leaderboardHoursPeriod = p === 'season' ? 'season' : 'week';
+                this.renderLeaderboard();
+                lucide.createIcons();
+            },
+            // adds real study minutes to this week's and this season's public totals (self-reported, capped by the rules)
+            _lbStudy(minutes) {
+                const uid = this.authUid, m = Math.round(Math.min(300, minutes || 0));
+                if (!uid || !window.firebaseDb || m <= 0) return;
+                const { ref, runTransaction } = window.firebaseDbHelpers;
+                const bump = (node, key, keep) => runTransaction(ref(window.firebaseDb, 'leaderboard/' + uid + '/' + node), (cur) => {
+                    const o = cur && typeof cur === 'object' ? { ...cur } : {};
+                    o[key] = numOr0(o[key]) + m;
+                    Object.keys(o).sort().reverse().slice(keep).forEach((k) => { delete o[k]; });
+                    return o;
+                }).catch(() => {});
+                bump('wm', this._weekKey(), 6);
+                bump('sm', this._lbSeason(), 4);
             },
 
             getLeaderboardStudents() {
@@ -9544,7 +9604,7 @@
                             <span class="lb-medal">${s.rank}</span>
                         </div>
                         <div class="lb-name">${escapeHtml(s.name)}${this.vb(s.id)}</div>
-                        <div class="lb-pts">${s.points.toLocaleString('en-US')} نقطة</div>
+                        <div class="lb-pts">${this._lbFmt(s)}</div>
                         <div class="lb-step">${s.rank}</div>
                     </div>`;
                 // visual order: 2nd · 1st · 3rd (RTL puts the first child on the right)
@@ -9570,13 +9630,13 @@
                 let line, pct;
                 if (!ahead) { line = 'أنت بالمركز الأول — حافظ على صدارتك'; pct = 100; }
                 else {
-                    const gap = Math.max(1, ahead.points - me.points + 1);
-                    line = `باقي ${gap.toLocaleString('en-US')} نقطة وتتجاوز ${escapeHtml(ahead.name)}`;
-                    pct = ahead.points > 0 ? Math.max(4, Math.min(100, (me.points / ahead.points) * 100)) : 100;
+                    const gap = Math.max(1, ahead._v - me._v + 1);
+                    line = this.leaderboardSort === 'hours' ? `باقي ${this._lbFmtMin(gap)} وتتجاوز ${escapeHtml(ahead.name)}` : `باقي ${gap.toLocaleString('en-US')} نقطة وتتجاوز ${escapeHtml(ahead.name)}`;
+                    pct = ahead._v > 0 ? Math.max(4, Math.min(100, (me._v / ahead._v) * 100)) : 100;
                 }
                 box.innerHTML = `<div class="lb-me">
                     <div class="lb-me-rank"><small>ترتيبك</small><b>#${me.rank}</b></div>
-                    <div class="lb-me-body"><b>${me.points.toLocaleString('en-US')} نقطة · من ${ranked.length} طالب</b><span>${line}</span>
+                    <div class="lb-me-body"><b>${this._lbFmt(me)} · من ${ranked.length} طالب</b><span>${line}</span>
                         <div class="lb-me-bar"><i style="--w:${pct.toFixed(1)}%"></i></div></div>
                 </div>`;
             },
@@ -9587,10 +9647,10 @@
                 const q = this.leaderboardQuery.trim();
                 let students = this.getLeaderboardStudents();
                 // the podium already shows the top 3 in the default view
-                const hideTop = !q && this.leaderboardSort === 'points';
+                const hideTop = !q && this.leaderboardSort !== 'improvement';
                 if (hideTop) students = students.filter(s => s.rank > 3);
                 const titleEl = document.getElementById('lbListTitle');
-                if (titleEl) titleEl.textContent = q ? 'نتائج البحث' : (this.leaderboardSort === 'improvement' ? 'الأكثر تحسناً هذا الأسبوع' : 'باقي الترتيب');
+                if (titleEl) titleEl.textContent = q ? 'نتائج البحث' : (this.leaderboardSort === 'improvement' ? 'الأكثر تحسناً هذا الأسبوع' : this.leaderboardSort === 'hours' ? (this.leaderboardHoursPeriod === 'season' ? 'الأكثر دراسة هذا الموسم' : 'الأكثر دراسة هذا الأسبوع') : 'باقي الترتيب');
                 const countEl = document.getElementById('leaderboardCount');
                 const total = this.getLeaderboardRanked().length;
                 if (countEl) countEl.textContent = total + ' طالب';
@@ -9601,7 +9661,7 @@
                     container.innerHTML = `<div class="hp-empty" style="padding:18px"><div><i data-lucide="users"></i></div>${total ? 'كل الطلاب ظاهرين بالمنصة فوق' : 'ما كو طلاب بعد'}</div>`;
                     return;
                 }
-                const leader = Math.max(1, ...this.getLeaderboardRanked().slice(0, 1).map(s => s.points));
+                const leader = Math.max(1, ...this.getLeaderboardRanked().slice(0, 1).map(s => s._v));
                 container.innerHTML = students.slice(0, 100).map((s, i) => this.createStudentCard(s, i, leader)).join('');
             },
 
@@ -9610,7 +9670,8 @@
                 const chg = s.weeklyChange;
                 const chgCls = chg > 0 ? 'up' : (chg < 0 ? 'down' : 'flat');
                 const chgTxt = chg > 0 ? '▲ ' + chg.toLocaleString('en-US') : (chg < 0 ? '▼ ' + Math.abs(chg).toLocaleString('en-US') : '—');
-                const pct = Math.max(3, Math.min(100, (s.points / (leader || 1)) * 100));
+                const pct = Math.max(3, Math.min(100, (s._v / (leader || 1)) * 100));
+                const hoursMode = this.leaderboardSort === 'hours';
                 return `
                     <div class="lb-row${s.isCurrentUser ? ' is-me' : ''}${s.rank <= 3 ? ' top' : ''}" style="animation-delay:${Math.min(i, 12) * 0.04}s;${s.rank <= 3 ? '--ring:' + rings[s.rank - 1] : ''}" onclick="app.openAuthorProfileFromLeaderboard(${jsArg(s.id)})">
                         <span class="lb-rank">${s.rank}</span>
@@ -9620,8 +9681,8 @@
                             <div class="lb-row-bar"><i style="--w:${pct.toFixed(1)}%"></i></div>
                         </div>
                         <div class="lb-row-end">
-                            <span class="lb-row-pts">${s.points.toLocaleString('en-US')} <small>نقطة</small></span>
-                            <span class="lb-chg ${chgCls}" title="تغيّر هذا الأسبوع">${chgTxt}</span>
+                            <span class="lb-row-pts">${hoursMode ? this._lbFmtMin(s._v) : s.points.toLocaleString('en-US') + ' <small>نقطة</small>'}</span>
+                            ${hoursMode ? `<span class="lb-chg flat">${s.points.toLocaleString('en-US')} نقطة</span>` : `<span class="lb-chg ${chgCls}" title="تغيّر هذا الأسبوع">${chgTxt}</span>`}
                         </div>
                     </div>`;
             },
@@ -11264,6 +11325,7 @@
             logDailyActivity(deltas) {
                 if (!window.firebaseDb || !this.authUid) return;
                 this._twinReport(deltas);
+                if (deltas.minutes > 0) this._lbStudy(deltas.minutes);
                 const dateStr = this.localDateStr();
                 const { ref, runTransaction } = window.firebaseDbHelpers;
                 const path = 'userActivity/' + this.authUid + '/' + dateStr;

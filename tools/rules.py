@@ -263,6 +263,10 @@ rules = {
         "$uid": {
             ".write": ors(OWNER, ADMIN),
             "points": {".validate": ors(ADMIN, "newData.isNumber() && newData.val() == newData.parent().parent().parent().child('users/' + $uid + '/points').val()")},
+            # study minutes per week (key = the week's Saturday) and per season (key = year-month): public, only the owner
+            # writes them, and a number can only grow by 300 minutes per write
+            "wm": {"$k": {".validate": ors(ADMIN, "$k.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 6000 && newData.val() <= (data.exists() ? data.val() : 0) + 300")}},
+            "sm": {"$k": {".validate": ors(ADMIN, "$k.matches(/^[0-9]{4}-[0-9]{2}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 25000 && newData.val() <= (data.exists() ? data.val() : 0) + 300")}},
         },
     },
     "phoneIndex": {
