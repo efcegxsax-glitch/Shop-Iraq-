@@ -834,6 +834,15 @@
         }
       }
     },
+    "refJoin": {
+      "$ref": {
+        ".read": "(auth != null && auth.uid == $ref || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        "$me": {
+          ".write": "auth != null && auth.uid == $me && $ref != $me && !data.exists()",
+          ".validate": "newData.isNumber()"
+        }
+      }
+    },
     "studentMap": {
       ".read": "auth != null",
       "$uid": {

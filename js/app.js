@@ -760,10 +760,13 @@
             init() {
                 this.initErrorReporting();
                 this.initImageFallback();
+                setTimeout(() => this.renderInviteBanner(), 0);
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
                 try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
+                // an invite link (?ref=<uid>) is remembered until the visitor creates an account
+                try { const m = location.search.match(/[?&]ref=([A-Za-z0-9]{20,40})/); if (m && !localStorage.getItem('isp_ref')) localStorage.setItem('isp_ref', JSON.stringify({ c: m[1], t: Date.now() })); } catch (e) {}
                 try {
                     const q = new URLSearchParams(location.search).get('coach');
                     if (q) {
@@ -1282,6 +1285,7 @@
                     this.isLoggedIn = true;
                     this.saveUserData();
                     const savedToDb = await this.syncUserToDatabase({ includeCounters: true });
+                    this._refRegister(credential.user.uid);
                     this.initPushNotifications();
                     this.syncNativePush();
                     if (savedToDb) {
@@ -3179,7 +3183,7 @@
                 this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
                 this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
                 if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
-                this.renderPollCard();
+                this.renderPollCard(); this.renderInviteBanner();
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
 
                 // Bottom navigation
@@ -4475,6 +4479,39 @@
                 this.tmOpen();
             },
 
+            goToInvite() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.invite === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('inviteView');
+                if (this._withPart('invite', () => typeof this.ivOpen === 'function', 'inviteView', () => this.goToInvite())) return;
+                this.ivOpen();
+            },
+
+            // home banner that sends students to the invite page; closing it hides it for 10 days
+            renderInviteBanner() {
+                const sec = document.getElementById('inviteSection'), box = document.getElementById('inviteBanner');
+                if (!sec || !box) return;
+                let hide = false;
+                try { hide = Date.now() - numOr0(localStorage.getItem('isp_inv_hide')) < 864e6; } catch (e) {}
+                const off = !!(this.siteConfig && this.siteConfig.features && this.siteConfig.features.invite === false);
+                sec.classList.toggle('hidden', hide || off);
+                if (hide || off || box.dataset.on) return;
+                box.dataset.on = '1';
+                box.innerHTML = '<button class="iv-ban-go btn-press" onclick="app.goToInvite()"><span class="iv-ban-ic"><i data-lucide="megaphone"></i></span><span class="iv-ban-t"><b>ادعُ زملاءك للتطبيق</b><small>شارك رابطك على واتساب وتلغرام وانستغرام</small></span></button><button class="iv-ban-x" aria-label="إخفاء" onclick="app.hideInviteBanner()"><i data-lucide="x"></i></button>';
+                try { lucide.createIcons(); } catch (e) {}
+            },
+            hideInviteBanner() { try { localStorage.setItem('isp_inv_hide', String(Date.now())); } catch (e) {} document.getElementById('inviteSection')?.classList.add('hidden'); },
+
+            // a new student who arrived through a friend's link (?ref=<uid>) is written under that friend once
+            _refRegister(uid) {
+                try {
+                    const o = JSON.parse(localStorage.getItem('isp_ref') || 'null');
+                    if (!o || !o.c || o.c === uid || Date.now() - o.t > 30 * 864e5 || !window.firebaseDb) { localStorage.removeItem('isp_ref'); return; }
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'refJoin/' + o.c + '/' + uid), Date.now()).catch(() => {}).then(() => { try { localStorage.removeItem('isp_ref'); } catch (e) {} });
+                } catch (e) {}
+            },
+
             goToMoney() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.money === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5012,6 +5049,7 @@
             renderPollCard() {
                 const sec = document.getElementById('pollSection'), box = document.getElementById('pollCard');
                 if (!sec || !box) return;
+                this.renderInviteBanner();
                 const off = !!(this.siteConfig && this.siteConfig.features && this.siteConfig.features.poll === false);
                 const p = off ? null : (this._polls || []).find((x) => this._pollOpen(x));
                 sec.classList.toggle('hidden', !p);
@@ -8442,6 +8480,7 @@
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
                 { id: 'money', fn: 'goToMoney', t: 'مصاريفي', d: 'محفظتك وميزانيتك وأهدافك، والمعلم يراقب', ic: 'wallet', c: '#0F766E', g: 'study', feat: 'money' },
                 { id: 'room', fn: 'goToRoom', t: 'غرفتنا', d: 'ادرس ويا أصدقائك بغرفة 3D وشخصيات أنمي', ic: 'door-open', c: '#EC4899', g: 'people', feat: 'room' },
+                { id: 'invite', fn: 'goToInvite', t: 'ادعُ زملاءك', d: 'شارك التطبيق وخلّي الكل يدرس', ic: 'megaphone', c: '#E11D48', g: 'people', feat: 'invite' },
                 { id: 'timer', fn: 'goToTimer', t: 'المؤقت', d: 'بومودورو وعد تنازلي و40 خلفية', ic: 'timer', c: '#7C3AED', g: 'study', feat: 'timer' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
@@ -13984,6 +14023,7 @@
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
                 if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();
+                if (this.currentView === 'inviteView' && viewId !== 'inviteView' && this.ivClose) this.ivClose();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);

@@ -260,6 +260,13 @@ await ok('vote guest', runTransaction(ref(db(null), 'pollVotes/p/d_x'), (c) => (
 await no('vote as someone else', set(ref(db('u1'), 'pollVotes/p/u2'), 1));
 await ok('count +1', runTransaction(ref(db(null), 'polls/p/counts/1'), (c) => (c || 0) + 1));
 await no('edit poll', set(ref(db('u1'), 'polls/p/q'), 'x'));
+await ok('join through u1 link', set(ref(db('u2'), 'refJoin/u1/u2'), 1700000000000));
+await no('join twice', set(ref(db('u2'), 'refJoin/u1/u2'), 1700000000001));
+await no('join as someone else', set(ref(db('u1'), 'refJoin/u3/u2'), 1));
+await no('join own link', set(ref(db('u1'), 'refJoin/u1/u1'), 1));
+await no('guest join', set(ref(db(null), 'refJoin/u1/d_x'), 1));
+await ok('inviter reads list', get(ref(db('u1'), 'refJoin/u1')));
+await no('other reads list', get(ref(db('u2'), 'refJoin/u1')));
 
 // phone index
 await ok('phone claim', set(ref(db('u1'), 'phoneIndex/0770'), { e: 'a@b.c', u: 'u1' }));
