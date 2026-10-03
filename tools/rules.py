@@ -125,6 +125,10 @@ def own_write(extra=None):
 public_admin = {".read": True, ".write": ADMIN}
 # one of the two people in a chat (chat ids are the two uids, sorted, joined by _)
 CHAT_MEMBER = "(auth != null && ($chat.beginsWith(auth.uid + '_') || $chat.endsWith('_' + auth.uid)))"
+CHAT_OTHER = "$chat.replace(auth.uid, '').replace('_', '')"
+_CL_ME = "root.child('privateChats/' + $chat + '/cleared/' + auth.uid).val()"
+_CL_OT = "root.child('privateChats/' + $chat + '/cleared/' + " + CHAT_OTHER + ").val()"
+CLEARED_BOTH = "(" + _CL_ME + " != null && " + _CL_OT + " != null && data.child('createdAt').isNumber() && data.child('createdAt').val() <= " + _CL_ME + " && data.child('createdAt').val() <= " + _CL_OT + ")"
 
 # the 19 governorates, as a rules regular expression
 GOV_RE = "/^(بغداد|البصرة|نينوى|أربيل|السليمانية|دهوك|حلبجة|كركوك|الأنبار|صلاح الدين|ديالى|بابل|كربلاء|النجف|واسط|القادسية|ذي قار|ميسان|المثنى)$/"
@@ -463,15 +467,29 @@ rules = {
             ".write": ADMIN,
             "messages": {
                 "$m": {
-                    ".write": ands(CHAT_MEMBER, "(data.exists() ? data.child('from').val() == auth.uid : newData.child('from').val() == auth.uid)"),
-                    ".validate": "!newData.exists() || (newData.child('from').val() == auth.uid || " + ADMIN + ")",
+                    ".write": ors(ands(CHAT_MEMBER, "(data.exists() ? data.child('from').val() == auth.uid : newData.child('from').val() == auth.uid)"),
+                                  # once both have cleared the conversation past a message, either of them may remove it for good
+                                  ands(CHAT_MEMBER, "!newData.exists()", CLEARED_BOTH)),
+                    ".validate": "!newData.exists() || (" + ands(
+                        "(newData.child('from').val() == auth.uid || " + ADMIN + ")",
+                        "(!newData.child('text').exists() || " + s_max("newData.child('text')", 4000) + ")",
+                        "(!newData.child('type').exists() || newData.child('type').val().matches(/^(text|image|voice|file|call)$/))",
+                        # a reply keeps the id of the message it answers, who wrote it, its kind and a short snippet
+                        "(!newData.child('rep').exists() || (newData.child('rep').hasChildren(['i', 'f']) && newData.child('rep').child('i').isNumber() && "
+                        "newData.child('rep').child('f').isString() && (!newData.child('rep').child('x').exists() || " + s_max("newData.child('rep').child('x')", 160) + ")"
+                        " && (!newData.child('rep').child('t').exists() || newData.child('rep').child('t').val().matches(/^(text|image|voice|file|call)$/))))") + ")",
                 },
             },
             "deletedFor": {"$uid": {".write": ands(CHAT_MEMBER, OWNER)}},
             "readReceipts": {"$uid": {".write": ands(CHAT_MEMBER, OWNER)}},
+            # "I cleared this conversation at this time": each writes only their own; both can read both
+            "cleared": {"$uid": {".write": ands(CHAT_MEMBER, OWNER), ".validate": "newData.isNumber()"}},
             "$other": {".write": CHAT_MEMBER},
         },
     },
+    # who is typing / recording a voice message right now in a chat: each writes only their own, the two read
+    "chatTyping": {"$chat": {".read": CHAT_MEMBER, "$uid": {".write": ands(CHAT_MEMBER, OWNER),
+                                                              ".validate": "!newData.exists() || (newData.hasChildren(['s', 'at']) && newData.child('s').val().matches(/^(t|r)$/) && newData.child('at').isNumber())"}}},
     # reports of content or students: one new record per report, written by the reporter; only the admin reads them
     "reports": {".read": ADMIN, "$id": {
         ".write": ors(ADMIN, "auth != null && !data.exists() && newData.child('reporterUid').val() == auth.uid"),

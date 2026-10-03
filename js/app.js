@@ -415,7 +415,6 @@
         const monthlyActivity = {};
 
         const userChatsList = [];
-        const chatMessages = [];
 
 
         const friendsList = [];
@@ -2008,8 +2007,8 @@
 
             // full-screen photo viewer: tap the news photo, pinch or double-tap to zoom, tap outside or the X to close
             openImageViewer(id) {
-                const news = newsData.find(n => n.id === id);
-                const src = news ? safeImage(news.image) : '';
+                const news = (id && typeof id === 'object') ? null : newsData.find(n => n.id === id);
+                const src = (id && typeof id === 'object') ? String(id.src || '') : (news ? safeImage(news.image) : '');
                 if (!src) return;
                 this.closeImageViewer();
                 const v = document.createElement('div');
@@ -5140,6 +5139,7 @@
             nativeBack() {
                 const close = [
                     ['#imgViewer', () => this.closeImageViewer()],
+                    ['#ctSheet', () => this.chatSheetClose()],
                     ['#dlRoot', () => this.dlBack()],
                     ['#mcSet', () => this.mcSetClose()],
                     ['#rpSheet', () => this.rpClose()],
@@ -10093,6 +10093,7 @@
                     }
                     friendsList.length = 0;
                     friendsList.push(...list);
+                    this._presenceSync();
                     const countEl = document.getElementById('profileFriendsCount');
                     if (countEl) countEl.textContent = list.length;
                     if (this.currentView === 'friendsView') this.renderFriendsView();
@@ -10317,19 +10318,36 @@
                 } catch (e) {}
             },
 
+            // Presence is followed per person (friends, the people in the chat list, the open chat) instead of
+            // downloading everyone's presence every time anyone goes online or offline.
             listenForPresence() {
                 if (!window.firebaseDb || this._presenceListener) return;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                this._presenceListener = onValue(ref(window.firebaseDb, 'presence'), (snap) => {
-                    Object.keys(friendsPresence).forEach((k) => delete friendsPresence[k]);
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((uid) => { friendsPresence[uid] = vals[uid]; });
-                    }
+                this._presUn = new Map();
+                this._presenceListener = () => { if (this._presUn) { this._presUn.forEach((un) => { try { un(); } catch (e) {} }); this._presUn = null; } Object.keys(friendsPresence).forEach((k) => delete friendsPresence[k]); };
+                this._presenceSync();
+            },
+            _presenceSync() {
+                if (!window.firebaseDb || !this._presUn || !this.authUid) return;
+                const { ref, onValue } = window.firebaseDbHelpers, want = new Set();
+                if (this.currentChatUid && this.currentView === 'chatThreadView') want.add(this.currentChatUid);
+                userChatsList.slice(0, 40).forEach((c) => { if (c && c.otherUid) want.add(c.otherUid); });
+                friendsList.forEach((f) => { if (f && f.uid && want.size < 160) want.add(f.uid); });
+                want.forEach((uid) => {
+                    if (this._presUn.has(uid)) return;
+                    this._presUn.set(uid, onValue(ref(window.firebaseDb, 'presence/' + uid), (snap) => {
+                        if (snap.exists()) friendsPresence[uid] = snap.val(); else delete friendsPresence[uid];
+                        this._presChanged();
+                    }, () => {}));
+                });
+                this._presUn.forEach((un, uid) => { if (!want.has(uid)) { try { un(); } catch (e) {} this._presUn.delete(uid); delete friendsPresence[uid]; } });
+            },
+            _presChanged() {
+                clearTimeout(this._presT);
+                this._presT = setTimeout(() => {
                     if (this.currentView === 'friendsView') this.renderFriendsView();
                     if (this.currentView === 'chatThreadView') this.updateChatHeaderPresence();
                     if (this.currentView === 'messagesView') this.renderChatsList();
-                });
+                }, 150);
             },
 
             presenceLabel(uid) {
@@ -11493,6 +11511,7 @@
                     return;
                 }
                 this.switchView('messagesView');
+                this._need('chat').catch(() => {});
                 this.listenForUserChats();
                 this.renderChatsList();
                 lucide.createIcons();
@@ -11504,11 +11523,17 @@
                 let firstLoad = true;
                 const lastSeenAt = {};
                 this._userChatsListener = onValue(ref(window.firebaseDb, 'userChats/' + this.authUid), (snap) => {
-                    const list = [];
+                    const list = [], ghosts = [];
                     if (snap.exists()) {
                         const vals = snap.val();
-                        Object.keys(vals).forEach((k) => list.push(vals[k]));
+                        // a conversation always has the other student's id and a last message; anything else is a leftover
+                        // (an old version wrote a read flag or a pin under a conversation that had been deleted)
+                        Object.keys(vals).forEach((k) => { const e = vals[k]; if (e && typeof e === 'object' && e.otherUid && e.lastAt) list.push(e); else ghosts.push(k); });
                         list.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || (b.lastAt || 0) - (a.lastAt || 0));
+                    }
+                    if (ghosts.length) {
+                        const up = {}; ghosts.forEach((k) => { up['userChats/' + this.authUid + '/' + k] = null; });
+                        window.firebaseDbHelpers.update(ref(window.firebaseDb), up).catch(() => {});
                     }
                     if (!firstLoad) {
                         list.forEach((entry) => {
@@ -11527,6 +11552,7 @@
                     userChatsList.push(...list);
                     this.updateMessagesBadge();
                     if (this.currentView === 'messagesView') this.renderChatsList();
+                    this._presenceSync();
                 });
             },
 
@@ -11690,498 +11716,11 @@
                 this.openChat(t.uid, t.data.fullName, t.data.avatar, t.data.studentNumber);
             },
 
+            // The conversation screen lives in js/chat.js (loaded on first use, and warmed up while the list is open).
             openChat(otherUid, otherName, otherAvatar, otherStudentNumber) {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول لاستخدام الرسائل');
-                    this.goToAuth('login');
-                    return;
-                }
-                if (this.isBlocked(otherUid)) {
-                    this.showToast('هذا المستخدم محظور — ألغِ الحظر أولاً من قائمة الأصدقاء');
-                    return;
-                }
-                if (!otherName) {
-                    const existing = userChatsList.find(c => c.otherUid === otherUid) || friendsList.find(f => f.uid === otherUid);
-                    if (existing) {
-                        otherName = existing.otherName || existing.name;
-                        otherAvatar = existing.otherAvatar || existing.avatar;
-                        otherStudentNumber = existing.otherStudentNumber || existing.studentNumber;
-                    }
-                }
-                this.currentChatUid = otherUid;
-                this.currentChatOther = { name: otherName || 'طالب', avatar: otherAvatar || '', studentNumber: otherStudentNumber || '', known: !!otherName };
-                if (!otherName || !otherAvatar) this._resolveChatPeer(otherUid);
-                const nameEl = document.getElementById('chatThreadName');
-                const avatarEl = document.getElementById('chatThreadAvatar');
-                if (nameEl) nameEl.innerHTML = escapeHtml(this.currentChatOther.name) + this.vb(otherUid);
-                if (avatarEl) avatarEl.src = personAvatarSrc(this.currentChatOther.avatar, this.currentChatOther.name);
-                this.updateChatHeaderPresence();
-                chatMessages.length = 0;
-                this._openMessageActionsId = null;
-                this._animatedMsgIds = new Set();
-                this._chatLimit = 60;
-                this.currentChatClearedAt = 0;
-                this.currentChatDeletedFor = {};
-                this.currentChatOtherReadAt = 0;
-                this.blockedByOtherInChat = false;
-                if (this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
-                const chatInput = document.getElementById('chatMessageInput');
-                if (chatInput) chatInput.value = '';
-                this.updateChatSendMode();
-                this.renderChatMessages();
-                this.switchView('chatThreadView');
-                this.listenForChatMessages();
-                if (window.firebaseDb && this.authUid) {
-                    const { ref, get } = window.firebaseDbHelpers;
-                    const chatId = this.getChatId(otherUid);
-                    Promise.all([
-                        get(ref(window.firebaseDb, 'chatClearedAt/' + this.authUid + '/' + otherUid)),
-                        get(ref(window.firebaseDb, 'privateChats/' + chatId + '/deletedFor/' + this.authUid)),
-                        get(ref(window.firebaseDb, 'blockedUsers/' + otherUid + '/' + this.authUid))
-                    ]).then(([clearedSnap, deletedSnap, blockedSnap]) => {
-                        const clearedAt = clearedSnap.exists() ? clearedSnap.val() : 0;
-                        const deletedFor = deletedSnap.exists() ? deletedSnap.val() : {};
-                        this.blockedByOtherInChat = blockedSnap.exists();
-                        if (this.blockedByOtherInChat) this.showToast('هذا المستخدم قيّد التواصل معك');
-                        const changed = clearedAt !== this.currentChatClearedAt || JSON.stringify(deletedFor) !== JSON.stringify(this.currentChatDeletedFor);
-                        this.currentChatClearedAt = clearedAt;
-                        this.currentChatDeletedFor = deletedFor;
-                        if (changed) this.listenForChatMessages();
-                    }).catch(() => {});
-                }
-                this.listenForReadReceipts();
-                this.markChatRead();
-                // the call part and its relay addresses get ready while the chat is open
-                this._need('calls').then(() => this._clIce()).catch(() => {});
-                lucide.createIcons();
-            },
-
-            listenForChatMessages() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                if (this._chatMsgUnsub) { this._chatMsgUnsub(); this._chatMsgUnsub = null; }
-                const chatId = this.getChatId(this.currentChatUid);
-                const clearedAt = this.currentChatClearedAt || 0;
-                const deletedFor = this.currentChatDeletedFor || {};
-                const { ref, onValue, query, orderByKey, limitToLast } = window.firebaseDbHelpers;
-                // the newest messages only (a long chat used to come down in full, photos and voice notes included)
-                const limit = this._chatLimit || 60;
-                this._chatMsgUnsub = onValue(query(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'), orderByKey(), limitToLast(limit)), (snap) => {
-                    const list = [];
-                    const more = document.getElementById('chatOlder');
-                    if (more) more.classList.toggle('hidden', !(snap.exists() && Object.keys(snap.val()).length >= limit));
-                    if (snap.exists()) {
-                        const vals = snap.val();
-                        Object.keys(vals).forEach((k) => {
-                            const m = vals[k];
-                            if (m && (!clearedAt || (m.createdAt || 0) > clearedAt) && !deletedFor[k]) list.push(m);
-                        });
-                        list.splice(0, list.length, ...withNumericIds(list));
-                        list.sort((a, b) => a.id - b.id);
-                    }
-                    chatMessages.length = 0;
-                    chatMessages.push(...list);
-                    if (this.currentView === 'chatThreadView') { this.renderChatMessages(); lucide.createIcons(); }
-                });
-            },
-
-            // The name and photo of the other student, when the chat was opened without them (for example after the
-            // conversation was deleted): read from the public directory and the leaderboard instead of showing "طالب".
-            async _resolveChatPeer(uid) {
-                try {
-                    if (!window.firebaseDb) return;
-                    const { ref, get } = window.firebaseDbHelpers;
-                    const [p, lb] = await Promise.all([get(ref(window.firebaseDb, 'pub/' + uid)), get(ref(window.firebaseDb, 'leaderboard/' + uid))]);
-                    if (this.currentChatUid !== uid) return;
-                    const pub = p.val() || {}, board = lb.val() || {};
-                    const o = this.currentChatOther || (this.currentChatOther = {});
-                    if (pub.n && (!o.known || !o.name || o.name === 'طالب')) { o.name = String(pub.n); o.known = true; }
-                    if (!o.avatar && board.avatar) o.avatar = board.avatar;
-                    if (!o.studentNumber && pub.s) o.studentNumber = String(pub.s);
-                    const nameEl = document.getElementById('chatThreadName'), avatarEl = document.getElementById('chatThreadAvatar');
-                    if (nameEl) nameEl.innerHTML = escapeHtml(o.name) + this.vb(uid);
-                    if (avatarEl) avatarEl.src = personAvatarSrc(o.avatar, o.name);
-                } catch (e) { /* the chat works with the placeholder name */ }
-            },
-
-            loadOlderChat() {
-                this._chatLimit = (this._chatLimit || 60) + 60;
-                this._chatKeys = [];
-                this.listenForChatMessages();
-            },
-
-            listenForReadReceipts() {
-                if (!window.firebaseDb || !this.currentChatUid) return;
-                if (this._readReceiptUnsub) { this._readReceiptUnsub(); this._readReceiptUnsub = null; }
-                const chatId = this.getChatId(this.currentChatUid);
-                const otherUid = this.currentChatUid;
-                const { ref, onValue } = window.firebaseDbHelpers;
-                this._readReceiptUnsub = onValue(ref(window.firebaseDb, 'privateChats/' + chatId + '/readReceipts/' + otherUid), (snap) => {
-                    this.currentChatOtherReadAt = snap.exists() ? snap.val() : 0;
-                    if (this.currentView === 'chatThreadView') this.renderChatMessages();
-                });
-            },
-
-            // One message as HTML. The time and the read ticks sit inside the bubble, like WhatsApp;
-            // the ticks turn blue by class (_chatTicks) so a read receipt never redraws the chat.
-            _chatMsgHtml(m, idx) {
-                const isMine = m.from === this.authUid;
-                const showActions = this._openMessageActionsId === m.id;
-                const prev = chatMessages[idx - 1];
-                const prevSameSender = !!prev && prev.from === m.from && this._chatDay(prev.createdAt) === this._chatDay(m.createdAt);
-                const isTextMsg = !m.type || m.type === 'text';
-                let bodyHtml;
-                if (m.type === 'image') {
-                    bodyHtml = `<img src="${safeImage(m.imageUrl)}" class="rounded-xl block" style="max-width: 220px; max-height: 280px; object-fit: cover;" alt="صورة">`;
-                } else if (m.type === 'voice') {
-                    const totalDuration = Math.max(0, Math.round(m.duration || 0));
-                    const mm = Math.floor(totalDuration / 60);
-                    const ss = String(totalDuration % 60).padStart(2, '0');
-                    bodyHtml = `<div class="flex items-center gap-2" style="min-width: 190px;" onclick="event.stopPropagation()">
-                            <button id="voicePlayBtn-${m.id}" onclick="app.toggleVoicePlayback(${jsNum(m.id)})" class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.25);"><i data-lucide="play" class="w-4 h-4"></i></button>
-                            <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(127,127,127,0.3);"><div id="voiceProgress-${m.id}" class="h-1 rounded-full" style="width: 0%; background: currentColor;"></div></div>
-                            <span id="voiceDuration-${m.id}" class="text-[10px] opacity-70 flex-shrink-0" data-total="${totalDuration}">${mm}:${ss}</span>
-                            <button id="voiceSpeedBtn-${m.id}" onclick="app.cycleVoiceSpeed(${jsNum(m.id)})" class="text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0" style="background: rgba(127,127,127,0.25);">1x</button>
-                            <audio id="voiceAudio-${m.id}" data-duration="${totalDuration}" src="${escapeHtml(safeAudioUrl(m.audioUrl))}" class="hidden voice-message-audio" preload="none" onplay="app.onVoicePlay(${jsNum(m.id)})" onpause="app.onVoicePause(${jsNum(m.id)})" onended="app.onVoiceEnded(${jsNum(m.id)})" ontimeupdate="app.onVoiceTimeUpdate(${jsNum(m.id)})"></audio>
-                        </div>`;
-                } else if (m.type === 'call') {
-                    const ok = m.st === 'done';
-                    const d = Math.max(0, Math.round(numOr0(m.dur)));
-                    const lbl = ok ? 'مكالمة صوتية' : isMine ? ({ no: 'رفض المكالمة', busy: 'كان مشغول', cancel: 'مكالمة ملغية' }[m.st] || 'ما رد') : 'مكالمة فائتة';
-                    const sub = ok ? (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d / 60) % 60).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : 'اضغط حتى ترجع تتصل';
-                    bodyHtml = `<div class="chat-call ${ok ? '' : 'missed'}" onclick="event.stopPropagation(); app.goCall()">
-                            <span class="chat-call-ic"><i data-lucide="${ok ? (isMine ? 'phone-outgoing' : 'phone-incoming') : 'phone-missed'}" class="w-4 h-4"></i></span>
-                            <span class="min-w-0"><span class="block text-xs font-bold">${lbl}</span><span class="block text-[10px] opacity-75" dir="${ok ? 'ltr' : 'rtl'}">${sub}</span></span>
-                        </div>`;
-                } else if (m.type === 'file') {
-                    bodyHtml = `<a href="${escapeHtml(safeFileUrl(m.fileUrl) || '#')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;">
-                            <div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div>
-                            <div class="min-w-0"><div class="text-xs font-bold truncate">${escapeHtml(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${(numOr0(m.fileSize) / 1024 / 1024).toFixed(1)} MB</div></div>
-                        </a>`;
-                } else {
-                    bodyHtml = `${escapeHtml(m.text)}`;
-                }
-                const at = new Date(m.createdAt || m.id || 0);
-                const hm = at.getHours() % 12 || 12;
-                const time = hm + ':' + String(at.getMinutes()).padStart(2, '0') + (at.getHours() < 12 ? ' ص' : ' م');
-                const meta = `<span class="cm-meta${m.type === 'image' ? ' cm-meta-img' : isTextMsg ? '' : ' cm-meta-blk'}">${m.edited && isTextMsg ? '<span>معدّلة</span>' : ''}<span>${time}</span>${isMine ? `<span class="cm-tick" data-at="${numOr0(m.createdAt)}"><i data-lucide="check"></i><i data-lucide="check-check"></i></span>` : ''}</span>`;
-                let sep = '';
-                if (!prev || this._chatDay(prev.createdAt) !== this._chatDay(m.createdAt)) sep = `<div class="cm-day"><span>${this._chatDayLabel(m.createdAt)}</span></div>`;
-                return `${sep}
-                    <div class="cm-row flex flex-col ${isMine ? 'items-end' : 'items-start'} ${prevSameSender ? '' : 'mt-1.5'}" data-mid="${numOr0(m.id)}">
-                        <div class="cm-bubble max-w-[80%] ${m.type === 'image' ? 'p-1' : 'px-3.5 pt-2 pb-1.5'} text-sm leading-relaxed cursor-pointer shadow-sm ${isMine ? 'bg-primary text-white rounded-2xl' : 'theme-transition rounded-2xl'} ${prevSameSender ? '' : isMine ? 'rounded-ee-md' : 'rounded-es-md'} ${this._animatedMsgIds.has(m.id) ? '' : 'chat-bubble-in'}" style="${!isMine ? 'background-color: var(--surface); border: 1px solid var(--border); color: var(--text);' : ''}" ontouchstart="app.startMsgLongPress(event, ${jsNum(m.id)})" ontouchmove="app.trackMsgLongPress(event)" ontouchend="app.cancelMsgLongPress()" ontouchcancel="app.cancelMsgLongPress()" onmousedown="app.startMsgLongPress(event, ${jsNum(m.id)})" onmousemove="app.trackMsgLongPress(event)" onmouseup="app.cancelMsgLongPress()" onmouseleave="app.cancelMsgLongPress()">
-                            ${bodyHtml}${meta}
-                        </div>
-                        ${showActions ? `
-                        <div class="flex items-center gap-1.5 mt-1 flex-wrap">
-                            ${isTextMsg ? `<button onclick="event.stopPropagation(); app.copyMessageText(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">نسخ</button>` : ''}
-                            ${isMine && isTextMsg ? `<button onclick="event.stopPropagation(); app.openEditMessageModal(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg theme-transition" style="background-color: var(--input-bg); color: var(--text2);">تعديل</button>` : ''}
-                            <button onclick="event.stopPropagation(); app.openMessageDeleteChoice(${jsNum(m.id)})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">حذف</button>
-                            ${!isMine ? `<button onclick="event.stopPropagation(); app.openReportModal(${jsArg(m.from)}, ${jsNum(m.id)}, ${jsArg(isTextMsg ? String(m.text || '').slice(0, 200) : '[صورة]')})" class="text-[11px] font-bold px-2 py-1 rounded-lg text-error" style="background-color: var(--input-bg);">إبلاغ</button>` : ''}
-                        </div>` : ''}
-                    </div>`;
-            },
-            _chatDay(t) { const d = new Date(t || 0); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); },
-            _chatDayLabel(t) {
-                const d = new Date(t || 0), now = new Date();
-                const y = new Date(now); y.setDate(now.getDate() - 1);
-                if (this._chatDay(d) === this._chatDay(now)) return 'اليوم';
-                if (this._chatDay(d) === this._chatDay(y)) return 'أمس';
-                const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-                if (now - d < 6 * 86400000) return days[d.getDay()];
-                return d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
-            },
-            // blue double tick on what the other side has read
-            _chatTicks() {
-                const at = this.currentChatOtherReadAt || 0;
-                document.querySelectorAll('#chatMessagesList .cm-tick').forEach((el) => el.classList.toggle('read', at >= Number(el.dataset.at || 0)));
-            },
-            _chatNearBottom() {
-                const el = document.scrollingElement || document.documentElement;
-                return el.scrollHeight - (el.scrollTop + window.innerHeight) < 160;
-            },
-            _chatToBottom(smooth) {
-                const el = document.scrollingElement || document.documentElement;
-                window.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
-                const pill = document.getElementById('chatNewPill'); if (pill) pill.remove();
-            },
-            _chatNewPill() {
-                if (document.getElementById('chatNewPill')) return;
-                const b = document.createElement('button');
-                b.id = 'chatNewPill'; b.className = 'cm-newpill';
-                b.innerHTML = '<i data-lucide="arrow-down" class="w-4 h-4"></i> رسائل جديدة';
-                b.onclick = () => this._chatToBottom(true);
-                document.body.appendChild(b);
-                lucide.createIcons();
-                const off = () => { if (this._chatNearBottom() || this.currentView !== 'chatThreadView') { b.remove(); window.removeEventListener('scroll', off); } };
-                window.addEventListener('scroll', off, { passive: true });
-            },
-
-            // Draws the thread. Only new messages are added when the list just grew, so a playing
-            // voice message or a loading photo isn't thrown away by every update.
-            renderChatMessages() {
-                const container = document.getElementById('chatMessagesList');
-                if (!container) return;
-                this._animatedMsgIds = this._animatedMsgIds || new Set();
-                if (chatMessages.length === 0) {
-                    container.innerHTML = '<p class="text-sm text-center py-10 theme-transition" style="color: var(--text2);">ابدأ المحادثة بإرسال أول رسالة</p>';
-                    this._chatKeys = [];
-                    return;
-                }
-                const keys = chatMessages.map((m) => [m.id, m.type || '', m.text || '', m.edited ? 1 : 0, this._openMessageActionsId === m.id ? 1 : 0].join('|'));
-                const old = container.dataset.chat === this.currentChatUid ? this._chatKeys || [] : [];
-                const first = !old.length;
-                const near = first || this._chatNearBottom();
-                let added = 0, mineAdded = false;
-                if (old.length && old.length <= keys.length && old.every((k, i) => k === keys[i])) {
-                    if (old.length === keys.length) { this._chatTicks(); return; }
-                    let html = '';
-                    for (let i = old.length; i < chatMessages.length; i++) {
-                        html += this._chatMsgHtml(chatMessages[i], i);
-                        if (chatMessages[i].from === this.authUid) mineAdded = true;
-                        added++;
-                    }
-                    container.insertAdjacentHTML('beforeend', html);
-                } else {
-                    container.innerHTML = chatMessages.map((m, i) => this._chatMsgHtml(m, i)).join('');
-                    if (old.length) added = Math.max(0, keys.length - old.length);
-                    mineAdded = added > 0 && chatMessages[chatMessages.length - 1].from === this.authUid;
-                }
-                chatMessages.forEach((m) => this._animatedMsgIds.add(m.id));
-                this._chatKeys = keys;
-                container.dataset.chat = this.currentChatUid;
-                if (window.lucide) lucide.createIcons();
-                this._chatTicks();
-                if (first) {
-                    this._chatToBottom(false);
-                    // photos finish loading after this; stay at the bottom while they do
-                    [150, 500, 1200].forEach((ms) => setTimeout(() => { if (this.currentView === 'chatThreadView') this._chatToBottom(false); }, ms));
-                    container.querySelectorAll('img').forEach((img) => { if (!img.complete) img.addEventListener('load', () => { if (this._chatNearBottom()) this._chatToBottom(false); }, { once: true }); });
-                } else if (added) {
-                    if (near || mineAdded) requestAnimationFrame(() => this._chatToBottom(true));
-                    else this._chatNewPill();
-                }
-            },
-
-            toggleMessageActions(msgId) {
-                this._openMessageActionsId = this._openMessageActionsId === msgId ? null : msgId;
-                this.renderChatMessages();
-            },
-
-            // FIX (UI/UX): the actions row (copy/edit/delete/report) used to open on a plain
-            // tap on the bubble — unlike the long-press pattern every mainstream chat app uses
-            // (WhatsApp, Telegram), so a normal tap while just reading back through a
-            // conversation could pop the menu by accident. Now it opens on a ~450ms hold, and
-            // cancels itself if the finger/pointer moves more than a few px (a scroll) or is
-            // released early (a normal tap does nothing, matching read-only browsing).
-            startMsgLongPress(e, msgId) {
-                this.cancelMsgLongPress();
-                const point = e.touches ? e.touches[0] : e;
-                if (!point) return;
-                this._msgPressStartX = point.clientX;
-                this._msgPressStartY = point.clientY;
-                this._msgPressTimer = setTimeout(() => {
-                    this._msgPressTimer = null;
-                    this.toggleMessageActions(msgId);
-                }, 450);
-            },
-            trackMsgLongPress(e) {
-                if (!this._msgPressTimer) return;
-                const point = e.touches ? e.touches[0] : e;
-                if (!point) return;
-                const dx = Math.abs(point.clientX - this._msgPressStartX);
-                const dy = Math.abs(point.clientY - this._msgPressStartY);
-                if (dx > 10 || dy > 10) this.cancelMsgLongPress();
-            },
-            cancelMsgLongPress() {
-                if (this._msgPressTimer) { clearTimeout(this._msgPressTimer); this._msgPressTimer = null; }
-            },
-
-            copyMessageText(msgId) {
-                const m = chatMessages.find(x => x.id === msgId);
-                if (!m) return;
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(m.text).then(() => {
-                        this.showToast('تم نسخ النص');
-                    }).catch(() => {
-                        this.showToast('تعذر النسخ');
-                    });
-                } else {
-                    this.showToast('النسخ غير مدعوم بهذا المتصفح');
-                }
-            },
-
-            openMessageDeleteChoice(msgId) {
-                const m = chatMessages.find(x => x.id === msgId);
-                if (!m) return;
-                const isMine = m.from === this.authUid;
-                const withinWindow = isMine && (Date.now() - (m.createdAt || 0) < 3600000);
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'حذف الرسالة';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = `
-                    <div class="flex flex-col gap-2">
-                        <button onclick="app.deleteChatMessage(${jsNum(msgId)}, false)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4" style="background-color: var(--input-bg); color: var(--text);">حذف عندي فقط</button>
-                        ${withinWindow ? `<button onclick="app.deleteChatMessage(${jsNum(msgId)}, true)" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4" style="background-color: var(--input-bg);">حذف لدى الطرفين</button>` : ''}
-                        <button onclick="app.closeWalletModal()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
-            deleteChatMessage(msgId, forBoth) {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                const chatId = this.getChatId(this.currentChatUid);
-                const { ref, remove, set } = window.firebaseDbHelpers;
-                const applyLocal = () => {
-                    const i = chatMessages.findIndex(m => m.id === msgId);
-                    if (i > -1) chatMessages.splice(i, 1);
-                    this._openMessageActionsId = null;
-                    this.closeWalletModal();
-                    this.renderChatMessages();
-                };
-                if (forBoth) {
-                    remove(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId)).then(applyLocal).catch((err) => {
-                        console.warn('Delete message failed:', err);
-                        this.showToast('تعذر حذف الرسالة');
-                    });
-                } else {
-                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/deletedFor/' + this.authUid + '/' + msgId), true).then(() => {
-                        this.currentChatDeletedFor[msgId] = true;
-                        applyLocal();
-                    }).catch((err) => {
-                        console.warn('Hide message failed:', err);
-                        this.showToast('تعذر حذف الرسالة');
-                    });
-                }
-            },
-
-            openEditMessageModal(msgId) {
-                const m = chatMessages.find(x => x.id === msgId);
-                if (!m) return;
-                this._pendingEditMsgId = msgId;
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'تعديل الرسالة';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = `
-                    <div class="flex flex-col gap-3">
-                        <textarea id="editMessageInput" rows="3" class="w-full px-4 py-3 rounded-xl auth-input text-sm" style="resize: none;">${escapeHtml(m.text)}</textarea>
-                        <button onclick="app.saveEditedMessage()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">حفظ</button>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
-            saveEditedMessage() {
-                const input = document.getElementById('editMessageInput');
-                if (!input || !this._pendingEditMsgId || !window.firebaseDb || !this.currentChatUid) return;
-                const text = input.value.trim();
-                if (!text) { this.showToast('اكتب نص الرسالة'); return; }
-                const filtered = filterBadWords(text);
-                const chatId = this.getChatId(this.currentChatUid);
-                const msgId = this._pendingEditMsgId;
-                const { ref, set } = window.firebaseDbHelpers;
-                Promise.all([
-                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId + '/text'), filtered.clean),
-                    set(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages/' + msgId + '/edited'), true)
-                ]).then(() => {
-                    const m = chatMessages.find(x => x.id === msgId);
-                    if (m) { m.text = filtered.clean; m.edited = true; }
-                    this._openMessageActionsId = null;
-                    this.closeWalletModal();
-                    this.renderChatMessages();
-                }).catch((err) => {
-                    console.warn('Edit message failed:', err);
-                    this.showToast('تعذر تعديل الرسالة');
-                });
-            },
-
-            async deleteEntireChat() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                if (!(await this.ask({ icon: 'trash-2', title: 'تحذف المحادثة؟', text: 'تنحذف من عندك، ورسائلك اللي دزيتها تنحذف من النظام، وتبقى رسائل الطرف الثاني عنده.', ok: 'احذف' }))) return;
-                const otherUid = this.currentChatUid, me = this.authUid, chatId = this.getChatId(otherUid);
-                const { ref, update, get } = window.firebaseDbHelpers;
-                try {
-                    const up = {
-                        ['userChats/' + me + '/' + otherUid]: null,
-                        ['chatClearedAt/' + me + '/' + otherUid]: Date.now(),
-                        ['privateChats/' + chatId + '/deletedFor/' + me]: null,
-                        ['privateChats/' + chatId + '/readReceipts/' + me]: null,
-                    };
-                    // the database rules let each of the two remove only their own messages
-                    const snap = await get(ref(window.firebaseDb, 'privateChats/' + chatId + '/messages'));
-                    if (snap.exists()) {
-                        const all = snap.val();
-                        Object.keys(all).forEach((k) => { if (all[k] && all[k].from === me) up['privateChats/' + chatId + '/messages/' + k] = null; });
-                    }
-                    await update(ref(window.firebaseDb), up);
-                    this.showToast('تم حذف المحادثة');
-                    this.closeWalletModal();
-                    this.goBack();
-                } catch (err) {
-                    console.warn('Delete chat failed:', err);
-                    this.showToast('تعذر حذف المحادثة');
-                }
-            },
-
-            openChatOptionsMenu() {
-                if (!this.currentChatUid) return;
-                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
-                const isMuted = !!(entry && entry.muted);
-                const isArchived = !!(entry && entry.archived);
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'خيارات المحادثة';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                const isPinned = !!(entry && entry.pinned);
-                content.innerHTML = `
-                    <div class="flex flex-col gap-2">
-                        <button onclick="app.togglePinChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="pin" class="w-4 h-4"></i>${isPinned ? 'إلغاء التثبيت' : 'تثبيت المحادثة'}</button>
-                        <button onclick="app.toggleMuteChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="${isMuted ? 'bell' : 'bell-off'}" class="w-4 h-4"></i>${isMuted ? 'إلغاء الكتم' : 'كتم المحادثة'}</button>
-                        <button onclick="app.toggleArchiveChat()" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="archive" class="w-4 h-4"></i>${isArchived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة'}</button>
-                        <button onclick="app.openReportModal(${jsArg(this.currentChatUid)}, null)" class="w-full h-12 rounded-xl font-bold text-sm theme-transition btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg); color: var(--text);"><i data-lucide="flag" class="w-4 h-4"></i>الإبلاغ عن المستخدم</button>
-                        <button onclick="app.deleteEntireChat()" class="w-full h-12 rounded-xl font-bold text-sm text-error btn-press text-right px-4 flex items-center gap-2" style="background-color: var(--input-bg);"><i data-lucide="trash-2" class="w-4 h-4"></i>حذف المحادثة</button>
-                    </div>
-                `;
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
-            togglePinChat() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
-                const newPinned = !(entry && entry.pinned);
-                const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/pinned'), newPinned).then(() => {
-                    this.showToast(newPinned ? 'تم تثبيت المحادثة' : 'تم إلغاء التثبيت');
-                    this.closeWalletModal();
-                }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
-            },
-
-            toggleMuteChat() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
-                const newMuted = !(entry && entry.muted);
-                const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/muted'), newMuted).then(() => {
-                    this.showToast(newMuted ? 'تم كتم المحادثة' : 'تم إلغاء الكتم');
-                    this.closeWalletModal();
-                }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
-            },
-
-            toggleArchiveChat() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                const entry = userChatsList.find(c => c.otherUid === this.currentChatUid);
-                const newArchived = !(entry && entry.archived);
-                const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/archived'), newArchived).then(() => {
-                    this.showToast(newArchived ? 'تم أرشفة المحادثة' : 'تم إلغاء الأرشفة');
-                    this.closeWalletModal();
-                    if (newArchived) this.goBack();
-                }).catch(() => { this.showToast('تعذر تنفيذ العملية'); });
+                if (!this.isLoggedIn || !this.currentUser) { this.showToast('يجب تسجيل الدخول لاستخدام الرسائل'); this.goToAuth('login'); return; }
+                if (typeof this._chatOpen === 'function') { this._chatOpen(otherUid, otherName, otherAvatar, otherStudentNumber); return; }
+                this._need('chat').then(() => this._chatOpen(otherUid, otherName, otherAvatar, otherStudentNumber)).catch(() => this.showToast('ما انحملت المحادثة، تأكد من النت وحاول مرة ثانية'));
             },
 
             // ===== Reports: one sheet for every kind of content (message, forum post, idea, dream, student) =====
@@ -12254,312 +11793,6 @@
                     const sh = document.querySelector('#rpSheet .rp-sheet');
                     if (sh) { sh.innerHTML = `<div class="rp-done"><span><i data-lucide="check"></i></span><b>وصل بلاغك، شكراً</b><p>الإدارة تراجعه وتتصرف.</p>${r.targetUid && !this.isBlocked(r.targetUid) ? `<button class="rp-blk" onclick="app.rpClose(); app.blockUser(${jsArg(r.targetUid)})"><i data-lucide="ban"></i>احظره عندي</button>` : ''}<button class="rp-ok" onclick="app.rpClose()">تمام</button></div>`; lucide.createIcons(); }
                 }).catch(() => { if (btn) btn.disabled = false; this.showToast('تعذر إرسال البلاغ، حاول مرة ثانية'); });
-            },
-
-            sendChatMessage() {
-                const input = document.getElementById('chatMessageInput');
-                if (!input) return;
-                const text = input.value.trim();
-                if (!text) return;
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول');
-                    return;
-                }
-                if (!window.firebaseDb || !this.currentChatUid) return;
-                if (this.blockedByOtherInChat) {
-                    this.showToast('لا يمكنك مراسلة هذا المستخدم');
-                    return;
-                }
-                if (this._sendingMessage) return;
-                const filtered = filterBadWords(text);
-                if (filtered.filtered) this.showToast('تم حذف كلمات غير لائقة من رسالتك');
-                input.value = '';
-                input.focus();
-                this.updateChatSendMode();
-                this._writeChatMessage({ text: filtered.clean }, filtered.clean, () => { input.value = text; });
-            },
-
-            sendChatAttachment(extra) {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول');
-                    return;
-                }
-                if (!window.firebaseDb || !this.currentChatUid) return;
-                if (this.blockedByOtherInChat) {
-                    this.showToast('لا يمكنك مراسلة هذا المستخدم');
-                    return;
-                }
-                if (this._sendingMessage) return;
-                const previewMap = { image: 'صورة', voice: 'رسالة صوتية', file: 'ملف: ' + (extra.fileName || 'PDF') };
-                this._writeChatMessage(extra, previewMap[extra.type] || 'مرفق', null);
-            },
-
-            // FIX: the message write and the two userChats/{uid} "last message" updates used
-            // to be three separate calls — if the app lost connection right after the message
-            // itself saved but before the second (recipient-side) update ran, the recipient's
-            // inbox entry never got its unread flag / preview text even though the message
-            // was already delivered in the shared thread. Firebase's multi-path `update()`
-            // applied to the database root writes every path in the map as a single atomic
-            // operation, so either all three land together or none do.
-            _writeChatMessage(extra, previewText, onFail) {
-                this._sendingMessage = true;
-                const { ref, update } = window.firebaseDbHelpers;
-                const chatId = this.getChatId(this.currentChatUid);
-                const msgId = Date.now();
-                const payload = Object.assign({ id: msgId, from: this.authUid, to: this.currentChatUid, createdAt: msgId }, extra);
-                const co = this.currentChatOther || {};
-                const myEntry = { otherUid: this.currentChatUid, lastMessage: previewText, lastAt: msgId, unread: false };
-                if (co.known || (co.name && co.name !== 'طالب')) myEntry.otherName = co.name;
-                if (co.avatar) myEntry.otherAvatar = co.avatar;
-                if (co.studentNumber) myEntry.otherStudentNumber = co.studentNumber;
-                const theirEntry = { otherUid: this.authUid, otherName: this.currentUser.fullName || 'طالب', otherAvatar: this.currentUser.avatar || '', otherStudentNumber: this.currentUser.studentNumber || '', lastMessage: previewText, lastAt: msgId, unread: true };
-                const updates = {};
-                updates['privateChats/' + chatId + '/messages/' + msgId] = payload;
-                Object.keys(myEntry).forEach((k) => { updates['userChats/' + this.authUid + '/' + this.currentChatUid + '/' + k] = myEntry[k]; });
-                Object.keys(theirEntry).forEach((k) => { updates['userChats/' + this.currentChatUid + '/' + this.authUid + '/' + k] = theirEntry[k]; });
-                const toUid = this.currentChatUid;
-                update(ref(window.firebaseDb), updates).then(() => {
-                    this._sendingMessage = false;
-                    this._notifyPush('msg', toUid, msgId);
-                }).catch((err) => {
-                    console.warn('Send message failed:', err);
-                    this._sendingMessage = false;
-                    if (onFail) onFail();
-                    this.showToast('تعذر إرسال الرسالة — تحقق من اتصالك وحاول مجدداً');
-                });
-            },
-
-            updateChatSendMode() {
-                const input = document.getElementById('chatMessageInput');
-                const sendBtn = document.getElementById('chatSendBtn');
-                const micBtn = document.getElementById('chatMicBtn');
-                if (!input || !sendBtn || !micBtn) return;
-                const hasText = input.value.trim().length > 0;
-                sendBtn.classList.toggle('hidden', !hasText);
-                micBtn.classList.toggle('hidden', hasText);
-            },
-
-            handleChatAttachment(event) {
-                const file = event.target.files && event.target.files[0];
-                event.target.value = '';
-                if (!file || !this.currentChatUid) return;
-                if (file.type.startsWith('image/')) {
-                    // a chat photo is kept small (about 80 KB) so sending is quick and the chat stays light
-                    compressForumImage(file, 900, 0.7).then((dataUrl) => {
-                        if (!dataUrl) { this.showToast('تعذرت معالجة الصورة'); return; }
-                        this.sendChatAttachment({ type: 'image', imageUrl: dataUrl });
-                    });
-                } else if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-                    if (file.size > 5 * 1024 * 1024) {
-                        this.showToast('حجم الملف يجب ألا يتجاوز 5MB');
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        this.sendChatAttachment({ type: 'file', fileUrl: reader.result, fileName: file.name, fileSize: file.size });
-                    };
-                    reader.onerror = () => { this.showToast('تعذرت قراءة الملف'); };
-                    reader.readAsDataURL(file);
-                } else {
-                    this.showToast('نوع الملف غير مدعوم — صور أو PDF فقط');
-                }
-            },
-
-            startVoiceHold(e) {
-                if (e.type === 'mousedown' && this._voiceTouchActive) return;
-                if (this._voiceHoldActive) return;
-                if (e.type === 'touchstart') this._voiceTouchActive = true;
-                e.preventDefault();
-                this._voiceHoldActive = true;
-                this._voiceHoldCancelled = false;
-                const point = e.touches ? e.touches[0] : e;
-                this._voiceHoldStartY = point.clientY;
-                this._voiceHoldStartX = point.clientX;
-                if (!this.currentChatUid) { this._voiceHoldActive = false; return; }
-                if (this.blockedByOtherInChat) {
-                    this.showToast('لا يمكنك مراسلة هذا المستخدم');
-                    this._voiceHoldActive = false;
-                    return;
-                }
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
-                    this.showToast('التسجيل الصوتي غير مدعوم بهذا المتصفح');
-                    this._voiceHoldActive = false;
-                    return;
-                }
-                navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-                    if (!this._voiceHoldActive) { stream.getTracks().forEach(t => t.stop()); return; }
-                    this._voiceStream = stream;
-                    this._voiceChunks = [];
-                    const recorder = new MediaRecorder(stream);
-                    this._voiceRecorder = recorder;
-                    recorder.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) this._voiceChunks.push(ev.data); };
-                    recorder.onstop = () => { this._handleVoiceRecordingStop(); };
-                    recorder.start();
-                    this._voiceStartTime = Date.now();
-                    this._showVoiceRecordingUI(true);
-                    this._updateVoiceRecordingTime();
-                    this._voiceTimerInterval = setInterval(() => this._updateVoiceRecordingTime(), 500);
-                }).catch(() => {
-                    this._voiceHoldActive = false;
-                    this.showToast('تعذر الوصول للمايكروفون — تحقق من الأذونات');
-                });
-            },
-
-            trackVoiceHoldMove(e) {
-                if (!this._voiceHoldActive) return;
-                const point = e.touches ? e.touches[0] : e;
-                if (!point) return;
-                const dy = this._voiceHoldStartY - point.clientY;
-                const dx = Math.abs(this._voiceHoldStartX - point.clientX);
-                const cancelling = dy > 60 || dx > 60;
-                this._voiceHoldCancelled = cancelling;
-                const hint = document.getElementById('chatVoiceCancelHint');
-                if (hint) {
-                    hint.textContent = cancelling ? 'اترك للإلغاء' : 'اسحب للأعلى للإلغاء';
-                    hint.style.color = cancelling ? 'var(--error)' : 'var(--text2)';
-                }
-            },
-
-            endVoiceHold(e, isRelease) {
-                if (e.type === 'touchend' || e.type === 'touchcancel') this._voiceTouchActive = false;
-                if (!this._voiceHoldActive) return;
-                this._voiceHoldActive = false;
-                const shouldSend = isRelease && !this._voiceHoldCancelled;
-                this.stopVoiceRecording(shouldSend);
-            },
-
-            _showVoiceRecordingUI(show) {
-                document.getElementById('chatAttachmentBtn')?.classList.toggle('hidden', show);
-                document.getElementById('chatTextInputWrap')?.classList.toggle('hidden', show);
-                document.getElementById('chatSendBtn')?.classList.toggle('hidden', show || document.getElementById('chatMessageInput')?.value.trim().length === 0);
-                document.getElementById('chatVoiceRecordingBar')?.classList.toggle('hidden', !show);
-                if (!show) this.updateChatSendMode();
-            },
-
-            _updateVoiceRecordingTime() {
-                const el = document.getElementById('chatVoiceRecordingTime');
-                if (!el || !this._voiceStartTime) return;
-                const secs = Math.floor((Date.now() - this._voiceStartTime) / 1000);
-                if (secs >= 120) { this.stopVoiceRecording(true); return; }
-                const m = Math.floor(secs / 60);
-                const s = secs % 60;
-                el.textContent = m + ':' + String(s).padStart(2, '0');
-            },
-
-            stopVoiceRecording(shouldSend) {
-                if (!this._voiceRecorder) return;
-                this._pendingVoiceSend = shouldSend;
-                if (this._voiceRecorder.state === 'recording') this._voiceRecorder.stop();
-                if (this._voiceStream) this._voiceStream.getTracks().forEach(t => t.stop());
-                clearInterval(this._voiceTimerInterval);
-            },
-
-            _handleVoiceRecordingStop() {
-                this._showVoiceRecordingUI(false);
-                const shouldSend = this._pendingVoiceSend;
-                const chunks = this._voiceChunks || [];
-                const durationSecs = this._voiceStartTime ? Math.round((Date.now() - this._voiceStartTime) / 1000) : 0;
-                this._voiceRecorder = null;
-                this._voiceStream = null;
-                this._voiceChunks = [];
-                this._voiceStartTime = null;
-                if (!shouldSend) return;
-                if (chunks.length === 0 || durationSecs < 1) {
-                    this.showToast('الرسالة الصوتية قصيرة جداً');
-                    return;
-                }
-                this.showToast('جاري إرسال الرسالة الصوتية...');
-                const blob = new Blob(chunks, { type: 'audio/webm' });
-                const reader = new FileReader();
-                reader.onload = () => {
-                    const dataUrl = reader.result;
-                    if (dataUrl.length > 7000000) {
-                        this.showToast('التسجيل طويل جداً، حاول رسالة أقصر');
-                        return;
-                    }
-                    this.sendChatAttachment({ type: 'voice', audioUrl: dataUrl, duration: durationSecs });
-                };
-                reader.onerror = () => { this.showToast('تعذر معالجة التسجيل'); };
-                reader.readAsDataURL(blob);
-            },
-
-            // FIX: `document.querySelectorAll('audio')` used to match every <audio> element on
-            // the page indiscriminately, including the WebRTC voice-room remote streams
-            // (id="voiceAudio_{uid}", created by playRemoteVoiceStream). Playing a single chat
-            // voice message used to pause everyone else's live voice-room call in the
-            // background. Chat voice-message elements carry a dedicated
-            // `.voice-message-audio` class (see renderChatMessages), so only those are paused
-            // now — live call audio is left alone.
-            toggleVoicePlayback(msgId) {
-                const audio = document.getElementById('voiceAudio-' + msgId);
-                if (!audio) return;
-                document.querySelectorAll('audio.voice-message-audio').forEach((a) => { if (a !== audio && !a.paused) a.pause(); });
-                if (audio.paused) audio.play().catch(() => { this.showToast('تعذر تشغيل الرسالة الصوتية'); });
-                else audio.pause();
-            },
-
-            onVoicePlay(msgId) {
-                const btn = document.getElementById('voicePlayBtn-' + msgId);
-                if (btn) btn.innerHTML = '<i data-lucide="pause" class="w-4 h-4"></i>';
-                lucide.createIcons();
-            },
-
-            onVoicePause(msgId) {
-                const btn = document.getElementById('voicePlayBtn-' + msgId);
-                if (btn) btn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i>';
-                lucide.createIcons();
-            },
-
-            onVoiceEnded(msgId) {
-                this.onVoicePause(msgId);
-                const progress = document.getElementById('voiceProgress-' + msgId);
-                if (progress) progress.style.width = '0%';
-                const audio = document.getElementById('voiceAudio-' + msgId);
-                if (audio) audio.currentTime = 0;
-                this._resetVoiceDurationLabel(msgId);
-            },
-
-            _resetVoiceDurationLabel(msgId) {
-                const durationEl = document.getElementById('voiceDuration-' + msgId);
-                if (durationEl && durationEl.dataset.total) {
-                    const total = Number(durationEl.dataset.total) || 0;
-                    durationEl.textContent = Math.floor(total / 60) + ':' + String(total % 60).padStart(2, '0');
-                }
-            },
-
-            onVoiceTimeUpdate(msgId) {
-                const audio = document.getElementById('voiceAudio-' + msgId);
-                const progress = document.getElementById('voiceProgress-' + msgId);
-                const durationEl = document.getElementById('voiceDuration-' + msgId);
-                if (!audio) return;
-                const totalDuration = Number(audio.dataset.duration) || 0;
-                if (totalDuration <= 0) return;
-                if (progress) progress.style.width = Math.min(100, (audio.currentTime / totalDuration) * 100) + '%';
-                if (durationEl) {
-                    const remaining = Math.max(0, Math.round(totalDuration - audio.currentTime));
-                    const m = Math.floor(remaining / 60);
-                    const s = remaining % 60;
-                    durationEl.textContent = m + ':' + String(s).padStart(2, '0');
-                }
-            },
-
-            cycleVoiceSpeed(msgId) {
-                const audio = document.getElementById('voiceAudio-' + msgId);
-                const btn = document.getElementById('voiceSpeedBtn-' + msgId);
-                if (!audio) return;
-                const speeds = [1, 1.5, 2];
-                const idx = speeds.indexOf(audio.playbackRate || 1);
-                const next = speeds[(idx + 1) % speeds.length];
-                audio.playbackRate = next;
-                if (btn) btn.textContent = next + 'x';
-            },
-
-            markChatRead() {
-                if (!window.firebaseDb || !this.authUid || !this.currentChatUid) return;
-                const { ref, set } = window.firebaseDbHelpers;
-                set(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + this.currentChatUid + '/unread'), false).catch(() => {});
-                const chatId = this.getChatId(this.currentChatUid);
-                set(ref(window.firebaseDb, 'privateChats/' + chatId + '/readReceipts/' + this.authUid), Date.now()).catch(() => {});
             },
 
             // ==================== STORE (reels-style marketplace) ====================
@@ -13349,6 +12582,7 @@
                 if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();
                 if (this.currentView === 'duelView' && viewId !== 'duelView' && this.dlClose) this.dlClose();
                 if (this.currentView === 'inviteView' && viewId !== 'inviteView' && this.ivClose) this.ivClose();
+                if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this.chatClose) this.chatClose();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
@@ -13356,7 +12590,6 @@
                 if (this.currentView === 'bioView' && viewId !== 'bioView') { this._bioClose(); this._bioScr = null; }
                 if (this.currentView === 'cardsView' && viewId !== 'cardsView' && this._kdEndReview) { this._kdEndReview(); this._kdCloseSheet(true); this._kdScr = null; }
                 if (this.currentView === 'ytRoomView' && viewId !== 'ytRoomView' && this._yrLeaveView) this._yrLeaveView();
-                if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this._voiceRecorder && this._voiceRecorder.state === 'recording') this.stopVoiceRecording(false);
                 document.querySelectorAll('#mainContent > div').forEach(el => el.classList.add('hidden'));
                 const view = document.getElementById(viewId);
                 if (!view) return;
