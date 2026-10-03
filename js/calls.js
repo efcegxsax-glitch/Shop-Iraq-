@@ -115,7 +115,7 @@
             if (!this.isLoggedIn || !this.authUid || !db()) { this.showToast('سجل دخول حتى تتصل'); return; }
             if (!uid) return;
             if (this._cl) { this.clMax(); return; }
-            if (this.isBlocked(uid) || this.blockedByOtherInChat) { this.showToast('ما تكدر تتصل بهذا الشخص'); return; }
+            if (this.isBlocked(uid)) { this.showToast('ما تكدر تتصل بهذا الشخص'); return; }
             if (!window.RTCPeerConnection || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) { this.showToast('متصفحك ما يدعم الاتصال الصوتي'); return; }
             if (navigator.onLine === false) { this.showToast('ماكو نت، تأكد من الاتصال'); return; }
             const c = this._cl = this._clNew('caller', uid, o.name, o.avatar);
@@ -193,6 +193,13 @@
             let call = null;
             try { const s = await get(ref(db(), 'calls/' + chat)); call = s.val(); } catch (e) {}
             if (!call || call.st !== 'ring' || call.id !== r.id || call.from !== from) { set(ringRef, null).catch(() => {}); return; }
+            // a ring that waited too long (the app was closed) is a missed call: tidy it and put it in the chat
+            if (call.at && Date.now() - Number(call.at) > RING_MS + 8000) {
+                set(ringRef, null).catch(() => {});
+                update(ref(db(), 'calls/' + chat), { st: 'miss', by: this.authUid }).catch(() => {});
+                this._clLog({ chat, other: { uid: from, name: r.n, avatar: r.a || '' }, role: 'callee', at: Number(call.at), secs: 0 }, 'miss', true);
+                return;
+            }
             if (this.isBlocked(from)) { update(ref(db(), 'calls/' + chat), { st: 'no', by: this.authUid }).catch(() => {}); set(ringRef, null).catch(() => {}); return; }
             if (this._cl) {
                 if (this._cl.id === r.id) return;
@@ -204,6 +211,7 @@
             c.id = r.id;
             c.st = 'in';
             c.offer = call.offer || null;
+            c.at = Number(call.at) || 0;
             this._clRender();
             this._clAvatar(c);
             this._clIce();
@@ -446,6 +454,7 @@
                 return;
             }
             if (c.role === 'callee' && !c.offer && v.offer) c.offer = v.offer;
+            if (typeof v.at === 'number') c.at = v.at;
             const om = !!(v.mute && v.mute[c.other.uid]);
             if (om !== !!c.otherMuted) { c.otherMuted = om; this._clRender(); }
             if (c.role === 'caller') {
@@ -623,26 +632,30 @@
                 if (!remote) update(ref(db(), 'calls/' + c.chat), { st, by: this.authUid }).catch(() => {});
                 if (c.role === 'caller') set(ref(db(), 'callRing/' + c.other.uid + '/' + this.authUid), null).catch(() => {});
                 else set(ref(db(), 'callRing/' + this.authUid + '/' + c.other.uid), null).catch(() => {});
-                if (c.role === 'caller') this._clLog(c, c.startedAt ? 'done' : why === 'no' ? 'no' : why === 'busy' ? 'busy' : why === 'cancel' ? 'cancel' : 'miss');
+                // the caller writes the call into the chat; when the call never got going (microphone, network) there is
+                // nothing to write, and a call nobody picked up is also written by the one who was called (see _clLog)
+                if (c.role === 'caller' && (c.startedAt || ['no', 'busy', 'cancel', 'miss', 'end'].includes(why))) this._clLog(c, c.startedAt ? 'done' : why === 'no' ? 'no' : why === 'busy' ? 'busy' : why === 'cancel' ? 'cancel' : 'miss');
+                if (c.role === 'callee' && !c.startedAt && why === 'miss') setTimeout(() => this._clLog(c, 'miss', true), 4000);
             }
             const msg = { end: 'انتهت المكالمة', cancel: 'انلغت المكالمة', no: c.role === 'caller' ? 'رفض المكالمة' : 'رفضت المكالمة', busy: 'مشغول بمكالمة ثانية', miss: c.role === 'caller' ? 'ما رد' : 'فاتتك مكالمة', lost: 'انقطع الاتصال', mic: 'ما اشتغل المايك', fail: 'ما كدرت أتصل، جرب مرة ثانية', gone: 'انتهت المكالمة' }[why] || 'انتهت المكالمة';
             this._clBye(c, msg);
         },
 
         // The call as a message in the chat, like WhatsApp's "voice call 4:12".
-        _clLog(c, st) {
+        _clLog(c, st, byCallee) {
             const { ref, update } = H();
-            const now = Date.now();
+            const now = (typeof c.at === 'number' && c.at > 0) ? c.at : Date.now();      // both ends use the call's own time as the id, so it is written once
             const me = this.currentUser || {};
             const known = this.currentChatUid === c.other.uid ? this.currentChatOther || {} : {};
             const text = st === 'done' ? 'مكالمة صوتية ' + mmss(c.secs) : 'مكالمة فائتة';
+            const caller = byCallee ? c.other.uid : this.authUid;
             const u = {};
-            u['privateChats/' + c.chat + '/messages/' + now] = { id: now, from: this.authUid, to: c.other.uid, createdAt: now, type: 'call', st, dur: c.secs };
-            const mine = { otherUid: c.other.uid, otherName: c.other.name || known.name || 'طالب', otherAvatar: c.other.avatar || known.avatar || '', lastMessage: text, lastAt: now, unread: false };
-            const theirs = { otherUid: this.authUid, otherName: me.fullName || 'طالب', otherAvatar: me.avatar || '', otherStudentNumber: me.studentNumber || '', lastMessage: text, lastAt: now, unread: true };
+            u['privateChats/' + c.chat + '/messages/' + now] = { id: now, from: this.authUid, to: c.other.uid, createdAt: now, type: 'call', st, dur: c.secs || 0, caller };
+            const mine = { otherUid: c.other.uid, otherName: c.other.name || known.name || 'طالب', otherAvatar: c.other.avatar || known.avatar || '', lastMessage: text, lastAt: now, unread: !!byCallee };
+            const theirs = { otherUid: this.authUid, otherName: me.fullName || 'طالب', otherAvatar: me.avatar || '', otherStudentNumber: me.studentNumber || '', lastMessage: text, lastAt: now, unread: !byCallee };
             Object.keys(mine).forEach((k) => { u['userChats/' + this.authUid + '/' + c.other.uid + '/' + k] = mine[k]; });
             Object.keys(theirs).forEach((k) => { u['userChats/' + c.other.uid + '/' + this.authUid + '/' + k] = theirs[k]; });
-            update(ref(db()), u).catch((e) => console.warn('call log', e));
+            update(ref(db()), u).catch(() => { /* the other end already wrote this call */ });
         },
 
         // ---------- the screen ----------

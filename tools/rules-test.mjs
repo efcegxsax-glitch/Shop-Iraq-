@@ -224,6 +224,29 @@ await no('outsider reads chat', get(ref(db('f3'), 'privateChats/f1_f2')));
 await ok('member reads chat', get(ref(db('f2'), 'privateChats/f1_f2/messages')));
 await no('outsider reads inbox', get(ref(db('f3'), 'userChats/f1')));
 
+// chats: clearing, purge after both cleared, replies, typing
+await ok('chat message', set(ref(db('c4'), 'privateChats/c4_c5/messages/1000'), { id: 1000, from: 'c4', to: 'c5', createdAt: 1000, text: 'hi' }));
+await ok('reply message', set(ref(db('c5'), 'privateChats/c4_c5/messages/2000'), { id: 2000, from: 'c5', to: 'c4', createdAt: 2000, text: 'yes', rep: { i: 1000, f: 'c4', t: 'text', x: 'hi' } }));
+await no('reply without id', set(ref(db('c5'), 'privateChats/c4_c5/messages/2001'), { id: 2001, from: 'c5', to: 'c4', createdAt: 2001, text: 'x', rep: { f: 'c4' } }));
+await no('reply snippet too long', set(ref(db('c5'), 'privateChats/c4_c5/messages/2002'), { id: 2002, from: 'c5', to: 'c4', createdAt: 2002, text: 'x', rep: { i: 1, f: 'c4', x: 'x'.repeat(200) } }));
+await no('bad message type', set(ref(db('c5'), 'privateChats/c4_c5/messages/2003'), { id: 2003, from: 'c5', to: 'c4', createdAt: 2003, type: 'bomb' }));
+await no('huge text', set(ref(db('c5'), 'privateChats/c4_c5/messages/2004'), { id: 2004, from: 'c5', to: 'c4', createdAt: 2004, text: 'x'.repeat(4001) }));
+await no('remove the other\'s message before clearing', set(ref(db('c4'), 'privateChats/c4_c5/messages/2000'), null));
+await ok('c1 marks cleared', set(ref(db('c4'), 'privateChats/c4_c5/cleared/c4'), 5000));
+await no('c1 marks cleared for c2', set(ref(db('c4'), 'privateChats/c4_c5/cleared/c5'), 5000));
+await no('outsider marks cleared', set(ref(db('c6'), 'privateChats/c4_c5/cleared/c6'), 5000));
+await no('purge when only one cleared', set(ref(db('c4'), 'privateChats/c4_c5/messages/2000'), null));
+await ok('c2 marks cleared', set(ref(db('c5'), 'privateChats/c4_c5/cleared/c5'), 3000));
+await ok('purge the other\'s old message once both cleared', set(ref(db('c4'), 'privateChats/c4_c5/messages/2000'), null));
+await ok('c1 sends a new message after clearing', set(ref(db('c4'), 'privateChats/c4_c5/messages/6000'), { id: 6000, from: 'c4', to: 'c5', createdAt: 6000, text: 'new' }));
+await no('purge newer than the other\'s clear', set(ref(db('c5'), 'privateChats/c4_c5/messages/6000'), null));
+await ok('typing', set(ref(db('c4'), 'chatTyping/c4_c5/c4'), { s: 't', at: 1 }));
+await ok('peer reads typing', get(ref(db('c5'), 'chatTyping/c4_c5/c4')));
+await no('typing as the other', set(ref(db('c4'), 'chatTyping/c4_c5/c5'), { s: 't', at: 1 }));
+await no('typing bad kind', set(ref(db('c4'), 'chatTyping/c4_c5/c4'), { s: 'x', at: 1 }));
+await no('outsider reads typing', get(ref(db('c6'), 'chatTyping/c4_c5/c4')));
+await ok('stop typing', set(ref(db('c4'), 'chatTyping/c4_c5/c4'), null));
+
 // live duel
 const qsOk = () => Object.fromEntries(Array.from({ length: 7 }, (_, k) => [k, { q: 'سؤال؟', o: ['a', 'b', 'c', 'd'], c: k % 4 }]));
 await ok('duel host creates room', set(ref(db('h1'), 'duelRooms/abc123'), { host: 'h1', hn: 'علي', subj: 'phys', n: 7, at: Date.now(), qs: qsOk() }));
