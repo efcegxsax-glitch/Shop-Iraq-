@@ -4935,3 +4935,5 @@ body.rm-on { overflow: hidden; }
 .rp-link { margin-top: 12px; display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 12px; font-weight: 700; color: var(--text2); background: transparent; padding: 6px 10px; }
 .id-rp { margin-inline-start: auto; width: 28px; height: 28px; border-radius: 50%; background: transparent; color: var(--text2); display: inline-flex; align-items: center; justify-content: center; opacity: .7; }
 .id-rp svg { width: 15px; height: 15px; }
+.yr-rp, .rm-rp { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; margin-inline-start: 6px; border-radius: 50%; background: transparent; color: inherit; opacity: .55; vertical-align: middle; padding: 0; }
+.yr-rp svg, .rm-rp svg { width: 12px; height: 12px; }
