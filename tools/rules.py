@@ -290,6 +290,8 @@ rules = {
         }},
     },
     # the challenger also lists the duel for the other player
+    # مصاريفي: a copy of the student's money notebook (one JSON text), only theirs
+    "userMoney": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 900000)"}},
     "userDuels": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$id": {".write": "auth != null && root.child('duels/' + $id + '/player1Uid').val() == auth.uid"}}},
     "presence": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN)}},
     # which chat a student has open right now: only the person they are chatting with (and they themselves) can read it,

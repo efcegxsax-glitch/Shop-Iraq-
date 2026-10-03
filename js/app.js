@@ -4465,6 +4465,23 @@
                 this.tbOpen();
             },
 
+            goToMoney() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.money === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('moneyView');
+                if (this._withPart('money', () => typeof this.mnOpen === 'function', 'moneyView', () => this.goToMoney())) return;
+                this.mnOpen();
+            },
+            // the money page (js/money.js) keeps a one-line summary next to its data; the tutor reads it
+            _mnSummary() {
+                try {
+                    const o = JSON.parse(localStorage.getItem('isp:mn:sum:' + (this.authUid || 'guest')) || 'null');
+                    if (!o || !o.t) return '';
+                    const days = Math.floor((Date.now() - o.at) / 864e5);
+                    return o.t + (days >= 2 ? ' (آخر تحديث قبل ' + days + ' أيام)' : '');
+                } catch (e) { return ''; }
+            },
+
             // the weekly lecture timetable (js/table.js) is kept on the phone; the tutor reads this summary
             _tbKey() { return 'isp:tb:' + (this.authUid || 'guest'); },
             _tbGet() {
@@ -8410,6 +8427,7 @@
                 { id: 'twin', fn: 'goToTwin', t: 'توأم المذاكرة', d: 'زميل يشجعك وتشجعه', ic: 'users-round', c: '#A855F7', g: 'people' },
                 { id: 'sroom', fn: 'goToStudyRoom', t: 'غرفة المذاكرة', d: 'منو يذاكر هسه', ic: 'users', c: '#0D9488', g: 'people' },
                 { id: 'hall', fn: 'goToHall', t: 'قاعة الهمّة', d: 'ادخل وشوف طلاب العراق ويّاك', ic: 'flame', c: '#F97316', g: 'people', feat: 'hall' },
+                { id: 'money', fn: 'goToMoney', t: 'مصاريفي', d: 'محفظتك وميزانيتك وأهدافك، والمعلم يراقب', ic: 'wallet', c: '#0F766E', g: 'study', feat: 'money' },
                 { id: 'table', fn: 'goToTable', t: 'جدولي', d: 'جدول محاضراتك الأسبوعي تطبعه وتشاركه', ic: 'calendar-range', c: '#2563EB', g: 'study', feat: 'table' },
                 { id: 'voice', fn: 'goToVoiceRoom', t: 'الدردشة الصوتية', d: 'تكلم ويا زملائك', ic: 'mic', c: '#E11D48', g: 'people' },
                 { id: 'dreams', fn: 'goToDreams', t: 'سما الأحلام', d: 'أحلام طلاب العراق', ic: 'sparkles', c: '#7C3AED', g: 'people' },
@@ -13920,6 +13938,7 @@
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
+                if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
