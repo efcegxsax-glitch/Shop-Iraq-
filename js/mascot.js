@@ -27,7 +27,7 @@
             const cy = 100;
             let s = `<g class="mc-eye"><circle cx="${cx}" cy="${cy}" r="27" fill="#fff6e0" stroke="#e0b070" stroke-width="4"/>`;
             if (happy) return s + `</g><path d="M${cx - 15} ${cy + 6} Q${cx} ${cy - 14} ${cx + 15} ${cy + 6}" stroke="#3b2412" stroke-width="7" fill="none" stroke-linecap="round"/>`;
-            s += `<circle cx="${cx + side * -2}" cy="${cy + 2}" r="${shock ? 6 : 12.5}" fill="#2a1a0e"/><circle cx="${cx + side * -2 - 4}" cy="${cy - 3}" r="${shock ? 2 : 4}" fill="#fff"/></g>`;
+            s += `<g class="mc-pu"><circle cx="${cx + side * -2}" cy="${cy + 2}" r="${shock ? 6 : 12.5}" fill="#2a1a0e"/><circle cx="${cx + side * -2 - 4}" cy="${cy - 3}" r="${shock ? 2 : 4}" fill="#fff"/></g></g>`;
             if (angry || stern) s += `<clipPath id="mcc${cx}"><circle cx="${cx}" cy="${cy}" r="25"/></clipPath><g clip-path="url(#mcc${cx})"><rect x="${cx - 32}" y="${cy - 34}" width="64" height="${angry ? 30 : 22}" fill="#7a4d27" transform="rotate(${side * (angry ? 22 : 8)} ${cx} ${cy - 8})"/></g>`;
             if (sleepy) s += `<clipPath id="mcc${cx}"><circle cx="${cx}" cy="${cy}" r="25"/></clipPath><g clip-path="url(#mcc${cx})"><rect x="${cx - 30}" y="${cy - 30}" width="60" height="40" fill="#7a4d27"/></g>`;
             return s;
@@ -39,8 +39,8 @@
             : shock ? '<path d="M164 64 q-9 14 0 22 q9 -8 0 -22z" fill="#60a5fa" stroke="#2563eb" stroke-width="2"/>'
             : sleepy ? '<text x="150" y="52" font-size="26" font-weight="900" fill="#93c5fd" font-family="sans-serif">Z</text><text x="168" y="34" font-size="18" font-weight="900" fill="#bfdbfe" font-family="sans-serif">z</text>'
             : happy ? '<g fill="#fbbf24"><path d="M158 44 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M34 52 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g><ellipse cx="46" cy="124" rx="12" ry="7" fill="#fb7185" opacity=".5"/><ellipse cx="154" cy="124" rx="12" ry="7" fill="#fb7185" opacity=".5"/>' : '';
-        const wing = angry || stern ? '<g class="mc-wingup"><path d="M146 168 Q198 160 192 108 Q176 132 142 142 Z" fill="#6b4220"/><path d="M192 108 q6 -12 12 -6 q-2 10 -12 6z" fill="#8a5a2d"/></g>'
-            : '<path d="M146 146 Q182 156 170 196 Q150 184 140 160 Z" fill="#6b4220"/>';
+        const wing = angry || stern ? '<g class="mc-wr mc-wingup"><path d="M146 168 Q198 160 192 108 Q176 132 142 142 Z" fill="#6b4220"/><path d="M192 108 q6 -12 12 -6 q-2 10 -12 6z" fill="#8a5a2d"/></g>'
+            : '<g class="mc-wr"><path d="M146 146 Q182 156 170 196 Q150 184 140 160 Z" fill="#6b4220"/></g>';
         return `<svg viewBox="0 0 200 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs><linearGradient id="mcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9a6633"/><stop offset="1" stop-color="#6b4220"/></linearGradient>
             <linearGradient id="mcv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0cf"/><stop offset="1" stop-color="#f0cf96"/></linearGradient></defs>
@@ -48,7 +48,7 @@
             <path d="M84 206 q-8 14 6 16 q6 -6 4 -16z M116 206 q8 14 -6 16 q-6 -6 -4 -16z" fill="#f59e0b" stroke="#d97706" stroke-width="2"/>
             <ellipse cx="100" cy="152" rx="62" ry="68" fill="url(#mcb)"/>
             <path d="M146 146 Q182 156 170 196 Q150 184 140 160 Z" fill="none"/>
-            <path d="M54 146 Q18 156 30 196 Q50 184 60 160 Z" fill="#6b4220"/>
+            <g class="mc-wl"><path d="M54 146 Q18 156 30 196 Q50 184 60 160 Z" fill="#6b4220"/></g>
             ${wing}
             <ellipse cx="100" cy="166" rx="40" ry="46" fill="url(#mcv)"/>
             <g fill="none" stroke="#d9ac6a" stroke-width="3" stroke-linecap="round"><path d="M76 150 q8 8 16 0 M92 150 q8 8 16 0 M108 150 q8 8 16 0 M80 170 q8 8 16 0 M104 170 q8 8 16 0 M92 190 q8 8 16 0"/></g>
@@ -194,35 +194,111 @@
     function chime() {
         try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return; const c = new AC(), o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.setValueAtTime(520, c.currentTime); o.frequency.exponentialRampToValueAtTime(880, c.currentTime + 0.12); g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.exponentialRampToValueAtTime(0.12, c.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 0.22); o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime + 0.24); setTimeout(() => c.close && c.close(), 400); } catch (e) {}
     }
+    const FROMS = ['bl', 'br', 'tl', 'tr', 'l', 'r', 'fly'];
+    let lastFrom = '', idleT = 0, glanceAt = 0, pokes = 0, pokeT = 0, ptrFn = null, petT = 0;
+    const SQUEAK = ['آخ!', 'شنو تريد؟', 'لا تلمسني!', 'ههه دغدغتني!', 'بس بس!', 'أني أحجي وياك، اسمعني!'];
+    const LOVE = ['حلو حلو، بس بعدين تدرس!', 'أحبك، يلا ادرس!', 'مرة طيب، هسه افتح الكتاب.'];
+    let forceFrom = '';
+    function pickFrom(how) {
+        if (forceFrom) { const g = forceFrom; forceFrom = ''; lastFrom = g; return g; }
+        let f; do { f = rnd(FROMS); } while (f === lastFrom && FROMS.length > 1);
+        if (how === 'shake' && Math.random() < 0.6) f = 'fly';
+        lastFrom = f; return f;
+    }
+    function setMood(m) { const ob = document.querySelector('#mcOwl .mc-ob'); if (ob) ob.innerHTML = owl(m); }
+    function look(dx, dy) { document.querySelectorAll('#mcOwl .mc-pu').forEach((g) => { g.style.transform = `translate(${dx}px,${dy}px)`; }); }
+    function act(cls, ms) { const o = $('mcOwl'); if (!o) return; o.classList.add(cls); setTimeout(() => o && o.classList.remove(cls), ms); }
     function say(msg, how) {
-        clearTimeout(hideT); clearInterval(typeT); clearInterval(mouthT);
+        clearTimeout(hideT); clearInterval(typeT); clearInterval(idleT);
         let w = $('mcWrap');
-        if (!w) { w = document.createElement('div'); w.id = 'mcWrap'; w.className = 'mc-wrap'; document.body.appendChild(w); }
-        const shake = how === 'shake';
-        w.className = 'mc-wrap' + (shake ? ' mc-shk' : '');
+        if (w) { w.remove(); }
+        w = document.createElement('div'); w.id = 'mcWrap';
+        const from = pickFrom(how), right = from === 'br' || from === 'tr' || from === 'r' || (from === 'fly' && Math.random() < 0.5);
+        const pos = from === 'fly' ? (right ? 'br' : 'bl') : from;
+        w.className = 'mc-wrap' + (how === 'shake' ? ' mc-shk' : '') + (from === 'fly' ? ' mc-fly' : '');
+        w.dataset.from = pos; w.dataset.side = right ? 'r' : 'l';
         w.innerHTML = `<div class="mc-bub" id="mcBub"><div class="mc-nm"><b>أبو الهمّة</b><button class="mc-gear" onclick="app.mcSettings()" aria-label="إعدادات"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.4"/><circle cx="8" cy="17" r="2.4"/></svg></button></div><p id="mcTx" dir="rtl"></p>
             <div class="mc-btns"><button class="mc-go" onclick="app.mcStudy()">يلا أدرس</button><button class="mc-no" onclick="app.mcLater()">بعدين</button><button class="mc-mu" onclick="app.mcMuteToday()">سكّتني اليوم</button></div></div>
-            <div class="mc-owl" id="mcOwl" onclick="app.mcTap()">${owl(msg.mood)}</div>`;
-        cur = msg;
-        requestAnimationFrame(() => w.classList.add('on'));
-        chime(); speak(msg.t);
+            <div class="mc-owl${from === 'fly' ? ' fly' : ''}" id="mcOwl"><div class="mc-ob">${owl(msg.mood)}</div><div class="mc-hearts" id="mcHearts"></div></div>`;
+        document.body.appendChild(w);
+        cur = msg; cur.mood0 = msg.mood;
+        requestAnimationFrame(() => requestAnimationFrame(() => w.classList.add('on')));
+        if (from === 'fly') setTimeout(() => $('mcOwl') && $('mcOwl').classList.remove('fly'), 1300);
+        const delay = from === 'fly' ? 900 : 450;
+        setTimeout(() => { if (cur === msg) { chime(); speak(msg.t); } }, delay);
         if (how !== 'shake') { S.day.n++; save(); }
-        // typing, with the beak moving
+        // typing, with the beak moving and a little head bob
         const tx = $('mcTx'), owlEl = $('mcOwl'); let i = 0;
-        owlEl.classList.add('talk');
-        typeT = setInterval(() => {
-            i += 2; if (tx) tx.textContent = msg.t.slice(0, i);
-            if (i >= msg.t.length) { clearInterval(typeT); owlEl && owlEl.classList.remove('talk'); }
-        }, 34);
-        hideT = setTimeout(() => dismiss(true), Math.max(7000, msg.t.length * 110 + 3500));
+        setTimeout(() => {
+            if (cur !== msg) return;
+            owlEl.classList.add('talk');
+            typeT = setInterval(() => {
+                i += 2; if (tx) tx.textContent = msg.t.slice(0, i);
+                if (i >= msg.t.length) { clearInterval(typeT); owlEl && owlEl.classList.remove('talk'); }
+            }, 34);
+        }, delay);
+        wire(w);
+        // idle life: glances, hops, tilts, wing flaps
+        idleT = setInterval(() => {
+            if (!$('mcOwl')) return;
+            const r = Math.random();
+            if (Date.now() - glanceAt > 2500 && r < 0.45) look(Math.round((Math.random() - 0.5) * 12), Math.round((Math.random() - 0.4) * 8));
+            else if (r < 0.62) act('act-hop', 700);
+            else if (r < 0.76) act('act-tilt', 1200);
+            else if (r < 0.9) act('act-flap', 900);
+        }, 2300);
+        hideT = setTimeout(() => dismiss(true), Math.max(8000, msg.t.length * 120 + 4500) + delay);
+    }
+    // touch: poke, pet (hold), swipe away, eyes follow the finger
+    function wire(w) {
+        const owlEl = $('mcOwl'), bub = $('mcBub');
+        if (ptrFn) { document.removeEventListener('pointermove', ptrFn); ptrFn = null; }
+        ptrFn = (e) => {
+            if (!owlEl.isConnected) return;
+            const r = owlEl.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height * 0.4;
+            const dx = e.clientX - cx, dy = e.clientY - cy, d = Math.max(60, Math.hypot(dx, dy));
+            glanceAt = Date.now(); look(Math.round((dx / d) * 7), Math.round((dy / d) * 6));
+        };
+        document.addEventListener('pointermove', ptrFn, { passive: true });
+        let sx = 0, sy = 0, moved = false, down = 0;
+        const start = (e) => { sx = e.clientX; sy = e.clientY; moved = false; down = Date.now(); clearTimeout(petT); if (e.currentTarget === owlEl) petT = setTimeout(() => { if (!moved) pet(); }, 650); };
+        const move = (e) => { const dx = e.clientX - sx; if (Math.abs(dx) > 14) { moved = true; clearTimeout(petT); } w.style.setProperty('--dx', (moved ? dx : 0) + 'px'); };
+        const end = (e) => {
+            clearTimeout(petT);
+            const dx = e.clientX - sx, dy = e.clientY - sy;
+            w.style.setProperty('--dx', '0px');
+            if (Math.abs(dx) > 80 && Math.abs(dx) > Math.abs(dy) * 1.4) { w.dataset.fling = dx > 0 ? 'r' : 'l'; dismiss(true); return; }
+            if (e.currentTarget === owlEl && !moved && Date.now() - down < 600) poke();
+        };
+        [owlEl, bub].forEach((el) => { el.addEventListener('pointerdown', start); el.addEventListener('pointermove', move); el.addEventListener('pointerup', end); el.addEventListener('pointercancel', () => { clearTimeout(petT); w.style.setProperty('--dx', '0px'); }); });
+    }
+    function quip(t, mood, ms) {
+        if (!cur) return;
+        const tx = $('mcTx'); if (!tx) return;
+        clearInterval(typeT); tx.textContent = t;
+        const back = cur.mood0; setMood(mood); act('act-hop', 600);
+        clearTimeout(hideT); hideT = setTimeout(() => dismiss(true), 9000);
+        setTimeout(() => { if (cur && cur.mood0 === back) setMood(back); }, ms || 1400);
+    }
+    function poke() {
+        pokes++; clearTimeout(pokeT); pokeT = setTimeout(() => { pokes = 0; }, 2600);
+        if (pokes >= 5) { pokes = 0; quip('خلاص! تلعب وياي لو تدرس؟ اختار!', 'angry', 2200); act('act-shake', 700); return; }
+        quip(rnd(SQUEAK), 'shock', 900);
+    }
+    function pet() {
+        const hb = $('mcHearts'); if (!hb) return;
+        for (let i = 0; i < 6; i++) { const h = document.createElement('i'); h.style.setProperty('--x', (Math.random() * 70 - 35) + 'px'); h.style.animationDelay = (i * 0.12) + 's'; hb.appendChild(h); setTimeout(() => h.remove(), 2200); }
+        quip(rnd(LOVE), 'happy', 2200);
     }
     function dismiss(auto) {
-        clearTimeout(hideT); clearInterval(typeT);
+        clearTimeout(hideT); clearInterval(typeT); clearInterval(idleT); clearTimeout(petT);
+        if (ptrFn) { document.removeEventListener('pointermove', ptrFn); ptrFn = null; }
         const w = $('mcWrap'); if (!w) { cur = null; return; }
         if (auto && cur) ignored++;
         try { window.speechSynthesis && speechSynthesis.cancel(); } catch (e) {}
-        w.classList.remove('on'); w.classList.add('off'); cur = null;
-        setTimeout(() => { if (!cur && w.parentNode) w.remove(); }, 450);
+        const fly = w.classList.contains('mc-fly');
+        w.classList.remove('on'); w.classList.add('off'); if (fly && !w.dataset.fling) w.classList.add('mc-fly-out'); cur = null;
+        setTimeout(() => { if (!cur && w.parentNode) w.remove(); }, fly ? 1100 : 600);
     }
     function onShake() {
         if (!S || !enabled() || !S.shake) return;
@@ -286,6 +362,7 @@
         mcFlag(k) { S[k] = !S[k]; save(); if (k === 'on' && S.on) { ignored = 0; next = 0; } drawSheet(); },
         mcFreq(f) { S.freq = f; ignored = 0; next = 0; save(); drawSheet(); },
         mcTest() { this.mcSetClose(); setTimeout(() => say(compose(Math.random() < 0.5 ? 'nag' : 'scold'), 'test'), 350); },
+        mcSay(cat, from) { forceFrom = from || ''; say(compose(cat || 'nag'), 'test'); },
         mcTap() {
             const tx = $('mcTx'); if (tx && cur && tx.textContent.length < cur.t.length) { clearInterval(typeT); tx.textContent = cur.t; $('mcOwl')?.classList.remove('talk'); return; }
             dismiss(false);
