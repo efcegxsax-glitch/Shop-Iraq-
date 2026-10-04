@@ -5350,7 +5350,7 @@ body.ct-open .offline-bar { display: none !important; }
     height: calc(var(--safe-b) + 8px + 66px + 26px);
     background: linear-gradient(to top, rgba(var(--bg-rgb), 1) 0, rgba(var(--bg-rgb), 1) calc(var(--safe-b) + 8px + 44px), rgba(var(--bg-rgb), 0) 100%); }
 body.focus-mode #navFade, body.forest-on #navFade, body.chat-nav-hidden #navFade, body.results-nav-hidden #navFade, body.store-nav-hidden #navFade,
-body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.garden-running #navFade, body.ct-open #navFade { display: none; }
+body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.garden-running #navFade, body.ct-open #navFade, body.tutor-on #navFade, body.sub-nav-hidden #navFade { display: none; }
 
 /* ===== news cards on narrow phones (320-380 px): the footer wraps instead of cutting off its buttons ===== */
 @media (max-width: 380px) {
@@ -10741,7 +10741,7 @@ body.ct-open .offline-bar { display: none !important; }
     height: calc(var(--safe-b) + 8px + 66px + 26px);
     background: linear-gradient(to top, rgba(var(--bg-rgb), 1) 0, rgba(var(--bg-rgb), 1) calc(var(--safe-b) + 8px + 44px), rgba(var(--bg-rgb), 0) 100%); }
 body.focus-mode #navFade, body.forest-on #navFade, body.chat-nav-hidden #navFade, body.results-nav-hidden #navFade, body.store-nav-hidden #navFade,
-body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.garden-running #navFade, body.ct-open #navFade { display: none; }
+body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.garden-running #navFade, body.ct-open #navFade, body.tutor-on #navFade, body.sub-nav-hidden #navFade { display: none; }
 
 /* ===== news cards on narrow phones (320-380 px): the footer wraps instead of cutting off its buttons ===== */
 @media (max-width: 380px) {
@@ -10857,3 +10857,25 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .tu-pick span { flex: 1; min-width: 0; display: flex; flex-direction: column; } .tu-pick b { font-size: 14px; color: var(--text); } .tu-pick small { font-size: 12px; color: var(--text2); }
 .tu-pick em { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: transparent; border: 2px solid var(--border); } .tu-pick .on em { color: #fff; background: #DC2626; border-color: #DC2626; } .tu-pick em svg { width: 14px; height: 14px; }
 @media (prefers-reduced-motion: reduce) { .tu-skel i, .tu-pg i { animation: none; transition: none; } }
+
+/* teachers page: logo, views, personal marks */
+.tu-logo { width: 28px; height: 20px; flex: none; }
+.tu-views { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); margin-top: 4px; }
+.tu-views svg { width: 14px; height: 14px; }
+.tu-acts { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0 8px; }
+.tu-acts::-webkit-scrollbar { display: none; }
+.tu-acts button { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
+.tu-acts button svg { width: 15px; height: 15px; }
+.tu-acts button.on { background: color-mix(in srgb, #DC2626 14%, var(--surface)); border-color: #DC2626; }
+.tu-acts em { font-style: normal; font-size: 11px; background: #DC2626; color: #fff; border-radius: 999px; padding: 0 6px; }
+.tu-acts em:empty { display: none; }
+.tu-marks { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0 10px; }
+.tu-marks.hidden { display: none; }
+.tu-mk { display: inline-flex; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: var(--surface); }
+.tu-mk.q { border-color: color-mix(in srgb, #F59E0B 55%, transparent); }
+.tu-mk.i { border-color: color-mix(in srgb, #3B82F6 55%, transparent); }
+.tu-mk .go { display: inline-flex; align-items: center; gap: 6px; padding: 7px 10px; font: inherit; font-size: 12.5px; color: var(--text); background: transparent; }
+.tu-mk .go svg { width: 14px; height: 14px; }
+.tu-mk .rm { padding: 0 8px; background: var(--input-bg); color: var(--text2); }
+.tu-mk .rm svg { width: 12px; height: 12px; }
+.tu-mk-e { font-size: 12px; color: var(--text2); margin: 0; }
