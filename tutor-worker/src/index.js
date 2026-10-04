@@ -21,7 +21,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
-import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId } from './yt.js';
+import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
@@ -497,8 +497,77 @@ async function ytChannelFeed(id, ctx) {
     return f;
 }
 
+// ---- a teacher posted a new video: a push to the students with the video's own title ----
+// Every 15 minutes (cron): read the channels the admin added, look at each channel's newest videos and push the ones
+// published in the last window. With the KV store each video is pushed once (and a channel's first look never pushes
+// its old videos); without it only the last 20 minutes count, so a repeat is unlikely.
+async function ytNotify(env, ctx) {
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID || !env.FIREBASE_DB_URL) return 'no_key';
+    const base = env.FIREBASE_DB_URL.replace(/\/$/, '');
+    let chans = {};
+    try {
+        const sw = await fetch(base + '/siteConfig/features/tube.json');
+        if (sw.ok && (await sw.json()) === false) return 'off';
+        const r = await fetch(base + '/ytChannels.json');
+        if (r.ok) chans = (await r.json()) || {};
+    } catch { return 'db'; }
+    const list = Object.values(chans).filter((c) => c && isChannelId(c.id)).slice(0, 30);
+    const kv = env.AVATARS, now = Date.now();
+    let sent = 0;
+    for (const c of list) {
+        let f; try { f = await ytChannelFeed(c.id, ctx); } catch { continue; }
+        const vids = (f.videos || []).slice(0, 6);
+        let fresh;
+        if (kv) {
+            const first = !(await kv.get('yt:init:' + c.id));
+            if (first) { await kv.put('yt:init:' + c.id, '1'); for (const v of vids) await kv.put('yt:sent:' + v.v, '1', { expirationTtl: 30 * 86400 }); continue; }
+            fresh = [];
+            for (const v of vids) if (v.p > now - 6 * 3600000 && !(await kv.get('yt:sent:' + v.v))) fresh.push(v);
+        } else fresh = vids.filter((v) => v.p > now - 20 * 60000);
+        for (const v of fresh.slice(0, 2)) {
+            if (kv) await kv.put('yt:sent:' + v.v, '1', { expirationTtl: 30 * 86400 });
+            const res = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                body: JSON.stringify({
+                    app_id: env.ONESIGNAL_APP_ID, target_channel: 'push',
+                    filters: [{ field: 'tag', key: 'tube', relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: 'tube', relation: '=', value: 'on' }],
+                    headings: { en: str(c.n, 40) || 'محاضرة جديدة', ar: str(c.n, 40) || 'محاضرة جديدة' }, contents: { en: v.t, ar: v.t },
+                    ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tube=' + v.v,
+                    data: { tube: v.v }, web_push_topic: 'isp-tube-' + v.v.slice(0, 20), ttl: 12 * 3600,
+                }),
+            });
+            if (res.ok) sent++; else console.error('yt push', res.status, (await res.text().catch(() => '')).slice(0, 200));
+        }
+    }
+    return 'sent_' + sent;
+}
+
+// a channel's uploads, 100 at a time (the first page is cached for 30 minutes)
+async function ytUploads(id, cont, ctx) {
+    const cache = caches.default, key = new Request('https://yt-cache.invalid/u/' + id);
+    if (!cont) { const hit = await cache.match(key); if (hit) return hit.json(); }
+    let out;
+    if (!cont) {
+        const r = await fetch(uploadsUrl(id), { headers: ytHeaders, redirect: 'follow' });
+        if (!r.ok) return null;
+        const d = initialData(await r.text());
+        if (!d) return null;
+        out = parseUploads(d);
+    } else {
+        const r = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
+            method: 'POST', headers: { ...ytHeaders, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'ar', gl: 'IQ' } }, continuation: cont }),
+        });
+        if (!r.ok) return null;
+        out = parseUploads(await r.json().catch(() => null));
+    }
+    if (!cont && out.videos.length) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=1800' } })));
+    return out;
+}
+
 export default {
     async scheduled(event, env, ctx) {
+        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx).then((r) => console.log('yt notify', r))); return; }
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
     },
 
@@ -578,6 +647,18 @@ export default {
             for (const { id, f } of feeds) for (const v of f.videos.slice(0, 15)) videos.push({ ...v, c: id });
             videos.sort((a, b) => b.p - a.p);
             return json(200, { videos: videos.slice(0, 120) }, headers);
+        }
+
+        // one teacher's whole channel, page by page (old videos, not just the newest)
+        if (body.mode === 'ytchan') {
+            if (env.PER_NOTIFY) {
+                const { success } = await env.PER_NOTIFY.limit({ key: 'yc' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const id = String(body.id || ''), cont = typeof body.cont === 'string' ? body.cont.slice(0, 2000) : '';
+            if (!isChannelId(id)) return json(400, { error: 'bad' }, headers);
+            const out = await ytUploads(id, cont, ctx).catch(() => null);
+            return out ? json(200, out, headers) : json(502, { error: 'youtube' }, headers);
         }
 
         // admin only: find a channel by name, @handle or link

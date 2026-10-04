@@ -74,3 +74,35 @@ export function plan(q) {
 
 export const ytHeaders = HDR;
 export const isChannelId = (s) => CH_ID.test(String(s || ''));
+
+// ---- a channel's whole upload list (its "uploads" playlist = the channel id with UC -> UU), page by page ----
+export const uploadsUrl = (id) => 'https://www.youtube.com/playlist?list=UU' + String(id).slice(2);
+export function initialData(html) {
+    html = String(html || '');
+    const m = /var ytInitialData = (\{[\s\S]*?\});\s*<\/script>/.exec(html) || /ytInitialData"\]\s*=\s*(\{[\s\S]*?\});\s*<\/script>/.exec(html);
+    if (!m) return null;
+    try { return JSON.parse(m[1]); } catch { return null; }
+}
+// works on both the first page (ytInitialData) and the answers to a continuation request
+export function parseUploads(data) {
+    const videos = []; let next = '';
+    const txt = (o) => (o && (o.simpleText || (o.runs || []).map((r) => r.text).join(''))) || '';
+    (function walk(o, depth) {
+        if (!o || typeof o !== 'object' || depth > 40) return;
+        if (o.playlistVideoRenderer) {
+            const r = o.playlistVideoRenderer;
+            if (/^[A-Za-z0-9_-]{11}$/.test(r.videoId || '')) {
+                const info = (r.videoInfo && (r.videoInfo.runs || [])) || [];
+                videos.push({ v: r.videoId, t: txt(r.title).slice(0, 140), a: info.length ? String(info[info.length - 1].text || '').trim().slice(0, 30) : '', w: info.length > 1 ? String(info[0].text || '').trim().slice(0, 30) : '' });
+            }
+            return;
+        }
+        if (o.continuationItemRenderer) {
+            const tk = o.continuationItemRenderer.continuationEndpoint && o.continuationItemRenderer.continuationEndpoint.continuationCommand && o.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
+            if (tk && !next) next = String(tk);
+            return;
+        }
+        if (Array.isArray(o)) { for (const x of o) walk(x, depth + 1); } else { for (const k of Object.keys(o)) walk(o[k], depth + 1); }
+    })(data, 0);
+    return { videos, next };
+}

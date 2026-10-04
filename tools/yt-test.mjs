@@ -1,6 +1,6 @@
 // Checks the YouTube page readers in tutor-worker/src/yt.js against small saved samples.
 //   node tools/yt-test.mjs
-import { parseFeed, parseChannelPage, parseSearch, plan, isChannelId } from '../tutor-worker/src/yt.js';
+import { parseFeed, parseChannelPage, parseSearch, plan, isChannelId, parseUploads, initialData, uploadsUrl } from '../tutor-worker/src/yt.js';
 let ok = 0, bad = 0;
 const t = (name, cond) => { if (cond) ok++; else { bad++; console.log('FAIL', name); } };
 const feed = `<?xml version="1.0"?><feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
@@ -22,4 +22,11 @@ t('plan handle', plan('@Hussein').kind === 'page' && plan('https://www.youtube.c
 t('plan channel', plan('https://www.youtube.com/channel/UCabcdefghijklmnopqrstuv').url.endsWith('UCabcdefghijklmnopqrstuv'));
 t('plan name', plan('فاضل هاشم').kind === 'search' && plan('فاضل هاشم').url.includes('search_query='));
 t('plan empty', plan('  ') === null); t('id check', isChannelId('UCabcdefghijklmnopqrstuv') && !isChannelId('abc'));
+const up = { contents: [{ playlistVideoRenderer: { videoId: 'CCCCCCCCCCC', title: { runs: [{ text: 'حلقة 20 فصل ثاني' }] }, videoInfo: { runs: [{ text: '1.2K views' }, { text: ' • ' }, { text: '2 years ago' }] } } }, { playlistVideoRenderer: { videoId: 'bad' } }, { continuationItemRenderer: { continuationEndpoint: { continuationCommand: { token: 'TOK123' } } } }] };
+const u1 = parseUploads(up);
+t('uploads', u1.videos.length === 1 && u1.videos[0].t === 'حلقة 20 فصل ثاني' && u1.videos[0].a === '2 years ago' && u1.next === 'TOK123');
+const u2 = parseUploads({ onResponseReceivedActions: [{ appendContinuationItemsAction: { continuationItems: [{ playlistVideoRenderer: { videoId: 'DDDDDDDDDDD', title: { simpleText: 'x' } } }] } }] });
+t('uploads continuation', u2.videos.length === 1 && u2.next === '');
+t('uploads empty', parseUploads(null).videos.length === 0 && initialData('<html>') === null);
+t('uploads url', uploadsUrl('UCabcdefghijklmnopqrstuv') === 'https://www.youtube.com/playlist?list=UUabcdefghijklmnopqrstuv');
 console.log(bad ? bad + ' failed' : 'all ' + ok + ' passed'); process.exit(bad ? 1 : 0);
