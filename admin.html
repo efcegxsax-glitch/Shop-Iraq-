@@ -894,6 +894,7 @@
                             <option value="grants">المنح</option>
                             <option value="schools">المدارس</option>
                             <option value="decisions">القرارات</option>
+                            <option value="weather">الأنواء الجوية</option>
                             <option value="other">أخرى</option>
                         </select>
                     </div>
@@ -1010,6 +1011,7 @@
                             <option value="circular">تعميم</option>
                             <option value="update">تحديث</option>
                             <option value="reminder">تذكير</option>
+                            <option value="weather">الأنواء الجوية</option>
                             <option value="general">أخبار عامة</option>
                         </select>
                     </div>
@@ -2024,12 +2026,12 @@
                 if (sendNotif) {
                     await set(ref(db, 'notifications/' + id), {
                         id, title, description: val('n_excerpt'), time: 'الآن', read: false,
-                        type: urgent ? 'urgent' : 'announcement', createdAt: serverTimestamp()
+                        type: urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', createdAt: serverTimestamp()
                     });
                 }
                 let msg = 'تم نشر الخبر بنجاح';
                 if (sendNotif) {
-                    const pr = await pushPhones((urgent ? 'عاجل: ' : '') + title, val('n_excerpt'), []);
+                    const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), [], urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement');
                     msg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
                 }
                 toast(msg);
@@ -2077,7 +2079,7 @@
                 });
                 let rmsg = 'تم نشر الملزمة بنجاح';
                 if (el('r_notify').checked) {
-                    const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', []);
+                    const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', [], 'res');
                     rmsg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
                 }
                 toast(rmsg);
@@ -2093,7 +2095,7 @@
 
         // A real push to the students' phones (even with the app closed): the tutor Worker sends it through
         // OneSignal, after checking that this is the panel's own account. govs = governorate names, [] = everyone.
-        async function pushPhones(title, body, govs) {
+        async function pushPhones(title, body, govs, cat) {
             const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
             if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
@@ -2101,7 +2103,7 @@
             try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
             try {
                 const codes = (govs || []).map((g) => GOV_CODES[g]).filter(Boolean);
-                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes }) });
+                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '' }) });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
                 return { ok: true, n: j.recipients };
@@ -2122,7 +2124,7 @@
                 });
                 let msg = 'تم إرسال الإشعار لجميع الطلاب';
                 if (el('no_push').checked) {
-                    const pr = await pushPhones(title, val('no_desc'), []);
+                    const pr = await pushPhones(title, val('no_desc'), [], { urgent: 'urgent', announcement: 'announcement', weather: 'weather' }[val('no_type')] || 'general');
                     msg += pr.ok ? ' وطلع على الهواتف' + (pr.n ? ' (' + pr.n + ')' : '') : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
                 }
                 toast(msg);
@@ -3262,7 +3264,7 @@
                     const body = reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : '');
                     let pushed = false;
                     if (el('ds_notify').checked) {
-                        const pr = await pushPhones(title, body, allIraq ? [] : govs);
+                        const pr = await pushPhones(title, body, allIraq ? [] : govs, 'announcement');
                         pushed = pr.ok;
                         if (!pr.ok) toast('انتشر الإعلان بس ما طلع كإشعار للهاتف: ' + pr.why, false);
                     }

@@ -453,6 +453,8 @@ async function notifyPush(env, uid, token, body, headers, origin) {
         const pr = await dbGet(env, 'chatNow/' + to, token);
         if (pr && pr.c === uid && now - Number(pr.at || 0) < 70000) return json(200, { ok: true, skipped: 'in_chat' }, headers);
     }
+    // the receiver switched this kind of notification off in the app's settings
+    if ((await dbGet(env, 'pushPrefs/' + to + '/' + kind, token)) === false) return json(200, { ok: true, skipped: 'off' }, headers);
     let title, text;
     const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
     let photoUrl = '';
@@ -664,9 +666,17 @@ export default {
             const title = str(body.title, 80), text = str(body.body, 300);
             if (!title) return json(400, { error: 'empty' }, headers);
             const govs = (Array.isArray(body.govs) ? body.govs : []).map((g) => str(g, 20)).filter((g) => /^[a-z_]+$/.test(g)).slice(0, 19);
-            const target = govs.length
-                ? { filters: govs.flatMap((g, i) => (i ? [{ operator: 'OR' }] : []).concat([{ field: 'tag', key: 'gov', relation: '=', value: g }])) }
-                : { included_segments: ['Total Subscriptions'] };
+            // the student's own switch for this kind of notification (tag pn_<cat>: missing = on, so older installs still get it)
+            const cat = ['urgent', 'announcement', 'weather', 'res', 'general'].includes(body.cat) ? 'pn_' + body.cat : '';
+            const catOk = [{ field: 'tag', key: cat, relation: 'not_exists' }, { field: 'tag', key: cat, relation: '=', value: 'on' }];
+            let target;
+            if (govs.length) {
+                // (gov = g AND cat missing) OR (gov = g AND cat on), for each governorate
+                target = { filters: govs.flatMap((g, i) => {
+                    const gv = { field: 'tag', key: 'gov', relation: '=', value: g };
+                    return (i ? [{ operator: 'OR' }] : []).concat(cat ? [gv, catOk[0], { operator: 'OR' }, gv, catOk[1]] : [gv]);
+                }) };
+            } else target = cat ? { filters: [catOk[0], { operator: 'OR' }, catOk[1]] } : { included_segments: ['Total Subscriptions'] };
             const r = await fetch('https://api.onesignal.com/notifications?c=push', {
                 method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
                 body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env) }),

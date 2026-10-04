@@ -32,7 +32,7 @@
 
     // ---------- data: channels from the database, videos from the Worker ----------
     const chById = (id) => CH.find((c) => c.id === id) || null;
-    const pushOn = () => { try { return localStorage.getItem('isp_tube_push') !== '0'; } catch (e) { return true; } };
+    const pushOn = () => app.notifPrefs.tube !== false;
     const favs = () => new Set(load(K_FAV, []));
     function listenChannels() {
         if (un || !window.firebaseDb) return;
@@ -381,9 +381,8 @@
             requestAnimationFrame(() => w.classList.add('on'));
         },
         tuPushToggle(btn) {
-            const on = !pushOn();
-            try { localStorage.setItem('isp_tube_push', on ? '1' : '0'); } catch (e) {}
-            app._tubeTag(); btn && btn.classList.toggle('on', on);
+            app.toggleNotifPref('tube');
+            btn && btn.classList.toggle('on', pushOn());
         },
         tuFavToggle(id, btn) { const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); save(K_FAV, Array.from(f)); btn && btn.classList.toggle('on', f.has(id)); paint(); },
         tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); },
