@@ -21,6 +21,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
+import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
@@ -481,6 +482,21 @@ async function tbSync(env, uid, body) {
     return { ids, scheduled: ids.length, wanted: items.length };
 }
 
+
+// ---- the teachers' videos page: newest videos of the channels the admin picked (cached for 10 minutes) ----
+async function ytChannelFeed(id, ctx) {
+    const url = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + id;
+    const cache = caches.default, key = new Request('https://yt-cache.invalid/f/' + id);
+    const hit = await cache.match(key);
+    if (hit) return hit.json();
+    const r = await fetch(url, { headers: ytHeaders, cf: { cacheTtl: 300 } });
+    if (!r.ok) return { name: '', videos: [] };
+    const f = parseFeed(await r.text());
+    const res = new Response(JSON.stringify(f), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=600' } });
+    ctx.waitUntil(cache.put(key, res.clone()));
+    return f;
+}
+
 export default {
     async scheduled(event, env, ctx) {
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
@@ -547,6 +563,37 @@ export default {
             if (!img || img.length > 60000 || !/^\/9j\/[A-Za-z0-9+\/=]+$/.test(img)) return json(400, { error: 'bad_image' }, headers);
             await env.AVATARS.put('a:' + uid, img, { metadata: { t: Date.now() } });
             return json(200, { ok: true }, headers);
+        }
+
+        // the teachers' videos: the newest ones of up to 12 channels, merged, newest first
+        if (body.mode === 'ytfeed') {
+            if (env.PER_NOTIFY) {
+                const { success } = await env.PER_NOTIFY.limit({ key: 'yt' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const ids = (Array.isArray(body.ids) ? body.ids : []).filter(isChannelId).slice(0, 12);
+            if (!ids.length) return json(200, { videos: [] }, headers);
+            const feeds = await Promise.all(ids.map((id) => ytChannelFeed(id, ctx).then((f) => ({ id, f })).catch(() => ({ id, f: { videos: [] } }))));
+            const videos = [];
+            for (const { id, f } of feeds) for (const v of f.videos.slice(0, 15)) videos.push({ ...v, c: id });
+            videos.sort((a, b) => b.p - a.p);
+            return json(200, { videos: videos.slice(0, 120) }, headers);
+        }
+
+        // admin only: find a channel by name, @handle or link
+        if (body.mode === 'ytfind') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const p = ytPlan(body.q);
+            if (!p) return json(400, { error: 'empty' }, headers);
+            let html = '';
+            try { const r = await fetch(p.url, { headers: ytHeaders, redirect: 'follow' }); if (r.ok) html = await r.text(); } catch { /* handled below */ }
+            if (!html) return json(502, { error: 'youtube' }, headers);
+            const found = p.kind === 'page' ? [parseChannelPage(html)].filter(Boolean) : parseSearch(html);
+            return json(200, { channels: found }, headers);
         }
 
         if (body.mode === 'notify') {

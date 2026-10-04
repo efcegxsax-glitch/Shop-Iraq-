@@ -48,6 +48,8 @@
     }
 
     Object.assign(app, {
+        // the points rules, shared with the teachers' videos page (js/ytube.js)
+        YR_EARN: { EVERY, PER, DONE_PTS, DAY_CAP, CHECK_MIN, CHECK_MAX, FREEZE },
         // ---------- home: new room, invites, recent rooms ----------
         yrHome() {
             this._yrCloseRoom(true);

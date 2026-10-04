@@ -4621,6 +4621,14 @@
                 this.hlOpen();
             },
 
+            goToTube() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.tube === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('tubeView');
+                if (this._withPart('ytube', () => typeof this.tuOpen === 'function', 'tubeView', () => this.goToTube())) return;
+                this.tuOpen();
+            },
+
             goToTable() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.table === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5336,6 +5344,8 @@
             // true when it handled the press (closed a sheet or went back a page)
             nativeBack() {
                 const close = [
+                    ['#tuSheet', () => this.tuPickClose()],
+                    ['#tuPlayer', () => this.tuBack()],
                     ['#imgViewer', () => this.closeImageViewer()],
                     ['#ctSheet', () => this.chatSheetClose()],
                     ['#dlRoot', () => this.dlBack()],
@@ -8672,6 +8682,7 @@
                 { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
+                { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
                 { id: 'cal', fn: 'goToCalendar', t: 'التقويم الشهري', d: 'تقدمك يوم بيوم', ic: 'calendar-days', c: '#6366F1', g: 'study' },
@@ -12879,6 +12890,7 @@
                 if (this.currentView === 'foodView' && viewId !== 'foodView' && this.fdClose) this.fdClose();
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
+                if (this.currentView === 'tubeView' && viewId !== 'tubeView' && this.tuClose) this.tuClose();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
                 if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();
