@@ -68,6 +68,8 @@
 
         // مفتاح VAPID (لإشعارات الويب): Firebase Console → Project settings → Cloud Messaging → Web Push certificates
         window.FIREBASE_VAPID_KEY = "ضع_VAPID_KEY_هنا";
+        // Web client ID for "Sign in with Google" inside the phone app (a public identifier, not a secret; the admin panel can override it)
+        window.GOOGLE_WEB_CLIENT_ID = "16734952715-2kq836nngnijovq262o4vd5414u07t13.apps.googleusercontent.com";
         // ملاحظة أمان: مفتاح خادم FCM لا يوضع أبداً في الواجهة — إرسال الإشعارات الجماعية يتم عبر Cloud Functions فقط باستخدام Firebase Admin SDK (FCM HTTP v1).
 
         try {
