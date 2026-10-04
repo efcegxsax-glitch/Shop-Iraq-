@@ -5344,3 +5344,18 @@ body.ct-open .offline-bar { display: none !important; }
 .gp-go { height: 50px; border-radius: 14px; font: inherit; font-size: 15px; font-weight: 900; color: #fff; background: rgb(var(--p)); }
 .gp-go:disabled { opacity: .6; }
 .gp-no { padding: 8px; font: inherit; font-size: 13px; font-weight: 700; color: var(--text2); background: transparent; }
+
+/* ===== a solid base under the floating dock: page content no longer shows through or around it ===== */
+#navFade { position: fixed; left: 0; right: 0; bottom: 0; z-index: 49; pointer-events: none;
+    height: calc(var(--safe-b) + 8px + 66px + 26px);
+    background: linear-gradient(to top, rgba(var(--bg-rgb), 1) 0, rgba(var(--bg-rgb), 1) calc(var(--safe-b) + 8px + 44px), rgba(var(--bg-rgb), 0) 100%); }
+body.focus-mode #navFade, body.forest-on #navFade, body.chat-nav-hidden #navFade, body.results-nav-hidden #navFade, body.store-nav-hidden #navFade,
+body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.garden-running #navFade, body.ct-open #navFade { display: none; }
+
+/* ===== news cards on narrow phones (320-380 px): the footer wraps instead of cutting off its buttons ===== */
+@media (max-width: 380px) {
+    .nw-img { width: 100px; min-height: 104px; }
+    .nw-foot { flex-wrap: wrap; row-gap: 6px; }
+    .nw-foot .nw-meta:first-child, .nw-foot .nw-sep { display: none; }
+}
+@media (max-width: 340px) { .nw-card { gap: 8px; padding: 8px; } .nw-img { width: 88px; min-height: 96px; } }
