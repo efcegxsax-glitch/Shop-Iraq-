@@ -1092,16 +1092,13 @@
                         this.showToast('حجم الصورة يجب ألا يتجاوز 2MB');
                         return;
                     }
-                    const reader = new FileReader();
-                    reader.onerror = () => {
-                        this.showToast('تعذر قراءة الصورة');
-                    };
-                    reader.onload = (e) => {
+                    // a smaller picture (480 px) so the record and everything copied from it stays light
+                    compressForumImage(file, 480, 0.82).then((dataUrl) => {
+                        if (!dataUrl) { this.showToast('تعذر قراءة الصورة'); return; }
                         const preview = document.getElementById('authAvatarPreview');
-                        if (preview) preview.src = e.target.result;
-                        this.tempAvatar = e.target.result;
-                    };
-                    reader.readAsDataURL(file);
+                        if (preview) preview.src = dataUrl;
+                        this.tempAvatar = dataUrl;
+                    });
                 }
             },
 
@@ -2677,9 +2674,9 @@
                 });
                 // Points on the leaderboard are written together with users/{uid}/points
                 // (addPointsAtomic); here only the profile part, and 0 for a new record.
-                const lb = { name: payload.fullName, avatar: payload.avatar, grade: payload.grade, weeklyChange: payload.weeklyChange };
+                const lb = { name: payload.fullName, avatar: this._avatarLite(), grade: payload.grade, weeklyChange: payload.weeklyChange };
                 if (includeCounters) lb.points = 0;
-                userWrite.then((ok) => ok && update(ref(window.firebaseDb, 'leaderboard/' + uid), lb)).catch((err) => {
+                userWrite.then(async (ok) => { if (!ok) return; await this._thumbEnsure(); lb.avatar = this._avatarLite(); return update(ref(window.firebaseDb, 'leaderboard/' + uid), lb); }).catch((err) => {
                     console.warn('Leaderboard sync failed:', err);
                 });
                 // Phone -> email, so signing in with a phone number doesn't need to read every
@@ -2689,6 +2686,50 @@
                     update(ref(window.firebaseDb, 'phoneIndex/' + pk), { e: payload.email, u: uid }).catch(() => {});
                 }
                 return userWrite;
+            },
+
+            // ===== A small copy of the student's photo for everything public (leaderboard, friends, chats, study room) =====
+            // The full photo stays in the student's own record; the copies other students download are ~96 px (about 3 KB),
+            // so a list of hundreds of students stays light (the full photos used to travel with every list).
+            // a photo copy from a record that may hold an old big one: kept only when it is small
+            _liteImg(v) { return this._isDataImg(v) && v.length > 9000 ? '' : (v || ''); },
+            _isDataImg(s) { return typeof s === 'string' && s.indexOf('data:image') === 0; },
+            async _makeThumb(src, px) {
+                const img = new Image(); img.src = src; await img.decode();
+                const cv = document.createElement('canvas'); cv.width = cv.height = px || 96;
+                const m = Math.min(img.width, img.height), cx = cv.getContext('2d');
+                cx.drawImage(img, (img.width - m) / 2, (img.height - m) / 2, m, m, 0, 0, cv.width, cv.height);
+                return cv.toDataURL('image/jpeg', 0.55);
+            },
+            _avSig(a) { return a.length + ':' + a.slice(-24); },
+            // what to put in a public record right now: a web address as it is, a photo as its small copy ('' until it is made)
+            _avatarLite() {
+                const a = (this.currentUser && this.currentUser.avatar) || '';
+                if (!this._isDataImg(a)) return a;
+                return this._thumbC && this._thumbC.sig === this._avSig(a) ? this._thumbC.v : '';
+            },
+            async _thumbEnsure() {
+                try {
+                    const a = (this.currentUser && this.currentUser.avatar) || '', uid = this.authUid;
+                    if (!uid || !this._isDataImg(a)) return;
+                    const sig = this._avSig(a);
+                    if (!this._thumbC || this._thumbC.sig !== sig) {
+                        let c = null; try { c = JSON.parse(localStorage.getItem('isp_thumb:' + uid) || 'null'); } catch (e) {}
+                        if (!(c && c.sig === sig && typeof c.v === 'string')) {
+                            c = { sig, v: await this._makeThumb(a, 96) };
+                            try { localStorage.setItem('isp_thumb:' + uid, JSON.stringify(c)); } catch (e) {}
+                        }
+                        this._thumbC = c;
+                    }
+                    // the leaderboard keeps the small copy (older big copies are replaced once)
+                    let sent = ''; try { sent = localStorage.getItem('isp_thumb_sent:' + uid) || ''; } catch (e) {}
+                    if (sent !== sig && window.firebaseDb) {
+                        const { ref, get, set } = window.firebaseDbHelpers;
+                        const ex = await get(ref(window.firebaseDb, 'leaderboard/' + uid + '/name'));
+                        if (ex.exists()) { await set(ref(window.firebaseDb, 'leaderboard/' + uid + '/avatar'), this._thumbC.v); }
+                        try { localStorage.setItem('isp_thumb_sent:' + uid, sig); } catch (e) {}
+                    }
+                } catch (e) { /* the photo copy is an optimisation: initials show instead */ }
             },
 
             _phoneKey(p) {
@@ -2711,6 +2752,7 @@
                         this.currentUser = { ...this.currentUser, ...snap.val() };
                         this.isLoggedIn = true;
                         this.saveUserData();
+                        this._thumbEnsure();
                         this._pubSync(safeUid, this.currentUser);
                     } else {
                         const fu = window.firebaseAuth && window.firebaseAuth.currentUser;
@@ -10258,7 +10300,7 @@
                     const payload = {
                         fromUid: this.authUid,
                         fromName: this.currentUser.fullName || 'طالب',
-                        fromAvatar: this.currentUser.avatar || '',
+                        fromAvatar: this._avatarLite(),
                         fromStudentNumber: this.currentUser.studentNumber || '',
                         createdAt: Date.now()
                     };
@@ -10308,7 +10350,7 @@
                 const studentNumber = (req && req.fromStudentNumber) || (pending && pending.studentNumber) || '';
                 const { ref, set, remove } = window.firebaseDbHelpers;
                 const myEntry = { uid: fromUid, name, avatar, studentNumber, since: Date.now() };
-                const theirEntry = { uid: this.authUid, name: this.currentUser.fullName || 'طالب', avatar: this.currentUser.avatar || '', studentNumber: this.currentUser.studentNumber || '', since: Date.now() };
+                const theirEntry = { uid: this.authUid, name: this.currentUser.fullName || 'طالب', avatar: this._avatarLite(), studentNumber: this.currentUser.studentNumber || '', since: Date.now() };
                 Promise.all([
                     set(ref(window.firebaseDb, 'friends/' + this.authUid + '/' + fromUid), myEntry),
                     set(ref(window.firebaseDb, 'friends/' + fromUid + '/' + this.authUid), theirEntry),
@@ -11323,7 +11365,7 @@
                 const roomRef = ref(window.firebaseDb, 'studyRoom/' + uid);
                 set(roomRef, {
                     name: this.currentUser.fullName || 'طالب',
-                    avatar: this.currentUser.avatar || '',
+                    avatar: this._avatarLite(),
                     activity: activity,
                     startedAt: Date.now()
                 }).catch((err) => console.warn('Join study room failed:', err));

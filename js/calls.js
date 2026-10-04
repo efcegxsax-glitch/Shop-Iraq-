@@ -651,8 +651,8 @@
             const caller = byCallee ? c.other.uid : this.authUid;
             const u = {};
             u['privateChats/' + c.chat + '/messages/' + now] = { id: now, from: this.authUid, to: c.other.uid, createdAt: now, type: 'call', st, dur: c.secs || 0, caller };
-            const mine = { otherUid: c.other.uid, otherName: c.other.name || known.name || 'طالب', otherAvatar: c.other.avatar || known.avatar || '', lastMessage: text, lastAt: now, unread: !!byCallee };
-            const theirs = { otherUid: this.authUid, otherName: me.fullName || 'طالب', otherAvatar: me.avatar || '', otherStudentNumber: me.studentNumber || '', lastMessage: text, lastAt: now, unread: !byCallee };
+            const mine = { otherUid: c.other.uid, otherName: c.other.name || known.name || 'طالب', otherAvatar: this._liteImg(c.other.avatar || known.avatar || ''), lastMessage: text, lastAt: now, unread: !!byCallee };
+            const theirs = { otherUid: this.authUid, otherName: me.fullName || 'طالب', otherAvatar: this._avatarLite(), otherStudentNumber: me.studentNumber || '', lastMessage: text, lastAt: now, unread: !byCallee };
             Object.keys(mine).forEach((k) => { u['userChats/' + this.authUid + '/' + c.other.uid + '/' + k] = mine[k]; });
             Object.keys(theirs).forEach((k) => { u['userChats/' + c.other.uid + '/' + this.authUid + '/' + k] = theirs[k]; });
             update(ref(db()), u).catch(() => { /* the other end already wrote this call */ });

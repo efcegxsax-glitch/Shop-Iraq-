@@ -509,10 +509,10 @@
         u['privateChats/' + t.chat + '/messages/' + id] = m;
         const mine = { otherUid: uid, lastMessage: pv, lastAt: id, unread: false };
         if (co.known || (co.name && co.name !== 'طالب')) mine.otherName = co.name;
-        if (co.avatar) mine.otherAvatar = co.avatar;
+        if (co.avatar && app._liteImg(co.avatar)) mine.otherAvatar = app._liteImg(co.avatar);
         if (co.studentNumber) mine.otherStudentNumber = co.studentNumber;
         const cu = app.currentUser || {};
-        const theirs = { otherUid: me(), otherName: cu.fullName || 'طالب', otherAvatar: cu.avatar || '', otherStudentNumber: cu.studentNumber || '', lastMessage: pv, lastAt: id, unread: true };
+        const theirs = { otherUid: me(), otherName: cu.fullName || 'طالب', otherAvatar: app._avatarLite(), otherStudentNumber: cu.studentNumber || '', lastMessage: pv, lastAt: id, unread: true };
         Object.keys(mine).forEach((k) => { u['userChats/' + me() + '/' + uid + '/' + k] = mine[k]; });
         Object.keys(theirs).forEach((k) => { u['userChats/' + uid + '/' + me() + '/' + k] = theirs[k]; });
         clearTimeout(o.stuckT);

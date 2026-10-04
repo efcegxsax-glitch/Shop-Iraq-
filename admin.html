@@ -622,6 +622,18 @@
                     <button class="btn mt-2" id="cfg_save_google">حفظ</button>
                 </div>
 
+                <div class="card" id="slimCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="gauge"></i></div>
+                        <div>
+                            <h3>تخفيف حمل التطبيق (صور المتصدرين)</h3>
+                            <p>صور الطلاب القديمة كبيرة وتنزل مع قائمة المتقدمون لكل مستخدم، وهذا يستهلك إنترنت وسرعة. هذا الزر يصغّرها مرة وحدة (الصورة الأصلية عند الطالب تبقى كما هي)</p>
+                        </div>
+                    </div>
+                    <div class="field mt-2"><span id="slim_info" style="font-size:13px;opacity:.8">لم يتم الفحص بعد</span></div>
+                    <button class="btn mt-2" id="slim_go">افحص وصغّر الصور الكبيرة</button>
+                </div>
+
                 <div class="card" id="promoCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="sparkles"></i></div>
@@ -2626,6 +2638,34 @@
         el('promo_test').addEventListener('click', () => { const d = promoData(); if (!d) return; try { localStorage.setItem('isp_promo_preview', JSON.stringify(d)); } catch (e) {} toast('افتح التطبيق من نفس الجهاز وراح تطلع لك النافذة مرة وحدة للتجربة'); });
 
         el('cfg_save_google').addEventListener('click', () => { const v = val('cfg_google_cid'); if (v && !/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/i.test(v)) { toast('الصيغة غير صحيحة، لازم تنتهي بـ apps.googleusercontent.com'); return; } cfgWrite({ 'google/webClientId': v }, 'تم حفظ Web client ID'); });
+        // ---------- shrink the big photos that sit in the leaderboard (they travel to every student who opens it) ----------
+        el('slim_go').addEventListener('click', async () => {
+            const btn = el('slim_go'), info = el('slim_info');
+            btn.disabled = true; info.textContent = 'جاري الفحص...';
+            try {
+                const snap = await get(ref(db, 'leaderboard'));
+                const all = snap.exists() ? snap.val() : {};
+                const big = Object.keys(all).filter((u) => typeof (all[u] || {}).avatar === 'string' && all[u].avatar.startsWith('data:image') && all[u].avatar.length > 9000);
+                let before = 0, after = 0, done = 0;
+                for (const uid of big) {
+                    const src = all[uid].avatar;
+                    try {
+                        const im = new Image(); im.src = src; await im.decode();
+                        const c = document.createElement('canvas'); c.width = c.height = 96;
+                        const m = Math.min(im.width, im.height);
+                        c.getContext('2d').drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, 96, 96);
+                        const t = c.toDataURL('image/jpeg', 0.55);
+                        await update(ref(db, 'leaderboard/' + uid), { avatar: t });
+                        before += src.length; after += t.length; done++;
+                    } catch (e) { /* a broken picture: skipped */ }
+                    info.textContent = 'تم تصغير ' + done + ' من ' + big.length + '...';
+                }
+                info.textContent = big.length ? ('انتهى: صُغّرت ' + done + ' صورة، وفُرّ حوالي ' + Math.round((before - after) / 1024) + ' كيلوبايت عن كل فتح لقائمة المتقدمون') : 'ما كو صور كبيرة، كل شي خفيف';
+                toast(big.length ? 'تم تصغير الصور' : 'ما كو صور كبيرة');
+            } catch (e) { info.textContent = 'تعذر الفحص: ' + (e && e.message || ''); }
+            btn.disabled = false;
+        });
+
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({
             'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
         }, 'تم حفظ رسالة الصيانة'));
