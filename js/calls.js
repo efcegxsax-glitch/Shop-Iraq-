@@ -282,6 +282,12 @@
         // Out loud or to the ear, where the phone lets the page choose the output.
         async clSpeaker() {
             const c = this._cl;
+            if (c && this._isNative() && window.IspNative && window.IspNative.speaker) {
+                c.spk = !c.spk;
+                try { window.IspNative.speaker(c.spk); } catch (e) {}
+                this._clRender();
+                return;
+            }
             if (!c || !c.audio || typeof c.audio.setSinkId !== 'function') return;
             try {
                 const outs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'audiooutput');
@@ -311,6 +317,11 @@
             };
         },
 
+        // inside the phone app: call audio mode, ear speaker first (js/..., MainActivity.callAudio / speaker)
+        _clRoute(on) {
+            try { if (this._isNative() && window.IspNative && window.IspNative.callAudio) window.IspNative.callAudio(!!on); } catch (e) {}
+        },
+
         async _clMic() {
             try {
                 return await navigator.mediaDevices.getUserMedia({
@@ -321,7 +332,7 @@
                         googEchoCancellation: true, googNoiseSuppression: true, googHighpassFilter: true, googAutoGainControl: true,
                     },
                     video: false,
-                });
+                }).then((s) => { this._clRoute(true); return s; });
             } catch (e) {
                 this.showToast(e && e.name === 'NotAllowedError' ? 'اسمح للتطبيق يستخدم المايك حتى تتصل' : 'ما كدرت أشغل المايك');
                 return null;
@@ -625,6 +636,7 @@
             if (c.pc) try { c.pc.close(); } catch (e) {}
             if (c.stream) c.stream.getTracks().forEach((t) => t.stop());
             if (c.audio) { try { c.audio.srcObject = null; } catch (e) {} c.audio.remove(); }
+            c.spk = false; this._clRoute(false);
             (c.disc || []).forEach((d) => { try { d.cancel(); } catch (e) {} });
             const { ref, set, update } = H();
             if (db()) {
@@ -693,7 +705,7 @@
             const dots = '<span class="cl-dots"><i></i><i></i><i></i></span>';
             const status = { out: 'جاي يرن' + dots, in: 'مكالمة صوتية واردة', connecting: 'جاي يتصل' + dots, on: mmss(c.secs), reconnect: 'جاي يرجع الاتصال' + dots }[c.st] || '';
             const left = BLOCK_S - (c.secs % BLOCK_S);
-            const canSpk = c.audio && typeof c.audio.setSinkId === 'function';
+            const canSpk = (this._isNative() && !!(window.IspNative && window.IspNative.speaker)) || (c.audio && typeof c.audio.setSinkId === 'function');
             box.dataset.st = c.st;
             box.querySelector('.cl-in').innerHTML = `
                 <div class="cl-top">

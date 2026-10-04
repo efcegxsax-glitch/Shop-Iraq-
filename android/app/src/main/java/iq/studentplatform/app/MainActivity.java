@@ -18,6 +18,9 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import org.json.JSONObject;
 import android.Manifest;
+import android.media.AudioDeviceInfo;
+import android.media.AudioManager;
+import java.util.List;
 import android.content.pm.PackageManager;
 import android.media.MediaRecorder;
 import androidx.core.app.ActivityCompat;
@@ -144,6 +147,44 @@ public class MainActivity extends BridgeActivity {
                 });
             }
 
+
+            // Calls sound like phone calls: the call audio mode (the volume buttons change the call volume, the echo canceller works),
+            // the ear speaker at the start, the loud speaker when asked, and a headset or Bluetooth when one is connected.
+            @JavascriptInterface
+            public void callAudio(final boolean on) {
+                runOnUiThread(() -> {
+                    try {
+                        AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                        if (on) {
+                            am.setMode(AudioManager.MODE_IN_COMMUNICATION);
+                            setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
+                            int max = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
+                            if (am.getStreamVolume(AudioManager.STREAM_VOICE_CALL) < Math.round(max * 0.6f)) am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, Math.round(max * 0.6f), 0);
+                            routeCall(am, false);
+                        } else {
+                            if (android.os.Build.VERSION.SDK_INT >= 31) { try { am.clearCommunicationDevice(); } catch (Throwable ignored) {} }
+                            am.setSpeakerphoneOn(false);
+                            am.setMode(AudioManager.MODE_NORMAL);
+                            setVolumeControlStream(AudioManager.USE_DEFAULT_STREAM_TYPE);
+                        }
+                    } catch (Throwable ignored) {}
+                });
+            }
+
+            @JavascriptInterface
+            public void speaker(final boolean on) {
+                runOnUiThread(() -> {
+                    try {
+                        AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
+                        routeCall(am, on);
+                        if (on) {
+                            int max = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
+                            if (am.getStreamVolume(AudioManager.STREAM_VOICE_CALL) < Math.round(max * 0.85f)) am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, Math.round(max * 0.85f), 0);
+                        }
+                    } catch (Throwable ignored) {}
+                });
+            }
+
             // the page's background colour, kept for the next start
             @JavascriptInterface
             public void bg(final String hex) {
@@ -178,6 +219,25 @@ public class MainActivity extends BridgeActivity {
             }
         }, "IspNative");
         ViewCompat.requestApplyInsets(content);
+    }
+
+    // loud speaker, or the ear speaker, or a headset / Bluetooth that is connected
+    private void routeCall(AudioManager am, boolean loud) {
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
+            try {
+                List<AudioDeviceInfo> devs = am.getAvailableCommunicationDevices();
+                AudioDeviceInfo pick = null;
+                if (!loud) {
+                    for (AudioDeviceInfo d : devs) { int ty = d.getType(); if (ty == AudioDeviceInfo.TYPE_WIRED_HEADSET || ty == AudioDeviceInfo.TYPE_WIRED_HEADPHONES || ty == AudioDeviceInfo.TYPE_USB_HEADSET || ty == AudioDeviceInfo.TYPE_BLUETOOTH_SCO || ty == AudioDeviceInfo.TYPE_BLE_HEADSET) { pick = d; break; } }
+                }
+                if (pick == null) {
+                    int want = loud ? AudioDeviceInfo.TYPE_BUILTIN_SPEAKER : AudioDeviceInfo.TYPE_BUILTIN_EARPIECE;
+                    for (AudioDeviceInfo d : devs) { if (d.getType() == want) { pick = d; break; } }
+                }
+                if (pick != null) { am.setCommunicationDevice(pick); return; }
+            } catch (Throwable ignored) {}
+        }
+        am.setSpeakerphoneOn(loud);
     }
 
     private void cleanupRec(boolean deleteFile) {
