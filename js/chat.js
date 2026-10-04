@@ -230,8 +230,8 @@
         if (first) { list.innerHTML = ''; T.nodes.clear(); T.rendered = true; }
         const oldH = sc.scrollHeight, oldTop = sc.scrollTop, wasStick = T.stick;
         const ids = new Set(msgs.map((m) => m.id));
-        let removed = false, topInsert = false, appended = 0, mineLast = false;
-        T.nodes.forEach((n, id) => { if (!ids.has(id)) { n.el.remove(); T.nodes.delete(id); removed = true; } });
+        let topInsert = false, appended = 0, mineLast = false;
+        T.nodes.forEach((n, id) => { if (!ids.has(id)) { n.el.remove(); T.nodes.delete(id); } });
         let prevEl = null;
         msgs.forEach((m, i) => {
             const prev = msgs[i - 1], s = sig(m, prev), n = T.nodes.get(m.id);

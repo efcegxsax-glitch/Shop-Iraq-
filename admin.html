@@ -359,6 +359,7 @@
             <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
+            <button class="tab" data-tab="tests"><span class="tab-ic"><i data-lucide="file-check-2"></i></span><span>الاختبارات</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
             <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
             <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
@@ -659,54 +660,6 @@
                     <div id="yt_res" class="mt-2"></div>
                     <div class="field mt-3"><label>القنوات المضافة</label><div id="yt_list"></div></div>
                     <datalist id="yt_subj"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="الرياضيات"><option value="اللغة العربية"><option value="اللغة الإنجليزية"><option value="التربية الإسلامية"></datalist>
-                </div>
-
-                <div class="card" id="examCard">
-                    <div class="card-head">
-                        <div class="ic"><i data-lucide="file-check-2"></i></div>
-                        <div>
-                            <h3>الاختبارات (ورقة أسئلة من الملزمة + أسئلة وزارية)</h3>
-                            <p>ارفع ملزمة، والذكاء يقرأها ويسوي منها ورقة أسئلة A4 بنمط الوزاري تطلع للطلاب بقسم "الامتحانات". وارفع أسئلة وزارية سابقة PDF حسب السنة. الحجم مفتوح: الملف يتقطع ويتخزن بقطع</p>
-                        </div>
-                    </div>
-                    <div class="sw-row">
-                        <div class="sw-text"><strong>إظهار قسم الامتحانات للطلاب</strong></div>
-                        <label class="switch"><input type="checkbox" data-cfg="features.exams" aria-label="الامتحانات"><span class="track"></span></label>
-                    </div>
-
-                    <h4 style="margin:16px 0 6px">1) امتحان من ملزمة</h4>
-                    <div class="field"><label for="ex_subj">المادة</label><select id="ex_subj"></select></div>
-                    <div class="field"><label for="ex_ch">الفصل أو اسم الاختبار</label><input id="ex_ch" maxlength="80" placeholder="مثال: الفصل الأول - الوراثة"></div>
-                    <div class="field"><label for="ex_pdf">ملف الملزمة (PDF)</label><input type="file" id="ex_pdf" accept="application/pdf"></div>
-                    <div class="flex gap-2" style="flex-wrap:wrap">
-                        <div class="field" style="flex:1;min-width:110px"><label for="ex_from">من صفحة</label><input id="ex_from" type="number" min="1" placeholder="1"></div>
-                        <div class="field" style="flex:1;min-width:110px"><label for="ex_to">إلى صفحة</label><input id="ex_to" type="number" min="1" placeholder="الأخيرة"></div>
-                    </div>
-                    <div class="flex gap-2" style="flex-wrap:wrap">
-                        <div class="field" style="flex:1;min-width:110px"><label for="ex_total">الدرجة الكلية</label><select id="ex_total"><option>100</option><option>60</option><option>50</option><option>40</option><option>20</option></select></div>
-                        <div class="field" style="flex:1;min-width:110px"><label for="ex_nq">عدد الأسئلة (س)</label><select id="ex_nq"><option>4</option><option selected>5</option><option>6</option><option>3</option></select></div>
-                        <div class="field" style="flex:1;min-width:110px"><label for="ex_dur">الوقت (دقيقة)</label><select id="ex_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
-                    </div>
-                    <div class="field"><label for="ex_note">ملاحظة للذكاء (اختياري)</label><input id="ex_note" maxlength="250" placeholder="مثال: ركّز على التعليلات والمسائل"></div>
-                    <label class="sw-row" style="cursor:pointer"><span class="sw-text"><strong>القراءة بالصور (أدق للملازم العربية)</strong><br><small style="opacity:.7">إذا طفيتها يقرأ الكتابة الجاهزة من الـ PDF، أسرع وأرخص بس ممكن تطلع الحروف مخربطة</small></span><span class="switch"><input type="checkbox" id="ex_vision" checked><span class="track"></span></span></label>
-                    <div class="flex gap-2" style="flex-wrap:wrap">
-                        <button class="btn mt-2" id="ex_go">اقرأ الملزمة وسوّي الامتحان</button>
-                    </div>
-                    <div id="ex_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
-                    <div id="ex_prev" class="mt-2"></div>
-
-                    <h4 style="margin:22px 0 6px">2) أسئلة وزارية سابقة (PDF)</h4>
-                    <div class="flex gap-2" style="flex-wrap:wrap">
-                        <div class="field" style="flex:1;min-width:130px"><label for="pa_subj">المادة</label><select id="pa_subj"></select></div>
-                        <div class="field" style="flex:1;min-width:90px"><label for="pa_year">السنة</label><input id="pa_year" type="number" min="1990" max="2100" placeholder="2024"></div>
-                        <div class="field" style="flex:1;min-width:110px"><label for="pa_rd">الدور</label><select id="pa_rd"><option>الدور الأول</option><option>الدور الثاني</option><option>الدور الثالث</option><option>تمهيدي</option></select></div>
-                    </div>
-                    <div class="field"><label for="pa_pdf">ملف الأسئلة (PDF)</label><input type="file" id="pa_pdf" accept="application/pdf"></div>
-                    <div class="field"><label for="pa_dur">وقت الامتحان (دقيقة)</label><select id="pa_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
-                    <button class="btn mt-2" id="pa_go">ارفع الأسئلة الوزارية</button>
-                    <div id="pa_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
-
-                    <div class="field mt-3"><label>المنشور</label><div id="ex_list"></div></div>
                 </div>
 
                 <div class="card" id="promoCard">
@@ -1159,6 +1112,56 @@
             </div>
 
             <!-- Holidays -->
+            <div id="sec-tests" class="hidden">
+                <div class="card" id="examCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="file-check-2"></i></div>
+                        <div>
+                            <h3>الاختبارات (ورقة أسئلة من الملزمة + أسئلة وزارية)</h3>
+                            <p>ارفع ملزمة، والذكاء يقرأها ويسوي منها ورقة أسئلة A4 بنمط الوزاري تطلع للطلاب بقسم "الامتحانات". وارفع أسئلة وزارية سابقة PDF حسب السنة. الحجم مفتوح: الملف يتقطع ويتخزن بقطع</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار قسم الامتحانات للطلاب</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.exams" aria-label="الامتحانات"><span class="track"></span></label>
+                    </div>
+
+                    <h4 style="margin:16px 0 6px">1) امتحان من ملزمة</h4>
+                    <div class="field"><label for="ex_subj">المادة</label><select id="ex_subj"></select></div>
+                    <div class="field"><label for="ex_ch">الفصل أو اسم الاختبار</label><input id="ex_ch" maxlength="80" placeholder="مثال: الفصل الأول - الوراثة"></div>
+                    <div class="field"><label for="ex_pdf">ملف الملزمة (PDF)</label><input type="file" id="ex_pdf" accept="application/pdf"></div>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_from">من صفحة</label><input id="ex_from" type="number" min="1" placeholder="1"></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_to">إلى صفحة</label><input id="ex_to" type="number" min="1" placeholder="الأخيرة"></div>
+                    </div>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_total">الدرجة الكلية</label><select id="ex_total"><option>100</option><option>60</option><option>50</option><option>40</option><option>20</option></select></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_nq">عدد الأسئلة (س)</label><select id="ex_nq"><option>4</option><option selected>5</option><option>6</option><option>3</option></select></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_dur">الوقت (دقيقة)</label><select id="ex_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
+                    </div>
+                    <div class="field"><label for="ex_note">ملاحظة للذكاء (اختياري)</label><input id="ex_note" maxlength="250" placeholder="مثال: ركّز على التعليلات والمسائل"></div>
+                    <label class="sw-row" style="cursor:pointer"><span class="sw-text"><strong>القراءة بالصور (أدق للملازم العربية)</strong><br><small style="opacity:.7">إذا طفيتها يقرأ الكتابة الجاهزة من الـ PDF، أسرع وأرخص بس ممكن تطلع الحروف مخربطة</small></span><span class="switch"><input type="checkbox" id="ex_vision" checked><span class="track"></span></span></label>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <button class="btn mt-2" id="ex_go">اقرأ الملزمة وسوّي الامتحان</button>
+                    </div>
+                    <div id="ex_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
+                    <div id="ex_prev" class="mt-2"></div>
+
+                    <h4 style="margin:22px 0 6px">2) أسئلة وزارية سابقة (PDF)</h4>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:130px"><label for="pa_subj">المادة</label><select id="pa_subj"></select></div>
+                        <div class="field" style="flex:1;min-width:90px"><label for="pa_year">السنة</label><input id="pa_year" type="number" min="1990" max="2100" placeholder="2024"></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="pa_rd">الدور</label><select id="pa_rd"><option>الدور الأول</option><option>الدور الثاني</option><option>الدور الثالث</option><option>تمهيدي</option></select></div>
+                    </div>
+                    <div class="field"><label for="pa_pdf">ملف الأسئلة (PDF)</label><input type="file" id="pa_pdf" accept="application/pdf"></div>
+                    <div class="field"><label for="pa_dur">وقت الامتحان (دقيقة)</label><select id="pa_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
+                    <button class="btn mt-2" id="pa_go">ارفع الأسئلة الوزارية</button>
+                    <div id="pa_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
+
+                    <div class="field mt-3"><label>المنشور</label><div id="ex_list"></div></div>
+                </div>
+            </div>
+
             <div id="sec-holidays" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1810,7 +1813,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'tests', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -1914,7 +1917,6 @@
         }
 
         // Database keys can't contain . # $ [ ] or / (a "/" would silently create a nested path).
-        const sanitize = (str) => String(str).replace(/[.#$\[\]\/]/g, '_');
 
         // FIX (XSS): values from the database used to be pasted raw into inline
         // onclick="fn('${value}')" handlers. escapeHtml() alone doesn't help there — the
@@ -2795,7 +2797,7 @@
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
             const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) }, body: JSON.stringify(body) });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok) throw new Error(j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح Claude مو مضاف بالخادم (ANTHROPIC_API_KEY)' : j.error === 'slow_down' ? 'اصبر شوية وجرّب' : j.error === 'short' ? 'النص المقروء قليل' : ('خطأ ' + r.status + (j.error ? ' ' + j.error : '')));
+            if (!r.ok || j.error) throw new Error(j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح Claude مو مضاف بالخادم (ANTHROPIC_API_KEY)' : j.error === 'slow_down' ? 'اصبر شوية وجرّب' : j.error === 'short' ? 'النص المقروء قليل' : ('خطأ ' + (r.ok ? '' : r.status + ' ') + (j.error || '')));
             return j;
         }
         async function loadPdfJs() {

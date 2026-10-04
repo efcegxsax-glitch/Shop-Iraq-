@@ -241,7 +241,7 @@
             for (let i = 0; !c.offer && i < 150 && this._cl === c; i++) await new Promise((ok) => setTimeout(ok, 100));
             if (this._cl !== c) return;
             if (!c.offer) { this._clEnd('fail'); return; }
-            const { ref, update, set, onDisconnect } = H();
+            const { ref, set, onDisconnect } = H();
             const base = 'calls/' + c.chat;
             try {
                 c.disc = [onDisconnect(ref(db(), base + '/st'))];

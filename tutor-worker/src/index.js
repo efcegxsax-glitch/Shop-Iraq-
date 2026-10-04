@@ -21,6 +21,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
 import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
+import { cleanExam, uuidOf } from './exam.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -255,14 +256,6 @@ async function claudeRead(env, images, uid) {
     });
     return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
 }
-function cleanExam(e, o) {
-    const secs = (e && Array.isArray(e.sections) ? e.sections : []).slice(0, 12).map((x, i) => ({
-        n: String(x.n || 'س' + (i + 1)).slice(0, 12), head: String(x.head || '').slice(0, 200), marks: Math.max(0, Math.min(100, Math.round(Number(x.marks) || 0))),
-        parts: (Array.isArray(x.parts) ? x.parts : []).slice(0, 10).map((p) => ({ l: String(p.l || '').slice(0, 6), q: String(p.q || '').slice(0, 900), m: Math.max(0, Math.min(100, Math.round(Number(p.m) || 0))) })).filter((p) => p.q),
-    })).filter((x) => x.parts.length);
-    return secs.length ? { title: String(e.title || o.chapter || 'امتحان').slice(0, 100), sections: secs } : null;
-}
-
 // ---------- Gemini ----------
 function geminiClient(env) { return new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}) }); }
 const geminiSystem = (base, context) => (context ? base + '\n\nتقرير الطالب من التطبيق:\n' + context : base);
@@ -537,7 +530,7 @@ async function ytChannelFeed(id, ctx) {
 // Every 15 minutes (cron): read the channels the admin added, look at each channel's newest videos and push the ones
 // published in the last window. With the KV store each video is pushed once (and a channel's first look never pushes
 // its old videos); without it only the last 20 minutes count, so a repeat is unlikely.
-async function ytNotify(env, ctx) {
+async function ytNotify(env, ctx, when) {
     if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID || !env.FIREBASE_DB_URL) return 'no_key';
     const base = env.FIREBASE_DB_URL.replace(/\/$/, '');
     let chans = {};
@@ -559,7 +552,7 @@ async function ytNotify(env, ctx) {
             if (first) { await kv.put('yt:init:' + c.id, '1'); for (const v of vids) await kv.put('yt:sent:' + v.v, '1', { expirationTtl: 30 * 86400 }); continue; }
             fresh = [];
             for (const v of vids) if (v.p > now - 6 * 3600000 && !(await kv.get('yt:sent:' + v.v))) fresh.push(v);
-        } else fresh = vids.filter((v) => v.p > now - 20 * 60000);
+        } else fresh = vids.filter((v) => v.p > when - 15 * 60000 && v.p <= when + 60000);
         for (const v of fresh.slice(0, 2)) {
             if (kv) await kv.put('yt:sent:' + v.v, '1', { expirationTtl: 30 * 86400 });
             const res = await fetch('https://api.onesignal.com/notifications?c=push', {
@@ -570,6 +563,8 @@ async function ytNotify(env, ctx) {
                     headings: { en: str(c.n, 40) || 'محاضرة جديدة', ar: str(c.n, 40) || 'محاضرة جديدة' }, contents: { en: v.t, ar: v.t },
                     ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tube=' + v.v,
                     data: { tube: v.v }, web_push_topic: 'isp-tube-' + v.v.slice(0, 20), ttl: 12 * 3600,
+                    // OneSignal answers a second send with the same key by returning the first, so a video is never pushed twice
+                    idempotency_key: await uuidOf('yt-' + v.v),
                 }),
             });
             if (res.ok) sent++; else console.error('yt push', res.status, (await res.text().catch(() => '')).slice(0, 200));
@@ -624,7 +619,7 @@ async function ytUploads(id, cont, ctx, env) {
 
 export default {
     async scheduled(event, env, ctx) {
-        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx).then((r) => console.log('yt notify', r))); return; }
+        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); return; }
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
     },
 
@@ -730,8 +725,18 @@ export default {
                 const total = Math.max(10, Math.min(100, Math.round(Number(body.total) || 100)));
                 const nq = Math.max(2, Math.min(8, Math.round(Number(body.nq) || 5)));
                 const prompt = `المادة: ${o.subject || 'غير محددة'}${o.chapter ? '\nالفصل/الموضوع: ' + o.chapter : ''}\nالدرجة الكلية: ${total}\nعدد الأسئلة الرئيسية: ${nq}${str(body.note, 300) ? '\nتعليمات إضافية من المدرس: ' + str(body.note, 300) : ''}\n\nمادة الملزمة:\n${text}`;
-                const ex = cleanExam(await claudeExam(env, prompt, uid), o);
-                return ex ? json(200, ex, headers) : json(502, { error: 'exam' }, headers);
+                // Writing a whole exam can take longer than the 100 seconds Cloudflare waits for the first byte of an answer, so the
+                // answer is streamed: a space every 8 seconds keeps the connection open (JSON ignores leading spaces), then the
+                // exam, or {"error": ...} (the status is already 200 by then).
+                const { readable, writable } = new TransformStream(), w = writable.getWriter(), enc = new TextEncoder();
+                const keep = setInterval(() => { w.write(enc.encode(' ')).catch(() => {}); }, 8000);
+                ctx.waitUntil((async () => {
+                    let out;
+                    try { const ex = cleanExam(await claudeExam(env, prompt, uid), o); out = ex || { error: 'exam' }; } catch (err) { console.error('exam', err && err.message); out = { error: errorCode(err) }; }
+                    clearInterval(keep);
+                    try { await w.write(enc.encode(JSON.stringify(out))); await w.close(); } catch { /* the admin closed the page */ }
+                })());
+                return new Response(readable, { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } });
             } catch (err) {
                 console.error('exam', err && err.message);
                 return json(502, { error: errorCode(err) }, headers);

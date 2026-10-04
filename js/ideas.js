@@ -17,7 +17,7 @@
 
     Object.assign(app, {
         idOpen() {
-            const s = this._id = this._id || { list: [], tab: 'top', cat: '', mine: {}, open: {}, loaded: false };
+            this._id = this._id || { list: [], tab: 'top', cat: '', mine: {}, open: {}, loaded: false };
             this._idRender();
             if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) return;
             this._idListen();

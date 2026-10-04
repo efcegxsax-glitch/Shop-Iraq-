@@ -70,10 +70,6 @@
             return isSafeVideoUrl(value) ? value : '';
         }
 
-        function safeStoreMedia(value, mediaType) {
-            return mediaType === 'video' ? safeVideo(value) : safeImage(value);
-        }
-
         // FIX (XSS): voice/file chat messages used to put m.audioUrl / m.fileUrl straight
         // into src="..." / href="..." — a crafted message could break out of the attribute
         // or use a javascript: link. Only base64 data URLs of the expected type or https
@@ -154,10 +150,6 @@
                 .ring-primary\\/20 { --tw-ring-color: rgba(${r}, ${g}, ${b}, 0.2) !important; }
                 .shadow-primary\\/25 { --tw-shadow-color: rgba(${r}, ${g}, ${b}, 0.25) !important; }
             `;
-        }
-
-        function cacheNewsData(data) {
-            try { localStorage.setItem('isp_news_cache', JSON.stringify(data)); } catch (e) {}
         }
 
         // News carry their photos inside the record, so a few of them overflowed localStorage and the
@@ -5395,7 +5387,6 @@
                     if (!O) { if (++tries < 40) setTimeout(start, 500); else this.showToast('الإشعارات ما تهيّأت بهذا الجهاز'); return; }
                     try {
                         O.initialize(this.ONESIGNAL_APP_ID);
-                        const setPerm = (g) => { this._nativePerm = g ? 'granted' : (this._nativePerm === 'granted' ? 'denied' : (this._nativePerm || 'default')); };
                         const refresh = () => Promise.resolve(O.Notifications.getPermissionAsync()).then((g) => {
                             this._nativePerm = g ? 'granted' : (this._nativePerm === 'denied' ? 'denied' : 'default');
                             this.syncWebPush();
@@ -8454,8 +8445,10 @@
                     const safeToken = token.replace(/[.#$\[\]]/g, '_');
                     const uid = (window.firebaseAuth && window.firebaseAuth.currentUser) ? window.firebaseAuth.currentUser.uid : 'anonymous';
                     const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
-                    set(ref(window.firebaseDb, 'tokens/' + uid + '/' + safeToken), {
+                    this._fcmPath = 'tokens/' + uid + '/' + safeToken;
+                    set(ref(window.firebaseDb, this._fcmPath), {
                         token: token,
+                        off: this._pnOff(),
                         gov: this._dsGov() || '',
                         name: (this.currentUser && this.currentUser.fullName) || '',
                         studentNumber: (this.currentUser && this.currentUser.studentNumber) || '',
@@ -10034,7 +10027,6 @@
                         <span class="text-sm theme-transition" style="color: var(--text2);">جاري البحث عن الطالب...</span>
                     </div>`;
                 lucide.createIcons();
-                const { ref, get } = window.firebaseDbHelpers;
                 try {
                     const hit = await this.findStudentByNumber(query);
                     const found = hit ? hit.data : null;
@@ -11403,7 +11395,7 @@
             joinStudyRoom(activity) {
                 if (!window.firebaseDb || !this.isLoggedIn || !this.currentUser) return;
                 const uid = this.currentUid();
-                const { ref, set, serverTimestamp, onDisconnect } = window.firebaseDbHelpers;
+                const { ref, set, onDisconnect } = window.firebaseDbHelpers;
                 const roomRef = ref(window.firebaseDb, 'studyRoom/' + uid);
                 set(roomRef, {
                     name: this.currentUser.fullName || 'طالب',
@@ -11753,6 +11745,8 @@
                 ['msg', 'رسائل الأصدقاء', 'لما يراسلك صديق', 'message-circle', '#EC4899'],
                 ['call', 'المكالمات', 'لما أحد يتصل بيك', 'phone-call', '#0D9488'],
             ],
+            // the kinds the student switched off, saved next to a Firebase push token so the Cloud Function can skip them
+            _pnOff() { return this.PN_LIST.map((x) => x[0]).filter((k) => !this._pnOn(k)); },
             _pnOn(k) { return k === 'coach' ? !!this._coachGet().on : this.notifPrefs[k] !== false; },
             _pnTags(t) {
                 try {
@@ -11766,6 +11760,7 @@
             // pushes the student's choices to the places that decide what reaches the phone
             _pnSync() {
                 const t = {};
+                if (this._fcmPath && window.firebaseDb) { const { ref, update } = window.firebaseDbHelpers; update(ref(window.firebaseDb, this._fcmPath), { off: this._pnOff() }).catch(() => {}); }
                 ['urgent', 'announcement', 'weather', 'res', 'general'].forEach((k) => { t['pn_' + k] = this._pnOn(k) ? 'on' : 'off'; });
                 t.tube = this._pnOn('tube') ? 'on' : 'off'; t.coach = this._pnOn('coach') ? 'on' : 'off';
                 this._pnTags(t);
@@ -12965,6 +12960,7 @@
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tubeView' && viewId !== 'tubeView' && this.tuClose) this.tuClose();
+                if (this.currentView === 'examsView' && viewId !== 'examsView' && this.exClosePaper) this.exClosePaper();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
                 if (this.currentView === 'tmView' && viewId !== 'tmView' && this.tmClose) this.tmClose();

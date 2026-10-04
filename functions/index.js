@@ -45,7 +45,9 @@ exports.pushNotification = onValueCreated(
         const entries = [];
         Object.keys(all).forEach((uid) => Object.keys(all[uid] || {}).forEach((key) => {
             const t = all[uid][key];
-            if (t && typeof t.token === 'string') entries.push({ uid, key, token: t.token, gov: normGov(t.gov) });
+            // a student who switched this kind of notification off in the app's settings (the app saves the list with the token)
+            const off = Array.isArray(t && t.off) ? t.off : (t && t.off && typeof t.off === 'object' ? Object.values(t.off) : []);
+            if (t && typeof t.token === 'string' && !off.includes(String(n.type || 'announcement'))) entries.push({ uid, key, token: t.token, gov: normGov(t.gov) });
         }));
 
         // Old tokens saved before the governorate was stored: read it from the profile.

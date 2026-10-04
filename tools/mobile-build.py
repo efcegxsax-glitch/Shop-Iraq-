@@ -21,6 +21,7 @@ os.makedirs(OUT)
 for f in KEEP_FILES:
     shutil.copy(os.path.join(ROOT, f), os.path.join(OUT, f))
 for d in KEEP_DIRS:
-    shutil.copytree(os.path.join(ROOT, d), os.path.join(OUT, d))
+    # the PDF reader (js/vendor/pdf) is only used by the admin panel, which is not part of the phone app
+    shutil.copytree(os.path.join(ROOT, d), os.path.join(OUT, d), ignore=shutil.ignore_patterns('pdf') if d == 'js' else None)
 size = sum(os.path.getsize(os.path.join(dp, f)) for dp, _, fs in os.walk(OUT) for f in fs)
 print('www ready: %.1f MB' % (size / 1048576))

@@ -138,7 +138,7 @@
             }
 
             _textTargets(text) {
-                const W = this.W, H = this.H, dpr = 1;
+                const W = this.W, H = this.H;
                 const oc = document.createElement('canvas');
                 oc.width = W; oc.height = H;
                 const x = oc.getContext('2d');

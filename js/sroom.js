@@ -157,7 +157,7 @@
             if (!webgl()) { this.showToast('جهازك ما يدعم 3D'); return; }
             let mod; try { [mod] = await Promise.all([loadMod(), loadArt()]); } catch (e) { this.showToast('ما انحملت الغرفة، تأكد من النت'); return; }
             if (this.currentView !== 'rmView') return;
-            const { ref, onValue, onChildAdded, query, limitToLast, onDisconnect, set, serverTimestamp } = H();
+            const { onValue, onChildAdded, query, limitToLast, onDisconnect, set, serverTimestamp } = H();
             const u = this.currentUser || {}, me = this._rmMe();
             const el = document.createElement('div'); el.id = 'rmScene'; el.className = 'rm-scene';
             el.innerHTML = '<div class="rm-3d" id="rm3d"></div><div class="rm-hud" id="rmHud"></div><div class="rm-load" id="rmLoad"><span></span><span></span><span></span></div>';
