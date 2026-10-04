@@ -101,12 +101,23 @@
             try { localStorage.setItem(RECENT_KEY, JSON.stringify(list.slice(0, 6))); } catch (e) {}
         },
 
-        async yrCreate() {
+        // "watch with a friend" from the teachers page: open the study room with this video already queued, then pick friends
+        yrWatchWith(v, title) {
+            this.goToYtRooms();
+            let n = 0;
+            const go = () => {
+                if (typeof this.yrCreate === 'function' && document.getElementById('yrContent')) return this.yrCreate({ v, title });
+                if (++n < 40) setTimeout(go, 150);
+            };
+            go();
+        },
+
+        async yrCreate(opts) {
             if (!this.authUid || !window.firebaseDb) { this.showToast('سجّل دخولك أول حتى تسوي غرفة'); return; }
             const btn = document.querySelector('.yr-card .yr-btn.wide');
             if (btn && btn.disabled) return;
-            const title = filterBadWords(String(document.getElementById('yrTitle')?.value || '').trim()).clean.slice(0, 40) || 'غرفة دراسة';
-            const raw = String(document.getElementById('yrFirst')?.value || '').trim(), first = this.extractYoutubeId(raw);
+            const title = filterBadWords(String(opts ? opts.title : document.getElementById('yrTitle')?.value || '').trim()).clean.slice(0, 40) || 'غرفة دراسة';
+            const raw = String(opts ? opts.v : document.getElementById('yrFirst')?.value || '').trim(), first = this.extractYoutubeId(raw);
             if (raw && !first) { this.showToast('الرابط مو رابط فيديو يوتيوب، انسخه من زر المشاركة بيوتيوب'); return; }
             const rid = newId(), now = Date.now(), u = this.currentUser || {};
             const room = { meta: { host: this.authUid, title, at: now }, members: { [this.authUid]: { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: now } } };

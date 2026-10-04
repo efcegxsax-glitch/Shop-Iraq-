@@ -4,7 +4,7 @@
 // The video plays in YouTube's own player, so its quality menu is YouTube's. Watching earns points with the same rules and
 // daily limit as the study rooms (ytroom.js: app._yrLedger / app._yrPay / app.YR_EARN). Loaded by app._need('ytube').
 (function () {
-    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', FEED_TTL = 10 * 60000, PAGE = 20;
+    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', FEED_TTL = 10 * 60000, PAGE = 20;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
@@ -136,12 +136,21 @@
             <div class="tu-body">
                 <h2>${esc(P.t)}</h2>
                 <div class="tu-by">${c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : ''}<b>${esc(c.n || '')}</b></div>
+                ${item.w ? `<div class="tu-views"><i data-lucide="eye"></i>${views(item.w)}</div>` : ''}
+                <div class="tu-acts">
+                    <button onclick="app.tuMark('q')"><i data-lucide="hand"></i>ما فهمت هنا</button>
+                    <button onclick="app.tuMark('i')"><i data-lucide="star"></i>مهم</button>
+                    <button id="tuMkBtn" onclick="app.tuMarksToggle()"><i data-lucide="bookmark"></i>علاماتي<em id="tuMkN"></em></button>
+                    <button onclick="app.tuWithFriend()"><i data-lucide="users"></i>ويا صديق</button>
+                </div>
+                <div class="tu-marks hidden" id="tuMarks"></div>
                 <div class="tu-earn" id="tuEarn"></div>
                 ${next.length ? '<div class="tu-h"><span>المزيد من نفس الأستاذ</span></div><div class="tu-feed">' + next.map((x) => card(x, false)).join('') + '</div>' : ''}
             </div>`;
         document.body.appendChild(w);
         try { lucide.createIcons(); } catch (e) {}
         hist(v, { t: P.t, c: P.c });
+        paintMarks();
         const mine = P;
         app._yrLedger && app._yrLedger();
         ytApi().then(() => {
@@ -158,6 +167,17 @@
         }).catch(() => app.showToast('ما انحمّل مشغّل يوتيوب، تأكد من النت'));
         clearInterval(tickT); tickT = setInterval(tick, 1000);
         paintEarn();
+    }
+    // ---------- personal marks: "didn't understand" / "important", kept per video and hidden until asked for ----------
+    function marksOf(v) { return (load(K_MARK, {})[v] || []).slice().sort((a, b) => a.s - b.s); }
+    function paintMarks() {
+        const box = $('tuMarks'), n = $('tuMkN'); if (!P) return;
+        const L = marksOf(P.v);
+        if (n) n.textContent = L.length ? String(L.length) : '';
+        if (!box) return;
+        box.innerHTML = L.length ? L.map((m, i) => `<div class="tu-mk ${m.k}"><button class="go" onclick="app.tuMarkGo(${m.s})"><i data-lucide="${m.k === 'i' ? 'star' : 'hand'}"></i><b>${clock(m.s)}</b><span>${m.k === 'i' ? 'مهم' : 'ما فهمت'}</span></button><button class="rm" onclick="app.tuMarkDel(${i})" aria-label="حذف"><i data-lucide="x"></i></button></div>`).join('')
+            : '<p class="tu-mk-e">ما عندك علامات. اضغط "ما فهمت هنا" أو "مهم" وكت ما تحتاج، ويرجعلك الوقت نفسه.</p>';
+        try { lucide.createIcons(); } catch (e) {}
     }
     function closePlayer(silent) {
         clearInterval(tickT); tickT = 0;
@@ -287,6 +307,28 @@
             app.showToast(L.fails >= 2 ? 'ما جاوبت التحقق مرتين، النقاط واكفة لباجر' : 'ما جاوبت التحقق، النقاط واكفة 20 دقيقة');
         },
         // which teachers are "mine" (kept on this phone)
+        tuMark(k) {
+            if (!P || !P.pl || !P.ready) { app.showToast('شغّل الفيديو أول'); return; }
+            let t = 0; try { t = Math.floor(P.pl.getCurrentTime() || 0); } catch (e) {}
+            const all = load(K_MARK, {}), L = all[P.v] || [];
+            if (!L.some((m) => m.k === k && Math.abs(m.s - t) < 4)) L.push({ k, s: t, at: Date.now() });
+            all[P.v] = L.slice(-60); save(K_MARK, all);
+            paintMarks();
+            app.showToast((k === 'i' ? 'علّمت مهم عند ' : 'علّمت ما فهمت عند ') + clock(t));
+        },
+        tuMarksToggle() { const b = $('tuMarks'); if (!b) return; b.classList.toggle('hidden'); $('tuMkBtn')?.classList.toggle('on', !b.classList.contains('hidden')); },
+        tuMarkGo(s) { try { if (P && P.pl) { P.pl.seekTo(s, true); P.pl.playVideo(); } } catch (e) {} },
+        tuMarkDel(i) {
+            if (!P) return;
+            const all = load(K_MARK, {}), L = marksOf(P.v); L.splice(i, 1); all[P.v] = L; save(K_MARK, all); paintMarks();
+        },
+        tuWithFriend() {
+            if (!P) return;
+            if (!app.authUid) { app.showToast('سجّل دخولك أول'); return; }
+            const v = P.v, t = P.t;
+            closePlayer(true);
+            app.yrWatchWith ? app.yrWatchWith(v, t) : app._withPart('ytroom', () => typeof app.yrWatchWith === 'function', 'ytRoomView', () => app.yrWatchWith(v, t));
+        },
         tuPick() {
             document.getElementById('tuSheet')?.remove();
             const f = favs();
