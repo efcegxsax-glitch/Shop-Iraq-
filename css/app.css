@@ -10925,3 +10925,9 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .ex-timer svg { width: 16px; height: 16px; }
 .ex-timer button { padding: 6px 12px; border-radius: 999px; font: inherit; font-size: 12px; font-weight: 800; background: #fff; color: #1e1b4b; }
 .ex-load { position: fixed; bottom: calc(var(--safe-b, 0px) + 90px); left: 50%; transform: translateX(-50%); z-index: 600; padding: 8px 16px; border-radius: 999px; background: #1e1b4b; color: #fff; font-size: 13px; }
+
+/* the bottom sheet (settings, notification choices, ...) scrolls inside itself when its content is tall, and never drags the page behind it */
+#walletModal > div.relative { max-height: 90vh; max-height: 90dvh; display: flex; flex-direction: column; }
+#walletModal > div.relative > .p-4 { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: calc(32px + var(--safe-b, 0px)); }
+#walletModal { overscroll-behavior: contain; touch-action: none; }
+#walletModal > div.relative { touch-action: pan-y; }
