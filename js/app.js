@@ -1076,9 +1076,13 @@
                     loginTab.style.backgroundColor = 'transparent';
                     loginTab.style.color = 'var(--text2)';
 
-                    registerForm.classList.remove('hidden');
+                    registerForm.classList.toggle('hidden', !this._emailSignupOn());
                     loginForm.classList.add('hidden');
                 }
+                // on the long register form the Google button comes first, on the login form it sits under the fields
+                const gw = document.getElementById('googleAuth');
+                if (gw) { if (mode === 'register') registerForm.before(gw); else loginForm.after(gw); gw.classList.toggle('top', mode === 'register'); }
+                document.getElementById('regGoogleOnly')?.classList.toggle('hidden', !(mode === 'register' && !this._emailSignupOn()));
             },
 
             handleAvatarUpload(event) {
@@ -1120,6 +1124,193 @@
             // login never actually worked. Firebase Auth here is email/password only, so a
             // phone identifier is now resolved to its registered email by looking up the
             // `users` node for a matching `phone` field first, then signing in with that email.
+            // what happens after a successful sign-in (password or Google): the account checks, then the profile loads
+            async _completeLogin(user, loginEmail, displayName) {
+                this.authUid = user.uid;
+                if (!(await this._accountGuard(user.uid))) return false;
+                this._stateLoadedFor = user.uid;
+                this.resetUserScopedListeners();
+                this.currentUser = {
+                    fullName: displayName || loginEmail,
+                    governorate: '',
+                    phone: '',
+                    email: loginEmail,
+                    avatar: this.tempAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(loginEmail) + '&background=2563EB&color=fff&size=200',
+                    school: 'طالب',
+                    location: '',
+                    grade: 'scientific',
+                    points: 0,
+                    weeklyChange: 0,
+                    balance: 0,
+                    studentNumber: ''
+                };
+                this.isLoggedIn = true;
+                this.saveUserData();
+                this.loadUserFromDatabase(user.uid);
+                this.showToast('تم تسجيل الدخول بنجاح');
+                this.goToProfile();
+                return true;
+            },
+
+
+            // creates the student's record after a new sign-in account was made (email + password, or Google)
+            async _completeRegistration(user, { fullName, governorate, phone, email }) {
+                this.authUid = user.uid;
+                if (!(await this._accountGuard(user.uid))) return false;
+                this._stateLoadedFor = user.uid;
+                this.resetUserScopedListeners();
+                this.currentUser = {
+                    fullName: fullName,
+                    governorate: governorate,
+                    phone: phone || '',
+                    email: email || '',
+                    avatar: this.tempAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563EB&color=fff&size=200`,
+                    school: 'طالب في المرحلة الإعدادية',
+                    location: governorate,
+                    grade: 'scientific',
+                    points: 0,
+                    weeklyChange: 0,
+                    balance: 0,
+                    studentNumber: await this.generateUniqueStudentNumber()
+                };
+                this.isLoggedIn = true;
+                this.saveUserData();
+                const savedToDb = await this.syncUserToDatabase({ includeCounters: true });
+                this._refRegister(user.uid);
+                this.initPushNotifications();
+                this.syncNativePush();
+                if (savedToDb) {
+                    this.showToast('تم إنشاء الحساب بنجاح');
+                } else {
+                    this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
+                }
+                this.listenForOwnUserRecord();
+                this.checkDailyStreak();
+                this._ttNudgeSoon();
+                this._smPing();
+                this._clRingListen();
+                this.listenForUserTasks();
+                this.listenForUserChats();
+                this.listenForReactions();
+                this.listenForFriends();
+                this.listenForYtInvites(); this.listenForRmInvites(); this.listenForDuelInv();
+                this.listenForFriendRequests();
+                this.listenForSentFriendRequests();
+                this.listenForBlockedUsers();
+                this.setupPresence();
+                this.listenForPresence();
+                this.goToProfile();
+                return true;
+            },
+
+            // ===== Sign in with Google (a real Gmail address, so nobody can make accounts with made-up emails) =====
+            // On the website it is Firebase's Google pop-up. Inside the phone app Google refuses to open in the web view,
+            // so the Android code (MainActivity: IspNative.googleSignIn) asks the phone's own Google account picker for an ID
+            // token and Firebase signs in with it. That needs the Web client ID, which the admin panel keeps in siteConfig/google.
+            _emailSignupOn() { const f = this.siteConfig && this.siteConfig.features; return !(f && f.emailSignup === false); },
+            _googleClientId() { const g = this.siteConfig && this.siteConfig.google; return String((g && g.webClientId) || window.GOOGLE_WEB_CLIENT_ID || '').trim(); },
+            _googleViaOnly(user) { const p = (user && user.providerData) || []; return p.some((x) => x.providerId === 'google.com') && !p.some((x) => x.providerId === 'password'); },
+            async _googleCredential(reauthUser) {
+                const h = window.firebaseAuthHelpers, auth = window.firebaseAuth;
+                if (this._isNative()) {
+                    if (!window.IspNative || !window.IspNative.googleSignIn) throw { code: 'isp/native-old' };
+                    const cid = this._googleClientId();
+                    if (!cid) throw { code: 'isp/no-client-id' };
+                    const idToken = await new Promise((res, rej) => {
+                        window.__ispGoogle = (ok, v) => (ok ? res(v) : rej({ code: 'isp/native', message: String(v || '') }));
+                        window.IspNative.googleSignIn(cid);
+                    });
+                    const cred = h.GoogleAuthProvider.credential(idToken);
+                    return reauthUser ? h.reauthenticateWithCredential(reauthUser, cred) : h.signInWithCredential(auth, cred);
+                }
+                const provider = new h.GoogleAuthProvider();
+                provider.setCustomParameters({ prompt: 'select_account' });
+                return reauthUser ? h.reauthenticateWithPopup(reauthUser, provider, h.browserPopupRedirectResolver) : h.signInWithPopup(auth, provider, h.browserPopupRedirectResolver);
+            },
+            _googleBtns(busy) {
+                document.querySelectorAll('.g-btn').forEach((b) => { b.disabled = !!busy; b.classList.toggle('busy', !!busy); });
+            },
+            _googleErr(error) {
+                const code = (error && error.code) || '', msg = String((error && error.message) || '');
+                if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled' || (code === 'isp/native' && /cancel/i.test(msg))) return;
+                if (code === 'auth/popup-blocked') this.showToast('المتصفح منع نافذة Google، اسمح بالنوافذ المنبثقة وحاول مرة ثانية');
+                else if (code === 'auth/operation-not-allowed') this.showToast('الدخول بحساب Google ما انفعّل بعد من إعدادات Firebase');
+                else if (code === 'auth/unauthorized-domain') this.showToast('هذا الموقع غير مضاف لقائمة المواقع المسموحة بـ Firebase (Authorized domains)');
+                else if (code === 'auth/network-request-failed') this.showToast('تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت');
+                else if (code === 'auth/account-exists-with-different-credential') this.showToast('هذا الإيميل مسجل بطريقة ثانية، سجّل دخول بكلمة المرور أول');
+                else if (code === 'isp/no-client-id') this.showToast('الدخول بـ Google على التطبيق ما انفعّل بعد (ينقص Client ID من لوحة الإدارة)');
+                else if (code === 'isp/native-old') this.showToast('حدّث التطبيق لآخر نسخة حتى يشتغل الدخول بـ Google');
+                else if (code === 'isp/native') this.showToast('تعذر الدخول بـ Google: ' + (msg.slice(0, 80) || 'خطأ'));
+                else this.showToast('تعذر الدخول بحساب Google، حاول مرة ثانية');
+            },
+            async googleSignIn() {
+                if (this._googleBusy) return;
+                if (!window.firebaseAuth || !window.firebaseAuthHelpers || !window.firebaseAuthHelpers.GoogleAuthProvider) { this.showToast('لا يوجد اتصال بخدمة المصادقة'); return; }
+                this._googleBusy = true; this._authFlowInProgress = true; this._googleBtns(true);
+                let handedOver = false;
+                try {
+                    const cred = await this._googleCredential();
+                    const user = cred.user;
+                    const { ref, get } = window.firebaseDbHelpers;
+                    let known = false;
+                    try { known = (await get(ref(window.firebaseDb, 'users/' + user.uid))).exists(); }
+                    catch (e) { await this._signOutHere(); this.showToast('تعذر الاتصال بالخادم، حاول مرة ثانية'); return; }
+                    if (known) { await this._completeLogin(user, user.email || '', user.displayName || ''); return; }
+                    if (!(await this._deviceFreeForNewAccount())) { await this._signOutHere(); return; }
+                    handedOver = true;
+                    this._googleProfileSheet(user);
+                } catch (error) {
+                    console.warn('Google sign-in failed:', error);
+                    this._googleErr(error);
+                } finally {
+                    this._googleBusy = false; this._googleBtns(false);
+                    if (!handedOver) this._authFlowInProgress = false;
+                }
+            },
+            // a brand new Google account: the student's name and governorate, then the same record as any new account
+            _googleProfileSheet(user) {
+                document.getElementById('gpSheet')?.remove();
+                const first = document.querySelector('#registerForm select[name="governorate"]');
+                const opts = first ? first.innerHTML.replace(/ selected/g, '') : '';
+                const el = document.createElement('div');
+                el.id = 'gpSheet'; el.className = 'gp-w'; el._user = user;
+                el.innerHTML = `<div class="gp-bd"></div><div class="gp-card" role="dialog" aria-modal="true">
+                    <div class="gp-top"><span class="gp-g"><svg viewBox="0 0 48 48" width="22" height="22"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.1z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg></span>
+                        <div><b>أهلاً، أكمل بياناتك</b><small dir="ltr">${escapeHtml(user.email || '')}</small></div></div>
+                    <label>الاسم الثلاثي<input id="gpName" type="text" maxlength="60" value="${escapeHtml(user.displayName || '')}" placeholder="مثال: أحمد محمد علي"></label>
+                    <label>المحافظة<select id="gpGov"><option value="" selected disabled>اختر المحافظة</option>${opts.replace(/<option value="" disabled>[^<]*<\/option>/, '')}</select></label>
+                    <label>رقم الهاتف (اختياري)<input id="gpPhone" type="tel" dir="ltr" placeholder="0770 123 4567"></label>
+                    <button class="gp-go" id="gpGo" onclick="app.googleProfileSubmit()">إنشاء الحساب</button>
+                    <button class="gp-no" onclick="app.googleProfileCancel()">إلغاء</button></div>`;
+                document.body.appendChild(el);
+                requestAnimationFrame(() => el.classList.add('on'));
+            },
+            async googleProfileSubmit() {
+                const el = document.getElementById('gpSheet'); if (!el || el._busy) return;
+                const user = el._user;
+                const fullName = filterBadWords(String((document.getElementById('gpName') || {}).value || '').trim()).clean;
+                const governorate = (document.getElementById('gpGov') || {}).value || '';
+                const phone = String((document.getElementById('gpPhone') || {}).value || '').trim();
+                if (!fullName) { this.showToast('أدخل اسمك الثلاثي'); return; }
+                if (!governorate) { this.showToast('اختر محافظتك'); return; }
+                el._busy = true;
+                const btn = document.getElementById('gpGo'); if (btn) { btn.disabled = true; btn.textContent = 'جاري الإنشاء...'; }
+                try {
+                    await this._completeRegistration(user, { fullName, governorate, phone, email: user.email || '' });
+                    el.remove();
+                } catch (e) {
+                    console.warn('Google registration failed:', e);
+                    el._busy = false; if (btn) { btn.disabled = false; btn.textContent = 'إنشاء الحساب'; }
+                    this.showToast('تعذر إنشاء الحساب، حاول مرة ثانية');
+                    return;
+                } finally { this._authFlowInProgress = false; }
+            },
+            async googleProfileCancel() {
+                document.getElementById('gpSheet')?.remove();
+                this._authFlowInProgress = false;
+                await this._signOutHere();
+            },
+
             async handleLogin(event) {
                 event.preventDefault();
                 const formData = new FormData(event.target);
@@ -1158,29 +1349,7 @@
                 try {
                     const { signInWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await signInWithEmailAndPassword(window.firebaseAuth, loginEmail, password);
-                    this.authUid = credential.user.uid;
-                    if (!(await this._accountGuard(credential.user.uid))) return;
-                    this._stateLoadedFor = credential.user.uid;
-                    this.resetUserScopedListeners();
-                    this.currentUser = {
-                        fullName: loginEmail,
-                        governorate: '',
-                        phone: '',
-                        email: loginEmail,
-                        avatar: this.tempAvatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(loginEmail) + '&background=2563EB&color=fff&size=200',
-                        school: 'طالب',
-                        location: '',
-                        grade: 'scientific',
-                        points: 0,
-                        weeklyChange: 0,
-                        balance: 0,
-                        studentNumber: ''
-                    };
-                    this.isLoggedIn = true;
-                    this.saveUserData();
-                    this.loadUserFromDatabase(credential.user.uid);
-                    this.showToast('تم تسجيل الدخول بنجاح');
-                    this.goToProfile();
+                    await this._completeLogin(credential.user, loginEmail);
                 } catch (error) {
                     console.warn('Login failed:', error);
                     const code = error && error.code;
@@ -1208,6 +1377,7 @@
                 const fullName = filterBadWords(String(formData.get('fullName') || '').trim()).clean;
                 const governorate = formData.get('governorate');
                 const phone = String(formData.get('phone') || '').trim();
+                if (!this._emailSignupOn()) { this.showToast('التسجيل بالبريد متوقف حالياً، استخدم حساب Google'); return; }
                 const email = String(formData.get('email') || '').trim();
                 const password = formData.get('password');
                 const confirmPassword = formData.get('confirmPassword');
@@ -1237,51 +1407,7 @@
                 try {
                     const { createUserWithEmailAndPassword } = window.firebaseAuthHelpers;
                     const credential = await createUserWithEmailAndPassword(window.firebaseAuth, email, password);
-                    this.authUid = credential.user.uid;
-                    if (!(await this._accountGuard(credential.user.uid))) return;
-                    this._stateLoadedFor = credential.user.uid;
-                    this.resetUserScopedListeners();
-                    this.currentUser = {
-                        fullName: fullName,
-                        governorate: governorate,
-                        phone: phone || '',
-                        email: email || '',
-                        avatar: this.tempAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2563EB&color=fff&size=200`,
-                        school: 'طالب في المرحلة الإعدادية',
-                        location: governorate,
-                        grade: 'scientific',
-                        points: 0,
-                        weeklyChange: 0,
-                        balance: 0,
-                        studentNumber: await this.generateUniqueStudentNumber()
-                    };
-                    this.isLoggedIn = true;
-                    this.saveUserData();
-                    const savedToDb = await this.syncUserToDatabase({ includeCounters: true });
-                    this._refRegister(credential.user.uid);
-                    this.initPushNotifications();
-                    this.syncNativePush();
-                    if (savedToDb) {
-                        this.showToast('تم إنشاء الحساب بنجاح');
-                    } else {
-                        this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
-                    }
-                    this.listenForOwnUserRecord();
-                    this.checkDailyStreak();
-                    this._ttNudgeSoon();
-                    this._smPing();
-                    this._clRingListen();
-                    this.listenForUserTasks();
-                    this.listenForUserChats();
-                    this.listenForReactions();
-                    this.listenForFriends();
-                    this.listenForYtInvites(); this.listenForRmInvites(); this.listenForDuelInv();
-                    this.listenForFriendRequests();
-                    this.listenForSentFriendRequests();
-                    this.listenForBlockedUsers();
-                    this.setupPresence();
-                    this.listenForPresence();
-                    this.goToProfile();
+                    await this._completeRegistration(credential.user, { fullName, governorate, phone, email });
                 } catch (error) {
                     console.warn('Register failed:', error);
                     const code = error && error.code;
@@ -1341,11 +1467,13 @@
                 const fa = window.firebaseAuth, h = window.firebaseAuthHelpers;
                 const user = fa && fa.currentUser;
                 if (!user || !h || !h.deleteUser) { this.showToast('سجّل دخول أول'); return; }
-                if (!pass) { this.showToast('اكتب كلمة السر'); return; }
+                const viaG = this._googleViaOnly(user);
+                if (!pass && !viaG) { this.showToast('اكتب كلمة السر'); return; }
                 if (btn) { btn.disabled = true; btn.innerHTML = '<span class="tt-typing"><i></i><i></i><i></i></span> جاي ينحذف'; }
                 const fail = (msg) => { this.showToast(msg); if (btn) { btn.disabled = false; btn.innerHTML = 'احذف حسابي'; } };
                 try {
-                    await h.reauthenticateWithCredential(user, h.EmailAuthProvider.credential(user.email, pass));
+                    if (viaG) await this._googleCredential(user);
+                    else await h.reauthenticateWithCredential(user, h.EmailAuthProvider.credential(user.email, pass));
                 } catch (e) {
                     const c = e && e.code;
                     fail(c === 'auth/wrong-password' || c === 'auth/invalid-credential' ? 'كلمة السر غلط' : c === 'auth/too-many-requests' ? 'محاولات كثيرة، جرب بعد شوية' : 'ما كدرت أتأكد منك، تأكد من النت');
@@ -2581,6 +2709,8 @@
                         this.saveUserData();
                         this._pubSync(safeUid, this.currentUser);
                     } else {
+                        const fu = window.firebaseAuth && window.firebaseAuth.currentUser;
+                        if (fu && fu.uid === safeUid && this._googleViaOnly(fu) && !(this.currentUser && this.currentUser.fullName)) { this._authFlowInProgress = true; this._googleProfileSheet(fu); return; }
                         if (!this.currentUser) this.currentUser = {};
                         if (!this.currentUser.studentNumber) {
                             this.currentUser.studentNumber = await this.generateUniqueStudentNumber();
@@ -3156,6 +3286,7 @@
                 this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
                 if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
                 this.renderPollCard(); this.renderInviteBanner(); this._promoSoon();
+                if (this.currentView === 'authView') this.setAuthMode(this.authMode || 'login');
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
 
                 // Bottom navigation

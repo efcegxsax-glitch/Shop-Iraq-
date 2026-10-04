@@ -10,7 +10,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = 'f8fe118699';
+        window.APP_VER = '5e86e921d9';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -49,7 +49,7 @@
         // Import the functions you need from the SDKs you need
         import { initializeApp } from "./js/vendor/fb/firebase-app.js?v=12.18.0";
         import { forceLongPolling, getDatabase, ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, orderByKey, startAt, endAt, endBefore } from "./js/vendor/fb/firebase-database.js?v=12.18.0";
-        import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider } from "./js/vendor/fb/firebase-auth.js?v=12.18.0";
+        import { getAuth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, inMemoryPersistence, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, signInWithPopup, signInWithCredential, reauthenticateWithPopup, browserPopupRedirectResolver } from "./js/vendor/fb/firebase-auth.js?v=12.18.0";
         // TODO: Add SDKs for Firebase products that you want to use
         // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -86,7 +86,7 @@
             } catch (e) {
                 window.firebaseAuth = getAuth(app);
             }
-            window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider };
+            window.firebaseAuthHelpers = { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, deleteUser, reauthenticateWithCredential, EmailAuthProvider, GoogleAuthProvider, signInWithPopup, signInWithCredential, reauthenticateWithPopup, browserPopupRedirectResolver };
             window.firebaseDbHelpers = { ref, set, get, remove, update, onChildAdded, onValue, serverTimestamp, runTransaction, onDisconnect, query, limitToLast, limitToFirst, orderByChild, orderByKey, startAt, endAt, endBefore };
             // Messaging and Storage aren't needed to show the first screen, so they are loaded after the
             // app is up (app start used to wait for both downloads). Storage is also awaited on demand.
@@ -122,7 +122,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=7d0a8f7e02">
+    <link rel="stylesheet" href="css/app.css?v=9466e115e4">
     <link rel="stylesheet" href="css/tw.css?v=449572e7bb">
 </head>
 <body class="antialiased">
@@ -529,6 +529,16 @@
                         <p class="text-xs text-center mt-3 theme-transition" style="color: var(--text2);">بإنشاء الحساب توافق على <a href="terms.html" style="color: rgb(var(--p)); font-weight: 700;">الشروط وقواعد المجتمع</a> و<a href="privacy.html" style="color: rgb(var(--p)); font-weight: 700;">سياسة الخصوصية</a></p>
                     </div>
                 </form>
+
+                <!-- Sign in with Google: a real Gmail address, so nobody can open accounts with made-up emails -->
+                <div id="googleAuth" class="g-wrap">
+                    <div id="regGoogleOnly" class="g-note hidden">التسجيل بالبريد العادي متوقف. سجّل بحساب Google الخاص بك، وهو نفسه تستخدمه لتسجيل الدخول كل مرة.</div>
+                    <div class="g-or"><span>أو</span></div>
+                    <button type="button" class="g-btn btn-press" onclick="app.googleSignIn()">
+                        <svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.3l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.1 7-17.1z"/><path fill="#FBBC05" d="M10.5 28.6c-.5-1.5-.8-3-.8-4.6s.3-3.1.8-4.6l-7.9-6.1C.9 16.5 0 20.1 0 24s.9 7.5 2.6 10.7l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2.1 1.4-4.9 2.3-8.3 2.3-6.3 0-11.6-4.1-13.5-9.9l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+                        <span>المتابعة بحساب Google</span>
+                    </button>
+                </div>
 
                 <div class="mt-6 text-center">
                     <p class="text-xs theme-transition" style="color: var(--text2);">بالتسجيل فإنك توافق على <a href="#" class="text-primary font-bold">شروط الاستخدام</a> و <a href="#" class="text-primary font-bold">سياسة الخصوصية</a></p>
@@ -1915,7 +1925,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=feea80815c"></script>
+    <script src="js/app.js?v=a2885da418"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
