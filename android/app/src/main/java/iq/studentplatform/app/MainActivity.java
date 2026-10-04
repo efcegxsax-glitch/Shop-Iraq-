@@ -17,6 +17,15 @@ import androidx.credentials.exceptions.GetCredentialException;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
 import org.json.JSONObject;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.media.MediaRecorder;
+import androidx.core.app.ActivityCompat;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.ByteArrayOutputStream;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -30,6 +39,8 @@ import com.getcapacitor.BridgeActivity;
  */
 public class MainActivity extends BridgeActivity {
     private float top = 0, bottom = 0;
+    private MediaRecorder voiceRec;
+    private File voiceFile;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -73,6 +84,66 @@ public class MainActivity extends BridgeActivity {
                 });
             }
 
+
+            // Voice messages recorded by the phone itself (microphone source, AAC 64 kbps mono 44.1 kHz): the web view's recorder
+            // goes through the call audio path and sounds thin. Returns "ok", "perm" (the permission was just asked) or "err:...".
+            @JavascriptInterface
+            public String recStart() {
+                try {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                        runOnUiThread(() -> ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.RECORD_AUDIO}, 7701));
+                        return "perm";
+                    }
+                    final FutureTask<String> task = new FutureTask<>(() -> {
+                        try {
+                            cleanupRec(true);
+                            voiceFile = File.createTempFile("isp_voice", ".m4a", getCacheDir());
+                            MediaRecorder r = new MediaRecorder();
+                            r.setAudioSource(MediaRecorder.AudioSource.MIC);
+                            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
+                            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+                            r.setAudioEncodingBitRate(64000);
+                            r.setAudioSamplingRate(44100);
+                            r.setAudioChannels(1);
+                            r.setOutputFile(voiceFile.getAbsolutePath());
+                            r.prepare();
+                            r.start();
+                            voiceRec = r;
+                            return "ok";
+                        } catch (Throwable e) {
+                            cleanupRec(true);
+                            return "err:" + e;
+                        }
+                    });
+                    runOnUiThread(task);
+                    return task.get(4, TimeUnit.SECONDS);
+                } catch (Throwable e) {
+                    return "err:" + e;
+                }
+            }
+
+            // stops the recording; when keep is true the file goes back to the page as window.__ispRec(true, dataUrl), else it is thrown away
+            @JavascriptInterface
+            public void recStop(final boolean keep) {
+                runOnUiThread(() -> {
+                    final File f = voiceFile;
+                    boolean ok = false;
+                    try { if (voiceRec != null) { voiceRec.stop(); ok = true; } } catch (Throwable ignored) {}
+                    cleanupRec(false);
+                    if (!keep || !ok || f == null) { if (f != null) f.delete(); if (keep) replyRec(false, "empty"); return; }
+                    new Thread(() -> {
+                        try {
+                            FileInputStream in = new FileInputStream(f);
+                            ByteArrayOutputStream out = new ByteArrayOutputStream();
+                            byte[] buf = new byte[16384]; int n;
+                            while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
+                            in.close(); f.delete();
+                            replyRec(true, "data:audio/mp4;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP));
+                        } catch (Throwable e) { replyRec(false, String.valueOf(e)); }
+                    }).start();
+                });
+            }
+
             // the page's background colour, kept for the next start
             @JavascriptInterface
             public void bg(final String hex) {
@@ -107,6 +178,18 @@ public class MainActivity extends BridgeActivity {
             }
         }, "IspNative");
         ViewCompat.requestApplyInsets(content);
+    }
+
+    private void cleanupRec(boolean deleteFile) {
+        try { if (voiceRec != null) { try { voiceRec.release(); } catch (Throwable ignored) {} } } finally { voiceRec = null; }
+        if (deleteFile && voiceFile != null) { try { voiceFile.delete(); } catch (Throwable ignored) {} voiceFile = null; }
+    }
+
+    private void replyRec(boolean ok, String value) {
+        final WebView web = getBridge() != null ? getBridge().getWebView() : null;
+        if (web == null) return;
+        final String js = "window.__ispRec&&window.__ispRec(" + ok + "," + JSONObject.quote(value == null ? "" : value) + ")";
+        web.post(() -> web.evaluateJavascript(js, null));
     }
 
     private void replyGoogle(boolean ok, String value) {
