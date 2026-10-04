@@ -323,6 +323,15 @@
         ".validate": "!newData.exists() || (newData.hasChildren(['c', 'at']) && newData.child('c').isString() && newData.child('c').val().length <= 40 && newData.child('at').isNumber())"
       }
     },
+    "pushPrefs": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        "$k": {
+          ".validate": "($k == 'msg' || $k == 'call') && newData.isBoolean()"
+        }
+      }
+    },
     "studyRoom": {
       ".read": true,
       "$uid": {

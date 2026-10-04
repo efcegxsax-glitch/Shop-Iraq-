@@ -342,6 +342,7 @@
             { id: 'grants', label: 'المنح', icon: 'award' },
             { id: 'schools', label: 'المدارس', icon: 'school' },
             { id: 'decisions', label: 'القرارات', icon: 'gavel' },
+            { id: 'weather', label: 'الأنواء الجوية', icon: 'cloud-sun' },
             { id: 'other', label: 'أخرى', icon: 'more-horizontal' }
         ];
 
@@ -353,6 +354,7 @@
             circular: { label: 'تعميم', bg: 'bg-circular-bg', border: 'border-circular-border', iconBg: 'bg-success/10', iconColor: 'text-success', icon: 'building-2' },
             update: { label: 'تحديث', bg: 'bg-update-bg', border: 'border-update-border', iconBg: 'bg-warning/10', iconColor: 'text-warning', icon: 'calendar' },
             reminder: { label: 'تذكير', bg: 'bg-reminder-bg', border: 'border-reminder-border', iconBg: 'bg-purple-500/10', iconColor: 'text-purple-500', icon: 'clock' },
+            weather: { label: 'الأنواء الجوية', bg: 'bg-general-bg', border: 'border-general-border', iconBg: 'bg-secondary/10', iconColor: 'text-secondary', icon: 'cloud-sun' },
             general: { label: 'أخبار عامة', bg: 'bg-general-bg', border: 'border-general-border', iconBg: 'bg-secondary/10', iconColor: 'text-secondary', icon: 'monitor' }
         };
 
@@ -511,7 +513,7 @@
             userBookmarks: {},
             userDeletedNotifs: {},
             calendarMonthOffset: 0,
-            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true },
+            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, msg: true, call: true, lec: true },
             currentChatUid: null,
             currentChatOther: null,
             sentFriendRequests: {},
@@ -2794,7 +2796,7 @@
                     this._coachOpen();
                     if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
                     this._coachTag(this._coachGet().on);
-                    this._tubeTag();
+                    this._pnSync();
                     if (this._tubePending) { const v = this._tubePending; this._tubePending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(v)).catch(() => {}); }, 900); }
                     this._clRingListen();
                     this.listenForUserTasks();
@@ -4517,14 +4519,9 @@
             },
             _coachSave(c) { try { localStorage.setItem('isp:coach:' + (this.authUid || 'guest'), JSON.stringify(c)); } catch (e) {} },
             // the push service skips students who switched the messages off (tag coach=off)
-            _coachTag(on) {
-                try { if (window.OneSignal && OneSignal.User && OneSignal.User.addTag) OneSignal.User.addTag('coach', on ? 'on' : 'off'); } catch (e) {}
-            },
+            _coachTag(on) { this._pnTags({ coach: on ? 'on' : 'off' }); },
             // new-video pushes from teachers: on unless the student switched them off in the teachers page
-            _tubeTag() {
-                let on = true; try { on = localStorage.getItem('isp_tube_push') !== '0'; } catch (e) {}
-                try { if (window.OneSignal && OneSignal.User && OneSignal.User.addTag) OneSignal.User.addTag('tube', on ? 'on' : 'off'); } catch (e) {}
-            },
+            _tubeTag() { this._pnTags({ tube: this.notifPrefs.tube === false ? 'off' : 'on' }); },
             _coachTick() {
                 const cfg = this.siteConfig || {};
                 if ((cfg.features && cfg.features.coach === false) || !this.isLoggedIn || !this.authUid) return;
@@ -4849,7 +4846,7 @@
                     let st = {};
                     try { st = JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch (e) {}
                     st.ids = st.ids || [];
-                    const on = !!(d && d.rem && d.rem.on && this._pushPerm() === 'granted' && this._os);
+                    const on = !!(d && d.rem && d.rem.on && this._pushPerm() === 'granted' && this._os && this._pnOn('lec'));
                     const items = [];
                     if (on) {
                         const now = Date.now();
@@ -4879,7 +4876,7 @@
             _tbTick() {
                 this._tbPushSync();
                 const d = this._tbGet();
-                if (!d || !d.rem || !d.rem.on || this._cl || this._focus || this._forest || this._gwar || this._duelOn) return;
+                if (!d || !d.rem || !d.rem.on || !this._pnOn('lec') || this._cl || this._focus || this._forest || this._gwar || this._duelOn) return;
                 const now = new Date(), g = now.getDay(), min = now.getHours() * 60 + now.getMinutes();
                 if (d.days[g] !== 1) return;
                 const day = this.localDateStr(), key = 'isp:tb:sent:' + (this.authUid || 'guest');
@@ -5484,6 +5481,7 @@
                 try {
                     if (this.isLoggedIn && this.authUid) Promise.resolve(OS.login(String(this.authUid))).catch(() => {});
                     OS.User.addTags({ gov: this.GOV_CODES[gov] || '', gov_name: gov || '', member: this.isLoggedIn ? '1' : '0' });
+                    this._pnSync();
                 } catch (e) {
                     console.warn('OneSignal tags failed:', e);
                 }
@@ -11725,6 +11723,8 @@
                 try {
                     const raw = localStorage.getItem('iraqiStudentNotifPrefs');
                     if (raw) this.notifPrefs = { ...this.notifPrefs, ...JSON.parse(raw) };
+                    // the teachers page used to keep its own switch
+                    if (localStorage.getItem('isp_tube_push') === '0') { this.notifPrefs.tube = false; localStorage.removeItem('isp_tube_push'); this.saveNotifPrefs(); }
                 } catch (e) {
                     console.warn('Load notif prefs failed:', e);
                 }
@@ -11738,32 +11738,82 @@
                 }
             },
 
+            // Every kind of notification the student can switch off. "push" ones are also read by the server before it
+            // sends to the phone: broadcast kinds through OneSignal tags (pn_<kind>, coach, tube), person-to-person kinds
+            // (msg, call) through pushPrefs/{uid} in the database, and lecture reminders by not scheduling them at all.
+            PN_LIST: [
+                ['urgent', 'الأخبار العاجلة', 'خبر مهم ومستعجل من الوزارة', 'siren', '#DC2626'],
+                ['announcement', 'الأخبار والإعلانات الرسمية', 'القرارات والعطل والنتائج والإعلانات', 'newspaper', '#2563EB'],
+                ['weather', 'الأنواء الجوية', 'حالة الطقس والتنبيهات الجوية', 'cloud-sun', '#0891B2'],
+                ['res', 'ملازم جديدة', 'لما تنزل ملزمة جديدة', 'book-open', '#16A34A'],
+                ['tube', 'محاضرات المدرسين', 'لما أستاذ ينزل فيديو جديد', 'clapperboard', '#EF4444'],
+                ['general', 'إعلانات عامة من الإدارة', 'أخبار ومناسبات عامة', 'megaphone', '#7C3AED'],
+                ['coach', 'رسائل المعلم', 'تشجيع وتذكير بالدراسة', 'message-circle-warning', '#6366F1'],
+                ['lec', 'تذكير المحاضرات', 'قبل موعد محاضرتك بجدولك', 'alarm-clock', '#F59E0B'],
+                ['msg', 'رسائل الأصدقاء', 'لما يراسلك صديق', 'message-circle', '#EC4899'],
+                ['call', 'المكالمات', 'لما أحد يتصل بيك', 'phone-call', '#0D9488'],
+            ],
+            _pnOn(k) { return k === 'coach' ? !!this._coachGet().on : this.notifPrefs[k] !== false; },
+            _pnTags(t) {
+                try {
+                    if (this._os && this._os.User && this._os.User.addTags) { this._os.User.addTags(t); return; }
+                    if (window.OneSignal && OneSignal.User && OneSignal.User.addTags) { OneSignal.User.addTags(t); return; }
+                    const w = this._wtn && this._wtn();
+                    if (w && w.os === 'android' && typeof w.a.setUserTags === 'function') w.a.setUserTags(JSON.stringify(t));
+                    else if (w && w.i) w.i.postMessage({ action: 'setUserTags', tags: t });
+                } catch (e) { console.warn('push tags failed', e); }
+            },
+            // pushes the student's choices to the places that decide what reaches the phone
+            _pnSync() {
+                const t = {};
+                ['urgent', 'announcement', 'weather', 'res', 'general'].forEach((k) => { t['pn_' + k] = this._pnOn(k) ? 'on' : 'off'; });
+                t.tube = this._pnOn('tube') ? 'on' : 'off'; t.coach = this._pnOn('coach') ? 'on' : 'off';
+                this._pnTags(t);
+                if (this.isLoggedIn && this.authUid && window.firebaseDb) {
+                    const off = {}; ['msg', 'call'].forEach((k) => { if (!this._pnOn(k)) off[k] = false; });
+                    const sig = JSON.stringify(off);
+                    if (this._pnSig === this.authUid + sig) return;
+                    this._pnSig = this.authUid + sig;
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'pushPrefs/' + this.authUid), Object.keys(off).length ? off : null).catch(() => { this._pnSig = ''; });
+                }
+            },
             openNotifPreferences() {
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تفضيلات الإشعارات';
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
+                const row = ([k, t, d, ic, c]) => `
+                    <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
+                        <span class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:${c}22;color:${c}"><i data-lucide="${ic}" class="w-5 h-5"></i></span>
+                        <div class="flex-1 min-w-0"><div class="text-sm font-bold theme-transition" style="color: var(--text);">${t}</div><div class="text-xs theme-transition" style="color: var(--text2);">${d}</div></div>
+                        <label class="toggle-switch flex-shrink-0"><input type="checkbox" ${this._pnOn(k) ? 'checked' : ''} onchange="app.toggleNotifPref(${jsArg(k)})"><span class="toggle-slider"></span></label>
+                    </div>`;
+                const rest = ['circular', 'update', 'reminder'];
+                const perm = this._pushPerm && this._pushPerm();
                 content.innerHTML = `
-                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر أنواع الإشعارات اللي تريد تستلمها فقط</p>
-                    <div class="flex flex-col gap-2">
-                        ${Object.keys(notificationTypes).map((type) => `
-                            <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
-                                <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(notificationTypes[type].label)}</div>
-                                <label class="toggle-switch flex-shrink-0">
-                                    <input type="checkbox" ${this.notifPrefs[type] !== false ? 'checked' : ''} onchange="app.toggleNotifPref(${jsArg(type)})">
-                                    <span class="toggle-slider"></span>
-                                </label>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
+                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر الإشعارات اللي تريد توصلك، واللي طفيتها ما توصلك بالهاتف ولا تظهر بقائمة الإشعارات.</p>
+                    ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك.</p>' : ''}
+                    <div class="flex flex-col gap-2">${this.PN_LIST.map(row).join('')}</div>
+                    <p class="text-xs mt-4 mb-2 font-bold theme-transition" style="color: var(--text2);">تظهر داخل التطبيق فقط</p>
+                    <div class="flex flex-col gap-2">${rest.map((type) => `
+                        <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
+                            <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(notificationTypes[type].label)}</div>
+                            <label class="toggle-switch flex-shrink-0"><input type="checkbox" ${this.notifPrefs[type] !== false ? 'checked' : ''} onchange="app.toggleNotifPref(${jsArg(type)})"><span class="toggle-slider"></span></label>
+                        </div>`).join('')}</div>`;
                 document.getElementById('walletModal')?.classList.remove('hidden');
                 lucide.createIcons();
             },
 
             toggleNotifPref(type) {
-                this.notifPrefs[type] = this.notifPrefs[type] === false ? true : false;
-                this.saveNotifPrefs();
+                if (type === 'coach') {
+                    const c = this._coachGet(); c.on = !c.on; this._coachSave(c); this._coachTag(c.on);
+                } else {
+                    this.notifPrefs[type] = this.notifPrefs[type] === false ? true : false;
+                    this.saveNotifPrefs();
+                    if (type === 'lec' && this._tbPushSync) this._tbPushSync(true);
+                }
+                this._pnSync();
                 this.updateNotifBadges();
                 if (this.currentView === 'notificationsView') this.renderNotificationsList();
             },

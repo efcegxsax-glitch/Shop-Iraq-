@@ -152,6 +152,12 @@ await ok('exam file pieces are public to read', get(ref(db('u1'), 'examFiles/e1'
 await no('exam source text is not readable by a student', get(ref(db('u1'), 'examSrc/e1')));
 await ok('admin writes exam, file piece and source', Promise.all([set(ref(db('adm'), 'exams/e1'), { t: 'x' }), set(ref(db('adm'), 'examFiles/e1/0'), 'abc'), set(ref(db('adm'), 'examSrc/e1/0'), 'text')]));
 await ok('admin reads exam source', get(ref(db('adm'), 'examSrc/e1')));
+await ok('push prefs: own write', set(ref(db('u1'), 'pushPrefs/u1'), { msg: false }));
+await no('push prefs: not for another student', set(ref(db('u2'), 'pushPrefs/u1'), { msg: false }));
+await no('push prefs: only known switches', set(ref(db('u1'), 'pushPrefs/u1/zzz'), false));
+await no('push prefs: only booleans', set(ref(db('u1'), 'pushPrefs/u1/call'), 'x'));
+await ok('push prefs: a signed-in student (the server) can read', get(ref(db('u2'), 'pushPrefs/u1/msg')));
+await no('push prefs: not public', get(ref(db(), 'pushPrefs/u1')));
 await ok('teachers channels are public to read', get(ref(db('u1'), 'ytChannels')));
 await ok('study minutes week', set(ref(db('u1'), 'leaderboard/u1/wm'), { '2026-10-03': 90 }));
 await ok('study minutes season', set(ref(db('u1'), 'leaderboard/u1/sm'), { '2026-10': 90 }));
