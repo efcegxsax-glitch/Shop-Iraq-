@@ -86,7 +86,7 @@ public class MainActivity extends BridgeActivity {
                                         replyGoogle(false, "unsupported credential");
                                     }
                                 }
-                                @Override public void onError(GetCredentialException e) { replyGoogle(false, e.getType() + " " + e.getMessage()); }
+                                @Override public void onError(GetCredentialException e) { replyGoogle(false, e.getClass().getSimpleName() + " | " + e.getType() + " | " + e.getMessage()); }
                             });
                     } catch (Throwable t) {
                         replyGoogle(false, String.valueOf(t));
