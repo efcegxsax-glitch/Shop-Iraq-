@@ -664,6 +664,17 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') { app.showToast('التسجيل الصوتي غير مدعوم بهذا المتصفح'); return; }
         const p = e.touches ? e.touches[0] : e;
         const v = V = { held: true, cancel: false, x: p.clientX, y: p.clientY, chunks: [], start: 0, send: false };
+        // inside the phone app the phone records the voice itself (clear, full-band), the web view's recorder is the fallback
+        if (app._isNative() && window.IspNative && window.IspNative.recStart) {
+            const r = String(window.IspNative.recStart());
+            if (r === 'ok') {
+                v.native = true; v.start = Date.now();
+                voiceUi(true); tickVoice(v); v.timer = setInterval(() => tickVoice(v), 400);
+                typing('r'); v.tt = setInterval(() => typing('r'), TYPE_EVERY);
+                return;
+            }
+            if (r === 'perm') { V = null; app._voiceTouchActive = false; app.showToast('اسمح للتطبيق باستخدام المايكروفون ثم اضغط مرة ثانية'); return; }
+        }
         // Clear voice: one 48 kHz channel, the phone's auto gain keeps the level even, and no echo/noise "cleaning" (that processing is meant for calls and
         // makes a recording sound thin and watery). Opus at 64 kbps is far above what speech needs, so it comes out clean.
         navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: { ideal: 48000 }, echoCancellation: false, noiseSuppression: false, autoGainControl: true } }).catch(() => navigator.mediaDevices.getUserMedia({ audio: true })).then((stream) => {
@@ -705,9 +716,27 @@
         v.send = !!send; v.held = false;
         clearInterval(v.timer); clearInterval(v.tt);
         typing(null);
+        if (v.native) {
+            NV = v;
+            try { window.IspNative.recStop(!!send); } catch (e) { NV = null; V = null; voiceUi(false); return; }
+            if (!send) { NV = null; V = null; voiceUi(false); }
+            return;
+        }
         try { if (v.rec && v.rec.state === 'recording') v.rec.stop(); else finishVoice(v); } catch (e) { finishVoice(v); }
         if (v.stream) v.stream.getTracks().forEach((t) => t.stop());
     }
+    let NV = null;
+    // the phone's recorder answers here
+    window.__ispRec = (ok, data) => {
+        const v = NV; NV = null; if (!v) return;
+        if (V === v) V = null;
+        voiceUi(false);
+        const secs = v.start ? Math.round((Date.now() - v.start) / 1000) : 0;
+        if (!ok || !T) { if (!ok && T) app.showToast('الرسالة الصوتية قصيرة جداً أو ما انسجلت'); return; }
+        if (secs < 1) { app.showToast('الرسالة الصوتية قصيرة جداً'); return; }
+        if (String(data).length > 7000000) { app.showToast('التسجيل طويل جداً، حاول رسالة أقصر'); return; }
+        send({ type: 'voice', audioUrl: data, duration: secs });
+    };
     function finishVoice(v) {
         if (V !== v) return;
         V = null; voiceUi(false);
