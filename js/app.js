@@ -736,6 +736,8 @@
                 this.initOffline();
                 // a shared room link (?yr=...) opens that room once the student is signed in
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
+                // a push about a teacher's new video (?tube=<video id>) opens that video
+                try { const m = location.search.match(/[?&]tube=([A-Za-z0-9_-]{11})(?:&|$)/); if (m) this._tubePending = m[1]; } catch (e) {}
                 try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
                 try { const m = location.search.match(/[?&]dl=([a-z0-9]{6})(?![a-z0-9])/i); if (m) this._dlPending = m[1].toLowerCase(); } catch (e) {}
                 // an invite link (?ref=<uid>) is remembered until the visitor creates an account
@@ -2792,6 +2794,8 @@
                     this._coachOpen();
                     if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
                     this._coachTag(this._coachGet().on);
+                    this._tubeTag();
+                    if (this._tubePending) { const v = this._tubePending; this._tubePending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(v)).catch(() => {}); }, 900); }
                     this._clRingListen();
                     this.listenForUserTasks();
                     this.listenForUserChats();
@@ -4515,6 +4519,11 @@
             // the push service skips students who switched the messages off (tag coach=off)
             _coachTag(on) {
                 try { if (window.OneSignal && OneSignal.User && OneSignal.User.addTag) OneSignal.User.addTag('coach', on ? 'on' : 'off'); } catch (e) {}
+            },
+            // new-video pushes from teachers: on unless the student switched them off in the teachers page
+            _tubeTag() {
+                let on = true; try { on = localStorage.getItem('isp_tube_push') !== '0'; } catch (e) {}
+                try { if (window.OneSignal && OneSignal.User && OneSignal.User.addTag) OneSignal.User.addTag('tube', on ? 'on' : 'off'); } catch (e) {}
             },
             _coachTick() {
                 const cfg = this.siteConfig || {};

@@ -14,7 +14,7 @@
     const clock = (s) => { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
     const TAB_ID = Math.random().toString(36).slice(2);
     const $ = (id) => document.getElementById(id);
-    let CH = [], FEED = [], S = { subj: 'all', tab: 'all', teacher: '', shown: PAGE }, P = null, tickT = 0, un = null, err = '', netBusy = false, apiP = null;
+    let ALL = {}, CH = [], FEED = [], S = { subj: 'all', tab: 'all', teacher: '', shown: PAGE }, P = null, tickT = 0, un = null, err = '', netBusy = false, apiP = null;
 
     // ---------- YouTube's player script, loaded once ----------
     function ytApi() {
@@ -32,6 +32,7 @@
 
     // ---------- data: channels from the database, videos from the Worker ----------
     const chById = (id) => CH.find((c) => c.id === id) || null;
+    const pushOn = () => { try { return localStorage.getItem('isp_tube_push') !== '0'; } catch (e) { return true; } };
     const favs = () => new Set(load(K_FAV, []));
     function listenChannels() {
         if (un || !window.firebaseDb) return;
@@ -68,11 +69,39 @@
         netBusy = false; paint();
     }
 
+    // a teacher's whole channel (old videos too), 100 per page, through the Worker
+    async function workerCall(body) {
+        const cu = String((app.siteConfig && app.siteConfig.tutorUrl) || '').trim().replace(/\/+$/, '');
+        const base = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev', user = window.firebaseAuth && window.firebaseAuth.currentUser;
+        if (!user) throw new Error('signin');
+        const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await user.getIdToken()) }, body: JSON.stringify(body) });
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json();
+    }
+    async function loadAll(id, more) {
+        const a = ALL[id] = ALL[id] || { list: [], next: '', busy: false, fail: false, done: false, pages: 0 };
+        if (a.busy || (a.done && !a.fail) || (a.pages && !a.next && !a.fail)) return;
+        if (more && !a.next) return;
+        a.busy = true; a.fail = false; paint();
+        try {
+            const j = await workerCall({ mode: 'ytchan', id, cont: a.pages ? a.next : '' });
+            const seen = new Set(a.list.map((x) => x.v));
+            (j.videos || []).forEach((x) => { if (x && /^[A-Za-z0-9_-]{11}$/.test(x.v) && !seen.has(x.v)) a.list.push({ v: x.v, t: x.t, c: id, wt: x.w, at: x.a }); });
+            a.next = j.next || ''; a.pages++; if (!a.next) a.done = true;
+        } catch (e) { a.fail = true; }
+        a.busy = false; paint();
+        // searching: keep reading older pages until something matches (a few pages at most)
+        const q = String(($('tuSearch') || {}).value || '').trim();
+        if (q && S.teacher === id && a.next && a.pages < 8 && !a.fail && !visible().length) loadAll(id, true);
+    }
     // ---------- the page ----------
     function subjects() { const s = []; CH.forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
     function visible() {
         const f = favs(), q = String(($('tuSearch') || {}).value || '').trim();
-        return FEED.filter((x) => {
+        const a = S.teacher && ALL[S.teacher] && ALL[S.teacher].list.length ? ALL[S.teacher] : null;
+        // the teacher's full list, with the newest ones' numbers taken from the feed
+        const src = a ? a.list.map((x) => { const n = FEED.find((f) => f.v === x.v); return n ? Object.assign({}, x, n) : x; }) : FEED;
+        return src.filter((x) => {
             const c = chById(x.c); if (!c) return false;
             if (S.teacher && c.id !== S.teacher) return false;
             if (S.tab === 'mine' && !f.has(c.id)) return false;
@@ -86,7 +115,7 @@
         const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
         return `<button class="tu-card${big ? ' big' : ''}" onclick="app.tuPlay('${x.v}')">
             <span class="tu-th"><img src="${thumb(x.v, big ? 'hqdefault' : 'mqdefault')}" alt="" loading="lazy"></span>
-            <span class="tu-meta"><span class="tu-av">${av}</span><span class="tu-tx"><b>${esc(x.t)}</b><small>${esc(c.n || '')} . ${x.w ? views(x.w) + ' . ' : ''}${x.p ? timeAgo(x.p) : ''}</small></span></span></button>`;
+            <span class="tu-meta"><span class="tu-av">${av}</span><span class="tu-tx"><b>${esc(x.t)}</b><small>${esc(c.n || '')} . ${x.w ? views(x.w) + ' . ' : x.wt ? esc(x.wt) + ' . ' : ''}${x.p ? timeAgo(x.p) : x.at ? esc(x.at) : ''}</small></span></span></button>`;
     }
     function paint() {
         const box = $('tuContent'); if (!box) return;
@@ -102,7 +131,7 @@
         else if (err && !FEED.length) body = `<div class="tu-empty"><i data-lucide="wifi-off"></i><b>${esc(err)}</b><button class="tu-btn" onclick="app.tuRefresh()">إعادة المحاولة</button></div>`;
         else if (S.tab === 'mine' && !f.size) body = '<div class="tu-empty"><i data-lucide="users"></i><b>لم تحدد أي أستاذ بعد</b><p>اختار أساتذتك وتطلع محاضراتهم هنا بس.</p><button class="tu-btn" onclick="app.tuPick()">تحديد أساتذتي</button></div>';
         else if (!list.length) body = '<div class="tu-empty"><i data-lucide="search-x"></i><b>ما لكيت فيديوهات</b></div>';
-        else body = list.slice(0, S.shown).map((x, i) => card(x, i % 3 === 0)).join('') + (list.length > S.shown ? '<button class="tu-more" onclick="app.tuMore()">عرض المزيد</button>' : '');
+        else body = list.slice(0, S.shown).map((x, i) => card(x, i % 3 === 0)).join('') + (list.length > S.shown || (S.teacher && ALL[S.teacher] && (ALL[S.teacher].next || ALL[S.teacher].busy)) ? `<button class="tu-more" onclick="app.tuMore()">${S.teacher && ALL[S.teacher] && ALL[S.teacher].busy ? 'دا يحمّل...' : 'عرض المزيد'}</button>` : '');
         const recent = !S.teacher && S.tab === 'all' && S.subj === 'all' && hist.length ? `<div class="tu-h"><span>آخر ما شاهدته</span><button onclick="app.tuClearHist()">مسح</button></div>
             <div class="tu-rec">${hist.map((h) => `<button class="tu-rc" onclick="app.tuPlay('${h.v}')"><span class="tu-th"><img src="${thumb(h.v)}" alt="" loading="lazy"><i style="width:${Math.min(100, Math.round((h.p || 0) / Math.max(1, h.d || 1) * 100))}%"></i></span><small>${esc(h.t)}</small></button>`).join('')}</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
@@ -277,15 +306,23 @@
         tuClose() { closePlayer(true); },
         tuSubj(s) { S.subj = s; S.shown = PAGE; paint(); },
         tuTab(t) { S.tab = t; S.shown = PAGE; paint(); },
-        tuTeacher(id) { S.teacher = S.teacher === id ? '' : id; S.shown = PAGE; paint(); },
-        tuMore() { S.shown += PAGE; paint(); },
+        tuTeacher(id) { S.teacher = S.teacher === id ? '' : id; S.shown = PAGE; paint(); if (S.teacher) loadAll(S.teacher); },
+        tuMore() {
+            S.shown += PAGE;
+            const a = S.teacher && ALL[S.teacher];
+            if (a && a.next && S.shown > visible().length - 5) loadAll(S.teacher, true); else paint();
+        },
         tuRefresh() { err = ''; paint(); fetchFeed(true); },
         tuSearchToggle() {
             const b = $('tuSearchBar'); if (!b) return;
             b.classList.toggle('hidden');
             if (!b.classList.contains('hidden')) $('tuSearch')?.focus(); else { $('tuSearch').value = ''; paint(); }
         },
-        tuSearchInput() { S.shown = PAGE; paint(); },
+        tuSearchInput() {
+            S.shown = PAGE; paint();
+            const a = S.teacher && ALL[S.teacher];
+            if (a && a.next && !a.busy && !visible().length) loadAll(S.teacher, true);
+        },
         tuClearHist() { save(K_HIST, []); paint(); },
         tuPlay(v) { if (!app.authUid) { app.showToast('سجّل دخولك حتى تشاهد وتحصل نقاط'); app.goToAuth('login'); return; } openPlayer(v); },
         tuBack() { closePlayer(false); },
@@ -335,9 +372,15 @@
             const w = document.createElement('div'); w.id = 'tuSheet'; w.className = 'tu-sheetw';
             w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
                 <p>اختار الأساتذة اللي تريد تتابعهم، وتطلع محاضراتهم بتبويب "أساتذتي".</p>
+                <button class="tu-pushsw ${pushOn() ? 'on' : ''}" onclick="app.tuPushToggle(this)"><i data-lucide="bell"></i><span><b>إشعار عند نزول محاضرة جديدة</b><small>يوصلك اسم المحاضرة أول ما ينزلها الأستاذ</small></span><em><i data-lucide="check"></i></em></button>
                 <div class="tu-pick">${CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
             document.body.appendChild(w); try { lucide.createIcons(); } catch (e) {}
             requestAnimationFrame(() => w.classList.add('on'));
+        },
+        tuPushToggle(btn) {
+            const on = !pushOn();
+            try { localStorage.setItem('isp_tube_push', on ? '1' : '0'); } catch (e) {}
+            app._tubeTag(); btn && btn.classList.toggle('on', on);
         },
         tuFavToggle(id, btn) { const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); save(K_FAV, Array.from(f)); btn && btn.classList.toggle('on', f.has(id)); paint(); },
         tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); },
