@@ -80,11 +80,33 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
+    "exams": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
     "resourceFiles": {
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
       "$id": {
         ".validate": "newData.isString() && newData.val().length < 10000000"
+      }
+    },
+    "examFiles": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        "$i": {
+          ".validate": "newData.isString() && newData.val().length < 1500000"
+        }
+      }
+    },
+    "examSrc": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        "$i": {
+          ".validate": "newData.isString() && newData.val().length < 1500000"
+        }
       }
     },
     "bannedStudents": {

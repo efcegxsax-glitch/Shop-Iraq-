@@ -229,6 +229,40 @@ async function claudeFood(env, system, prompt, context, uid) {
     return res.parsed_output;
 }
 
+// ---------- exams from a handout (admin only) ----------
+const EXAM_SYSTEM = `أنت أستاذ عراقي خبير بأسئلة الامتحانات الوزارية للسادس الإعدادي. تكتب ورقة امتحان كاملة من مادة الملزمة المعطاة فقط، بنفس أسلوب الأسئلة الوزارية العراقية: أسئلة رقمها س1 وس2 وهكذا، كل سؤال بيه فروع (أ، ب، ج...) ولكل فرع درجة، وتحت كل س جملة توجيه مثل "أجب عن فرعين فقط" أو "أجب عن الفروع كلها". نوّع الأسئلة: عرّف، علّل، ماذا يحدث عند، قارن، اختر الإجابة الصحيحة، صح وخطأ، أكمل الفراغ، مسائل وحسابات. اكتب بعربية فصحى سهلة ودقيقة. لا تسأل عن شي مو موجود بمادة الملزمة. اكتب المعادلات بالرموز العادية بدون LaTeX. مجموع درجات الفروع المطلوبة لازم يساوي الدرجة الكلية. لا تكتب الإجابات.`;
+const Exam = z.object({
+    title: z.string(),
+    sections: z.array(z.object({ n: z.string(), head: z.string(), marks: z.number(), parts: z.array(z.object({ l: z.string(), q: z.string(), m: z.number() })) })),
+});
+async function claudeExam(env, prompt, uid) {
+    const res = await claudeClient(env).messages.parse({
+        model: CLAUDE_MODEL, max_tokens: 16000, system: EXAM_SYSTEM,
+        messages: [{ role: 'user', content: prompt }],
+        output_config: { effort: 'medium', format: zodOutputFormat(Exam) },
+        metadata: { user_id: uid },
+    });
+    if (res.stop_reason === 'refusal') return null;
+    return res.parsed_output;
+}
+async function claudeRead(env, images, uid) {
+    const res = await claudeClient(env).messages.create({
+        model: CLAUDE_MODEL, max_tokens: 12000,
+        system: 'انسخ نص هذه الصفحات من ملزمة دراسية حرفياً وبالترتيب، بالعربية كما هي. اكتب المعادلات بالرموز العادية. الجداول والرسوم: وصفها بجملة قصيرة. لا تضيف شرح من عندك. إذا صفحة فاضية اكتب (فارغة).',
+        messages: [{ role: 'user', content: [...images.map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.type, data: im.data } })), { type: 'text', text: 'انسخ النص.' }] }],
+        output_config: { effort: 'low' },
+        metadata: { user_id: uid },
+    });
+    return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
+}
+function cleanExam(e, o) {
+    const secs = (e && Array.isArray(e.sections) ? e.sections : []).slice(0, 12).map((x, i) => ({
+        n: String(x.n || 'س' + (i + 1)).slice(0, 12), head: String(x.head || '').slice(0, 200), marks: Math.max(0, Math.min(100, Math.round(Number(x.marks) || 0))),
+        parts: (Array.isArray(x.parts) ? x.parts : []).slice(0, 10).map((p) => ({ l: String(p.l || '').slice(0, 6), q: String(p.q || '').slice(0, 900), m: Math.max(0, Math.min(100, Math.round(Number(p.m) || 0))) })).filter((p) => p.q),
+    })).filter((x) => x.parts.length);
+    return secs.length ? { title: String(e.title || o.chapter || 'امتحان').slice(0, 100), sections: secs } : null;
+}
+
 // ---------- Gemini ----------
 function geminiClient(env) { return new GoogleGenAI({ apiKey: env.GEMINI_API_KEY, ...(env.GEMINI_BASE_URL ? { httpOptions: { baseUrl: env.GEMINI_BASE_URL } } : {}) }); }
 const geminiSystem = (base, context) => (context ? base + '\n\nتقرير الطالب من التطبيق:\n' + context : base);
@@ -668,6 +702,30 @@ export default {
             for (const { id, f } of feeds) for (const v of f.videos.slice(0, 15)) videos.push({ ...v, c: id });
             videos.sort((a, b) => b.p - a.p);
             return json(200, { videos: videos.slice(0, 120) }, headers);
+        }
+
+        // admin only: the pages of a handout as pictures -> their text (for scanned PDFs)
+        if (body.mode === 'examread' || body.mode === 'examgen') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (!env.ANTHROPIC_API_KEY) return json(503, { error: 'no_key' }, headers);
+            try {
+                if (body.mode === 'examread') {
+                    const imgs = (Array.isArray(body.images) ? body.images : []).filter((im) => im && IMAGE_TYPES.includes(im.type) && typeof im.data === 'string' && im.data.length <= MAX_IMAGE_B64 && /^[A-Za-z0-9+/=]+$/.test(im.data)).slice(0, 6);
+                    if (!imgs.length) return json(400, { error: 'image' }, headers);
+                    return json(200, { text: await claudeRead(env, imgs, uid) }, headers);
+                }
+                const text = typeof body.text === 'string' ? body.text.slice(0, 300000) : '';
+                if (text.trim().length < 200) return json(400, { error: 'short' }, headers);
+                const o = { subject: str(body.subject, 60), chapter: str(body.chapter, 120) };
+                const total = Math.max(10, Math.min(100, Math.round(Number(body.total) || 100)));
+                const nq = Math.max(2, Math.min(8, Math.round(Number(body.nq) || 5)));
+                const prompt = `المادة: ${o.subject || 'غير محددة'}${o.chapter ? '\nالفصل/الموضوع: ' + o.chapter : ''}\nالدرجة الكلية: ${total}\nعدد الأسئلة الرئيسية: ${nq}${str(body.note, 300) ? '\nتعليمات إضافية من المدرس: ' + str(body.note, 300) : ''}\n\nمادة الملزمة:\n${text}`;
+                const ex = cleanExam(await claudeExam(env, prompt, uid), o);
+                return ex ? json(200, ex, headers) : json(502, { error: 'exam' }, headers);
+            } catch (err) {
+                console.error('exam', err && err.message);
+                return json(502, { error: errorCode(err) }, headers);
+            }
         }
 
         // one teacher's whole channel, page by page (old videos, not just the newest)

@@ -4630,6 +4630,19 @@
                 this.hlOpen();
             },
 
+            goToExams() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.exams === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('examsView');
+                if (this._withPart('exams', () => typeof this.exOpen === 'function', 'examsView', () => this.goToExams())) return;
+                this.exOpen();
+            },
+            exBackBtn() {
+                if (document.getElementById('exPaper')) { this.exClosePaper(); return; }
+                if (this.exBack && this.exBack()) return;
+                this.goBack();
+            },
+
             goToTube() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.tube === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5355,6 +5368,7 @@
                 const close = [
                     ['#tuSheet', () => this.tuPickClose()],
                     ['#tuPlayer', () => this.tuBack()],
+                ['#exPaper', () => this.exClosePaper()],
                     ['#imgViewer', () => this.closeImageViewer()],
                     ['#ctSheet', () => this.chatSheetClose()],
                     ['#dlRoot', () => this.dlBack()],
@@ -8691,6 +8705,7 @@
                 { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
+                { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
