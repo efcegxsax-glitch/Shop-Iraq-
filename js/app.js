@@ -849,6 +849,12 @@
                 if (persist) {
                     try { localStorage.setItem('iraqiStudentTheme', mode); } catch (e) {}
                 }
+                // the page's own colour, also kept by the Android code so the next start has no white flash before the page draws
+                try {
+                    const bg = { black: '#000000', blue: '#0B1322', pink: '#FFF4F8' }[mode] || '#F1F5F3';
+                    document.documentElement.style.backgroundColor = bg;
+                    if (window.IspNative && window.IspNative.bg) window.IspNative.bg(bg);
+                } catch (e) {}
                 setTimeout(() => this._nativeBars(), 30);
             },
             // Android app: the bar icons are dark on a light page and light on a dark one
@@ -3518,6 +3524,8 @@
             listenForTicker() {
                 if (!window.firebaseDb || this._tickerListener) return;
                 const { ref, onValue } = window.firebaseDbHelpers;
+                // the last list this phone saw is shown at once, so the bar is not added (and the page pushed down) seconds after the start
+                try { const c = JSON.parse(localStorage.getItem('isp_ticker') || 'null'); if (Array.isArray(c) && c.length && !(this.adminTicker && this.adminTicker.length)) { this.adminTicker = c; if (this.currentView === 'homeView') { this.renderNewsTicker(); } } } catch (e) {}
                 this._tickerListener = onValue(ref(window.firebaseDb, 'ticker'), (snap) => {
                     const list = [];
                     if (snap.exists()) {
@@ -3526,6 +3534,7 @@
                         list.sort((a, b) => (b.id || 0) - (a.id || 0));
                     }
                     this.adminTicker = list;
+                    try { localStorage.setItem('isp_ticker', JSON.stringify(list.slice(0, 40))); } catch (e) {}
                     if (this.currentView === 'homeView') {
                         this.renderNewsTicker();
                         lucide.createIcons();
