@@ -12,7 +12,7 @@
     const pad = (n) => String(n).padStart(2, '0');
     const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
     const FREQ = { rare: [90, 3], normal: [38, 7], often: [16, 14] }; // minutes between talks, talks per day
-    let S = null, timer = 0, next = 0, hideT = 0, typeT = 0, mouthT = 0, bornAt = Date.now(), ignored = 0, cur = null, lastShake = 0;
+    let S = null, timer = 0, next = 0, hideT = 0, typeT = 0, bornAt = Date.now(), ignored = 0, cur = null, lastShake = 0;
 
     function load() {
         try { const o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o && o.v === 1) S = o; } catch (e) {}
@@ -204,7 +204,6 @@
     }
     const FROMS = ['bl', 'br', 'tl', 'tr', 'l', 'r', 'fly'];
     let lastFrom = '', idleT = 0, glanceAt = 0, pokes = 0, pokeT = 0, ptrFn = null, petT = 0;
-    const SQUEAK = ['آخ!', 'شنو تريد؟', 'لا تلمسني!', 'ههه دغدغتني!', 'بس بس!', 'أني أحجي وياك، اسمعني!'];
     const LOVE = ['حلو حلو، بس بعدين تدرس!', 'أحبك، يلا ادرس!', 'مرة طيب، هسه افتح الكتاب.'];
     let forceFrom = '';
     function pickFrom(how) {
@@ -302,7 +301,7 @@
         ['dance', 'happy', 'notes', 'تعال ندبك وبعدها ندرس'], ['pop', 'shock', 'confetti', 'بووم! طلعتلك من الشاشة'], ['teach', 'stern', 'sparks', 'اسمع يا ولدي: ساعة وحدة تركيز وتفرح'],
     ];
     const FXC = ['#f43f5e', '#f59e0b', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'];
-    let bag = [], lastReact = 0, reactT = 0;
+    let bag = [], reactT = 0;
     function fx(kind) {
         const box = $('mcHearts'); if (!box || !kind) return;
         const n = { hearts: 6, stars: 7, tears: 6, anger: 4, zzz: 3, sparks: 8, steam: 5, confetti: 16, dots: 3, notes: 5, drops: 6 }[kind] || 5;

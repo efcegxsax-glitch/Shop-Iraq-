@@ -127,7 +127,6 @@
 
         // ---------- a page photographed into cards, written by the AI tutor (siteConfig/tutorUrl) ----------
         _kdSnapBtn(deckId) {
-            const c = this.siteConfig || {};
             if (!/^https:\/\/[^\s]+$/.test(String(this._tutorUrl() || ''))) return '';
             return `<button class="kd-snap" onclick="app.kdSnap(${deckId ? jsArg(deckId) : 'null'})"><span><i data-lucide="camera"></i></span><div><b>صوّر صفحة وحوّلها بطاقات</b><small>المعلم الذكي يقرا الملزمة ويكتب البطاقات</small></div><i data-lucide="sparkles"></i></button>`;
         },

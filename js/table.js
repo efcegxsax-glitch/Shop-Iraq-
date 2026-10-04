@@ -136,7 +136,7 @@
 
         // ---------- the timetable ----------
         _tbGridHtml(d, forPrint) {
-            const cols = shownDays(d), today = new Date().getDay(), now = new Date();
+            const cols = shownDays(d), today = new Date().getDay();
             const cur = this._tbNow(d);
             let h = '<div class="tb-scroll"><table class="tb-grid" style="min-width:' + (50 + cols.length * 68) + 'px"><thead><tr><th class="tb-p0"></th>'
                 + cols.map((g) => '<th class="' + (g === today ? 'today ' : '') + (d.days[g] === 2 ? 'off' : '') + '" onclick="app.tbDayMenu(' + g + ')">' + NAMES[g] + '</th>').join('') + '</tr></thead><tbody>';

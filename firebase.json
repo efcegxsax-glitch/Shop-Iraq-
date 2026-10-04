@@ -7,7 +7,16 @@
       "**/node_modules/**",
       "functions/**",
       "tutor-worker/**",
-      "*.md"
+      "*.md",
+      "android/**",
+      "ios/**",
+      "tools/**",
+      "store/**",
+      "resources/**",
+      "www/**",
+      "package.json",
+      "package-lock.json",
+      "capacitor.config.json"
     ],
     "headers": [
       {

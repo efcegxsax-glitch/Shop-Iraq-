@@ -251,7 +251,6 @@
     }
 
     function waitRoom() {
-        const link = location.origin + location.pathname + '?dl=' + D.rid;
         shell(`${topBar('تحدي صديق', esc(subjName(D.subj)))}
             <div class="dl-center"><div class="dl-radar small"><i></i><i></i><span><i data-lucide="user-round"></i></span></div>
                 <h3>بانتظار صديقك...</h3>
