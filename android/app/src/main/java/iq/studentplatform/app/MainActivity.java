@@ -4,7 +4,19 @@ import android.os.Bundle;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebView;
+import android.os.CancellationSignal;
+import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
+import androidx.credentials.Credential;
+import androidx.credentials.CredentialManager;
+import androidx.credentials.CredentialManagerCallback;
+import androidx.credentials.CustomCredential;
+import androidx.credentials.GetCredentialRequest;
+import androidx.credentials.GetCredentialResponse;
+import androidx.credentials.exceptions.GetCredentialException;
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import org.json.JSONObject;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -54,8 +66,42 @@ public class MainActivity extends BridgeActivity {
                     c.setAppearanceLightNavigationBars(light);
                 });
             }
+
+            // "Sign in with Google": the phone's own account picker gives an ID token, which goes back to the page
+            // (window.__ispGoogle(ok, tokenOrError)) and Firebase signs in with it. clientId = the Web client ID.
+            @JavascriptInterface
+            public void googleSignIn(final String clientId) {
+                runOnUiThread(() -> {
+                    try {
+                        GetSignInWithGoogleOption opt = new GetSignInWithGoogleOption.Builder(clientId).build();
+                        GetCredentialRequest req = new GetCredentialRequest.Builder().addCredentialOption(opt).build();
+                        CredentialManager.Companion.create(MainActivity.this).getCredentialAsync(
+                            MainActivity.this, req, new CancellationSignal(), ContextCompat.getMainExecutor(MainActivity.this),
+                            new CredentialManagerCallback<GetCredentialResponse, GetCredentialException>() {
+                                @Override public void onResult(GetCredentialResponse r) {
+                                    Credential c = r.getCredential();
+                                    if (c instanceof CustomCredential && GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL.equals(c.getType())) {
+                                        replyGoogle(true, GoogleIdTokenCredential.createFrom(((CustomCredential) c).getData()).getIdToken());
+                                    } else {
+                                        replyGoogle(false, "unsupported credential");
+                                    }
+                                }
+                                @Override public void onError(GetCredentialException e) { replyGoogle(false, e.getType() + " " + e.getMessage()); }
+                            });
+                    } catch (Throwable t) {
+                        replyGoogle(false, String.valueOf(t));
+                    }
+                });
+            }
         }, "IspNative");
         ViewCompat.requestApplyInsets(content);
+    }
+
+    private void replyGoogle(boolean ok, String value) {
+        final WebView web = getBridge() != null ? getBridge().getWebView() : null;
+        if (web == null) return;
+        final String js = "window.__ispGoogle&&window.__ispGoogle(" + ok + "," + JSONObject.quote(value == null ? "" : value) + ")";
+        web.post(() -> web.evaluateJavascript(js, null));
     }
 
     private void push() {

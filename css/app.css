@@ -5319,3 +5319,28 @@ body.ct-open .offline-bar { display: none !important; }
 .pp-go:active { transform: scale(.97); }
 .pp-later { padding: 8px; font: inherit; font-size: 13px; font-weight: 700; color: var(--text2); background: transparent; }
 @media (prefers-reduced-motion: reduce) { .pp-card, .pp-w { transition: none !important; animation: none !important; } }
+
+/* ===== Sign in with Google ===== */
+.g-wrap { margin-top: 18px; display: flex; flex-direction: column; }
+.g-wrap .g-note { order: 1; } .g-wrap .g-or { order: 2; } .g-wrap .g-btn { order: 3; }
+.g-wrap.top { margin: 4px 0 16px; } .g-wrap.top .g-btn { order: 2; } .g-wrap.top .g-or { order: 3; margin: 14px 0 0; }
+.g-or { display: flex; align-items: center; gap: 12px; color: var(--text2); font-size: 12px; font-weight: 700; margin: 4px 0 14px; }
+.g-or::before, .g-or::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+.g-btn { width: 100%; height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 10px; font: inherit; font-size: 14.5px; font-weight: 800; color: #1f1f1f; background: #fff; border: 1.5px solid #dadce0; box-shadow: 0 1px 2px rgba(0,0,0,.08); transition: transform .12s ease, box-shadow .2s; }
+.g-btn:active { transform: scale(.98); }
+.g-btn.busy { opacity: .6; pointer-events: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .g-btn { background: #fff; } }
+.g-note { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; font-size: 13px; font-weight: 700; line-height: 1.8; color: var(--text); background: color-mix(in srgb, rgb(var(--p)) 10%, var(--surface)); border: 1px solid color-mix(in srgb, rgb(var(--p)) 30%, transparent); }
+.gp-w { position: fixed; inset: 0; z-index: 9500; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .25s; }
+.gp-w.on { opacity: 1; }
+.gp-bd { position: absolute; inset: 0; background: rgba(8,15,28,.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); }
+.gp-card { position: relative; width: min(100%, 460px); max-height: 92vh; overflow: auto; padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px)); border-radius: 26px 26px 0 0; background: var(--surface); color: var(--text); display: flex; flex-direction: column; gap: 12px; transform: translateY(40px); transition: transform .32s cubic-bezier(.2,1,.4,1); }
+.gp-w.on .gp-card { transform: none; }
+.gp-top { display: flex; align-items: center; gap: 12px; }
+.gp-top b { display: block; font-size: 17px; font-weight: 900; } .gp-top small { color: var(--text2); font-size: 12px; }
+.gp-g { width: 44px; height: 44px; border-radius: 14px; background: #fff; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.15); flex: none; }
+.gp-card label { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 800; }
+.gp-card input, .gp-card select { height: 48px; padding: 0 14px; border-radius: 13px; font: inherit; font-size: 14px; background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
+.gp-go { height: 50px; border-radius: 14px; font: inherit; font-size: 15px; font-weight: 900; color: #fff; background: rgb(var(--p)); }
+.gp-go:disabled { opacity: .6; }
+.gp-no { padding: 8px; font: inherit; font-size: 13px; font-weight: 700; color: var(--text2); background: transparent; }

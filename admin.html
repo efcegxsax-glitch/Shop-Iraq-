@@ -603,6 +603,25 @@
                     <button class="btn mt-2" id="cfg_save_ann">حفظ الإعلان</button>
                 </div>
 
+                <div class="card" id="googleCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="mail-check"></i></div>
+                        <div>
+                            <h3>الدخول بحساب Google</h3>
+                            <p>الطالب يسجّل دخول أو ينشئ حسابه بحساب Gmail الحقيقي، فلا أحد يكدر يسوي حساب ببريد وهمي</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>السماح بالتسجيل بالبريد وكلمة المرور</strong><span>طفّيه حتى ما ينفتح حساب جديد إلا بحساب Google (الحسابات القديمة تبقى تشتغل)</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.emailSignup" aria-label="التسجيل بالبريد وكلمة المرور"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3">
+                        <label for="cfg_google_cid">Web client ID (للتطبيق على الموبايل فقط)</label>
+                        <input id="cfg_google_cid" dir="ltr" placeholder="1234567890-xxxxxxxx.apps.googleusercontent.com">
+                    </div>
+                    <button class="btn mt-2" id="cfg_save_google">حفظ</button>
+                </div>
+
                 <div class="card" id="promoCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="sparkles"></i></div>
@@ -2546,6 +2565,7 @@
             setFieldIfIdle('cfg_mt_msg', cfgGet('maintenance.message'));
             setFieldIfIdle('cfg_tk_label', cfgGet('ticker.label'));
             setFieldIfIdle('cfg_tk_duration', String(cfgGet('ticker.duration') || 0));
+            setFieldIfIdle('cfg_google_cid', cfgGet('google.webClientId'));
             if (typeof fillPromoForm === 'function') fillPromoForm();
         }
 
@@ -2605,6 +2625,7 @@
         });
         el('promo_test').addEventListener('click', () => { const d = promoData(); if (!d) return; try { localStorage.setItem('isp_promo_preview', JSON.stringify(d)); } catch (e) {} toast('افتح التطبيق من نفس الجهاز وراح تطلع لك النافذة مرة وحدة للتجربة'); });
 
+        el('cfg_save_google').addEventListener('click', () => { const v = val('cfg_google_cid'); if (v && !/^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/i.test(v)) { toast('الصيغة غير صحيحة، لازم تنتهي بـ apps.googleusercontent.com'); return; } cfgWrite({ 'google/webClientId': v }, 'تم حفظ Web client ID'); });
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({
             'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
         }, 'تم حفظ رسالة الصيانة'));
