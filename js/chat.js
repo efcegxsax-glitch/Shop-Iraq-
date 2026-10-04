@@ -82,6 +82,7 @@
         updateSendMode();
         const list = $('chatMessagesList'); if (list) { list.innerHTML = '<div class="ct-skel"><i></i><i></i><i></i></div>'; }
         bindUi();
+        applyBg();
         listen();
         document.body.classList.add('ct-open');
         try { lucide.createIcons(); } catch (e) {}
@@ -663,11 +664,15 @@
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') { app.showToast('التسجيل الصوتي غير مدعوم بهذا المتصفح'); return; }
         const p = e.touches ? e.touches[0] : e;
         const v = V = { held: true, cancel: false, x: p.clientX, y: p.clientY, chunks: [], start: 0, send: false };
-        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).then((stream) => {
+        // Clear voice: one 48 kHz channel, the phone's auto gain keeps the level even, and no echo/noise "cleaning" (that processing is meant for calls and
+        // makes a recording sound thin and watery). Opus at 64 kbps is far above what speech needs, so it comes out clean.
+        navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: { ideal: 48000 }, echoCancellation: false, noiseSuppression: false, autoGainControl: true } }).catch(() => navigator.mediaDevices.getUserMedia({ audio: true })).then((stream) => {
             if (V !== v || !v.held) { stream.getTracks().forEach((t) => t.stop()); if (V === v) V = null; return; }
             v.stream = stream;
             const mime = voiceMime();
-            let rec; try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); } catch (er) { rec = new MediaRecorder(stream); }
+            let rec;
+            try { rec = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: 64000 }, mime ? { mimeType: mime } : {})); }
+            catch (er) { try { rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined); } catch (er2) { rec = new MediaRecorder(stream); } }
             v.rec = rec; v.mime = rec.mimeType || mime || 'audio/webm';
             rec.ondataavailable = (ev) => { if (ev.data && ev.data.size > 0) v.chunks.push(ev.data); };
             rec.onstop = () => finishVoice(v);
@@ -719,11 +724,60 @@
         rd.readAsDataURL(blob);
     }
 
+    // ---------- chat background: 10 ready themes, or a picture from the gallery (kept on this phone, per student) ----------
+    const BGS = [['', 'الأساسي', '#e5e7eb'], ['night', 'ليل النجوم', '#1b2a5a'], ['sea', 'البحر', '#5fc4b8'], ['sunset', 'الغروب', '#ff9f80'], ['forest', 'الغابة', '#7bc47f'],
+        ['rose', 'الورد', '#ffc4d8'], ['sand', 'الرمل', '#ecdcb8'], ['geo', 'هندسي', '#7c8cf0'], ['dots', 'نقاط', '#cfd8dc'], ['paper', 'دفتر', '#f6efd9']];
+    const bgKey = () => 'isp:cbg:' + me(), bgImgKey = () => 'isp:cbgi:' + me();
+    function bgGet() { try { return localStorage.getItem(bgKey()) || ''; } catch (e) { return ''; } }
+    function applyBg() {
+        const el = $('chatScroller'); if (!el) return;
+        const k = bgGet();
+        el.removeAttribute('data-bg'); el.style.removeProperty('--ct-img');
+        if (k === 'img') {
+            let u = ''; try { u = localStorage.getItem(bgImgKey()) || ''; } catch (e) {}
+            if (u && /^data:image\//.test(u)) { el.setAttribute('data-bg', 'img'); el.style.setProperty('--ct-img', 'url("' + u + '")'); }
+        } else if (BGS.some((b) => b[0] === k && k)) el.setAttribute('data-bg', k);
+    }
+    function bgSheet() {
+        if (!T) return;
+        const cur = bgGet();
+        const sw = BGS.map((b) => `<button class="ct-bgsw${cur === b[0] ? ' on' : ''}" onclick="app.chatBgSet('${b[0]}')" aria-label="${b[1]}"><i data-bg="${b[0]}"${b[0] ? '' : ' style="background:' + b[2] + '"'}></i><span>${b[1]}</span></button>`).join('');
+        const title = $('walletModalTitle'); if (title) title.textContent = 'خلفية المحادثة';
+        const cEl = $('walletModalContent'); if (!cEl) return;
+        cEl.innerHTML = `<div class="ct-bgs">${sw}</div>
+            <button class="ct-bgpick${cur === 'img' ? ' on' : ''}" onclick="app.chatBgPick()"><i data-lucide="image-plus" class="w-5 h-5"></i><span>اختر صورة من الاستوديو</span></button>
+            <p class="ct-bgnote">الخلفية تظهر عندك أنت بس، وتنحفظ بهالجهاز.</p>`;
+        $('walletModal')?.classList.remove('hidden'); try { lucide.createIcons(); } catch (e) {}
+    }
+    async function bgFromFile(file) {
+        if (!file || !/^image\//.test(file.type)) return;
+        let bmp = null;
+        try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); } catch (e) { try { bmp = await createImageBitmap(file); } catch (e2) { app.showToast('تعذرت معالجة الصورة'); return; } }
+        // a portrait-sized picture, light enough to keep on the phone
+        const sc = Math.min(1, 900 / Math.max(bmp.width, bmp.height)), w = Math.max(1, Math.round(bmp.width * sc)), h = Math.max(1, Math.round(bmp.height * sc));
+        const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(bmp, 0, 0, w, h);
+        let url = cv.toDataURL('image/jpeg', 0.7);
+        if (url.length > 400000) url = cv.toDataURL('image/jpeg', 0.5);
+        try { bmp.close && bmp.close(); } catch (e) {}
+        try { localStorage.setItem(bgImgKey(), url); localStorage.setItem(bgKey(), 'img'); }
+        catch (e) { app.showToast('ما كدرت أحفظ الصورة (المساحة ممتلئة)'); return; }
+        applyBg(); $('walletModal')?.classList.add('hidden');
+        app.showToast('تم تغيير خلفية المحادثة');
+    }
+
     // ---------- public ----------
     Object.assign(app, {
         _chatOpen: open,
         chatStopVoice() { try { stopVoice(false); } catch (e) {} },
         chatClose() { teardown(); },
+        chatBgSheet() { bgSheet(); },
+        chatBgSet(k) { try { localStorage.setItem(bgKey(), k); } catch (e) {} applyBg(); bgSheet(); },
+        chatBgPick() {
+            const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.style.display = 'none';
+            i.onchange = () => { const f = i.files && i.files[0]; i.remove(); bgFromFile(f); };
+            document.body.appendChild(i); i.click();
+        },
         chatBack() { if ($('ctSheet')) { closeSheet(); return; } if (T && T.replyTo) { T.replyTo = null; replyBar(); return; } app.goBack(); },
         chatSheetClose() { closeSheet(); },
         sendChatMessage() { sendText(); },
@@ -795,6 +849,7 @@
             const c = $('walletModalContent'); if (!c) return;
             c.innerHTML = `<div class="flex flex-col gap-2">
                 ${entry ? row('pin', entry.pinned ? 'إلغاء التثبيت' : 'تثبيت المحادثة', 'app.togglePinChat()') + row(entry.muted ? 'bell' : 'bell-off', entry.muted ? 'إلغاء الكتم' : 'كتم المحادثة', 'app.toggleMuteChat()') + row('archive', entry.archived ? 'إلغاء الأرشفة' : 'أرشفة المحادثة', 'app.toggleArchiveChat()') : ''}
+                ${row('palette', 'خلفية المحادثة', 'app.chatBgSheet()')}
                 ${row('flag', 'الإبلاغ عن المستخدم', `app.openReportModal(${jsArg(T.uid)}, null)`)}
                 ${entry || T.list.length ? row('trash-2', 'حذف المحادثة', 'app.deleteEntireChat()', true) : ''}</div>`;
             $('walletModal')?.classList.remove('hidden'); try { lucide.createIcons(); } catch (e) {}
