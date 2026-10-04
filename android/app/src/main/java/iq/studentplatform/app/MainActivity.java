@@ -34,6 +34,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // the page's background colour from the last run (light, dark, black or pink), so nothing flashes white before the page draws
+        try {
+            int bgc = getSharedPreferences("isp", MODE_PRIVATE).getInt("bg", 0xFFF1F5F3);
+            getWindow().getDecorView().setBackgroundColor(bgc);
+            getBridge().getWebView().setBackgroundColor(bgc);
+        } catch (Throwable ignored) {}
         WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
         if (android.os.Build.VERSION.SDK_INT >= 29) {
             getWindow().setNavigationBarContrastEnforced(false);
@@ -65,6 +71,12 @@ public class MainActivity extends BridgeActivity {
                     c.setAppearanceLightStatusBars(light);
                     c.setAppearanceLightNavigationBars(light);
                 });
+            }
+
+            // the page's background colour, kept for the next start
+            @JavascriptInterface
+            public void bg(final String hex) {
+                try { getSharedPreferences("isp", MODE_PRIVATE).edit().putInt("bg", android.graphics.Color.parseColor(hex)).apply(); } catch (Throwable ignored) {}
             }
 
             // "Sign in with Google": the phone's own account picker gives an ID token, which goes back to the page
