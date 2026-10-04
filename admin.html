@@ -661,6 +661,54 @@
                     <datalist id="yt_subj"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="الرياضيات"><option value="اللغة العربية"><option value="اللغة الإنجليزية"><option value="التربية الإسلامية"></datalist>
                 </div>
 
+                <div class="card" id="examCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="file-check-2"></i></div>
+                        <div>
+                            <h3>الاختبارات (ورقة أسئلة من الملزمة + أسئلة وزارية)</h3>
+                            <p>ارفع ملزمة، والذكاء يقرأها ويسوي منها ورقة أسئلة A4 بنمط الوزاري تطلع للطلاب بقسم "الامتحانات". وارفع أسئلة وزارية سابقة PDF حسب السنة. الحجم مفتوح: الملف يتقطع ويتخزن بقطع</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار قسم الامتحانات للطلاب</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.exams" aria-label="الامتحانات"><span class="track"></span></label>
+                    </div>
+
+                    <h4 style="margin:16px 0 6px">1) امتحان من ملزمة</h4>
+                    <div class="field"><label for="ex_subj">المادة</label><select id="ex_subj"></select></div>
+                    <div class="field"><label for="ex_ch">الفصل أو اسم الاختبار</label><input id="ex_ch" maxlength="80" placeholder="مثال: الفصل الأول - الوراثة"></div>
+                    <div class="field"><label for="ex_pdf">ملف الملزمة (PDF)</label><input type="file" id="ex_pdf" accept="application/pdf"></div>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_from">من صفحة</label><input id="ex_from" type="number" min="1" placeholder="1"></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_to">إلى صفحة</label><input id="ex_to" type="number" min="1" placeholder="الأخيرة"></div>
+                    </div>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_total">الدرجة الكلية</label><select id="ex_total"><option>100</option><option>60</option><option>50</option><option>40</option><option>20</option></select></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_nq">عدد الأسئلة (س)</label><select id="ex_nq"><option>4</option><option selected>5</option><option>6</option><option>3</option></select></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="ex_dur">الوقت (دقيقة)</label><select id="ex_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
+                    </div>
+                    <div class="field"><label for="ex_note">ملاحظة للذكاء (اختياري)</label><input id="ex_note" maxlength="250" placeholder="مثال: ركّز على التعليلات والمسائل"></div>
+                    <label class="sw-row" style="cursor:pointer"><span class="sw-text"><strong>القراءة بالصور (أدق للملازم العربية)</strong><br><small style="opacity:.7">إذا طفيتها يقرأ الكتابة الجاهزة من الـ PDF، أسرع وأرخص بس ممكن تطلع الحروف مخربطة</small></span><span class="switch"><input type="checkbox" id="ex_vision" checked><span class="track"></span></span></label>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <button class="btn mt-2" id="ex_go">اقرأ الملزمة وسوّي الامتحان</button>
+                    </div>
+                    <div id="ex_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
+                    <div id="ex_prev" class="mt-2"></div>
+
+                    <h4 style="margin:22px 0 6px">2) أسئلة وزارية سابقة (PDF)</h4>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <div class="field" style="flex:1;min-width:130px"><label for="pa_subj">المادة</label><select id="pa_subj"></select></div>
+                        <div class="field" style="flex:1;min-width:90px"><label for="pa_year">السنة</label><input id="pa_year" type="number" min="1990" max="2100" placeholder="2024"></div>
+                        <div class="field" style="flex:1;min-width:110px"><label for="pa_rd">الدور</label><select id="pa_rd"><option>الدور الأول</option><option>الدور الثاني</option><option>الدور الثالث</option><option>تمهيدي</option></select></div>
+                    </div>
+                    <div class="field"><label for="pa_pdf">ملف الأسئلة (PDF)</label><input type="file" id="pa_pdf" accept="application/pdf"></div>
+                    <div class="field"><label for="pa_dur">وقت الامتحان (دقيقة)</label><select id="pa_dur"><option>180</option><option>150</option><option>120</option><option>90</option><option>60</option></select></div>
+                    <button class="btn mt-2" id="pa_go">ارفع الأسئلة الوزارية</button>
+                    <div id="pa_prog" class="mt-2" style="font-size:13px;opacity:.85"></div>
+
+                    <div class="field mt-3"><label>المنشور</label><div id="ex_list"></div></div>
+                </div>
+
                 <div class="card" id="promoCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="sparkles"></i></div>
@@ -2733,6 +2781,154 @@
             const swap = (k, d) => { const i = rows.findIndex((r) => r.k === k), j = i + d; if (i < 0 || j < 0 || j >= rows.length) return; const a = rows[i], b = rows[j]; const oa = Number(a.o) || i, ob = Number(b.o) || j; update(ref(db), { ['ytChannels/' + a.k + '/o']: ob === oa ? ob + d : ob, ['ytChannels/' + b.k + '/o']: oa }).catch(() => toast('تعذر الترتيب', false)); };
             L.querySelectorAll('[data-yup]').forEach((b) => b.addEventListener('click', () => swap(b.dataset.yup, -1)));
             L.querySelectorAll('[data-ydn]').forEach((b) => b.addEventListener('click', () => swap(b.dataset.ydn, 1)));
+        });
+
+        // ---------- Exams: a handout -> an A4 question paper, and past ministerial papers (no file size limit) ----------
+        const EX_SUBJ = ['الأحياء', 'الفيزياء', 'الكيمياء', 'الرياضيات', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية'];
+        ['ex_subj', 'pa_subj'].forEach((id) => { el(id).innerHTML = EX_SUBJ.map((x) => `<option>${x}</option>`).join(''); });
+        const EX_CH = 690000; // bytes per piece (a multiple of 3), ~920 KB as base64
+        let exGen = null, pdfjs = null;
+        async function workerPost(body) {
+            const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
+            const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
+            const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) }, body: JSON.stringify(body) });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح Claude مو مضاف بالخادم (ANTHROPIC_API_KEY)' : j.error === 'slow_down' ? 'اصبر شوية وجرّب' : j.error === 'short' ? 'النص المقروء قليل' : ('خطأ ' + r.status + (j.error ? ' ' + j.error : '')));
+            return j;
+        }
+        async function loadPdfJs() {
+            if (pdfjs) return pdfjs;
+            pdfjs = await import('./js/vendor/pdf/pdf.min.mjs');
+            pdfjs.GlobalWorkerOptions.workerSrc = new URL('./js/vendor/pdf/pdf.worker.min.mjs', location.href).href;
+            return pdfjs;
+        }
+        const exProg = (id, t) => { el(id).textContent = t; };
+        async function pageJpeg(page, scale) {
+            const vp = page.getViewport({ scale }), cv = document.createElement('canvas');
+            cv.width = Math.ceil(vp.width); cv.height = Math.ceil(vp.height);
+            const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+            await page.render({ canvasContext: cx, viewport: vp }).promise;
+            let q = 0.72, d = cv.toDataURL('image/jpeg', q);
+            while (d.length > 1800000 && q > 0.3) { q -= 0.12; d = cv.toDataURL('image/jpeg', q); }
+            cv.width = cv.height = 0;
+            return d.split(',')[1];
+        }
+        async function readHandout(file, from, to, vision) {
+            const lib = await loadPdfJs();
+            const pdf = await lib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+            const a = Math.max(1, from || 1), b = Math.min(pdf.numPages, to || pdf.numPages);
+            if (b - a + 1 > 150) throw new Error('اختر مدى أقل من 150 صفحة بالمرة (حدد من صفحة وإلى صفحة)');
+            const parts = [];
+            if (!vision) {
+                for (let n = a; n <= b; n++) {
+                    exProg('ex_prog', 'دا يقرأ الصفحة ' + n + ' من ' + b);
+                    const tc = await (await pdf.getPage(n)).getTextContent();
+                    parts.push(tc.items.map((i) => i.str + (i.hasEOL ? '\n' : '')).join(' '));
+                }
+                return parts.join('\n\n');
+            }
+            const BATCH = 4; let done = 0;
+            const batches = []; for (let n = a; n <= b; n += BATCH) batches.push([n, Math.min(b, n + BATCH - 1)]);
+            const out = new Array(batches.length);
+            let next = 0;
+            const run = async () => {
+                while (next < batches.length) {
+                    const bi = next++, [x, y] = batches[bi], images = [];
+                    for (let n = x; n <= y; n++) images.push({ type: 'image/jpeg', data: await pageJpeg(await pdf.getPage(n), 1.5) });
+                    let text = '';
+                    for (let tries = 0; tries < 3 && !text; tries++) {
+                        try { text = (await workerPost({ mode: 'examread', images })).text || ''; } catch (e) { if (tries === 2) throw e; await new Promise((r) => setTimeout(r, 2500)); }
+                    }
+                    out[bi] = text; done += y - x + 1;
+                    exProg('ex_prog', 'قرأ ' + done + ' من ' + (b - a + 1) + ' صفحة بالذكاء...');
+                }
+            };
+            await Promise.all([run(), run()]);
+            return out.join('\n\n');
+        }
+        async function putPieces(path, str) {
+            const n = Math.ceil(str.length / 900000) || 1;
+            for (let i = 0; i < n; i++) await set(ref(db, path + '/' + i), str.slice(i * 900000, (i + 1) * 900000));
+            return n;
+        }
+        function exPreview(g) {
+            el('ex_prev').innerHTML = `<div style="border:1px solid var(--border,#334155);border-radius:12px;padding:12px">
+                <b>${escapeHtml(g.t)}</b> <span style="opacity:.7">(${g.tot} درجة، ${g.dur} دقيقة)</span>
+                ${g.secs.map((x) => `<div style="margin-top:8px"><b>${escapeHtml(x.n)}</b> ${escapeHtml(x.head)} <span style="opacity:.7">(${x.marks})</span>${x.parts.map((p) => `<div style="margin-inline-start:14px;font-size:13px">${escapeHtml(p.l)}) ${escapeHtml(p.q)} <span style="opacity:.6">(${p.m})</span></div>`).join('')}</div>`).join('')}
+                <div class="flex gap-2 mt-2" style="flex-wrap:wrap"><button class="btn" type="button" id="ex_pub">انشر للطلاب</button><button class="btn" type="button" id="ex_again" style="background:#64748b">سوّي نسخة ثانية من نفس الملزمة</button></div></div>`;
+            el('ex_pub').addEventListener('click', exPublish);
+            el('ex_again').addEventListener('click', () => exMake(false));
+        }
+        async function exMake(fresh) {
+            const btn = el('ex_go'); btn.disabled = true;
+            try {
+                if (fresh) {
+                    const f = el('ex_pdf').files[0];
+                    if (!f) throw new Error('اختر ملف الملزمة');
+                    if (!val('ex_ch')) throw new Error('اكتب الفصل أو اسم الاختبار');
+                    exGen = { text: await readHandout(f, Number(val('ex_from')) || 0, Number(val('ex_to')) || 0, el('ex_vision').checked) };
+                    if (exGen.text.trim().length < 200) throw new Error('ما انقرى نص كافي من الملف. جرّب "القراءة بالصور"');
+                }
+                if (!exGen) throw new Error('اقرأ الملزمة أول');
+                exProg('ex_prog', 'دا يكتب أسئلة الامتحان...');
+                const r = await workerPost({ mode: 'examgen', text: exGen.text, subject: val('ex_subj'), chapter: val('ex_ch'), total: Number(val('ex_total')), nq: Number(val('ex_nq')), note: val('ex_note') });
+                exGen.exam = { t: r.title || val('ex_ch'), sub: val('ex_subj'), ch: val('ex_ch'), tot: Number(val('ex_total')), dur: Number(val('ex_dur')), secs: r.sections };
+                exProg('ex_prog', 'جاهز، راجعه وانشره');
+                exPreview(exGen.exam);
+            } catch (e) { exProg('ex_prog', 'ما تم: ' + (e.message || e)); toast('ما تم: ' + (e.message || e), false); }
+            btn.disabled = false;
+        }
+        async function exPublish() {
+            if (!exGen || !exGen.exam) return;
+            const id = 'e' + Date.now().toString(36), g = exGen.exam;
+            try {
+                exProg('ex_prog', 'دا ينشر...');
+                const n = await putPieces('examSrc/' + id, exGen.text);
+                await set(ref(db, 'exams/' + id), { id, k: 'gen', sub: g.sub, ch: g.ch, t: g.t, tot: g.tot, dur: g.dur, secs: g.secs, src: n, at: Date.now() });
+                toast('اننشر الامتحان للطلاب'); exProg('ex_prog', 'اننشر. تكدر تسوي نسخة ثانية من نفس الملزمة من قائمة المنشور');
+                el('ex_prev').innerHTML = '';
+            } catch (e) { toast('تعذر النشر: ' + (e.message || e), false); }
+        }
+        el('ex_go').addEventListener('click', () => exMake(true));
+        el('pa_go').addEventListener('click', async () => {
+            const f = el('pa_pdf').files[0], yr = Number(val('pa_year'));
+            if (!f) { toast('اختر ملف PDF', false); return; }
+            if (!(yr >= 1990 && yr <= 2100)) { toast('اكتب السنة', false); return; }
+            const btn = el('pa_go'); btn.disabled = true;
+            try {
+                const id = 'p' + Date.now().toString(36), n = Math.ceil(f.size / EX_CH) || 1;
+                for (let i = 0; i < n; i++) {
+                    const d = await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(String(fr.result).split(',')[1] || ''); fr.onerror = () => rej(new Error('تعذرت القراءة')); fr.readAsDataURL(f.slice(i * EX_CH, (i + 1) * EX_CH)); });
+                    await set(ref(db, 'examFiles/' + id + '/' + i), d);
+                    exProg('pa_prog', 'رفع ' + Math.round((i + 1) / n * 100) + '%  (' + (i + 1) + ' من ' + n + ' قطعة)');
+                }
+                await set(ref(db, 'exams/' + id), { id, k: 'past', sub: val('pa_subj'), yr, rd: val('pa_rd'), t: val('pa_subj') + ' ' + yr + ' - ' + val('pa_rd'), dur: Number(val('pa_dur')) || 180, n, size: f.size, at: Date.now() });
+                toast('انرفعت الأسئلة الوزارية'); exProg('pa_prog', 'تم'); el('pa_pdf').value = '';
+            } catch (e) { toast('فشل الرفع: ' + (e.message || e), false); exProg('pa_prog', 'فشل: ' + (e.message || e)); }
+            btn.disabled = false;
+        });
+        onValue(ref(db, 'exams'), (snap) => {
+            const v = snap.exists() ? snap.val() : {};
+            const rows = Object.values(v).sort((a, b) => (b.at || 0) - (a.at || 0));
+            const L = el('ex_list');
+            L.innerHTML = rows.length ? rows.map((x) => `<div style="${YT_STYLE}"><div style="flex:1;min-width:0"><b>${escapeHtml(x.t || '')}</b><div style="font-size:12px;opacity:.7">${x.k === 'past' ? 'وزاري سابق · ' + (Math.round((x.size || 0) / 1048576 * 10) / 10) + ' MB' : 'من ملزمة · ' + escapeHtml(x.ch || '')}</div></div>${x.k === 'gen' && x.src ? `<button class="btn" type="button" style="background:#64748b" data-exagain="${escapeHtml(x.id)}">نسخة جديدة</button>` : ''}<button class="btn" type="button" style="background:#e5484d" data-exdel="${escapeHtml(x.id)}">حذف</button></div>`).join('') : '<span style="opacity:.7">ما منشور شي بعد</span>';
+            L.querySelectorAll('[data-exdel]').forEach((b) => b.addEventListener('click', async () => {
+                if (!(await ask({ icon: 'trash-2', tone: 'warn', title: 'حذف الامتحان؟', text: 'يختفي من عند كل الطلاب.' }))) return;
+                const id = b.dataset.exdel;
+                try { await remove(ref(db, 'exams/' + id)); await remove(ref(db, 'examFiles/' + id)); await remove(ref(db, 'examSrc/' + id)); toast('انحذف'); } catch (e) { toast('تعذر الحذف', false); }
+            }));
+            L.querySelectorAll('[data-exagain]').forEach((b) => b.addEventListener('click', async () => {
+                const old = v[b.dataset.exagain]; if (!old) return;
+                try {
+                    toast('دا يسوي نسخة جديدة...');
+                    const snapS = await get(ref(db, 'examSrc/' + old.id)), pieces = snapS.val() || [];
+                    const text = (Array.isArray(pieces) ? pieces : Object.values(pieces)).join('');
+                    const r = await workerPost({ mode: 'examgen', text, subject: old.sub, chapter: old.ch, total: old.tot, nq: (old.secs || []).length || 5, note: 'سوّ أسئلة مختلفة عن النسخة السابقة' });
+                    const id = 'e' + Date.now().toString(36);
+                    await set(ref(db, 'exams/' + id), { id, k: 'gen', sub: old.sub, ch: old.ch, t: r.title || old.t, tot: old.tot, dur: old.dur, secs: r.sections, src: 0, at: Date.now() });
+                    toast('انضافت نسخة جديدة');
+                } catch (e) { toast('تعذر: ' + (e.message || e), false); }
+            }));
         });
 
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({

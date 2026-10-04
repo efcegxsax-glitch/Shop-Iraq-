@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '14d33976f8';
+        window.APP_VER = '321f4c196e';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=ced73c5c86">
+    <link rel="stylesheet" href="css/app.css?v=8b01dd3b18">
     <link rel="stylesheet" href="css/tw.css?v=43ecabf00a">
 </head>
 <body class="antialiased">
@@ -1704,6 +1704,20 @@
             <div id="dkContent"><div class="dk-wrap"><div class="id-load"><i></i><i></i></div></div></div>
         </div>
 
+        <!-- ===== EXAMS (js/exams.js) ===== -->
+        <div id="examsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.exBackBtn()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold truncate theme-transition" style="color: var(--text);">الامتحانات</div>
+                    <div id="exSub" class="text-xs truncate theme-transition" style="color: var(--text2);">اختر المادة</div>
+                </div>
+            </div>
+            <div id="exContent" class="px-4 py-4"></div>
+        </div>
+
         <!-- ===== TEACHERS' VIDEOS (js/ytube.js) ===== -->
         <div id="tubeView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
@@ -1947,7 +1961,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=a9a4d353e8"></script>
+    <script src="js/app.js?v=d5fbd6b56b"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <div class="mt-box">
             <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>

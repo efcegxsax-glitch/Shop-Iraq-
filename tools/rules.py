@@ -183,11 +183,20 @@ rules = {
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
-                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels"]},
+                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels", "exams"]},
     # big files (PDFs) live apart from the lists so opening the app never downloads them
     "resourceFiles": {
         ".read": True, ".write": ADMIN,
         "$id": {".validate": "newData.isString() && newData.val().length < 10000000"},
+    },
+    # exam files (past-paper PDFs) in 1 MB pieces, so there is no size limit; the notes read out of a handout are admin-only
+    "examFiles": {
+        ".read": True, ".write": ADMIN,
+        "$id": {"$i": {".validate": "newData.isString() && newData.val().length < 1500000"}},
+    },
+    "examSrc": {
+        ".read": ADMIN, ".write": ADMIN,
+        "$id": {"$i": {".validate": "newData.isString() && newData.val().length < 1500000"}},
     },
     "bannedStudents": signed_admin,
     # bans by account, and the phones that account used (an id the app keeps on the phone); a
