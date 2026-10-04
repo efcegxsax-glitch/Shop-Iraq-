@@ -1241,7 +1241,7 @@
                 else if (code === 'isp/no-client-id') this.showToast('الدخول بـ Google على التطبيق ما انفعّل بعد (ينقص Client ID من لوحة الإدارة)');
                 else if (code === 'isp/native-old') this.showToast('حدّث التطبيق لآخر نسخة حتى يشتغل الدخول بـ Google');
                 else if (code === 'isp/native') this.showToast('تعذر الدخول بـ Google: ' + (msg.slice(0, 80) || 'خطأ'));
-                else this.showToast('تعذر الدخول بحساب Google، حاول مرة ثانية');
+                else this.showToast('تعذر الدخول بحساب Google (' + (code || msg.slice(0, 60) || 'خطأ') + ')');
             },
             async googleSignIn() {
                 if (this._googleBusy) return;
@@ -1254,9 +1254,13 @@
                     const { ref, get } = window.firebaseDbHelpers;
                     let known = false;
                     try { known = (await get(ref(window.firebaseDb, 'users/' + user.uid))).exists(); }
-                    catch (e) { await this._signOutHere(); this.showToast('تعذر الاتصال بالخادم، حاول مرة ثانية'); return; }
+                    catch (e) { await this._signOutHere(); this.showToast('تعذر قراءة الحساب (' + ((e && e.code) || 'خطأ') + ')'); return; }
                     if (known) { await this._completeLogin(user, user.email || '', user.displayName || ''); return; }
-                    if (!(await this._deviceFreeForNewAccount())) { await this._signOutHere(); return; }
+                    if (!(await this._deviceFreeForNewAccount())) {
+                        await this._signOutHere();
+                        if (!document.getElementById('banWall')) this._wall('lock', 'هذا الجهاز عليه حساب مسجّل', 'كل جهاز يفتح حساب واحد بس. سجّل دخول بحسابك القديم (بالإيميل وكلمة المرور)، أو تواصل مع الإدارة إذا تريد تغيّر الحساب.', 'تمام');
+                        return;
+                    }
                     handedOver = true;
                     this._googleProfileSheet(user);
                 } catch (error) {
