@@ -97,6 +97,11 @@ export function parseUploads(data) {
             }
             return;
         }
+        if (o.videoRenderer) {
+            const r = o.videoRenderer;
+            if (/^[A-Za-z0-9_-]{11}$/.test(r.videoId || '')) videos.push({ v: r.videoId, t: txt(r.title).slice(0, 140), a: txt(r.publishedTimeText).slice(0, 30), w: txt(r.viewCountText).slice(0, 30) });
+            return;
+        }
         if (o.continuationItemRenderer) {
             const tk = o.continuationItemRenderer.continuationEndpoint && o.continuationItemRenderer.continuationEndpoint.continuationCommand && o.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
             if (tk && !next) next = String(tk);

@@ -75,7 +75,7 @@
         const base = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev', user = window.firebaseAuth && window.firebaseAuth.currentUser;
         if (!user) throw new Error('signin');
         const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await user.getIdToken()) }, body: JSON.stringify(body) });
-        if (!r.ok) throw new Error('http ' + r.status);
+        if (!r.ok) { let w = ''; try { w = (await r.json()).why || ''; } catch (e) {} throw new Error(r.status + (w ? ' ' + w : '')); }
         return r.json();
     }
     async function loadAll(id, more) {
@@ -86,9 +86,9 @@
         try {
             const j = await workerCall({ mode: 'ytchan', id, cont: a.pages ? a.next : '' });
             const seen = new Set(a.list.map((x) => x.v));
-            (j.videos || []).forEach((x) => { if (x && /^[A-Za-z0-9_-]{11}$/.test(x.v) && !seen.has(x.v)) a.list.push({ v: x.v, t: x.t, c: id, wt: x.w, at: x.a }); });
+            (j.videos || []).forEach((x) => { if (x && /^[A-Za-z0-9_-]{11}$/.test(x.v) && !seen.has(x.v)) a.list.push({ v: x.v, t: x.t, c: id, wt: x.w, at: x.a, p: x.p || 0 }); });
             a.next = j.next || ''; a.pages++; if (!a.next) a.done = true;
-        } catch (e) { a.fail = true; }
+        } catch (e) { a.fail = true; a.why = String(e && e.message || ''); }
         a.busy = false; paint();
         // searching: keep reading older pages until something matches (a few pages at most)
         const q = String(($('tuSearch') || {}).value || '').trim();
@@ -134,11 +134,13 @@
         else body = list.slice(0, S.shown).map((x, i) => card(x, i % 3 === 0)).join('') + (list.length > S.shown || (S.teacher && ALL[S.teacher] && (ALL[S.teacher].next || ALL[S.teacher].busy)) ? `<button class="tu-more" onclick="app.tuMore()">${S.teacher && ALL[S.teacher] && ALL[S.teacher].busy ? 'دا يحمّل...' : 'عرض المزيد'}</button>` : '');
         const recent = !S.teacher && S.tab === 'all' && S.subj === 'all' && hist.length ? `<div class="tu-h"><span>آخر ما شاهدته</span><button onclick="app.tuClearHist()">مسح</button></div>
             <div class="tu-rec">${hist.map((h) => `<button class="tu-rc" onclick="app.tuPlay('${h.v}')"><span class="tu-th"><img src="${thumb(h.v)}" alt="" loading="lazy"><i style="width:${Math.min(100, Math.round((h.p || 0) / Math.max(1, h.d || 1) * 100))}%"></i></span><small>${esc(h.t)}</small></button>`).join('')}</div>` : '';
+        const A = S.teacher && ALL[S.teacher], tc = S.teacher && chById(S.teacher);
+        const chan = tc ? `<div class="tu-chan"><div><b>${esc(tc.n)}</b><small>${A && A.busy ? 'دا يحمّل كل فيديوهات القناة...' : A && A.fail ? 'ما كدرت أجيب الفيديوهات القديمة' + (A.why ? ' (' + esc(A.why) + ')' : '') : A && A.list.length ? A.list.length + ' فيديو محمّل' + (A.next ? ' ، والباقي بزر عرض المزيد' : ' ، هذا كل شي') : 'آخر فيديوهاته'}</small></div>${A && A.fail && !A.busy ? '<button onclick="app.tuChanRetry()">إعادة المحاولة</button>' : ''}</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
             <div class="tu-h"><span>الأساتذة</span><button onclick="app.tuPick()"><i data-lucide="sliders-horizontal"></i>تعديل أساتذتي</button></div>
             <div class="tu-tchs">${teachers}</div>
             <div class="tu-tabs"><button class="${S.tab === 'all' ? 'on' : ''}" onclick="app.tuTab('all')">الكل</button><button class="${S.tab === 'mine' ? 'on' : ''}" onclick="app.tuTab('mine')">أساتذتي</button></div>` : ''}
-            ${recent}<div class="tu-feed">${body}</div>`;
+            ${recent}${chan}<div class="tu-feed">${body}</div>`;
         try { lucide.createIcons(); } catch (e) {}
     }
 
@@ -307,6 +309,7 @@
         tuSubj(s) { S.subj = s; S.shown = PAGE; paint(); },
         tuTab(t) { S.tab = t; S.shown = PAGE; paint(); },
         tuTeacher(id) { S.teacher = S.teacher === id ? '' : id; S.shown = PAGE; paint(); if (S.teacher) loadAll(S.teacher); },
+        tuChanRetry() { const a = S.teacher && ALL[S.teacher]; if (a) { a.fail = false; a.why = ''; loadAll(S.teacher, a.pages > 0); } },
         tuMore() {
             S.shown += PAGE;
             const a = S.teacher && ALL[S.teacher];

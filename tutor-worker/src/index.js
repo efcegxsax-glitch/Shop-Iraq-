@@ -542,27 +542,48 @@ async function ytNotify(env, ctx) {
     return 'sent_' + sent;
 }
 
-// a channel's uploads, 100 at a time (the first page is cached for 30 minutes)
-async function ytUploads(id, cont, ctx) {
+// a channel's uploads, 100 at a time (the first page is cached for 30 minutes). Three ways, tried in turn:
+// YouTube's own app endpoint (no page to parse), the playlist web page, and (if the key secret exists) the official API.
+const IT = { context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'ar', gl: 'IQ' } } };
+async function itBrowse(extra) {
+    const r = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
+        method: 'POST', headers: { ...ytHeaders, 'Content-Type': 'application/json', Origin: 'https://www.youtube.com' }, body: JSON.stringify({ ...IT, ...extra }),
+    });
+    if (!r.ok) throw new Error('it' + r.status);
+    return r.json();
+}
+async function apiUploads(id, cont, key) {
+    const u = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=UU' + id.slice(2) + (cont ? '&pageToken=' + encodeURIComponent(cont) : '') + '&key=' + encodeURIComponent(key);
+    const r = await fetch(u);
+    if (!r.ok) throw new Error('api' + r.status);
+    const j = await r.json();
+    return { videos: (j.items || []).map((i) => ({ v: i.snippet && i.snippet.resourceId && i.snippet.resourceId.videoId, t: str(i.snippet && i.snippet.title, 140), a: '', w: '', p: Date.parse(i.snippet && i.snippet.publishedAt) || 0 })).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x.v || '')), next: j.nextPageToken || '' };
+}
+async function ytUploads(id, cont, ctx, env) {
     const cache = caches.default, key = new Request('https://yt-cache.invalid/u/' + id);
     if (!cont) { const hit = await cache.match(key); if (hit) return hit.json(); }
-    let out;
-    if (!cont) {
+    const why = [];
+    const tries = [];
+    if (env.YT_API_KEY) tries.push(['api', () => apiUploads(id, cont, env.YT_API_KEY)]);
+    tries.push(['it', async () => parseUploads(await itBrowse(cont ? { continuation: cont } : { browseId: 'VLUU' + id.slice(2) }))]);
+    if (!cont) tries.push(['web', async () => {
         const r = await fetch(uploadsUrl(id), { headers: ytHeaders, redirect: 'follow' });
-        if (!r.ok) return null;
+        if (!r.ok) throw new Error('web' + r.status);
         const d = initialData(await r.text());
-        if (!d) return null;
-        out = parseUploads(d);
-    } else {
-        const r = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-            method: 'POST', headers: { ...ytHeaders, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'ar', gl: 'IQ' } }, continuation: cont }),
-        });
-        if (!r.ok) return null;
-        out = parseUploads(await r.json().catch(() => null));
+        if (!d) throw new Error('webparse');
+        return parseUploads(d);
+    }]);
+    for (const [name, run] of tries) {
+        try {
+            const out = await run();
+            if (out && out.videos.length) {
+                if (!cont) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=1800' } })));
+                return out;
+            }
+            why.push(name + ':empty');
+        } catch (e) { why.push(name + ':' + String(e && e.message || e).slice(0, 30)); }
     }
-    if (!cont && out.videos.length) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=1800' } })));
-    return out;
+    return { fail: why.join(',') };
 }
 
 export default {
@@ -657,8 +678,8 @@ export default {
             }
             const id = String(body.id || ''), cont = typeof body.cont === 'string' ? body.cont.slice(0, 2000) : '';
             if (!isChannelId(id)) return json(400, { error: 'bad' }, headers);
-            const out = await ytUploads(id, cont, ctx).catch(() => null);
-            return out ? json(200, out, headers) : json(502, { error: 'youtube' }, headers);
+            const out = await ytUploads(id, cont, ctx, env).catch((e) => ({ fail: String(e && e.message || e).slice(0, 40) }));
+            return out.fail ? json(502, { error: 'youtube', why: out.fail }, headers) : json(200, out, headers);
         }
 
         // admin only: find a channel by name, @handle or link
