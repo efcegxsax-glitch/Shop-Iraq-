@@ -1232,7 +1232,7 @@
             },
             _googleErr(error) {
                 const code = (error && error.code) || '', msg = String((error && error.message) || '');
-                if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled' || (code === 'isp/native' && /cancel/i.test(msg))) return;
+                if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request' || code === 'auth/user-cancelled') return;
                 if (code === 'auth/popup-blocked') this.showToast('المتصفح منع نافذة Google، اسمح بالنوافذ المنبثقة وحاول مرة ثانية');
                 else if (code === 'auth/operation-not-allowed') this.showToast('الدخول بحساب Google ما انفعّل بعد من إعدادات Firebase');
                 else if (code === 'auth/unauthorized-domain') this.showToast('هذا الموقع غير مضاف لقائمة المواقع المسموحة بـ Firebase (Authorized domains)');
@@ -1240,7 +1240,7 @@
                 else if (code === 'auth/account-exists-with-different-credential') this.showToast('هذا الإيميل مسجل بطريقة ثانية، سجّل دخول بكلمة المرور أول');
                 else if (code === 'isp/no-client-id') this.showToast('الدخول بـ Google على التطبيق ما انفعّل بعد (ينقص Client ID من لوحة الإدارة)');
                 else if (code === 'isp/native-old') this.showToast('حدّث التطبيق لآخر نسخة حتى يشتغل الدخول بـ Google');
-                else if (code === 'isp/native') this.showToast('تعذر الدخول بـ Google: ' + (msg.slice(0, 80) || 'خطأ'));
+                else if (code === 'isp/native') this.showToast('Google: ' + msg.replace(/androidx\.credentials\.|android\.credentials\./g, '').slice(0, 140));
                 else this.showToast('تعذر الدخول بحساب Google (' + (code || msg.slice(0, 60) || 'خطأ') + ')');
             },
             async googleSignIn() {
