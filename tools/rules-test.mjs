@@ -144,6 +144,8 @@ await no('pAt moved back', set(ref(db('u1'), 'users/u1/pAt'), 1));
 await no('delete points', set(ref(db('u1'), 'users/u1/points'), null));
 await no('leaderboard wrong points', set(ref(db('u1'), 'leaderboard/u1/points'), 99999));
 await ok('leaderboard matching points', set(ref(db('u1'), 'leaderboard/u1/points'), 250));
+await no('teachers channel: a student cannot add one', set(ref(db('u1'), 'ytChannels/c1'), { id: 'UCabcdefghijklmnopqrstuv', n: 'x' }));
+await ok('teachers channels are public to read', get(ref(db('u1'), 'ytChannels')));
 await ok('study minutes week', set(ref(db('u1'), 'leaderboard/u1/wm'), { '2026-10-03': 90 }));
 await ok('study minutes season', set(ref(db('u1'), 'leaderboard/u1/sm'), { '2026-10': 90 }));
 await no('study minutes jump', set(ref(db('u1'), 'leaderboard/u1/wm/2026-10-03'), 1000));

@@ -183,7 +183,7 @@ rules = {
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
-                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio"]},
+                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels"]},
     # big files (PDFs) live apart from the lists so opening the app never downloads them
     "resourceFiles": {
         ".read": True, ".write": ADMIN,
