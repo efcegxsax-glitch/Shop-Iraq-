@@ -20,6 +20,7 @@
         if (!S.day || S.day.d !== today()) S.day = { d: today(), m: 0, n: 0 };
         if (!Array.isArray(S.used)) S.used = [];
         if (typeof S.chat !== 'boolean') S.chat = true;
+        if (typeof S.stunts !== 'boolean') S.stunts = true;
     }
     const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 
@@ -443,11 +444,13 @@
             ${tg('on', 'تشغيل أبو الهمّة', 'يطلع ويحجي وياك من وقت لوقت')}
             ${tg('shake', 'يطلع إذا هزّيت الموبايل', 'هز الهاتف وشوف شنو يكول')}
             ${tg('chat', 'يراقب الدردشة', 'يعاتبك إذا طوّلت دردشة، ويوقف المحادثة مؤقتاً ويرجعك للدراسة')}
+            ${tg('stunts', 'حركات مفاجئة وسوالف', 'يطلع من طرف الشاشة، يراقبك ويلبد ويسولف. مسكه لو تريد')}
             ${tg('voice', 'صوت (يقرا الكلام)', 'يعتمد على صوت عربي بهاتفك')}
             <div class="rp-lab">شكد يطلع؟</div>
             <div class="rp-chips">${[['rare', 'قليل'], ['normal', 'عادي'], ['often', 'كثير']].map((x) => `<button class="${f === x[0] ? 'on' : ''}" onclick="app.mcFreq('${x[0]}')">${x[1]}</button>`).join('')}</div>
             <p class="rp-foot">ما يطلع وانت تدرس أو تحجي أو تكتب، وما يزعجك بالليل. وإذا تتجاهله يقلل نفسه. المكالمات ما تنوقف أبداً. وتكدر تطفّي مراقبة الدردشة من فوق.</p>
-            <button class="rp-ok" onclick="app.mcTest()">جرّبه هسه</button>`;
+            <button class="rp-ok" onclick="app.mcTest()">جرّبه هسه</button>
+            <button class="rp-ok" style="margin-top:8px;background:#7c3aed" onclick="app.mcStunt()">فاجئني بحركة</button>`;
     }
     function drawSheet() { const s = document.querySelector('#mcSet .rp-sheet'); if (s) { s.innerHTML = sheet(); try { lucide.createIcons(); } catch (e) {} } }
 
@@ -484,4 +487,6 @@
     if (!timer) timer = setInterval(tick, 30000);
     cload(); setInterval(chatTick, 5000);
     window.MascotOwl = owl;
+    window.MascotAPI = { S: () => S, busy, enabled, quiet, owl, rnd, isCur: () => !!cur, bornAt: () => bornAt, dismissMain: () => dismiss(false) };
+    app._need('mascot2').catch(() => {});
 })();
