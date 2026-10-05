@@ -59,6 +59,18 @@ POINTS_CLAIM = ands(
     f"{NEW}.child({PC} + '/c').val() == true",
     f"newData.val() - (data.exists() ? data.val() : 0) <= root.child({PC} + '/amount').val()",
 )
+# a points code made in the panel: the student marks it used (usedBy = themselves) and raises their points by at most its value,
+# in the same write (users/{uid}/pc names it); a used code pays nothing again
+PCODE = "newData.parent().child('pc').val()"
+POINTS_CODE = ands(
+    "data.exists()", "newData.parent().child('pc').isString()",
+    PCODE + ".matches(/^pointCodes\\/[A-Z0-9-]{4,24}$/)",
+    f"root.child({PCODE}).exists()",
+    f"root.child({PCODE} + '/used').val() != true",
+    f"{NEW}.child({PCODE} + '/used').val() == true",
+    f"{NEW}.child({PCODE} + '/usedBy').val() == $uid",
+    f"newData.val() - data.val() <= root.child({PCODE} + '/points').val()",
+)
 POINTS = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 1000000000",
     ors(
@@ -69,6 +81,7 @@ POINTS = ands(
              "newData.parent().child('pAt').isNumber()",
              "newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)"),
         POINTS_CLAIM,
+        POINTS_CODE,
     ),
 )
 PAT = ors(ADMIN, "newData.isNumber() && newData.val() <= now + 10000 && (!data.exists() || newData.val() >= data.val())")
@@ -322,6 +335,20 @@ rules = {
     "blockedUsers": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$other": {".read": "auth != null && auth.uid == $other"}}},
 
     # ----- money -----
+    "pointCodes": {
+        "$code": {
+            ".read": SIGNED,
+            ".validate": "$code.matches(/^[A-Z0-9-]{4,24}$/)",
+            ".write": ors(ADMIN, ands(SIGNED, "data.exists()", "data.child('used').val() != true", "newData.child('used').val() == true",
+                                      "newData.child('usedBy').val() == auth.uid", "newData.child('points').val() == data.child('points').val()")),
+            "points": {".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000"},
+            "used": {".validate": "newData.isBoolean()"},
+            "usedBy": {".validate": "newData.isString() && newData.val().length <= 40"},
+            "usedAt": {".validate": "newData.isNumber()"},
+            "createdAt": {".validate": "newData.isNumber()"},
+            "$other": {".validate": False},
+        },
+    },
     "topupCodes": {
         "$code": {
             ".read": SIGNED,

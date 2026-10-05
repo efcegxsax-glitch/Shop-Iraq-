@@ -805,7 +805,6 @@
                 this._dateStripStart();
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
-                setInterval(() => { if (this.currentView === 'homeView') this.renderHolidays(); }, 60000);
                 setInterval(() => this.checkTaskReminders(), 120000);
                 setInterval(() => {
                     this.refreshTimeAgoLabels();
@@ -3345,7 +3344,7 @@
                 const $ = (id) => document.getElementById(id);
 
                 // Home sections
-                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', dateStrip: 'dateStripSection', examCountdown: 'examCountdownSection', holidays: 'holidaysSection', dailyTip: 'dailyTipSection' };
+                const sections = { search: 'searchSection', categories: 'categoriesSection', carousel: 'carouselSection', ticker: 'tickerSection', dateStrip: 'dateStripSection', examCountdown: 'examCountdownSection', dailyTip: 'dailyTipSection' };
                 Object.keys(sections).forEach(k => $(sections[k])?.classList.toggle('cfg-off', !on('sections', k)));
 
                 // Pages the panel can switch off for everyone (siteConfig/features/<name> = false)
@@ -5657,7 +5656,6 @@
                     }
                     holidays.length = 0;
                     holidays.push(...list);
-                    if (this.currentView === 'homeView') this.renderHolidays();
                     if (this.currentView === 'holidaysView') { this.renderHolidaysPage(); this.renderDayStatus(); }
                     this.updateHolidayNavDot();
                 });
@@ -5674,58 +5672,6 @@
                     return endOfDay ? new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999).getTime() : new Date(+m[1], +m[2] - 1, +m[3]).getTime();
                 };
                 return { start: parse(h.startDate, false), end: parse(h.endDate || h.startDate, true) };
-            },
-
-            renderHolidays() {
-                const section = document.getElementById('holidaysSection');
-                const list = document.getElementById('holidaysList');
-                if (!section || !list) return;
-                const now = Date.now();
-                const upcoming = holidays
-                    .map((h) => ({ h, ...this.holidayRange(h) }))
-                    .filter((x) => !isNaN(x.end) && x.end >= now)
-                    .sort((a, b) => a.start - b.start);
-                if (upcoming.length === 0) {
-                    section.classList.add('hidden');
-                    list.innerHTML = '';
-                    this._hlKey = '';
-                    this._stripStop('holidays', 'holidaysList');
-                    return;
-                }
-                section.classList.remove('hidden');
-                const DAY = 86400000;
-                const chips = upcoming.map(({ h, start, end }) => {
-                    const ongoing = now >= start && now <= end;
-                    const daysTo = Math.ceil((start - now) / DAY);
-                    const daysLeft = Math.max(0, Math.ceil((end - now) / DAY));
-                    let state, status;
-                    if (ongoing) {
-                        state = 'is-now';
-                        status = daysLeft <= 1 ? '<b>جارية</b> · آخر يوم' : `<b>جارية</b> · باقي ${daysLeft} يوم`;
-                    } else {
-                        state = daysTo <= 7 ? 'is-soon' : 'is-later';
-                        status = daysTo <= 1 ? '<b>غداً</b>' : `<b>بعد ${daysTo} يوم</b>`;
-                    }
-                    const isGov = h.type === 'government';
-                    const place = h.governorate ? escapeHtml(h.governorate) : 'كل المحافظات';
-                    return `
-                        <div class="hl-chip ${state}">
-                            <span class="hl-dot" aria-hidden="true"></span>
-                            <div class="hl-body">
-                                <div class="hl-gov"><span class="hl-pin" aria-hidden="true"><i data-lucide="map-pin"></i></span><span>${place}</span><span class="hl-tag ${isGov ? 'gov' : 'school'}">${isGov ? 'رسمية' : 'مدرسية'}</span></div>
-                                <div class="hl-name"><span>${escapeHtml(h.title)}</span><span class="hl-meta">· ${status}</span></div>
-                            </div>
-                        </div>`;
-                }).join('');
-                const countEl = document.getElementById('holidaysCount');
-                if (countEl) countEl.textContent = upcoming.length === 1 ? 'عطلة واحدة' : (upcoming.length === 2 ? 'عطلتان' : upcoming.length + (upcoming.length <= 10 ? ' عطل' : ' عطلة'));
-                // renderHolidays runs every minute — only rebuild (and restart the motion) when
-                // something visible actually changed.
-                if (chips === this._hlKey) return;
-                this._hlKey = chips;
-                list.innerHTML = chips;
-                lucide.createIcons();
-                this._stripStart('holidays', 'holidaysViewport', 'holidaysList');
             },
 
             // ==================== FOCUS MODE (وضع التركيز) ====================
@@ -9453,16 +9399,42 @@
                     return;
                 }
                 const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'إيداع رصيد بكود تعبئة';
+                if (titleEl) titleEl.textContent = 'تعبئة بكود';
                 const content = document.getElementById('walletModalContent');
                 if (!content) return;
                 content.innerHTML = `
-                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">أدخل كود التعبئة اللي حصلت عليه، ويتم إضافة قيمته لرصيدك مباشرة</p>
+                    <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">أدخل الكود اللي حصلت عليه. كود التعبئة يضيف رصيد، وكود النقاط (يبدأ بـ PT-) يضيف نقاط لحسابك</p>
                     <input type="text" id="topupCodeInput" placeholder="مثال: ABCD-1234-EFGH" class="w-full h-12 px-4 rounded-xl auth-input text-sm mb-3" dir="ltr" style="text-transform: uppercase;">
                     <button id="topupRedeemBtn" onclick="app.redeemTopupCode()" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">تأكيد الإيداع</button>
                 `;
                 document.getElementById('walletModal')?.classList.remove('hidden');
                 lucide.createIcons();
+            },
+
+            // a points code from the panel (pointCodes/{PT-...} = { points, used }): marked used and the points added in one write
+            async _redeemPointCode(code, btn) {
+                const reset = () => { if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; } };
+                const { ref, get } = window.firebaseDbHelpers, uid = this.currentUid(), path = 'pointCodes/' + code;
+                try {
+                    const snap = await get(ref(window.firebaseDb, path));
+                    if (!snap.exists()) { this.showToast('الكود غير موجود، تأكد من كتابته صح'); reset(); return; }
+                    const d = snap.val();
+                    if (d.used) { this.showToast('هذا الكود مستخدم مسبقاً'); reset(); return; }
+                    const pts = Math.round(Number(d.points) || 0);
+                    if (pts < 1) { this.showToast('الكود غير صالح'); reset(); return; }
+                    const np = await this.addPointsAtomic(pts, { claim: true, extra: {
+                        [path + '/used']: true, [path + '/usedBy']: uid, [path + '/usedAt']: Date.now(), ['users/' + uid + '/pc']: path,
+                    } });
+                    if (np === null) { this.showToast('هذا الكود مستخدم مسبقاً أو تعذر التحقق منه'); reset(); return; }
+                    this.addWalletTransaction({ title: 'نقاط بكود', amount: '+' + pts + ' نقطة', isNegative: false, icon: 'coins', iconColor: '#F59E0B', iconBg: 'bg-warning/10' });
+                    this.renderWalletBalance();
+                    this.closeWalletModal();
+                    this.showToast('تمت إضافة ' + pts.toLocaleString('en-US') + ' نقطة لحسابك');
+                } catch (err) {
+                    console.warn('Redeem points code failed:', err);
+                    this.showToast('تعذر التحقق من الكود — تحقق من اتصالك وحاول مجدداً');
+                    reset();
+                }
             },
 
             redeemTopupCode() {
@@ -9489,6 +9461,7 @@
                 }
                 const btn = document.getElementById('topupRedeemBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
+                if (code.indexOf('PT-') === 0) { this._redeemPointCode(code, btn); return; }
                 const { ref, get } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const codeRef = ref(window.firebaseDb, 'topupCodes/' + code);
@@ -13042,7 +13015,7 @@
                 document.body.classList.toggle('forest-on', viewId === 'forestView');
                 window.scrollTo(0, 0);
 
-                if (viewId === 'homeView') { this._dateStripCheck(); this.updateNavActive('home'); this.renderExamCountdown(); this.renderHolidays(); }
+                if (viewId === 'homeView') { this._dateStripCheck(); this.updateNavActive('home'); this.renderExamCountdown(); }
                 else if (viewId === 'resourcesView') this.updateNavActive('resources');
                 else if (viewId === 'leaderboardView') this.updateNavActive('leaderboard');
                 else if (viewId === 'savedView') this.updateNavActive('saved');

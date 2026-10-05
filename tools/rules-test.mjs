@@ -184,6 +184,24 @@ await ok('top-up', U('u1', { 'topupCodes/ABCD1/used': true, 'topupCodes/ABCD1/us
 await no('top-up same code again', U('u2', { 'topupCodes/ABCD1/used': true, 'topupCodes/ABCD1/usedBy': 'u2', 'users/u2/balance': 11, 'users/u2/bt': 'ABCD1' }));
 await no('re-credit with old bt', U('u1', { 'users/u1/balance': 24 }));
 await no('free the code again', set(ref(db('u1'), 'topupCodes/ABCD1/used'), false));
+// points codes
+await seed('users/u9', { points: 100, balance: 0, pAt: 0 });
+await seed('pointCodes/PT-ABC1', { points: 500, used: false });
+await no('guest reads a points code', get(ref(db(null), 'pointCodes/PT-ABC1')));
+await no('student lists points codes', get(ref(db('u1'), 'pointCodes')));
+await ok('student reads one points code', get(ref(db('u1'), 'pointCodes/PT-ABC1')));
+await no('student makes a points code', set(ref(db('u1'), 'pointCodes/PT-NEW1'), { points: 500, used: false }));
+await ok('admin makes a points code', set(ref(db('adm'), 'pointCodes/PT-NEW1'), { points: 500, used: false }));
+await no('points code with a bad value', set(ref(db('adm'), 'pointCodes/PT-BAD1'), { points: 0, used: false }));
+await no('points code with junk fields', set(ref(db('adm'), 'pointCodes/PT-BAD2'), { points: 5, used: false, x: 1 }));
+await no('points code too much', U('u9', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u9', 'users/u9/points': 700, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
+await no('points code for someone else', U('u9', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u2', 'users/u9/points': 600, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
+await no('points raised without marking the code', U('u9', { 'users/u9/points': 600, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
+await no('points code value changed on use', U('u9', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u9', 'pointCodes/PT-ABC1/points': 9000, 'users/u9/points': 5100, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
+await ok('points code', U('u9', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u9', 'pointCodes/PT-ABC1/usedAt': now, 'users/u9/points': 600, 'users/u9/pc': 'pointCodes/PT-ABC1', 'leaderboard/u9/points': 600 }));
+await no('points code used twice', U('u2', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u2', 'users/u2/points': 1500, 'users/u2/pc': 'pointCodes/PT-ABC1' }));
+await no('free the points code again', set(ref(db('u9'), 'pointCodes/PT-ABC1/used'), false));
+await no('same points again without a new code', U('u9', { 'users/u9/points': 1100, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
 
 // transfer u1 -> u2
 const tr = 'tr_1_1';
