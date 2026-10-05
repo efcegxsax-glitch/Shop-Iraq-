@@ -186,6 +186,29 @@ public class MainActivity extends BridgeActivity {
             }
 
             // the page's background colour, kept for the next start
+            // are this app's notifications allowed at all (the system switch)
+            @JavascriptInterface
+            public boolean notifOn() {
+                try { return androidx.core.app.NotificationManagerCompat.from(MainActivity.this).areNotificationsEnabled(); } catch (Throwable t) { return true; }
+            }
+
+            // opens this app's own notification page in the phone's settings (where "pop on screen" / "floating" is switched on)
+            @JavascriptInterface
+            public void notifSettings() {
+                runOnUiThread(() -> {
+                    try {
+                        android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+                        i.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, getPackageName());
+                        startActivity(i);
+                    } catch (Throwable t) {
+                        try {
+                            android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + getPackageName()));
+                            startActivity(i);
+                        } catch (Throwable ignored) {}
+                    }
+                });
+            }
+
             @JavascriptInterface
             public void bg(final String hex) {
                 try { getSharedPreferences("isp", MODE_PRIVATE).edit().putInt("bg", android.graphics.Color.parseColor(hex)).apply(); } catch (Throwable ignored) {}
