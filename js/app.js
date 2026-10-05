@@ -4641,6 +4641,14 @@
                 this.hlOpen();
             },
 
+            goToPlan() {
+                if ((this.siteConfig || {}).features && this.siteConfig.features.plan === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك حتى يرتبلك المعلم خطتك'); this.goToAuth('login'); return; }
+                this.switchView('planView');
+                if (this._withPart('plan', () => typeof this.plOpen === 'function', 'planView', () => this.goToPlan())) return;
+                this.plOpen();
+            },
+
             goToExams() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.exams === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -8665,6 +8673,7 @@
                 { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
+                { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },

@@ -23,6 +23,7 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { cleanExam, uuidOf } from './exam.js';
 import { pushTargets, sendAfter } from './push.js';
+import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from './plan.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -95,6 +96,10 @@ function cleanFood(r) {
     };
 }
 
+const Plan = z.object({
+    summary: z.string(),
+    days: z.array(z.object({ tasks: z.array(z.object({ s: z.string(), t: z.string(), m: z.number().int() })) })),
+});
 const Quiz = z.object({
     title: z.string(),
     questions: z.array(z.object({ q: z.string(), choices: z.array(z.string()), answer: z.number().int(), why: z.string() })),
@@ -220,6 +225,17 @@ async function claudeCards(env, image, prompt, uid) {
     return res.parsed_output;
 }
 
+async function claudePlan(env, prompt, context, uid) {
+    const res = await claudeClient(env).messages.parse({
+        model: CLAUDE_MODEL, max_tokens: 6000, system: claudeSystem(PLAN_SYSTEM, context),
+        messages: [{ role: 'user', content: prompt }],
+        output_config: { effort: 'low', format: zodOutputFormat(Plan) },
+        metadata: { user_id: uid },
+    });
+    if (res.stop_reason === 'refusal') return null;
+    return res.parsed_output;
+}
+
 async function claudeFood(env, system, prompt, context, uid) {
     const res = await claudeClient(env).messages.parse({
         model: CLAUDE_MODEL, max_tokens: 4000, system: claudeSystem(system, context),
@@ -318,6 +334,14 @@ async function geminiCards(env, image, prompt) {
     const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
         model, contents: [{ role: 'user', parts: [{ inlineData: { mimeType: image.type, data: image.data } }, { text: prompt }] }],
         config: { systemInstruction: CARDS_SYSTEM, responseMimeType: 'application/json', responseJsonSchema: CARDS_JSON_SCHEMA, maxOutputTokens: 8000 },
+    }));
+    try { return JSON.parse(res.text || ''); } catch { return null; }
+}
+
+async function geminiPlan(env, prompt, context) {
+    const res = await geminiTry(env, (model) => geminiClient(env).models.generateContent({
+        model, contents: prompt,
+        config: { systemInstruction: geminiSystem(PLAN_SYSTEM, context), responseMimeType: 'application/json', responseJsonSchema: PLAN_JSON_SCHEMA, maxOutputTokens: 6000 },
     }));
     try { return JSON.parse(res.text || ''); } catch { return null; }
 }
@@ -857,6 +881,20 @@ export default {
                 return json(200, r, headers);
             } catch (err) {
                 console.error('cards', err && err.message);
+                return json(502, { error: errorCode(err) }, headers);
+            }
+        }
+
+        // the weekly study plan: from the student's report (context) for the days the app names
+        if (body.mode === 'plan') {
+            const days = cleanDays(body.days);
+            if (!days.length) return json(400, { error: 'days' }, headers);
+            const prompt = planPrompt(days, body.hours, str(body.note, 200));
+            try {
+                const plan = cleanPlan(useClaude ? await claudePlan(env, prompt, context, uid) : await geminiPlan(env, prompt, context), days, body.hours);
+                return plan ? json(200, plan, headers) : json(502, { error: 'plan' }, headers);
+            } catch (err) {
+                console.error('plan', err && err.message);
                 return json(502, { error: errorCode(err) }, headers);
             }
         }
