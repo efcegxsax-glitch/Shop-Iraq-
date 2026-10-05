@@ -2805,6 +2805,7 @@
                     if (this.currentView === 'tutorView' && this._ttRender) this._ttRender();
                     this._coachTag(this._coachGet().on);
                     this._pnSync();
+                    this._prizeListen();
                     if (this._tubePending) { const v = this._tubePending; this._tubePending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(v)).catch(() => {}); }, 900); }
                     this._clRingListen();
                     this.listenForUserTasks();
@@ -9647,7 +9648,42 @@
             leaderboardSort: 'points',
             leaderboardQuery: '',
 
+            // ===== Weekly prizes: weeklyPrizes/{week} (the winners, public) and prizeClaims/{uid}/{week} = { pts, rank, c } (mine) =====
+            _prizeListen() {
+                const uid = this.authUid;
+                if (!window.firebaseDb || !uid || this._prizeOn === uid) return;
+                (this._prizeOff || []).forEach((f) => { try { f(); } catch (e) {} });
+                this._prizeOn = uid; this._prizeMine = {}; this._prizeLast = null;
+                const { ref, onValue, query, orderByKey, limitToLast } = window.firebaseDbHelpers, db = window.firebaseDb;
+                this._prizeOff = [
+                    onValue(query(ref(db, 'weeklyPrizes'), orderByKey(), limitToLast(1)), (snap) => { const v = snap.exists() ? Object.values(snap.val())[0] : null; this._prizeLast = v && Array.isArray(v.winners) ? v : null; this.renderPrizeCard(); }, () => {}),
+                    onValue(ref(db, 'prizeClaims/' + uid), (snap) => { this._prizeMine = snap.exists() ? snap.val() : {}; this.renderPrizeCard(); this.updateNotifBadges && this.updateNotifBadges(); }, () => {}),
+                ];
+            },
+            renderPrizeCard() {
+                const box = document.getElementById('lbPrizeBox'); if (!box) return;
+                const last = this._prizeLast, mine = this._prizeMine || {};
+                const open = Object.keys(mine).filter((wk) => mine[wk] && mine[wk].c !== true).sort().reverse();
+                if (!last && !open.length) { box.innerHTML = ''; return; }
+                const rank = ['الأول', 'الثاني', 'الثالث'];
+                const claim = open.map((wk) => `<button class="btn-press w-full mb-2 py-3 rounded-xl text-sm font-bold text-white" style="background: linear-gradient(135deg,#F59E0B,#D97706);" onclick="app.claimPrize(${jsArg(wk)})">فزت بالمركز ${rank[(numOr0(mine[wk].rank) || 1) - 1] || ''} - استلم ${numOr0(mine[wk].pts).toLocaleString('en-US')} نقطة</button>`).join('');
+                const list = last ? `<div class="text-xs font-bold mb-2" style="color: var(--text2);">فائزو الأسبوع (يبدأ ${escapeHtml(last.wk)})</div>` + last.winners.slice(0, 3).map((w) => `<div class="flex items-center gap-2 py-1 text-sm" style="color: var(--text);"><b style="min-width:54px">${rank[numOr0(w.rank) - 1] || ''}</b><span class="flex-1 truncate">${escapeHtml(w.n)}</span><span class="text-xs" style="color: var(--text2);">${numOr0(w.pts).toLocaleString('en-US')} نقطة</span></div>`).join('') : '';
+                box.innerHTML = `<div class="rounded-2xl p-3 theme-transition" style="background-color: var(--surface); border: 1px solid var(--border);"><div class="flex items-center gap-2 mb-2 font-bold" style="color: var(--text);"><i data-lucide="trophy" class="w-5 h-5" style="color:#F59E0B"></i>جوائز الأسبوع</div>${claim}${list}</div>`;
+                try { lucide.createIcons(); } catch (e) {}
+            },
+            // marks the prize claimed and adds its points in one write (the rules accept it only for this student's own unclaimed prize)
+            async claimPrize(wk) {
+                const uid = this.authUid, p = (this._prizeMine || {})[wk];
+                if (!uid || !p || p.c === true || !/^\d{4}-\d{2}-\d{2}$/.test(String(wk))) return;
+                const path = 'prizeClaims/' + uid + '/' + wk, pts = Math.round(Number(p.pts) || 0);
+                const np = await this.addPointsAtomic(pts, { claim: true, extra: { [path + '/c']: true, ['users/' + uid + '/pc']: path } });
+                if (np === null) { this.showToast('تعذر استلام الجائزة، حاول مرة ثانية'); return; }
+                this.addWalletTransaction({ title: 'جائزة الأسبوع', amount: '+' + pts + ' نقطة', isNegative: false, icon: 'trophy', iconColor: '#F59E0B', iconBg: 'bg-warning/10' });
+                this.showToast('مبروك! انضافت ' + pts.toLocaleString('en-US') + ' نقطة لحسابك');
+            },
+
             goToLeaderboard() {
+                this._prizeListen();
                 this.loadLeaderboard();
                 this.switchView('leaderboardView');
             },

@@ -22,7 +22,7 @@ import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { cleanExam, uuidOf } from './exam.js';
-import { pushTargets } from './push.js';
+import { pushTargets, sendAfter } from './push.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -671,11 +671,14 @@ export default {
             // The student's own switch for this kind of notification: the app sets the tag off_<kind> only while the kind is switched off,
             // so "tag off_<kind> does not exist" keeps everybody who never touched it (older installs too). Only plain AND filters are used,
             // so nothing depends on how OneSignal ranks OR against AND; each governorate is its own send.
-            const { kind, targets } = pushTargets(govs, body.cat);
+            const uids = (Array.isArray(body.uids) ? body.uids : []).filter((u) => typeof u === 'string' && UID_RE.test(u)).slice(0, 50);
+            const { kind, targets } = pushTargets(govs, body.cat, uids);
+            const when = body.sendAt ? sendAfter(body.sendAt, Date.now()) : '';
+            if (body.sendAt && !when) return json(400, { error: 'time' }, headers);
             const sends = await Promise.all(targets.map(async (target) => {
                 const r = await fetch('https://api.onesignal.com/notifications?c=push', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
-                    body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}) }),
+                    body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}), ...(when ? { send_after: when } : {}) }),
                 });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
@@ -686,7 +689,16 @@ export default {
             // OneSignal answers an empty audience with no id (or an "all players are not subscribed" error): say so, do not call it sent
             const got = sends.filter((x) => x.j.id);
             const recipients = sends.reduce((n, x) => n + (Number(x.j.recipients) || 0), 0);
-            return json(200, { id: got.map((x) => x.j.id).join(',') || '', sent: got.length, of: sends.length, recipients: got.length ? recipients : 0, errors: sends.map((x) => x.j.errors).filter(Boolean)[0] || null }, headers);
+            return json(200, { id: got.map((x) => x.j.id).join(',') || '', ids: got.map((x) => x.j.id), sent: got.length, of: sends.length, recipients: got.length ? recipients : 0, errors: sends.map((x) => x.j.errors).filter(Boolean)[0] || null }, headers);
+        }
+
+        // admin only: cancel pushes that were scheduled for later (their OneSignal ids)
+        if (body.mode === 'admincancel') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+            const ids = (Array.isArray(body.ids) ? body.ids : []).filter((x) => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x)).slice(0, 25);
+            const res = await Promise.all(ids.map((id) => fetch('https://api.onesignal.com/notifications/' + id + '?app_id=' + encodeURIComponent(env.ONESIGNAL_APP_ID), { method: 'DELETE', headers: { Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY } }).then((r) => r.ok).catch(() => false)));
+            return json(200, { cancelled: res.filter(Boolean).length, of: ids.length }, headers);
         }
 
         // the student's own small photo (a 192px JPEG, at most ~40KB) for the push notification

@@ -202,6 +202,27 @@ await ok('points code', U('u9', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/P
 await no('points code used twice', U('u2', { 'pointCodes/PT-ABC1/used': true, 'pointCodes/PT-ABC1/usedBy': 'u2', 'users/u2/points': 1500, 'users/u2/pc': 'pointCodes/PT-ABC1' }));
 await no('free the points code again', set(ref(db('u9'), 'pointCodes/PT-ABC1/used'), false));
 await no('same points again without a new code', U('u9', { 'users/u9/points': 1100, 'users/u9/pc': 'pointCodes/PT-ABC1' }));
+// weekly prizes
+await seed('users/u8', { points: 100, balance: 0, pAt: 0 });
+await seed('prizeClaims/u8/2026-10-03', { pts: 300, rank: 2, c: false });
+await ok('winners are public', get(ref(db(null), 'weeklyPrizes')));
+await no('student writes the winners', set(ref(db('u8'), 'weeklyPrizes/2026-10-03'), { winners: [] }));
+await ok('admin writes the winners', set(ref(db('adm'), 'weeklyPrizes/2026-10-03'), { winners: [{ uid: 'u8', n: 'x', min: 500, rank: 2, pts: 300 }] }));
+await ok('admin writes a prize claim', set(ref(db('adm'), 'prizeClaims/u7/2026-10-03'), { pts: 500, rank: 1, c: false, at: now }));
+await no('student makes their own prize', set(ref(db('u8'), 'prizeClaims/u8/2026-10-10'), { pts: 5000, rank: 1, c: false }));
+await no('a prize is private', get(ref(db('u1'), 'prizeClaims/u8')));
+await ok('own prize can be read', get(ref(db('u8'), 'prizeClaims/u8/2026-10-03')));
+await no('prize claim too much', U('u8', { 'prizeClaims/u8/2026-10-03/c': true, 'users/u8/points': 600, 'users/u8/pc': 'prizeClaims/u8/2026-10-03' }));
+await no('prize claimed by someone else', U('u1', { 'prizeClaims/u8/2026-10-03/c': true, 'users/u1/points': 400, 'users/u1/pc': 'prizeClaims/u8/2026-10-03' }));
+await no('prize points without marking it claimed', U('u8', { 'users/u8/points': 400, 'users/u8/pc': 'prizeClaims/u8/2026-10-03' }));
+await no('prize value changed on claim', U('u8', { 'prizeClaims/u8/2026-10-03/c': true, 'prizeClaims/u8/2026-10-03/pts': 9000, 'users/u8/points': 5000, 'users/u8/pc': 'prizeClaims/u8/2026-10-03' }));
+await ok('prize claim', U('u8', { 'prizeClaims/u8/2026-10-03/c': true, 'users/u8/points': 400, 'users/u8/pc': 'prizeClaims/u8/2026-10-03', 'leaderboard/u8/points': 400 }));
+await no('prize claimed twice', U('u8', { 'prizeClaims/u8/2026-10-03/c': true, 'users/u8/points': 700, 'users/u8/pc': 'prizeClaims/u8/2026-10-03' }));
+await no('unclaim the prize', set(ref(db('u8'), 'prizeClaims/u8/2026-10-03/c'), false));
+await no('push schedule is private', get(ref(db('u1'), 'pushSchedule')));
+await ok('admin writes the push schedule', set(ref(db('adm'), 'pushSchedule/1'), { title: 'x', at: now, ids: ['a'] }));
+await ok('admin reads the push schedule', get(ref(db('adm'), 'pushSchedule')));
+await no('student writes the push schedule', set(ref(db('u1'), 'pushSchedule/2'), { title: 'x' }));
 
 // transfer u1 -> u2
 const tr = 'tr_1_1';
