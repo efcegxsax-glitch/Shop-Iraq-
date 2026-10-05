@@ -22,6 +22,7 @@ jobs:
       TURN_KEY_ID: ${{ secrets.TURN_KEY_ID }}
       TURN_KEY_API_TOKEN: ${{ secrets.TURN_KEY_API_TOKEN }}
       ONESIGNAL_REST_API_KEY: ${{ secrets.ONESIGNAL_REST_API_KEY }}
+      YT_API_KEY: ${{ secrets.YT_API_KEY }}
     steps:
       - name: Check the secrets are set
         id: chk
@@ -69,7 +70,7 @@ jobs:
         run: |
           node -e '
             const o = {};
-            for (const k of ["GEMINI_API_KEY", "ANTHROPIC_API_KEY", "TURN_KEY_ID", "TURN_KEY_API_TOKEN", "ONESIGNAL_REST_API_KEY"]) if (process.env[k]) o[k] = process.env[k];
+            for (const k of ["GEMINI_API_KEY", "ANTHROPIC_API_KEY", "TURN_KEY_ID", "TURN_KEY_API_TOKEN", "ONESIGNAL_REST_API_KEY", "YT_API_KEY"]) if (process.env[k]) o[k] = process.env[k];
             require("fs").writeFileSync("keys.json", JSON.stringify(o), { mode: 0o600 });
           '
           npx wrangler secret bulk keys.json

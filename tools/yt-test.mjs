@@ -27,6 +27,8 @@ const u1 = parseUploads(up);
 t('uploads', u1.videos.length === 1 && u1.videos[0].t === 'حلقة 20 فصل ثاني' && u1.videos[0].a === '2 years ago' && u1.next === 'TOK123');
 const u2 = parseUploads({ onResponseReceivedActions: [{ appendContinuationItemsAction: { continuationItems: [{ playlistVideoRenderer: { videoId: 'DDDDDDDDDDD', title: { simpleText: 'x' } } }] } }] });
 t('uploads continuation', u2.videos.length === 1 && u2.next === '');
+const lk = parseUploads({ a: [{ lockupViewModel: { contentId: 'EEEEEEEEEEE', contentType: 'LOCKUP_CONTENT_TYPE_VIDEO', metadata: { lockupMetadataViewModel: { title: { content: 'حلقة 21' }, metadata: { contentMetadataViewModel: { metadataRows: [{ metadataParts: [{ text: { content: '3.1K views' } }, { text: { content: '1 year ago' } }] }] } } } } } }, { lockupViewModel: { contentId: 'FFFFFFFFFFF', contentType: 'LOCKUP_CONTENT_TYPE_PLAYLIST' } }] });
+t('uploads new layout', lk.videos.length === 1 && lk.videos[0].t === 'حلقة 21' && lk.videos[0].a === '1 year ago' && lk.videos[0].w === '3.1K views');
 t('uploads empty', parseUploads(null).videos.length === 0 && initialData('<html>') === null);
 t('uploads url', uploadsUrl('UCabcdefghijklmnopqrstuv') === 'https://www.youtube.com/playlist?list=UUabcdefghijklmnopqrstuv');
 console.log(bad ? bad + ' failed' : 'all ' + ok + ' passed'); process.exit(bad ? 1 : 0);

@@ -575,12 +575,18 @@ async function ytNotify(env, ctx, when) {
 
 // a channel's uploads, 100 at a time (the first page is cached for 30 minutes). Three ways, tried in turn:
 // YouTube's own app endpoint (no page to parse), the playlist web page, and (if the key secret exists) the official API.
-const IT = { context: { client: { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'ar', gl: 'IQ' } } };
-async function itBrowse(extra) {
-    const r = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
-        method: 'POST', headers: { ...ytHeaders, 'Content-Type': 'application/json', Origin: 'https://www.youtube.com' }, body: JSON.stringify({ ...IT, ...extra }),
+// YouTube's own app endpoint, asked the way its apps ask (the public web key and each client's headers); tried as the web client, then as the Android app.
+const IT_KEY = 'AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8';
+const IT_CLIENTS = [
+    ['web', { clientName: 'WEB', clientVersion: '2.20250101.00.00', hl: 'ar', gl: 'IQ' }, { 'X-YouTube-Client-Name': '1', 'X-YouTube-Client-Version': '2.20250101.00.00', Origin: 'https://www.youtube.com', Referer: 'https://www.youtube.com/' }],
+    ['android', { clientName: 'ANDROID', clientVersion: '19.09.37', androidSdkVersion: 30, hl: 'ar', gl: 'IQ' }, { 'X-YouTube-Client-Name': '3', 'X-YouTube-Client-Version': '19.09.37', 'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip' }],
+];
+async function itBrowse(extra, i) {
+    const [, client, hdr] = IT_CLIENTS[i];
+    const r = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false&key=' + IT_KEY, {
+        method: 'POST', headers: { ...ytHeaders, ...hdr, 'Content-Type': 'application/json' }, body: JSON.stringify({ context: { client }, ...extra }),
     });
-    if (!r.ok) throw new Error('it' + r.status);
+    if (!r.ok) throw new Error(IT_CLIENTS[i][0] + r.status);
     return r.json();
 }
 async function apiUploads(id, cont, key) {
@@ -596,12 +602,12 @@ async function ytUploads(id, cont, ctx, env) {
     const why = [];
     const tries = [];
     if (env.YT_API_KEY) tries.push(['api', () => apiUploads(id, cont, env.YT_API_KEY)]);
-    tries.push(['it', async () => parseUploads(await itBrowse(cont ? { continuation: cont } : { browseId: 'VLUU' + id.slice(2) }))]);
+    IT_CLIENTS.forEach(([n], i) => tries.push([n, async () => parseUploads(await itBrowse(cont ? { continuation: cont } : { browseId: 'VLUU' + id.slice(2) }, i))]));
     if (!cont) tries.push(['web', async () => {
         const r = await fetch(uploadsUrl(id), { headers: ytHeaders, redirect: 'follow' });
         if (!r.ok) throw new Error('web' + r.status);
-        const d = initialData(await r.text());
-        if (!d) throw new Error('webparse');
+        const html = await r.text(), d = initialData(html);
+        if (!d) throw new Error(/consent\.youtube|Before you continue/i.test(html) ? 'webconsent' : 'webparse');
         return parseUploads(d);
     }]);
     for (const [name, run] of tries) {
