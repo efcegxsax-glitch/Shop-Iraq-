@@ -10988,3 +10988,8 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .ng-tx p { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .ng-card time { position: absolute; left: 14px; top: 12px; font-size: 10.5px; color: var(--text2); }
 .ng-hint { text-align: center; color: var(--text2); opacity: .7; font-size: 11px; margin-top: 2px; }
+
+/* أبو الهمّة: surprise stunts (js/mascot2.js): he peeks from the screen edges, speech bubble beside him */
+.ms-owl { position: fixed !important; left: 0; top: 0; margin: 0 !important; z-index: 9290; transform-origin: 50% 60%; will-change: transform; touch-action: none; }
+.ms-b { position: fixed; z-index: 9291; max-width: 230px; direction: rtl; background: #fffdf6; color: #2a1a0e; border: 2.5px solid #7a4d27; border-radius: 16px; padding: 8px 12px; font-size: 13.5px; line-height: 1.7; font-weight: 800; box-shadow: 0 8px 22px rgba(0,0,0,.28); opacity: 0; transform: scale(.85); transition: opacity .2s, transform .25s cubic-bezier(.3,1.5,.5,1); pointer-events: none; }
+.ms-b.on { opacity: 1; transform: scale(1); pointer-events: auto; }
