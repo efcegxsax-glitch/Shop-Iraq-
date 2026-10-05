@@ -22,6 +22,7 @@ import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { cleanExam, uuidOf } from './exam.js';
+import { pushTargets } from './push.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -667,24 +668,25 @@ export default {
             const title = str(body.title, 80), text = str(body.body, 300);
             if (!title) return json(400, { error: 'empty' }, headers);
             const govs = (Array.isArray(body.govs) ? body.govs : []).map((g) => str(g, 20)).filter((g) => /^[a-z_]+$/.test(g)).slice(0, 19);
-            // the student's own switch for this kind of notification (tag pn_<cat>: missing = on, so older installs still get it)
-            const cat = ['urgent', 'announcement', 'weather', 'res', 'general'].includes(body.cat) ? 'pn_' + body.cat : '';
-            const catOk = [{ field: 'tag', key: cat, relation: 'not_exists' }, { field: 'tag', key: cat, relation: '=', value: 'on' }];
-            let target;
-            if (govs.length) {
-                // (gov = g AND cat missing) OR (gov = g AND cat on), for each governorate
-                target = { filters: govs.flatMap((g, i) => {
-                    const gv = { field: 'tag', key: 'gov', relation: '=', value: g };
-                    return (i ? [{ operator: 'OR' }] : []).concat(cat ? [gv, catOk[0], { operator: 'OR' }, gv, catOk[1]] : [gv]);
-                }) };
-            } else target = cat ? { filters: [catOk[0], { operator: 'OR' }, catOk[1]] } : { included_segments: ['Total Subscriptions'] };
-            const r = await fetch('https://api.onesignal.com/notifications?c=push', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
-                body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env) }),
-            });
-            const j = await r.json().catch(() => ({}));
-            if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
-            return json(r.ok ? 200 : 502, r.ok ? { id: j.id || '', recipients: j.recipients, errors: j.errors || null } : { error: 'onesignal', status: r.status, detail: j.errors || null }, headers);
+            // The student's own switch for this kind of notification: the app sets the tag off_<kind> only while the kind is switched off,
+            // so "tag off_<kind> does not exist" keeps everybody who never touched it (older installs too). Only plain AND filters are used,
+            // so nothing depends on how OneSignal ranks OR against AND; each governorate is its own send.
+            const { kind, targets } = pushTargets(govs, body.cat);
+            const sends = await Promise.all(targets.map(async (target) => {
+                const r = await fetch('https://api.onesignal.com/notifications?c=push', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                    body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}) }),
+                });
+                const j = await r.json().catch(() => ({}));
+                if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
+                return { ok: r.ok, status: r.status, j };
+            }));
+            const bad = sends.find((x) => !x.ok);
+            if (bad) return json(502, { error: 'onesignal', status: bad.status, detail: bad.j.errors || null }, headers);
+            // OneSignal answers an empty audience with no id (or an "all players are not subscribed" error): say so, do not call it sent
+            const got = sends.filter((x) => x.j.id);
+            const recipients = sends.reduce((n, x) => n + (Number(x.j.recipients) || 0), 0);
+            return json(200, { id: got.map((x) => x.j.id).join(',') || '', sent: got.length, of: sends.length, recipients: got.length ? recipients : 0, errors: sends.map((x) => x.j.errors).filter(Boolean)[0] || null }, headers);
         }
 
         // the student's own small photo (a 192px JPEG, at most ~40KB) for the push notification

@@ -346,6 +346,7 @@
             circular: { label: 'تعميم', bg: 'bg-circular-bg', border: 'border-circular-border', iconBg: 'bg-success/10', iconColor: 'text-success', icon: 'building-2' },
             update: { label: 'تحديث', bg: 'bg-update-bg', border: 'border-update-border', iconBg: 'bg-warning/10', iconColor: 'text-warning', icon: 'calendar' },
             reminder: { label: 'تذكير', bg: 'bg-reminder-bg', border: 'border-reminder-border', iconBg: 'bg-purple-500/10', iconColor: 'text-purple-500', icon: 'clock' },
+            holiday: { label: 'الدوام والعطل', bg: 'bg-general-bg', border: 'border-general-border', iconBg: 'bg-secondary/10', iconColor: 'text-secondary', icon: 'calendar-days' },
             weather: { label: 'الأنواء الجوية', bg: 'bg-general-bg', border: 'border-general-border', iconBg: 'bg-secondary/10', iconColor: 'text-secondary', icon: 'cloud-sun' },
             general: { label: 'أخبار عامة', bg: 'bg-general-bg', border: 'border-general-border', iconBg: 'bg-secondary/10', iconColor: 'text-secondary', icon: 'monitor' }
         };
@@ -505,7 +506,7 @@
             userBookmarks: {},
             userDeletedNotifs: {},
             calendarMonthOffset: 0,
-            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, msg: true, call: true, lec: true },
+            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, msg: true, call: true, lec: true, holiday: true },
             currentChatUid: null,
             currentChatOther: null,
             sentFriendRequests: {},
@@ -810,7 +811,7 @@
                     this.refreshTimeAgoLabels();
                     // the card switches from "today" to "tomorrow" at noon
                     const t = this.localDateStr(this._dsTarget());
-                    if (t !== this._dsLastTarget) { this._dsLastTarget = t; this.updateHolidayNavDot(); if (this.currentView === 'holidaysView') this.renderDayStatus(); }
+                    if (t !== this._dsLastTarget) { this._dsLastTarget = t; this.updateHolidayNavDot(); this.renderDayStatus(); }
                 }, 30000);
             },
 
@@ -2337,6 +2338,22 @@
             },
 
             // ==================== NOTIFICATIONS ====================
+            // A banner that drops from the top like WhatsApp / Instagram while the app is open: tap = open, swipe up or wait = gone.
+            _heads(title, body, onTap) {
+                document.getElementById('hdsUp')?.remove(); clearTimeout(this._hdsT);
+                const el = document.createElement('div');
+                el.id = 'hdsUp'; el.className = 'hds'; el.setAttribute('role', 'alert');
+                el.innerHTML = `<img src="icons/icon-192.png" alt=""><div><small>أكاديمي السادس · الآن</small><b>${escapeHtml(String(title || '').slice(0, 90))}</b>${body ? `<span>${escapeHtml(String(body).slice(0, 140))}</span>` : ''}</div>`;
+                let y0 = null;
+                const close = () => { el.classList.remove('on'); setTimeout(() => el.remove(), 250); };
+                el.addEventListener('click', () => { close(); try { onTap && onTap(); } catch (e) { console.warn(e); } });
+                el.addEventListener('touchstart', (e) => { y0 = e.touches[0].clientY; clearTimeout(this._hdsT); }, { passive: true });
+                el.addEventListener('touchend', (e) => { if (y0 != null && y0 - e.changedTouches[0].clientY > 24) { e.preventDefault(); close(); } y0 = null; });
+                document.body.appendChild(el);
+                requestAnimationFrame(() => el.classList.add('on'));
+                this._hdsT = setTimeout(close, 6500);
+            },
+
             goToNotifications() {
                 this.loadNotifications();
                 this.switchView('notificationsView');
@@ -3289,7 +3306,7 @@
                     this.updateNotifBadges();
                     if (this.notifPrefs[val.type || 'announcement'] !== false) {
                         this.playNotifySound();
-                        this.showToast('إشعار جديد: ' + val.title);
+                        this._heads(val.title, val.description, () => this.goToNotifications());
                         if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
                             try { new Notification(val.title, { body: val.description || '', icon: 'icons/icon-192.png' }); } catch (e) { /* not allowed outside a service worker */ }
                         }
@@ -3721,11 +3738,16 @@
                 return IRAQ_GOVERNORATES.indexOf(s) !== -1 ? s : '';
             },
 
+            // The day the strip talks about: tomorrow from noon on; in the morning it is today, unless the panel has announced
+            // something for tomorrow and nothing for today (so an announcement made at 10am still shows up straight away).
             _dsTarget() {
-                const d = new Date();
-                if (d.getHours() >= 12) d.setDate(d.getDate() + 1);
-                d.setHours(0, 0, 0, 0);
-                return d;
+                const d = new Date(), t = new Date(d.getTime());
+                t.setDate(t.getDate() + 1);
+                d.setHours(0, 0, 0, 0); t.setHours(0, 0, 0, 0);
+                if (new Date().getHours() >= 12) return t;
+                const gov = this._dsGov && this._dsGov(), all = this._dayStatus || {};
+                const has = (day) => { const x = all[this.localDateStr(day)] || {}; return !!((gov && x[gov]) || x.all); };
+                return !has(d) && has(t) ? t : d;
             },
 
             _dsStatus(date, gov) {
@@ -5412,7 +5434,7 @@
                         });
                         this._os = {
                             login: (id) => O.login(String(id)),
-                            User: { addTags: (t) => O.User.addTags(t), addTag: (k, v) => O.User.addTag(k, v) },
+                            User: { addTags: (t) => O.User.addTags(t), addTag: (k, v) => O.User.addTag(k, v), removeTags: (k) => O.User.removeTags(k) },
                             Notifications: { requestPermission: () => Promise.resolve(O.Notifications.requestPermission(true)).then((g) => { this._nativePerm = g ? 'granted' : 'denied'; return g; }) },
                             Slidedown: { promptPush: () => this._os.Notifications.requestPermission() },
                         };
@@ -11735,7 +11757,8 @@
             // (msg, call) through pushPrefs/{uid} in the database, and lecture reminders by not scheduling them at all.
             PN_LIST: [
                 ['urgent', 'الأخبار العاجلة', 'خبر مهم ومستعجل من الوزارة', 'siren', '#DC2626'],
-                ['announcement', 'الأخبار والإعلانات الرسمية', 'القرارات والعطل والنتائج والإعلانات', 'newspaper', '#2563EB'],
+                ['holiday', 'الدوام والعطل', 'باچر دوام لو عطلة؟ وقرارات الدوام لمحافظتك', 'calendar-days', '#0EA5E9'],
+                ['announcement', 'الأخبار والإعلانات الرسمية', 'القرارات والنتائج والإعلانات', 'newspaper', '#2563EB'],
                 ['weather', 'الأنواء الجوية', 'حالة الطقس والتنبيهات الجوية', 'cloud-sun', '#0891B2'],
                 ['res', 'ملازم جديدة', 'لما تنزل ملزمة جديدة', 'book-open', '#16A34A'],
                 ['tube', 'محاضرات المدرسين', 'لما أستاذ ينزل فيديو جديد', 'clapperboard', '#EF4444'],
@@ -11748,22 +11771,31 @@
             // the kinds the student switched off, saved next to a Firebase push token so the Cloud Function can skip them
             _pnOff() { return this.PN_LIST.map((x) => x[0]).filter((k) => !this._pnOn(k)); },
             _pnOn(k) { return k === 'coach' ? !!this._coachGet().on : this.notifPrefs[k] !== false; },
-            _pnTags(t) {
+            // sets tags (t = {key: value}) and removes others (rm = [key]) on the push service; the removed ones are written as "" where removal is not offered
+            _pnTags(t, rm) {
+                rm = rm || [];
                 try {
-                    if (this._os && this._os.User && this._os.User.addTags) { this._os.User.addTags(t); return; }
-                    if (window.OneSignal && OneSignal.User && OneSignal.User.addTags) { OneSignal.User.addTags(t); return; }
-                    const w = this._wtn && this._wtn();
-                    if (w && w.os === 'android' && typeof w.a.setUserTags === 'function') w.a.setUserTags(JSON.stringify(t));
-                    else if (w && w.i) w.i.postMessage({ action: 'setUserTags', tags: t });
+                    const U = (this._os && this._os.User && this._os.User.addTags && this._os.User) || (window.OneSignal && OneSignal.User && OneSignal.User.addTags && OneSignal.User);
+                    if (U) {
+                        if (Object.keys(t).length) U.addTags(t);
+                        if (rm.length) { if (U.removeTags) U.removeTags(rm); else U.addTags(Object.fromEntries(rm.map((k) => [k, '']))); }
+                        return;
+                    }
+                    const w = this._wtn && this._wtn(), all = Object.assign({}, t, Object.fromEntries(rm.map((k) => [k, ''])));
+                    if (w && w.os === 'android' && typeof w.a.setUserTags === 'function') w.a.setUserTags(JSON.stringify(all));
+                    else if (w && w.i) w.i.postMessage({ action: 'setUserTags', tags: all });
                 } catch (e) { console.warn('push tags failed', e); }
             },
             // pushes the student's choices to the places that decide what reaches the phone
             _pnSync() {
                 const t = {};
                 if (this._fcmPath && window.firebaseDb) { const { ref, update } = window.firebaseDbHelpers; update(ref(window.firebaseDb, this._fcmPath), { off: this._pnOff() }).catch(() => {}); }
-                ['urgent', 'announcement', 'weather', 'res', 'general'].forEach((k) => { t['pn_' + k] = this._pnOn(k) ? 'on' : 'off'; });
+                // the broadcast kinds the server filters on: the tag off_<kind> exists only while the kind is switched off
+                const rm = [];
+                ['urgent', 'announcement', 'weather', 'res', 'general', 'holiday'].forEach((k) => { if (this._pnOn(k)) rm.push('off_' + k); else t['off_' + k] = '1'; });
+                rm.push('pn_urgent', 'pn_announcement', 'pn_weather', 'pn_res', 'pn_general'); // the first version of these tags
                 t.tube = this._pnOn('tube') ? 'on' : 'off'; t.coach = this._pnOn('coach') ? 'on' : 'off';
-                this._pnTags(t);
+                this._pnTags(t, rm);
                 if (this.isLoggedIn && this.authUid && window.firebaseDb) {
                     const off = {}; ['msg', 'call'].forEach((k) => { if (!this._pnOn(k)) off[k] = false; });
                     const sig = JSON.stringify(off);
@@ -11788,7 +11820,8 @@
                 const perm = this._pushPerm && this._pushPerm();
                 content.innerHTML = `
                     <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر الإشعارات اللي تريد توصلك، واللي طفيتها ما توصلك بالهاتف ولا تظهر بقائمة الإشعارات.</p>
-                    ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك.</p>' : ''}
+                    ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك: إعدادات الهاتف ثم التطبيقات ثم أكاديمي السادس ثم الإشعارات.</p>'
+                        : perm === 'default' ? '<button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.enableWebPush()">فعّل إشعارات الهاتف حتى توصلك وانت خارج التطبيق</button>' : ''}
                     <div class="flex flex-col gap-2">${this.PN_LIST.map(row).join('')}</div>
                     <p class="text-xs mt-4 mb-2 font-bold theme-transition" style="color: var(--text2);">تظهر داخل التطبيق فقط</p>
                     <div class="flex flex-col gap-2">${rest.map((type) => `
