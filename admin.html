@@ -360,6 +360,7 @@
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
             <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
             <button class="tab" data-tab="tests"><span class="tab-ic"><i data-lucide="file-check-2"></i></span><span>الاختبارات</span></button>
+            <button class="tab" data-tab="prizes"><span class="tab-ic"><i data-lucide="trophy"></i></span><span>جوائز الأسبوع</span></button>
             <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
             <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
             <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
@@ -946,6 +947,10 @@
                     </div>
 
                     <div class="field">
+                        <label>قوالب جاهزة (اضغط واحد وتتعبّى الحقول، وتكدر تعدّلها)</label>
+                        <div class="flex gap-2" style="flex-wrap:wrap" id="no_tpl"></div>
+                    </div>
+                    <div class="field">
                         <label>عنوان الإشعار *</label>
                         <input type="text" id="no_title" placeholder="مثال: تذكير بموعد الامتحان">
                     </div>
@@ -966,8 +971,26 @@
                         </select>
                     </div>
 
+                    <div class="field" style="margin-top:10px;">
+                        <label>وقت الإرسال</label>
+                        <select id="no_when">
+                            <option value="now">الآن</option>
+                            <option value="am7">باچر الصبح الساعة 7:00</option>
+                            <option value="am630">باچر الصبح الساعة 6:30</option>
+                            <option value="custom">وقت أحدده أنا</option>
+                        </select>
+                        <input type="datetime-local" id="no_at" class="hidden" style="margin-top:8px">
+                        <label class="ds-chk hidden" id="no_inapp_row" style="margin-top:8px"><input type="checkbox" id="no_inapp"><span>سجّله بقائمة الإشعارات بالتطبيق هسه (إذا طفيته، ينرسل إشعار الهاتف فقط بالوقت المحدد)</span></label>
+                    </div>
                     <label class="sw-row" style="margin-top:10px;"><div class="sw-text"><strong>يوصل كإشعار للهاتف</strong><span>يطلع على شاشة الطالب حتى لو التطبيق مسكّر</span></div><span class="switch"><input type="checkbox" id="no_push" checked aria-label="إشعار للهاتف"><span class="track"></span></span></label>
                     <button class="btn mt-4" id="no_send">إرسال الإشعار للجميع</button>
+                </div>
+                <div class="card" id="schedCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="alarm-clock"></i></div>
+                        <div><h3>الإشعارات المجدولة</h3><p>اللي ما انرسلت بعد. تكدر تلغيها قبل وقتها</p></div>
+                    </div>
+                    <div id="schedList"></div>
                 </div>
             </div>
 
@@ -1159,6 +1182,38 @@
                 </div>
             </div>
 
+            <div id="sec-prizes" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="trophy"></i></div>
+                        <div>
+                            <h3>جوائز الأسبوع للأوائل</h3>
+                            <p>الأوائل بساعات الدراسة خلال أسبوع (من السبت للجمعة). اضغط "ختم الأسبوع" مرة وحدة بآخر الأسبوع: ينكتبون الفائزين، ويوصلهم إشعار، ويستلمون نقاطهم من صفحة المتقدمون</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="pz_week">الأسبوع (يبدأ يوم السبت)</label>
+                        <select id="pz_week"></select>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>جائزة المركز الأول (نقطة)</label><input type="number" id="pz_p1" value="500" min="1" max="100000"></div>
+                        <div class="field" style="margin-bottom:0;"><label>جائزة المركز الثاني</label><input type="number" id="pz_p2" value="300" min="1" max="100000"></div>
+                        <div class="field" style="margin-bottom:0;"><label>جائزة المركز الثالث</label><input type="number" id="pz_p3" value="200" min="1" max="100000"></div>
+                        <div class="field" style="margin-bottom:0;"><label>أقل ساعات دراسة للفوز (بالدقائق)</label><input type="number" id="pz_min" value="60" min="0" max="6000"></div>
+                    </div>
+                    <label class="ds-chk" style="margin-top:10px;"><input type="checkbox" id="pz_news" checked><span>انشر خبر للجميع بأسماء الفائزين</span></label>
+                    <div class="flex gap-2" style="flex-wrap:wrap">
+                        <button class="btn mt-3" id="pz_preview" style="background:#64748b">اعرض المتصدرين</button>
+                        <button class="btn mt-3" id="pz_close">ختم الأسبوع وإعلان الفائزين</button>
+                    </div>
+                    <div id="pz_out" class="mt-3"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head"><div class="ic"><i data-lucide="history"></i></div><div><h3>الأسابيع المختومة</h3></div></div>
+                    <div id="pz_list"></div>
+                </div>
+            </div>
+
             <div id="sec-holidays" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -1168,9 +1223,14 @@
                             <p>للعطل المفاجئة. يتغير الجواب فوراً بصفحة العطل عند طلاب المحافظات اللي تختارها، ويوصلهم إشعار</p>
                         </div>
                     </div>
+                    <div class="field">
+                        <label>قوالب جاهزة (تعبّي الحالة والسبب)</label>
+                        <div class="flex gap-2" style="flex-wrap:wrap" id="ds_tpl"></div>
+                    </div>
                     <div class="field-grid field-grid-2">
                         <div class="field" style="margin-bottom:0;">
                             <label>اليوم *</label>
+                            <div class="flex gap-2" style="margin-bottom:6px"><button type="button" class="btn-sm" id="ds_today">اليوم</button><button type="button" class="btn-sm" id="ds_tomorrow">باچر</button></div>
                             <input type="date" id="ds_date">
                         </div>
                         <div class="field" style="margin-bottom:0;">
@@ -1836,7 +1896,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'tests', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'res', 'notif', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2126,7 +2186,7 @@
             if (!pr.id) return '، بس ما لكى أي جهاز مطابق للإشعار (الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة)';
             return ' ووصل إشعار للهواتف' + (pr.n ? ' (' + pr.n + ')' : '');
         }
-        async function pushPhones(title, body, govs, cat) {
+        async function pushPhones(title, body, govs, cat, opts) {
             const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
             if (!/^https:\/\/[^\s]+$/.test(String(url || ''))) return { ok: false, why: 'عنوان سيرفر المعلم غير مكتوب' };
@@ -2134,29 +2194,70 @@
             try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
             try {
                 const codes = (govs || []).map((g) => GOV_CODES[g]).filter(Boolean);
-                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '' }) });
+                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '', ...(opts && opts.sendAt ? { sendAt: opts.sendAt } : {}), ...(opts && opts.uids ? { uids: opts.uids } : {}) }) });
                 const j = await r.json().catch(() => ({}));
-                if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
-                return { ok: true, n: j.recipients, id: j.id || '', sent: j.sent, of: j.of };
+                if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'time' ? 'وقت الإرسال لازم يكون من دقيقة إلى 30 يوم قدام' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
+                return { ok: true, n: j.recipients, id: j.id || '', ids: j.ids || [], sent: j.sent, of: j.of };
             } catch (e) { return { ok: false, why: 'ما وصلت للسيرفر (' + String(e && e.message || e).slice(0, 60) + ') من ' + location.origin }; }
         }
 
         // ---------- Send Notification ----------
+        // ---------- ready-made texts (one tap fills the fields, the text can still be edited) ----------
+        const NO_TPL = [
+            ['عطلة رسمية', { title: 'عطلة رسمية باچر', desc: 'تقرر تعطيل الدوام الرسمي يوم باچر. الله يحفظكم.', type: 'announcement' }],
+            ['دوام رسمي', { title: 'الدوام رسمي باچر', desc: 'ننفي إشاعة العطلة: الدوام مستمر ويوم باچر دوام رسمي بالمدارس.', type: 'announcement' }],
+            ['أنواء: أمطار', { title: 'تنبيه جوي: أمطار غزيرة', desc: 'هطول أمطار غزيرة متوقع. خذوا الحيطة وتجنبوا الأماكن المنخفضة.', type: 'weather' }],
+            ['أنواء: عاصفة ترابية', { title: 'تنبيه جوي: عاصفة ترابية', desc: 'عاصفة ترابية متوقعة. يفضل البقاء بالبيوت وغلق الشبابيك، ومرضى الربو يحتاطون.', type: 'weather' }],
+            ['أنواء: موجة حر', { title: 'تنبيه جوي: ارتفاع درجات الحرارة', desc: 'ارتفاع كبير بدرجات الحرارة. اشربوا ماي وتجنبوا الشمس وقت الظهر.', type: 'weather' }],
+            ['أنواء: ضباب', { title: 'تنبيه جوي: ضباب كثيف', desc: 'ضباب كثيف بالصباح. انتبهوا بالطرق وانطلقوا بوقت أبكر.', type: 'weather' }],
+            ['تذكير امتحان', { title: 'تذكير بموعد الامتحان', desc: 'قرب موعد الامتحان. راجع ملازمك وجهز أغراضك من اليوم.', type: 'reminder' }],
+        ];
+        el('no_tpl').innerHTML = NO_TPL.map((t, i) => `<button type="button" class="btn-sm" data-notpl="${i}">${escapeHtml(t[0])}</button>`).join('');
+        el('no_tpl').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-notpl]'); if (!b) return;
+            const t = NO_TPL[Number(b.dataset.notpl)][1];
+            el('no_title').value = t.title; el('no_desc').value = t.desc; el('no_type').value = t.type;
+        });
+        // the time a scheduled push goes out: tomorrow morning, or a time picked by hand (the browser's own clock, so Baghdad time for the panel's user)
+        const noWhen = () => {
+            const m = val('no_when');
+            if (m === 'now') return 0;
+            if (m === 'custom') { const t = new Date(val('no_at')).getTime(); return Number.isFinite(t) ? t : -1; }
+            const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(7, m === 'am630' ? 30 : 0, 0, 0);
+            return d.getTime();
+        };
+        el('no_when').addEventListener('change', () => {
+            el('no_at').classList.toggle('hidden', val('no_when') !== 'custom');
+            el('no_inapp_row').classList.toggle('hidden', val('no_when') === 'now');
+            el('no_send').textContent = val('no_when') === 'now' ? 'إرسال الإشعار للجميع' : 'جدولة الإشعار';
+        });
+        const fmtWhen = (t) => new Date(t).toLocaleString('ar-IQ', { dateStyle: 'full', timeStyle: 'short' });
         window.sendNotification = async () => {
             const title = val('no_title');
             if (!title) { toast('أدخل عنوان الإشعار', false); return; }
+            const at = noWhen();
+            if (at === -1) { toast('اختار وقت الإرسال', false); return; }
+            if (at && !el('no_push').checked) { toast('الجدولة تعمل بإشعار الهاتف، فعّل "يوصل كإشعار للهاتف"', false); return; }
             const btn = el('no_send');
             btn.disabled = true;
             try {
-                const id = Date.now();
-                await set(ref(db, 'notifications/' + id), {
-                    id, title, description: val('no_desc'), time: 'الآن', read: false,
-                    type: val('no_type') || 'announcement', createdAt: serverTimestamp()
-                });
-                let msg = 'تم إرسال الإشعار لجميع الطلاب';
+                const cat = { urgent: 'urgent', announcement: 'announcement', weather: 'weather' }[val('no_type')] || 'general';
+                let msg;
+                if (!at || el('no_inapp').checked) {
+                    const id = Date.now();
+                    await set(ref(db, 'notifications/' + id), {
+                        id, title, description: val('no_desc'), time: 'الآن', read: false,
+                        type: val('no_type') || 'announcement', createdAt: serverTimestamp()
+                    });
+                    msg = 'تم إرسال الإشعار لجميع الطلاب';
+                } else msg = 'تمت الجدولة';
                 if (el('no_push').checked) {
-                    const pr = await pushPhones(title, val('no_desc'), [], { urgent: 'urgent', announcement: 'announcement', weather: 'weather' }[val('no_type')] || 'general');
-                    msg += pushNote(pr);
+                    const pr = await pushPhones(title, val('no_desc'), [], cat, at ? { sendAt: at } : null);
+                    if (at && pr.ok && pr.id) {
+                        await set(ref(db, 'pushSchedule/' + Date.now()), { title, body: val('no_desc'), cat, at, ids: pr.ids, createdAt: serverTimestamp() });
+                        msg += ': يوصل ' + fmtWhen(at);
+                    } else if (at) msg = 'ما انجدول: ' + (pr.ok ? 'ما لكى أي جهاز مطابق' : pr.why);
+                    else msg += pushNote(pr);
                 }
                 toast(msg);
                 el('no_title').value = ''; el('no_desc').value = '';
@@ -2165,6 +2266,19 @@
                 toast('فشل الإرسال', false);
             }
             btn.disabled = false;
+        };
+        // scheduled pushes still waiting (pushSchedule/{id} = { title, body, cat, at, ids }); cancelling asks OneSignal to drop them
+        function attachSched() {
+            onValue(ref(db, 'pushSchedule'), (snap) => {
+                const rows = snap.exists() ? entriesWithKey(snap.val()).filter((x) => Number(x.at) > Date.now()).sort((a, b) => a.at - b.at) : [];
+                el('schedList').innerHTML = rows.length ? rows.map((x) => `<div class="row-item"><div class="flex-1 min-w-0"><div class="font-bold truncate">${escapeHtml(x.title)}</div><div class="text-slate-400 text-xs">${escapeHtml(fmtWhen(x.at))}</div></div><button class="del" onclick="cancelSched(${jsArg(x._key)})">إلغاء</button></div>`).join('') : '<p class="list-empty">ما أكو إشعارات مجدولة</p>';
+                window.__sched = Object.fromEntries(rows.map((x) => [x._key, x]));
+            });
+        }
+        window.cancelSched = async (key) => {
+            const x = (window.__sched || {})[key]; if (!x) return;
+            if (!(await ask({ icon: 'bell-off', tone: 'warn', title: 'تلغي الإشعار؟', text: 'ما راح يوصل للطلاب.', ok: 'إلغاء الإشعار' }))) return;
+            try { await workerPost({ mode: 'admincancel', ids: x.ids || [] }); await remove(ref(db, 'pushSchedule/' + key)); toast('انلغى'); } catch (e) { toast('تعذر الإلغاء: ' + (e.message || e), false); }
         };
         el('no_send').addEventListener('click', sendNotification);
 
@@ -2341,10 +2455,13 @@
                     <button class="del" onclick="deleteItem('pointCodes', ${jsArg(c._key)})">حذف</button>
                 </div>`).join('') : '<p class="list-empty">لا توجد أكواد نقاط</p>';
         }
-        onValue(ref(db, 'pointCodes'), (snap) => {
-            pointCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
-            renderPointCodes();
-        });
+        // (attached after the panel signs in: see attachLateLists, a listener started before sign-in is refused by the rules and never retried)
+        function attachPointCodes() {
+            onValue(ref(db, 'pointCodes'), (snap) => {
+                pointCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderPointCodes();
+            });
+        }
         window.copyTopupCode = (code) => {
             (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
@@ -2601,7 +2718,7 @@
         let reportsData = {}, rpMode = 'open';
         const RP_TYPES = { user: 'طالب', message: 'رسالة خاصة', thread: 'منشور بالمنتدى', answer: 'إجابة بالمنتدى', dream: 'حلم', idea: 'فكرة', vent: 'فضفضة', room: 'غرفة' };
         const RP_DEL = /^((forumThreads|forumAnswers|dreams|ideas)\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?|(ytRooms|rmRooms)\/[A-Za-z0-9_-]+\/chat\/[A-Za-z0-9_-]+)$/;
-        onValue(ref(db, 'reports'), (s) => { reportsData = s.val() || {}; renderReports(); });
+        function attachReports() { onValue(ref(db, 'reports'), (s) => { reportsData = s.val() || {}; renderReports(); }); }
         window.rpFilter = (m) => { rpMode = m; renderReports(); };
         function renderReports() {
             const box = el('rpList'); if (!box) return;
@@ -3151,6 +3268,7 @@
         };
 
         function loadLists() {
+            attachPointCodes(); attachSched(); attachPrizeList(); attachReports();
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
@@ -3341,6 +3459,73 @@
             });
         }
 
+        // ---------- Weekly prizes: weeklyPrizes/{week} (public winners) and prizeClaims/{uid}/{week} = { pts, rank, c } ----------
+        const ymd = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const pzWeekStart = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 1) % 7)); return x; };
+        const pzKey = (d) => ymd(pzWeekStart(d));
+        (() => {
+            const opts = [];
+            for (let i = 0; i < 8; i++) { const d = pzWeekStart(Date.now() - i * 7 * 86400000); opts.push(`<option value="${ymd(d)}">${i === 0 ? 'هذا الأسبوع (ما خلص) - ' : i === 1 ? 'الأسبوع الماضي - ' : ''}${ymd(d)}</option>`); }
+            el('pz_week').innerHTML = opts.join(''); el('pz_week').value = pzKey(Date.now() - 7 * 86400000);
+        })();
+        async function pzTop(wk) {
+            const lb = (await get(ref(db, 'leaderboard'))).val() || {};
+            return Object.keys(lb).map((uid) => ({ uid, n: String((lb[uid] && lb[uid].name) || 'طالب').slice(0, 40), min: Number(lb[uid] && lb[uid].wm && lb[uid].wm[wk]) || 0 })).filter((x) => x.min > 0).sort((a, b) => b.min - a.min);
+        }
+        const hm = (m) => (m >= 60 ? Math.floor(m / 60) + ' ساعة ' : '') + (m % 60 ? (m % 60) + ' دقيقة' : '');
+        el('pz_preview').addEventListener('click', async () => {
+            const wk = val('pz_week'); el('pz_out').textContent = 'دا يحسب...';
+            try { const top = (await pzTop(wk)).slice(0, 10); el('pz_out').innerHTML = top.length ? top.map((x, i) => `<div class="row-item"><b>${i + 1}</b><div class="flex-1 min-w-0 truncate">${escapeHtml(x.n)}</div><span class="text-slate-400 text-xs">${hm(x.min)}</span></div>`).join('') : '<p class="list-empty">ما أكو دراسة مسجلة بهذا الأسبوع</p>'; } catch (e) { el('pz_out').textContent = 'تعذر الحساب: ' + (e.message || e); }
+        });
+        el('pz_close').addEventListener('click', async () => {
+            const wk = val('pz_week'), prizes = [1, 2, 3].map((i) => Math.round(Number(val('pz_p' + i)) || 0)), need = Math.max(0, Math.round(Number(val('pz_min')) || 0));
+            if (prizes.some((p) => p < 1 || p > 100000)) { toast('الجوائز لازم تكون من 1 إلى 100000 نقطة', false); return; }
+            if (wk >= pzKey(Date.now())) { if (!(await ask({ icon: 'alert-triangle', tone: 'warn', title: 'الأسبوع ما خلص', text: 'تختم أسبوع جاري؟ ممكن الترتيب يتغير بعده.', ok: 'اختم هسه' }))) return; }
+            const btn = el('pz_close'); btn.disabled = true;
+            try {
+                if ((await get(ref(db, 'weeklyPrizes/' + wk))).exists()) { toast('هذا الأسبوع انختم من قبل', false); btn.disabled = false; return; }
+                const winners = (await pzTop(wk)).filter((x) => x.min >= need).slice(0, 3).map((x, i) => ({ uid: x.uid, n: x.n, min: x.min, rank: i + 1, pts: prizes[i] }));
+                if (!winners.length) { toast('ما أكو أحد وصل للحد الأدنى (' + need + ' دقيقة)', false); btn.disabled = false; return; }
+                if (!(await ask({ icon: 'trophy', title: 'تعلن الفائزين؟', text: winners.map((w) => w.rank + '. ' + w.n + ' (' + hm(w.min) + ') = ' + w.pts + ' نقطة').join('\n'), ok: 'اعلن' }))) { btn.disabled = false; return; }
+                const upd = { ['weeklyPrizes/' + wk]: { wk, at: Date.now(), need, winners } };
+                winners.forEach((w) => { upd['prizeClaims/' + w.uid + '/' + wk] = { pts: w.pts, rank: w.rank, c: false, at: Date.now() }; });
+                await update(ref(db), upd);
+                let sent = 0;
+                for (const w of winners) {
+                    const pr = await pushPhones('مبروك! فزت بالمركز ' + ['الأول', 'الثاني', 'الثالث'][w.rank - 1], 'استلم ' + w.pts + ' نقطة من صفحة المتقدمون', [], '', { uids: [w.uid] });
+                    if (pr.ok && pr.id) sent++;
+                }
+                if (el('pz_news').checked) {
+                    const id = Date.now(), title = 'فائزو الأسبوع بالدراسة', description = winners.map((w) => ['الأول', 'الثاني', 'الثالث'][w.rank - 1] + ': ' + w.n).join(' ، ');
+                    await set(ref(db, 'notifications/' + id), { id, title, description, time: 'الآن', read: false, type: 'announcement', createdAt: serverTimestamp() });
+                    await pushPhones(title, description, [], 'general');
+                }
+                toast('انختم الأسبوع. الإشعار وصل لـ ' + sent + ' من ' + winners.length + ' فائزين');
+                el('pz_out').innerHTML = '';
+            } catch (e) { console.warn(e); toast('فشل الختم: ' + (e.message || e), false); }
+            btn.disabled = false;
+        });
+        function attachPrizeList() {
+            onValue(ref(db, 'weeklyPrizes'), (snap) => {
+                const rows = snap.exists() ? Object.values(snap.val()).sort((a, b) => String(b.wk).localeCompare(String(a.wk))) : [];
+                el('pz_list').innerHTML = rows.length ? rows.map((r) => `<div class="row-item"><div class="flex-1 min-w-0"><div class="font-bold">أسبوع ${escapeHtml(r.wk)}</div><div class="text-slate-400 text-xs">${(r.winners || []).map((w) => w.rank + '. ' + escapeHtml(w.n) + ' (' + w.pts + ')').join(' ، ')}</div></div></div>`).join('') : '<p class="list-empty">ما انختم أي أسبوع بعد</p>';
+            });
+        }
+
+        // ready-made answers for the quick announcement: state + reason in one tap, and "today" / "tomorrow" for the date
+        const DS_TPL = [
+            ['عطلة رسمية', 'off', 'عطلة رسمية'], ['عطلة بسبب الأمطار', 'off', 'بسبب الأمطار الغزيرة'], ['عطلة بسبب الحر', 'off', 'بسبب ارتفاع درجات الحرارة'],
+            ['عطلة بسبب العاصفة الترابية', 'off', 'بسبب العاصفة الترابية'], ['دوام رسمي', 'on', 'الدوام رسمي، ننفي إشاعة العطلة'], ['بانتظار القرار', 'pending', ''],
+        ];
+        el('ds_tpl').innerHTML = DS_TPL.map((t, i) => `<button type="button" class="btn-sm" data-dstpl="${i}">${escapeHtml(t[0])}</button>`).join('');
+        el('ds_tpl').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-dstpl]'); if (!b) return;
+            const t = DS_TPL[Number(b.dataset.dstpl)];
+            el('ds_state').value = t[1]; el('ds_reason').value = t[2];
+        });
+        const dsSetDay = (plus) => { const d = new Date(); d.setDate(d.getDate() + plus); el('ds_date').value = ymd(d); };
+        el('ds_today').addEventListener('click', () => dsSetDay(0));
+        el('ds_tomorrow').addEventListener('click', () => dsSetDay(1));
         async function publishDayStatus() {
             const date = val('ds_date'), s = val('ds_state'), reason = val('ds_reason');
             const allIraq = el('ds_all').checked;

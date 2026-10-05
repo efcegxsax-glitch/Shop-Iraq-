@@ -71,6 +71,18 @@ POINTS_CODE = ands(
     f"{NEW}.child({PCODE} + '/usedBy').val() == $uid",
     f"newData.val() - data.val() <= root.child({PCODE} + '/points').val()",
 )
+# a weekly prize made in the panel (prizeClaims/{uid}/{week} = { pts, rank, c }): the winner marks it claimed and raises their points by at most
+# its value in the same write (users/{uid}/pc names it); a claimed prize pays nothing again
+PRZ = "newData.parent().child('pc').val()"
+POINTS_PRIZE = ands(
+    "data.exists()", "newData.parent().child('pc').isString()",
+    PRZ + ".matches(/^prizeClaims\\/[A-Za-z0-9]+\\/[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+    PRZ + ".contains('/' + $uid + '/')",
+    f"root.child({PRZ}).exists()",
+    f"root.child({PRZ} + '/c').val() != true",
+    f"{NEW}.child({PRZ} + '/c').val() == true",
+    f"newData.val() - data.val() <= root.child({PRZ} + '/pts').val()",
+)
 POINTS = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 1000000000",
     ors(
@@ -82,6 +94,7 @@ POINTS = ands(
              "newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)"),
         POINTS_CLAIM,
         POINTS_CODE,
+        POINTS_PRIZE,
     ),
 )
 PAT = ors(ADMIN, "newData.isNumber() && newData.val() <= now + 10000 && (!data.exists() || newData.val() >= data.val())")
@@ -335,6 +348,25 @@ rules = {
     "blockedUsers": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), "$other": {".read": "auth != null && auth.uid == $other"}}},
 
     # ----- money -----
+    # scheduled pushes (their OneSignal ids, to cancel them) are for the panel only
+    "pushSchedule": {".read": ADMIN, ".write": ADMIN},
+    # weekly prizes: the winners of each week are public; each winner's own prize claim is theirs to read and to mark claimed
+    "weeklyPrizes": {".read": True, ".write": ADMIN, "$wk": {".validate": "$wk.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"}},
+    "prizeClaims": {
+        "$uid": {
+            ".read": ors(OWNER, ADMIN),
+            "$wk": {
+                ".validate": "$wk.matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)",
+                ".write": ors(ADMIN, ands(OWNER, "data.exists()", "data.child('c').val() != true", "newData.child('c').val() == true",
+                                          "newData.child('pts').val() == data.child('pts').val()")),
+                "pts": {".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000"},
+                "rank": {".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 20"},
+                "c": {".validate": "newData.isBoolean()"},
+                "at": {".validate": "newData.isNumber()"},
+                "$other": {".validate": False},
+            },
+        },
+    },
     "pointCodes": {
         "$code": {
             ".read": SIGNED,
