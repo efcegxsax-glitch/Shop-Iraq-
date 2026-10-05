@@ -445,10 +445,6 @@
                         <label class="switch"><input type="checkbox" data-cfg="sections.examCountdown" aria-label="عدّاد الامتحانات"><span class="track"></span></label>
                     </div>
                     <div class="sw-row">
-                        <div class="sw-text"><strong>العطل الرسمية والمدرسية</strong></div>
-                        <label class="switch"><input type="checkbox" data-cfg="sections.holidays" aria-label="العطل الرسمية والمدرسية"><span class="track"></span></label>
-                    </div>
-                    <div class="sw-row">
                         <div class="sw-text"><strong>نصيحة اليوم</strong></div>
                         <label class="switch"><input type="checkbox" data-cfg="sections.dailyTip" aria-label="نصيحة اليوم"><span class="track"></span></label>
                     </div>
@@ -658,7 +654,8 @@
                         </div>
                     </div>
                     <div id="yt_res" class="mt-2"></div>
-                    <div class="field mt-3"><label>القنوات المضافة</label><div id="yt_list"></div></div>
+                    <div class="field mt-3"><label>القنوات المضافة</label><div id="yt_list"></div>
+                        <button class="btn mt-2" type="button" id="yt_fixpics" style="background:#64748b">إصلاح صور الأساتذة</button> <span id="yt_fixmsg" style="font-size:12px;opacity:.8"></span></div>
                     <datalist id="yt_subj"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="الرياضيات"><option value="اللغة العربية"><option value="اللغة الإنجليزية"><option value="التربية الإسلامية"></datalist>
                 </div>
 
@@ -1297,6 +1294,32 @@
                     </div>
 
                     <button class="btn mt-4" id="tc_generate">توليد الأكواد</button>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="coins"></i></div>
+                        <div>
+                            <h3>توليد أكواد نقاط</h3>
+                            <p>كود يضيف نقاط لحساب الطالب (يبدأ بـ PT-). الطالب يكتبه بنفس مكان إدخال كود التعبئة. كل كود لمرة وحدة ولطالب واحد</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;">
+                            <label>عدد النقاط بالكود *</label>
+                            <input type="number" id="pc_points" placeholder="مثال: 500 أو 1000" min="1" max="100000" step="1">
+                        </div>
+                        <div class="field" style="margin-bottom:0;">
+                            <label>عدد الأكواد المطلوب توليدها</label>
+                            <input type="number" id="pc_count" value="1" min="1" max="50">
+                        </div>
+                    </div>
+                    <button class="btn mt-4" id="pc_generate">توليد أكواد النقاط</button>
+                    <div class="subtabs mt-3">
+                        <button class="subtab active" data-pcf="all" onclick="setPointCodeFilter('all')">الكل</button>
+                        <button class="subtab" data-pcf="unused" onclick="setPointCodeFilter('unused')">غير مستخدمة</button>
+                        <button class="subtab" data-pcf="used" onclick="setPointCodeFilter('used')">مستخدمة</button>
+                    </div>
+                    <div id="pointCodeList"></div>
                 </div>
                 <div class="card">
                     <div class="card-head">
@@ -2274,6 +2297,54 @@
                     <button class="del" onclick="deleteItem('topupCodes', ${jsArg(c._key)})">حذف</button>
                 </div>`).join('');
         }
+        // ---------- Points codes: pointCodes/{PT-XXXX-XXXX-XXXX} = { points, used, usedBy, usedAt, createdAt } ----------
+        window.generatePointCodes = async () => {
+            const points = parseInt(val('pc_points'), 10);
+            const count = Math.max(1, Math.min(50, parseInt(val('pc_count'), 10) || 1));
+            if (!points || points < 1 || points > 100000) { toast('أدخل عدد نقاط صحيح (من 1 إلى 100000)', false); return; }
+            const btn = el('pc_generate');
+            btn.disabled = true;
+            try {
+                for (let i = 0; i < count; i++) {
+                    // never overwrite an existing code (an overwrite would make a used code redeemable again)
+                    let code = 'PT-' + generateCode();
+                    for (let tries = 0; tries < 5 && (await get(ref(db, 'pointCodes/' + code))).exists(); tries++) code = 'PT-' + generateCode();
+                    await set(ref(db, 'pointCodes/' + code), { points, used: false, createdAt: serverTimestamp() });
+                }
+                toast('تم توليد ' + count + ' كود بقيمة ' + points.toLocaleString('en-US') + ' نقطة');
+                el('pc_points').value = '';
+            } catch (e) {
+                console.warn(e);
+                toast('فشل التوليد: ' + (e.message || e), false);
+            }
+            btn.disabled = false;
+        };
+        el('pc_generate').addEventListener('click', generatePointCodes);
+        let pointCodesData = [], pointCodeFilter = 'all';
+        window.setPointCodeFilter = (f) => {
+            pointCodeFilter = f;
+            document.querySelectorAll('[data-pcf]').forEach((b) => b.classList.toggle('active', b.dataset.pcf === f));
+            renderPointCodes();
+        };
+        function renderPointCodes() {
+            const box = el('pointCodeList'); if (!box) return;
+            let list = pointCodesData;
+            if (pointCodeFilter === 'unused') list = list.filter((c) => !c.used);
+            else if (pointCodeFilter === 'used') list = list.filter((c) => c.used);
+            box.innerHTML = list.length ? list.map((c) => `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c._key)}</div>
+                        <div class="text-slate-400 text-xs">${Number(c.points).toLocaleString('en-US')} نقطة ${c.used ? '• مستخدم' : '• غير مستخدم'}</div>
+                    </div>
+                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode(${jsArg(c._key)})">نسخ</button>`}
+                    <button class="del" onclick="deleteItem('pointCodes', ${jsArg(c._key)})">حذف</button>
+                </div>`).join('') : '<p class="list-empty">لا توجد أكواد نقاط</p>';
+        }
+        onValue(ref(db, 'pointCodes'), (snap) => {
+            pointCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+            renderPointCodes();
+        });
         window.copyTopupCode = (code) => {
             (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
@@ -2753,7 +2824,20 @@
 
         // ---------- teachers' YouTube channels (ytChannels) ----------
         const YT_STYLE = 'display:flex;align-items:center;gap:10px;padding:8px;border:1px solid var(--border);border-radius:12px;margin-bottom:8px';
-        const ytImg = (u) => (/^https:\/\/[^\s"'<>]+$/.test(String(u || '')) ? `<img src="${escapeHtml(u)}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : '<span style="width:40px;height:40px;border-radius:50%;background:#e2e8f0;display:inline-block"></span>');
+        const ytImg = (u) => (/^(https:\/\/[^\s"'<>]+|data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+)$/.test(String(u || '')) ? `<img src="${escapeHtml(u)}" alt="" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : '<span style="width:40px;height:40px;border-radius:50%;background:#e2e8f0;display:inline-block"></span>');
+        // a channel's picture, shrunk to 96 px and kept as a small JPEG inside the record (about 4 KB), so it never depends on YouTube's servers at the students' end
+        async function ytAvatar(url) {
+            try {
+                if (/^data:image\//.test(url)) return url;
+                const j = await workerPost({ mode: 'ytimg', url });
+                const im = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = 'data:' + j.type + ';base64,' + j.data; });
+                const cv = document.createElement('canvas'); cv.width = cv.height = 96;
+                const cx = cv.getContext('2d'), m = Math.min(im.width, im.height);
+                cx.fillStyle = '#fff'; cx.fillRect(0, 0, 96, 96);
+                cx.drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, 0, 0, 96, 96);
+                return cv.toDataURL('image/jpeg', 0.82);
+            } catch (e) { console.warn('channel picture', e); return ''; }
+        }
         async function ytCall(q) {
             const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
@@ -2775,10 +2859,25 @@
                 box.querySelectorAll('[data-yadd]').forEach((b) => b.addEventListener('click', async () => {
                     const c = found[Number(b.dataset.yadd)], s = (el('yt_s' + b.dataset.yadd).value || '').trim().slice(0, 30);
                     if (ytCur[c.id]) { toast('هذه القناة مضافة من قبل', false); return; }
-                    try { await set(ref(db, 'ytChannels/' + c.id), { id: c.id, n: String(c.n || '').slice(0, 80), a: c.a || '', s, o: Date.now() }); toast('تمت إضافة القناة'); box.textContent = ''; el('yt_q').value = ''; }
+                    try { b.disabled = true; const pic = await ytAvatar(c.a || ''); await set(ref(db, 'ytChannels/' + c.id), { id: c.id, n: String(c.n || '').slice(0, 80), a: pic || c.a || '', s, o: Date.now() }); toast('تمت إضافة القناة'); box.textContent = ''; el('yt_q').value = ''; }
                     catch (e) { toast('تعذرت الإضافة: ' + (e.message || e), false); }
                 }));
             } catch (e) { box.textContent = 'تعذر البحث: ' + (e.message || e); }
+        });
+        // re-reads each teacher's current picture from YouTube and keeps it inside the record (fixes pictures that show as broken)
+        el('yt_fixpics').addEventListener('click', async () => {
+            const btn = el('yt_fixpics'), msg = el('yt_fixmsg'); btn.disabled = true;
+            let ok = 0, bad = 0; const list = Object.values(ytCur);
+            for (let i = 0; i < list.length; i++) {
+                const c = list[i]; msg.textContent = 'دا يصلح ' + (i + 1) + ' من ' + list.length + '...';
+                try {
+                    let url = c.a && /^https:/.test(c.a) ? c.a : '';
+                    let pic = url ? await ytAvatar(url) : '';
+                    if (!pic) { const f = await ytCall('https://www.youtube.com/channel/' + c.id); url = f[0] && f[0].a; pic = url ? await ytAvatar(url) : ''; }
+                    if (pic) { await set(ref(db, 'ytChannels/' + c.id + '/a'), pic); ok++; } else bad++;
+                } catch (e) { bad++; }
+            }
+            msg.textContent = 'انصلح ' + ok + (bad ? ' وما انصلح ' + bad : ''); btn.disabled = false;
         });
         document.querySelectorAll('[data-ytq]').forEach((b) => b.addEventListener('click', () => { el('yt_q').value = b.dataset.ytq; el('yt_find').click(); }));
         onValue(ref(db, 'ytChannels'), (snap) => {

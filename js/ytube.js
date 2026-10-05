@@ -4,6 +4,12 @@
 // The video plays in YouTube's own player, so its quality menu is YouTube's. Watching earns points with the same rules and
 // daily limit as the study rooms (ytroom.js: app._yrLedger / app._yrPay / app.YR_EARN). Loaded by app._need('ytube').
 (function () {
+    // a teacher's picture that cannot load (a link YouTube no longer serves) is replaced by the first letter of the name
+    document.addEventListener('error', (e) => {
+        const im = e.target;
+        if (!im || im.tagName !== 'IMG' || !im.dataset || !im.dataset.ini || !im.closest('#tubeView, #tuPlayer, #tuSheet')) return;
+        const sp = document.createElement('span'); sp.textContent = im.dataset.ini; im.replaceWith(sp);
+    }, true);
     const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', FEED_TTL = 10 * 60000, PAGE = 20;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
@@ -112,7 +118,7 @@
     }
     function card(x, big) {
         const c = chById(x.c) || {};
-        const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
+        const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
         return `<button class="tu-card${big ? ' big' : ''}" onclick="app.tuPlay('${x.v}')">
             <span class="tu-th"><img src="${thumb(x.v, big ? 'hqdefault' : 'mqdefault')}" alt="" loading="lazy"></span>
             <span class="tu-meta"><span class="tu-av">${av}</span><span class="tu-tx"><b>${esc(x.t)}</b><small>${esc(c.n || '')} . ${x.w ? views(x.w) + ' . ' : x.wt ? esc(x.wt) + ' . ' : ''}${x.p ? timeAgo(x.p) : x.at ? esc(x.at) : ''}</small></span></span></button>`;
@@ -122,7 +128,7 @@
         const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v).slice(0, 8);
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tuSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
         const teachers = CH.map((c) => {
-            const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
+            const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
             return `<button class="tu-tch${S.teacher === c.id ? ' on' : ''}${f.has(c.id) ? ' fav' : ''}" onclick="app.tuTeacher('${c.id}')"><i>${av}</i><small>${esc(c.n)}</small></button>`;
         }).join('');
         let body;
@@ -166,7 +172,7 @@
                 <button class="tu-fs" onclick="app.tuFull()" aria-label="ملء الشاشة"><i data-lucide="maximize"></i></button></div>
             <div class="tu-body">
                 <h2>${esc(P.t)}</h2>
-                <div class="tu-by">${c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : ''}<b>${esc(c.n || '')}</b></div>
+                <div class="tu-by">${c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : ''}<b>${esc(c.n || '')}</b></div>
                 ${item.w ? `<div class="tu-views"><i data-lucide="eye"></i>${views(item.w)}</div>` : ''}
                 <div class="tu-acts">
                     <button onclick="app.tuMark('q')"><i data-lucide="hand"></i>ما فهمت هنا</button>
@@ -376,7 +382,7 @@
             w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
                 <p>اختار الأساتذة اللي تريد تتابعهم، وتطلع محاضراتهم بتبويب "أساتذتي".</p>
                 <button class="tu-pushsw ${pushOn() ? 'on' : ''}" onclick="app.tuPushToggle(this)"><i data-lucide="bell"></i><span><b>إشعار عند نزول محاضرة جديدة</b><small>يوصلك اسم المحاضرة أول ما ينزلها الأستاذ</small></span><em><i data-lucide="check"></i></em></button>
-                <div class="tu-pick">${CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
+                <div class="tu-pick">${CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
             document.body.appendChild(w); try { lucide.createIcons(); } catch (e) {}
             requestAnimationFrame(() => w.classList.add('on'));
         },

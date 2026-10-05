@@ -779,6 +779,27 @@ export default {
             return json(200, { channels: found }, headers);
         }
 
+        // admin only: a channel's picture, fetched here so the panel can shrink it and keep it inside the database
+        // (a picture linked from YouTube's servers can fail to load in the app)
+        if (body.mode === 'ytimg') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: 'yi' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const u = str(body.url, 400);
+            if (!/^https:\/\/(yt3\.googleusercontent\.com|yt3\.ggpht\.com|lh3\.googleusercontent\.com|i\.ytimg\.com)\/[^\s"'<>]+$/.test(u)) return json(400, { error: 'host' }, headers);
+            try {
+                const r = await fetch(u, { headers: ytHeaders });
+                const type = (r.headers.get('content-type') || '').split(';')[0];
+                if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type)) return json(502, { error: 'image', status: r.status }, headers);
+                const buf = new Uint8Array(await r.arrayBuffer());
+                if (buf.length > 700000) return json(413, { error: 'big' }, headers);
+                let bin = ''; for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode(...buf.subarray(i, i + 8192));
+                return json(200, { type, data: btoa(bin) }, headers);
+            } catch { return json(502, { error: 'image' }, headers); }
+        }
+
         if (body.mode === 'notify') {
             const tok = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
             return notifyPush(env, uid, tok ? tok[1] : '', body, headers, new URL(req.url).origin);

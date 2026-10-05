@@ -161,7 +161,7 @@
         ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "points": {
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
-          ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() <= 200 || data.exists() && newData.val() <= data.val() || (data.exists() && newData.val() - data.val() <= 200 && newData.parent().child('pAt').isNumber() && newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)) || (newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^auctionBids\\/[A-Za-z0-9_-]+\\/refunds\\/[A-Za-z0-9_-]+\\/[0-9]+$/) && newData.parent().child('pc').val().contains('/refunds/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('pc').val() + '/amount').val())))"
+          ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() <= 200 || data.exists() && newData.val() <= data.val() || (data.exists() && newData.val() - data.val() <= 200 && newData.parent().child('pAt').isNumber() && newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)) || (newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^auctionBids\\/[A-Za-z0-9_-]+\\/refunds\\/[A-Za-z0-9_-]+\\/[0-9]+$/) && newData.parent().child('pc').val().contains('/refunds/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('pc').val() + '/amount').val()) || (data.exists() && newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^pointCodes\\/[A-Z0-9-]{4,24}$/) && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/used').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/used').val() == true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/usedBy').val() == $uid && newData.val() - data.val() <= root.child(newData.parent().child('pc').val() + '/points').val())))"
         },
         "balance": {
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
@@ -351,6 +351,31 @@
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         "$other": {
           ".read": "auth != null && auth.uid == $other"
+        }
+      }
+    },
+    "pointCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".validate": "$code.matches(/^[A-Z0-9-]{4,24}$/)",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && data.exists() && data.child('used').val() != true && newData.child('used').val() == true && newData.child('usedBy').val() == auth.uid && newData.child('points').val() == data.child('points').val()))",
+        "points": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000"
+        },
+        "used": {
+          ".validate": "newData.isBoolean()"
+        },
+        "usedBy": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "usedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
