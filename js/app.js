@@ -11805,6 +11805,17 @@
                     set(ref(window.firebaseDb, 'pushPrefs/' + this.authUid), Object.keys(off).length ? off : null).catch(() => { this._pnSig = ''; });
                 }
             },
+            // inside the phone app: is the system switch on, and a button to the phone's page where the pop-up on the screen is switched on
+            _notifHelp() {
+                const N = window.IspNative;
+                if (!N || typeof N.notifSettings !== 'function') return '';
+                let on = true; try { on = N.notifOn(); } catch (e) {}
+                return `<div class="p-3 mb-3 rounded-xl" style="background-color: var(--input-bg); border: 1px solid ${on ? 'var(--border)' : '#DC2626'};">
+                    <div class="text-sm font-bold mb-1" style="color: var(--text);">${on ? 'حتى ينبثق الإشعار على الشاشة وانت خارج التطبيق' : 'إشعارات التطبيق مطفية من إعدادات الهاتف'}</div>
+                    <div class="text-xs mb-2" style="color: var(--text2);">${on ? 'افتح إعدادات إشعارات التطبيق، واختار الأهمية "عالية"، وفعّل "عرض منبثق" أو "الإشعارات العائمة" (الاسم يختلف حسب نوع الهاتف).' : 'فعّل الإشعارات حتى توصلك.'}</div>
+                    <button class="btn-press w-full py-2.5 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="window.IspNative.notifSettings()">افتح إعدادات إشعارات التطبيق</button>
+                </div>`;
+            },
             openNotifPreferences() {
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تفضيلات الإشعارات';
@@ -11820,6 +11831,7 @@
                 const perm = this._pushPerm && this._pushPerm();
                 content.innerHTML = `
                     <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر الإشعارات اللي تريد توصلك، واللي طفيتها ما توصلك بالهاتف ولا تظهر بقائمة الإشعارات.</p>
+                    ${this._notifHelp()}
                     ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك: إعدادات الهاتف ثم التطبيقات ثم أكاديمي السادس ثم الإشعارات.</p>'
                         : perm === 'default' ? '<button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.enableWebPush()">فعّل إشعارات الهاتف حتى توصلك وانت خارج التطبيق</button>' : ''}
                     <div class="flex flex-col gap-2">${this.PN_LIST.map(row).join('')}</div>
