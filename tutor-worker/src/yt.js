@@ -102,6 +102,13 @@ export function parseUploads(data) {
             if (/^[A-Za-z0-9_-]{11}$/.test(r.videoId || '')) videos.push({ v: r.videoId, t: txt(r.title).slice(0, 140), a: txt(r.publishedTimeText).slice(0, 30), w: txt(r.viewCountText).slice(0, 30) });
             return;
         }
+        if (o.lockupViewModel && /^[A-Za-z0-9_-]{11}$/.test(o.lockupViewModel.contentId || '') && /VIDEO/.test(o.lockupViewModel.contentType || 'VIDEO')) {
+            // the newer page layout: title and the "views . age" line sit in the lockup's metadata
+            const m = (o.lockupViewModel.metadata && o.lockupViewModel.metadata.lockupMetadataViewModel) || {}, rows = (((m.metadata || {}).contentMetadataViewModel || {}).metadataRows || []);
+            const parts = [].concat(...rows.map((r) => (r.metadataParts || []).map((x) => (x.text && x.text.content) || '')));
+            videos.push({ v: o.lockupViewModel.contentId, t: String((m.title && m.title.content) || '').slice(0, 140), a: String(parts[parts.length - 1] || '').slice(0, 30), w: parts.length > 1 ? String(parts[0] || '').slice(0, 30) : '' });
+            return;
+        }
         if (o.continuationItemRenderer) {
             const tk = o.continuationItemRenderer.continuationEndpoint && o.continuationItemRenderer.continuationEndpoint.continuationCommand && o.continuationItemRenderer.continuationEndpoint.continuationCommand.token;
             if (tk && !next) next = String(tk);
