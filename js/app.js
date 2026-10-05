@@ -2428,37 +2428,22 @@
                 container.innerHTML = filtered.map(notif => {
                     const typeStyle = notificationTypes[notif.type] || notificationTypes.general;
                     const hex = notifHex[notif.type] || notifHex.general;
+                    const id = jsNum(notif.id);
                     return `
-                        <div class="relative overflow-hidden rounded-2xl">
-                            <div class="absolute inset-0 bg-error flex items-center" style="opacity: 0; transition: opacity 0.15s ease;">
-                                <button onclick="event.stopPropagation(); app.deleteNotification(${jsNum(notif.id)})" class="btn-press absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center" aria-label="حذف الإشعار">
-                                    <i data-lucide="trash-2" class="w-5 h-5 text-white"></i>
-                                </button>
-                            </div>
-                            <div class="notif-card border rounded-2xl p-4 cursor-pointer relative overflow-hidden theme-transition shadow-card" onclick="app.openNotification(${jsNum(notif.id)})" ontouchstart="app.swipeStart(event, 'notif-${jsNum(notif.id)}')" ontouchmove="app.swipeMove(event, 'notif-${jsNum(notif.id)}')" ontouchend="app.swipeEnd(event, 'notif-${jsNum(notif.id)}')" data-swipe-card data-tx="0" style="touch-action: pan-y; background-color: var(--surface); backdrop-filter: blur(16px) saturate(160%); -webkit-backdrop-filter: blur(16px) saturate(160%); border-color: var(--border); border-right: 4px solid ${hex}; box-shadow: inset 0 1px 0 var(--glass-highlight);">
-                            <div class="absolute inset-x-0 top-0 h-8 pointer-events-none" style="background: linear-gradient(180deg, var(--glass-highlight), transparent); opacity: 0.5;"></div>
-                            <div class="flex items-start gap-3 relative">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm" style="background: ${hex}1A;">
-                                    <i data-lucide="${typeStyle.icon}" class="w-5 h-5" style="color: ${hex};"></i>
+                        <div class="ng-sw">
+                            <div class="ng-act ng-read"><i data-lucide="check-check"></i><span>تم القراءة</span></div>
+                            <div class="ng-act ng-del"><button onclick="event.stopPropagation(); app.deleteNotification(${id})" aria-label="حذف الإشعار"><i data-lucide="trash-2"></i><span>حذف</span></button></div>
+                            <div class="ng-card${notif.read ? '' : ' un'}" style="--c:${hex}" onclick="app.ngTap(event, ${id})" ontouchstart="app.ngStart(event)" ontouchmove="app.ngMove(event)" ontouchend="app.ngEnd(event, ${id})" data-ng data-tx="0">
+                                <div class="ng-rg"><i><i data-lucide="${typeStyle.icon}"></i></i></div>
+                                <div class="ng-tx">
+                                    <b>${escapeHtml(notif.title)}</b>
+                                    <p>${escapeHtml(notif.description)}</p>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center gap-2 mb-1">
-                                        ${notif.type === 'urgent'
-                                            ? '<span class="bg-error text-white text-[10px] font-bold px-2 py-0.5 rounded-full">عاجل</span>'
-                                            : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: ${hex}1A; color: ${hex};">${typeStyle.label}</span>`}
-                                    </div>
-                                    <h4 class="text-sm font-bold leading-snug theme-transition" style="color: var(--text);">${escapeHtml(notif.title)}</h4>
-                                    <p class="text-xs mt-1 line-clamp-1 theme-transition" style="color: var(--text2);">${escapeHtml(notif.description)}</p>
-                                    <div class="flex items-center gap-2 mt-2 text-xs theme-transition" style="color: var(--text2);">
-                                        <i data-lucide="clock" class="w-3 h-3"></i><span data-timeago="${jsNum(notif.id)}">${timeAgo(notif.id)}</span>
-                                    </div>
-                                </div>
-                                ${!notif.read ? '<div class="unread-dot w-2.5 h-2.5 bg-primary rounded-full flex-shrink-0 mt-2"></div>' : ''}
-                            </div>
+                                <time data-timeago="${id}">${timeAgo(notif.id)}</time>
                             </div>
                         </div>
                     `;
-                }).join('');
+                }).join('') + '<div class="ng-hint">اسحب الإشعار لليمين لتعليمه مقروء، ولليسار للحذف</div>';
                 this.updateNotifBadges();
             },
 
@@ -2544,6 +2529,56 @@
                 this.closeWalletModal();
                 lucide.createIcons();
                 this.showToast('تم حذف جميع الإشعارات');
+            },
+
+            // glass notification cards: drag right = mark read, drag left = reveal delete
+            ngStart(e) {
+                const card = e.currentTarget;
+                document.querySelectorAll('[data-ng]').forEach((c) => {
+                    if (c !== card && parseFloat(c.dataset.tx || '0') !== 0) { c.style.transition = 'transform .2s'; c.style.transform = ''; c.dataset.tx = '0'; }
+                });
+                const t = e.touches[0];
+                this._ng = { x: t.clientX, y: t.clientY, base: parseFloat(card.dataset.tx || '0'), lock: '', moved: false };
+                card.style.transition = 'none';
+            },
+            ngMove(e) {
+                const g = this._ng; if (!g) return;
+                const card = e.currentTarget, t = e.touches[0];
+                const dx0 = t.clientX - g.x, dy0 = t.clientY - g.y;
+                if (!g.lock) {
+                    if (Math.abs(dx0) < 8 && Math.abs(dy0) < 8) return;
+                    g.lock = Math.abs(dx0) > Math.abs(dy0) ? 'x' : 'y';
+                }
+                if (g.lock !== 'x') return;
+                g.moved = true;
+                const dx = Math.max(-100, Math.min(130, dx0 + g.base));
+                card.style.transform = 'translateX(' + dx + 'px)';
+                card.dataset.tx = String(dx);
+                const sw = card.parentElement;
+                sw.classList.toggle('r', dx > 0);
+                sw.classList.toggle('l', dx < 0);
+            },
+            ngEnd(e, id) {
+                const g = this._ng; this._ng = null;
+                const card = e.currentTarget;
+                const tx = parseFloat(card.dataset.tx || '0');
+                card.style.transition = 'transform .2s';
+                if (g && g.moved) card.dataset.swiped = String(Date.now());
+                if (tx > 70) {
+                    card.style.transform = ''; card.dataset.tx = '0';
+                    const n = notifications.find(x => x.id === id);
+                    if (n && !n.read) { n.read = true; this.updateNotifBadges(); setTimeout(() => { this.renderNotificationsList(); lucide.createIcons(); }, 180); }
+                } else if (tx < -50) {
+                    card.style.transform = 'translateX(-90px)'; card.dataset.tx = '-90';
+                } else {
+                    card.style.transform = ''; card.dataset.tx = '0';
+                }
+            },
+            ngTap(e, id) {
+                const card = e.currentTarget;
+                if (Date.now() - parseInt(card.dataset.swiped || '0', 10) < 400) return;
+                if (parseFloat(card.dataset.tx || '0') !== 0) { card.style.transition = 'transform .2s'; card.style.transform = ''; card.dataset.tx = '0'; return; }
+                this.openNotification(id);
             },
 
             // ==================== SWIPE-TO-DELETE (modern apps behavior) ====================
