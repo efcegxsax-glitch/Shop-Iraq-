@@ -2034,7 +2034,7 @@
                 let msg = 'تم نشر الخبر بنجاح';
                 if (sendNotif) {
                     const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), [], urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement');
-                    msg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                    msg += pushNote(pr);
                 }
                 toast(msg);
                 el('n_title').value = ''; el('n_excerpt').value = '';
@@ -2082,7 +2082,7 @@
                 let rmsg = 'تم نشر الملزمة بنجاح';
                 if (el('r_notify').checked) {
                     const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', [], 'res');
-                    rmsg += pr.ok ? ' ووصل إشعار للهواتف' : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                    rmsg += pushNote(pr);
                 }
                 toast(rmsg);
                 el('r_title').value = ''; el('r_desc').value = '';
@@ -2097,6 +2097,12 @@
 
         // A real push to the students' phones (even with the app closed): the tutor Worker sends it through
         // OneSignal, after checking that this is the panel's own account. govs = governorate names, [] = everyone.
+        // what to add to the "published" message after pushPhones: sent, sent to nobody, or failed
+        function pushNote(pr) {
+            if (!pr.ok) return '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+            if (!pr.id) return '، بس ما لكى أي جهاز مطابق للإشعار (الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة)';
+            return ' ووصل إشعار للهواتف' + (pr.n ? ' (' + pr.n + ')' : '');
+        }
         async function pushPhones(title, body, govs, cat) {
             const cu = String(((siteConfig || {}).tutorUrl) || '').trim().replace(/\/+$/, '');
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
@@ -2108,7 +2114,7 @@
                 const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '' }) });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
-                return { ok: true, n: j.recipients };
+                return { ok: true, n: j.recipients, id: j.id || '', sent: j.sent, of: j.of };
             } catch (e) { return { ok: false, why: 'ما وصلت للسيرفر (' + String(e && e.message || e).slice(0, 60) + ') من ' + location.origin }; }
         }
 
@@ -2127,7 +2133,7 @@
                 let msg = 'تم إرسال الإشعار لجميع الطلاب';
                 if (el('no_push').checked) {
                     const pr = await pushPhones(title, val('no_desc'), [], { urgent: 'urgent', announcement: 'announcement', weather: 'weather' }[val('no_type')] || 'general');
-                    msg += pr.ok ? ' وطلع على الهواتف' + (pr.n ? ' (' + pr.n + ')' : '') : '، بس ما وصل كإشعار للهاتف: ' + pr.why;
+                    msg += pushNote(pr);
                 }
                 toast(msg);
                 el('no_title').value = ''; el('no_desc').value = '';
@@ -3255,7 +3261,7 @@
                     const day = dsDayName(date);
                     const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
                     const id = Date.now();
-                    const notif = { id, title, description: reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), time: 'الآن', read: false, type: 'urgent', createdAt: serverTimestamp() };
+                    const notif = { id, title, description: reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : ''), time: 'الآن', read: false, type: 'holiday', createdAt: serverTimestamp() };
                     if (!allIraq) notif.govs = govs;
                     await set(ref(db, 'notifications/' + id), notif);
                 }
@@ -3266,9 +3272,11 @@
                     const body = reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : '');
                     let pushed = false;
                     if (el('ds_notify').checked) {
-                        const pr = await pushPhones(title, body, allIraq ? [] : govs, 'announcement');
-                        pushed = pr.ok;
+                        const pr = await pushPhones(title, body, allIraq ? [] : govs, 'holiday');
+                        pushed = pr.ok && !!pr.id;
                         if (!pr.ok) toast('انتشر الإعلان بس ما طلع كإشعار للهاتف: ' + pr.why, false);
+                        else if (!pr.id) toast('انتشر الإعلان بس ما لكى أي جهاز مطابق للإشعار. الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة', false);
+                        else if (pr.of > pr.sent) toast('الإشعار وصل لبعض المحافظات بس (' + pr.sent + ' من ' + pr.of + ')، الباقي ما عنده أجهزة مطابقة', false);
                     }
                     if (!pushed) showPushHelp(title, body, allIraq, govs);
                     else el('dsPushHelp').innerHTML = '';
