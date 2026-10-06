@@ -396,12 +396,6 @@
 
         const walletTransactions = [];
 
-        const withdrawOptions = [
-            { id: 'mastercard', title: 'سحب إلى ماستر كارد', subtitle: 'يصل خلال دقائق', icon: 'credit-card', iconBg: 'bg-error/10', iconColor: 'text-error' },
-            { id: 'bank', title: 'سحب إلى حساب بنكي', subtitle: 'يصل خلال 3-5 أيام عمل', icon: 'landmark', iconBg: 'bg-primary/10', iconColor: 'text-primary' },
-            { id: 'zain', title: 'سحب إلى زين كاش', subtitle: 'يصل خلال دقائق', icon: 'smartphone', iconBg: 'bg-warning/10', iconColor: 'text-warning' },
-            { id: 'asia', title: 'سحب إلى أسيا حوالة', subtitle: 'يصل خلال دقائق', icon: 'send', iconBg: 'bg-success/10', iconColor: 'text-success' }
-        ];
 
         const examSchedule = [];
 
@@ -1497,7 +1491,7 @@
                     const u = this.currentUser || {};
                     const pk = this._phoneKey ? this._phoneKey(u.phone || '') : '';
                     const paths = ['pub/', 'leaderboard/', 'presence/', 'studyRoom/', 'focusLive/', 'studentMap/', 'userNewsState/', 'userTasks/', 'userActivity/', 'tokens/',
-                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/']
+                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/', 'complaints/', 'complaintLast/', 'ideaLast/', 'userMoney/', 'pushPrefs/', 'userNewsReact/']
                         .map((p) => p + uid);
                     if (/^[0-9]{3,12}$/.test(String(u.studentNumber || ''))) paths.push('numIndex/' + u.studentNumber);
                     if (pk) paths.push('phoneIndex/' + pk);
@@ -9562,128 +9556,11 @@
                 });
             },
 
-            openWithdrawModal() {
-                if (!this.isLoggedIn || !this.currentUser) {
-                    this.showToast('يجب تسجيل الدخول');
-                    this.goToAuth('login');
-                    return;
-                }
-                const titleEl = document.getElementById('walletModalTitle');
-                if (titleEl) titleEl.textContent = 'سحب الأموال';
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                content.innerHTML = withdrawOptions.map(opt => `
-                    <button onclick="app.selectWithdrawOption(${jsArg(opt.id)})" class="btn-press w-full flex items-center gap-3 p-3 rounded-xl text-right border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                        <div class="w-11 h-11 rounded-full ${opt.iconBg} flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="${opt.icon}" class="w-5 h-5 ${opt.iconColor}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="text-sm font-bold theme-transition" style="color: var(--text);">${opt.title}</div>
-                            <div class="text-xs mt-0.5 theme-transition" style="color: var(--text2);">${opt.subtitle}</div>
-                        </div>
-                        <i data-lucide="chevron-left" class="w-5 h-5 theme-transition" style="color: var(--text2);"></i>
-                    </button>
-                `).join('');
-                document.getElementById('walletModal')?.classList.remove('hidden');
-                lucide.createIcons();
-            },
-
+            // The wallet has no cash-out: points and balance only live inside the app (store, auction, transfers between friends).
+            // The old "withdraw to Mastercard / bank / Zain Cash" screens only took the money off the balance and paid nothing, so they are gone.
+            openWithdrawModal() { this.showToast('الرصيد والنقاط تنصرف داخل التطبيق فقط (المتجر والمزاد)'); },
             closeWalletModal() {
                 document.getElementById('walletModal')?.classList.add('hidden');
-            },
-
-            // FIX: this used to jump straight to a fake "success" screen after a 1.5s
-            // timer — no amount was ever collected, no balance check ran, and nothing was
-            // ever deducted from the wallet or recorded as a transaction, so "withdraw"
-            // did nothing at all. It now asks for an amount (capped at the current
-            // balance), and the actual deduction happens in confirmWithdraw() below via an
-            // atomic runTransaction on users/{uid}/balance so it can't go negative even
-            // under a double-submit / multi-tab race.
-            // FIX (UI/UX): stepping into the amount screen used to fully replace the modal
-            // content with no way back to the withdraw-method list except closing the whole
-            // modal and reopening it from scratch. Added a small back row that re-renders
-            // openWithdrawModal() — matches how every other multi-step flow in this modal
-            // (message delete choice, etc.) should behave.
-            selectWithdrawOption(optionId) {
-                const opt = withdrawOptions.find(o => o.id === optionId);
-                if (!opt) return;
-                const content = document.getElementById('walletModalContent');
-                if (!content) return;
-                const balance = (this.currentUser && typeof this.currentUser.balance === 'number') ? this.currentUser.balance : 0;
-                content.innerHTML = `
-                    <button onclick="app.openWithdrawModal()" class="flex items-center gap-1.5 mb-3 text-xs font-bold theme-transition" style="color: var(--text2);">
-                        <i data-lucide="chevron-right" class="w-4 h-4"></i>كل طرق السحب
-                    </button>
-                    <div class="flex items-center gap-3 mb-4 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
-                        <div class="w-11 h-11 rounded-full ${opt.iconBg} flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="${opt.icon}" class="w-5 h-5 ${opt.iconColor}"></i>
-                        </div>
-                        <div class="flex-1 min-w-0 text-sm font-bold theme-transition" style="color: var(--text);">${opt.title}</div>
-                    </div>
-                    <p class="text-xs mb-2 theme-transition" style="color: var(--text2);">رصيدك المتاح: $${balance.toFixed(2)}</p>
-                    <input type="number" id="withdrawAmountInput" min="1" max="${balance}" step="0.01" placeholder="المبلغ بالدولار $" class="w-full h-12 px-4 rounded-xl auth-input text-sm mb-3" dir="ltr">
-                    <button id="withdrawConfirmBtn" onclick="app.confirmWithdraw(${jsArg(opt.id)})" class="w-full h-12 bg-primary text-white rounded-xl font-bold text-sm btn-press">تأكيد السحب</button>
-                `;
-                lucide.createIcons();
-            },
-
-            confirmWithdraw(optionId) {
-                const opt = withdrawOptions.find(o => o.id === optionId);
-                const input = document.getElementById('withdrawAmountInput');
-                if (!opt || !input || !this.currentUser) return;
-                const amount = Math.round(parseFloat(input.value) * 100) / 100;
-                const balance = (typeof this.currentUser.balance === 'number') ? this.currentUser.balance : 0;
-                if (!amount || amount <= 0) {
-                    this.showToast('أدخل مبلغاً صحيحاً أكبر من صفر');
-                    return;
-                }
-                if (amount > balance) {
-                    this.showToast('رصيدك غير كافٍ لسحب هذا المبلغ');
-                    return;
-                }
-                if (!window.firebaseDb || !this.authUid) {
-                    this.showToast('لا يوجد اتصال موثوق بقاعدة البيانات');
-                    return;
-                }
-                const btn = document.getElementById('withdrawConfirmBtn');
-                if (btn) { btn.disabled = true; btn.textContent = 'جاري التنفيذ...'; }
-                const content = document.getElementById('walletModalContent');
-                // FIX: see addBalanceAtomic() — the old inline transaction aborted on the
-                // first (cached = null) run, so withdrawals always failed as "insufficient".
-                this.addBalanceAtomic(-amount, { reject: true }).then((newBalance) => {
-                    if (newBalance === null) {
-                        this.showToast('رصيدك غير كافٍ لسحب هذا المبلغ');
-                        if (btn) { btn.disabled = false; btn.textContent = 'تأكيد السحب'; }
-                        return;
-                    }
-                    this.addWalletTransaction({
-                        title: opt.title,
-                        amount: '-$' + amount.toFixed(2),
-                        isNegative: true,
-                        icon: opt.icon,
-                        iconColor: opt.iconColor,
-                        iconBg: opt.iconBg
-                    });
-                    this.renderWalletBalance();
-                    if (content) {
-                        content.innerHTML = `
-                            <div class="flex flex-col items-center justify-center py-8 text-center">
-                                <div class="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center mb-4">
-                                    <i data-lucide="check" class="w-8 h-8 text-success"></i>
-                                </div>
-                                <h4 class="font-bold mb-1 theme-transition" style="color: var(--text);">تم السحب بنجاح</h4>
-                                <p class="text-sm mb-6 theme-transition" style="color: var(--text2);">تم خصم $${amount.toFixed(2)} من رصيدك وتحويلها عبر ${escapeHtml(opt.title)}</p>
-                                <button onclick="app.closeWalletModal()" class="px-10 py-2.5 bg-primary text-white rounded-xl font-medium btn-press">حسناً</button>
-                            </div>
-                        `;
-                        lucide.createIcons();
-                    }
-                    this.showToast('تم السحب بنجاح');
-                }).catch((err) => {
-                    console.warn('Withdraw failed:', err);
-                    this.showToast('تعذر تنفيذ السحب — حاول مجدداً');
-                    if (btn) { btn.disabled = false; btn.textContent = 'تأكيد السحب'; }
-                });
             },
 
             // ==================== LEADERBOARD ====================
