@@ -871,6 +871,22 @@
                         </select>
                     </div>
 
+                    <div class="field">
+                        <label>رابط المصدر الرسمي (اختياري، يبين زر "المصدر الرسمي" بالخبر)</label>
+                        <input type="url" id="n_link" dir="ltr" placeholder="https://...">
+                    </div>
+                    <div class="field">
+                        <label>وقت النشر</label>
+                        <select id="n_when"><option value="now">هسه</option><option value="custom">وقت محدد (جدولة)</option></select>
+                        <input type="datetime-local" id="n_at" class="hidden" style="margin-top:8px;">
+                        <small id="n_whennote" class="hidden" style="opacity:.7;display:block;margin-top:6px;">يبين للطلاب بالوقت المحدد بالضبط، والإشعار يوصل بنفس الوقت. توقيتك هو توقيت جهازك.</small>
+                    </div>
+                    <div class="field">
+                        <label>لمين الخبر؟</label>
+                        <label class="chk"><input type="checkbox" id="n_all" checked> كل المحافظات</label>
+                        <div id="n_govs" class="chk-row hidden" style="margin-top:6px;"></div>
+                    </div>
+
                     <div class="chk-row">
                         <label class="chk"><input type="checkbox" id="n_urgent"> عاجل</label>
                         <label class="chk"><input type="checkbox" id="n_pinned"> مثبت</label>
@@ -896,6 +912,13 @@
                         <div><h3>الأخبار المنشورة</h3></div>
                     </div>
                     <div id="newsList"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="bar-chart-3"></i></div>
+                        <div><h3>إحصائيات الأخبار</h3><p>المشاهدات تنحسب مرة لكل جهاز، حتى ما تزيد بالتكرار</p></div>
+                    </div>
+                    <div id="newsStats"></div>
                 </div>
             </div>
 
@@ -2159,6 +2182,8 @@
             if (t.cat && N_CAT[t.cat]) el('n_category').value = t.cat;
             el('n_urgent').checked = !!t.urgent;
             if (t.src && [...el('n_source').options].some((o) => o.value === t.src)) el('n_source').value = t.src;
+            if (t.link != null) el('n_link').value = t.link;
+            if (t.govs) { el('n_all').checked = !t.govs.length; nGovDraw(t.govs); }
             nSync();
         };
         function nTplDraw() {
@@ -2188,9 +2213,20 @@
         }
         ['n_title', 'n_excerpt', 'n_category', 'n_urgent', 'n_pinned', 'n_source'].forEach((id) => el(id).addEventListener('input', nSync));
         ['n_category', 'n_urgent', 'n_pinned', 'n_source'].forEach((id) => el(id).addEventListener('change', nSync));
+        // who sees it, and when
+        function nGovDraw(sel) {
+            sel = sel || [];
+            el('n_govs').innerHTML = Object.keys(GOV_CODES).map((g) => `<label class="chk"><input type="checkbox" data-ngov="${escapeHtml(g)}" ${sel.indexOf(g) !== -1 ? 'checked' : ''}> ${escapeHtml(g)}</label>`).join('');
+            el('n_govs').classList.toggle('hidden', el('n_all').checked);
+        }
+        const nGovPicked = () => el('n_all').checked ? [] : [...el('n_govs').querySelectorAll('[data-ngov]:checked')].map((x) => x.dataset.ngov);
+        function nWhenSync() { const c = el('n_when').value === 'custom'; el('n_at').classList.toggle('hidden', !c); el('n_whennote').classList.toggle('hidden', !c); if (c && !el('n_at').value) { const d = new Date(Date.now() + 3600000); d.setMinutes(0, 0, 0); const z = (n) => String(n).padStart(2, '0'); el('n_at').value = d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + 'T' + z(d.getHours()) + ':' + z(d.getMinutes()); } }
+        el('n_when').addEventListener('change', nWhenSync);
+        el('n_all').addEventListener('change', () => nGovDraw(nGovPicked())); // GOV_CODES is defined further down, so the list is drawn on first use
         function nReset() {
             nEdit = null; el('n_title').value = ''; el('n_excerpt').value = ''; clearPreview('n_image', 'n_preview');
             el('n_urgent').checked = false; el('n_pinned').checked = false; el('n_notify').checked = true; el('n_notify').disabled = false;
+            el('n_link').value = ''; el('n_when').value = 'now'; el('n_when').disabled = false; el('n_at').value = ''; nWhenSync(); el('n_all').checked = true; nGovDraw([]);
             el('n_publish').textContent = 'نشر الخبر'; el('n_cancel').classList.add('hidden');
             try { localStorage.removeItem(ND_KEY); } catch (e) {} nSync();
         }
@@ -2198,14 +2234,15 @@
         el('n_cancel').addEventListener('click', () => { nReset(); toast('انلغى التعديل'); });
         window.newsEdit = async (key) => {
             const snap = await get(ref(db, 'news/' + key)); const n = snap.val(); if (!n) { toast('الخبر مو موجود', false); return; }
-            nEdit = key; nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source });
+            nEdit = key; nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source, link: n.link || '', govs: Array.isArray(n.govs) ? n.govs : [] });
+            el('n_when').value = 'now'; el('n_when').disabled = true; nWhenSync();
             el('n_pinned').checked = !!n.isPinned; el('n_notify').checked = false; el('n_notify').disabled = true;
             el('n_publish').textContent = 'حفظ التعديل'; el('n_cancel').classList.remove('hidden'); nSync();
             el('n_title').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('عدّل وبعدها اضغط حفظ التعديل');
         };
         window.newsTpl = async (key) => {
             const n = (await get(ref(db, 'news/' + key))).val(); if (!n) return;
-            nReset(); nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source }); el('n_title').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('نُسخ كخبر جديد');
+            nReset(); nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source, link: n.link || '', govs: Array.isArray(n.govs) ? n.govs : [] }); el('n_title').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('نُسخ كخبر جديد');
         };
         window.newsFlag = async (key, field, v) => { try { await update(ref(db, 'news/' + key), { [field]: !!v }); } catch (e) { toast('فشل', false); } };
         (function restore() {
@@ -2220,13 +2257,22 @@
             if (/[\[\]]/.test(title + val('n_excerpt'))) {
                 if (!(await ask({ icon: 'alert-triangle', title: 'بعدك تاركه أقواس [ ] بالنص. تنشره هيج؟', ok: 'انشر' }))) return;
             }
+            const link = val('n_link');
+            if (link && !/^https:\/\/[^\s"'<>]{4,300}$/.test(link)) { toast('الرابط لازم يبدأ بـ https://', false); return; }
+            const govs = nGovPicked();
+            if (!el('n_all').checked && !govs.length) { toast('اختار محافظة وحدة على الأقل، أو فعّل كل المحافظات', false); return; }
+            let at = 0;
+            if (!nEdit && el('n_when').value === 'custom') {
+                at = new Date(val('n_at')).getTime();
+                if (!Number.isFinite(at) || at < Date.now() + 120000) { toast('وقت النشر لازم يكون بعد دقيقتين أو أكثر', false); return; }
+            }
             const btn = el('n_publish');
             btn.disabled = true;
             try {
                 const source = val('n_source') || 'إدارة أكـادمي السادس';
                 const imgFile = el('n_image').files[0];
                 if (nEdit) {
-                    const upd = { title, excerpt: val('n_excerpt'), category: val('n_category'), isUrgent: el('n_urgent').checked, isPinned: el('n_pinned').checked, source };
+                    const upd = { title, excerpt: val('n_excerpt'), category: val('n_category'), isUrgent: el('n_urgent').checked, isPinned: el('n_pinned').checked, source, link: link || null, govs: govs.length ? govs : null };
                     if (imgFile) upd.image = await uploadFile(imgFile, 'news_images/');
                     await update(ref(db, 'news/' + nEdit), upd);
                     // keep the notification-list entry in step with the text, only if the student list already has it
@@ -2235,7 +2281,8 @@
                 }
                 let imageUrl = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
                 if (imgFile) imageUrl = await uploadFile(imgFile, 'news_images/');
-                const id = Date.now();
+                // a scheduled news takes its publish time as its id, so the app's "newer than what I have" download still finds it in time
+                const id = at || Date.now();
                 const urgent = el('n_urgent').checked;
                 const sendNotif = el('n_notify').checked;
                 await set(ref(db, 'news/' + id), {
@@ -2243,9 +2290,10 @@
                     excerpt: val('n_excerpt'),
                     image: imageUrl,
                     category: val('n_category'),
-                    date: localDateStr(),
+                    date: localDateStr(at ? new Date(at) : undefined),
                     time: 'الآن',
                     source,
+                    ...(link ? { link } : {}), ...(govs.length ? { govs } : {}), ...(at ? { publishAt: at } : {}),
                     isUrgent: urgent,
                     isPinned: el('n_pinned').checked,
                     notifHandled: sendNotif,
@@ -2255,12 +2303,14 @@
                 if (sendNotif) {
                     await set(ref(db, 'notifications/' + id), {
                         id, title, description: val('n_excerpt'), time: 'الآن', read: false,
-                        type: urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', createdAt: serverTimestamp()
+                        type: urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', createdAt: serverTimestamp(),
+                        ...(govs.length ? { govs } : {}), ...(at ? { publishAt: at } : {})
                     });
                 }
-                let msg = 'تم نشر الخبر بنجاح';
+                let msg = at ? 'انجدول الخبر ويبين ' + new Date(at).toLocaleString('ar-IQ') : 'تم نشر الخبر بنجاح';
                 if (sendNotif) {
-                    const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), [], urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement');
+                    const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), govs, urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', at ? { sendAt: at } : null);
+                    if (at && pr.ok && pr.ids && pr.ids.length) await set(ref(db, 'pushSchedule/' + Date.now()), { title, body: val('n_excerpt'), cat: urgent ? 'urgent' : val('n_category'), at, ids: pr.ids, newsId: id, createdAt: serverTimestamp() }).catch(() => {});
                     msg += pushNote(pr);
                 }
                 toast(msg);
@@ -3404,6 +3454,64 @@
             btn.textContent = 'تخفيف الملازم القديمة (نقل الملفات لمكان منفصل)'; btn.disabled = false;
         };
 
+        // ---------- the published news list and its numbers ----------
+        let newsAdm = [], newsViewsA = {};
+        const NEWS_CAT_AR = { exams: 'الامتحانات', results: 'النتائج', admission: 'القبول', grants: 'المنح', schools: 'المدارس', decisions: 'القرارات', weather: 'الأنواء الجوية', other: 'أخرى' };
+        const nViews = (n) => Number(newsViewsA[String(n._key)]) || 0;
+        function renderNewsAdmin() {
+            const box = el('newsList'); if (!box) return;
+            if (!newsAdm.length) { box.innerHTML = '<p class="list-empty">لا توجد أخبار منشورة</p>'; return; }
+            const now = Date.now();
+            box.innerHTML = newsAdm.map((n) => {
+                const wait = Number(n.publishAt) > now;
+                return `
+                    <div class="row-item" style="flex-wrap:wrap;${wait ? 'border-color:#F59E0B;' : ''}">
+                        <img src="${escapeHtml(n.image || '')}" alt="">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(NEWS_CAT_AR[n.category] || n.category || '')}${n.isUrgent ? ' · عاجل' : ''}${n.isPinned ? ' · مثبت' : ''}${Array.isArray(n.govs) && n.govs.length ? ' · ' + escapeHtml(n.govs.length > 3 ? n.govs.length + ' محافظات' : n.govs.join('، ')) : ''}${n.link ? ' · فيه رابط' : ''} · ${escapeHtml(n.date || '')} · ${nViews(n)} مشاهدة</div>
+                            ${wait ? `<div style="color:#F59E0B;font-size:12px;font-weight:700;">مجدول: يبين ${escapeHtml(new Date(Number(n.publishAt)).toLocaleString('ar-IQ'))}</div>` : ''}
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+                            <button class="btn-sm" onclick="newsEdit(${jsArg(n._key)})">تعديل</button>
+                            <button class="btn-sm" onclick="newsTpl(${jsArg(n._key)})">نسخ كخبر جديد</button>
+                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isPinned', ${n.isPinned ? 'false' : 'true'})">${n.isPinned ? 'إلغاء التثبيت' : 'تثبيت'}</button>
+                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isUrgent', ${n.isUrgent ? 'false' : 'true'})">${n.isUrgent ? 'شيل عاجل' : 'خلّيه عاجل'}</button>
+                            <button class="del" onclick="newsDelete(${jsArg(n._key)})">${wait ? 'إلغاء الجدولة وحذف' : 'حذف'}</button>
+                        </div>
+                    </div>`;
+            }).join('');
+        }
+        function renderNewsStats() {
+            const box = el('newsStats'); if (!box) return;
+            const pub = newsAdm.filter((n) => !(Number(n.publishAt) > Date.now()));
+            if (!pub.length) { box.innerHTML = '<p class="list-empty">ما كو أخبار بعد</p>'; return; }
+            const total = pub.reduce((a, n) => a + nViews(n), 0), top = pub.slice().sort((a, b) => nViews(b) - nViews(a)).slice(0, 5), mx = Math.max(1, nViews(top[0]));
+            const cats = {}; pub.forEach((n) => { const c = n.category || 'other'; (cats[c] = cats[c] || { v: 0, n: 0 }); cats[c].v += nViews(n); cats[c].n++; });
+            const ck = Object.keys(cats).sort((a, b) => cats[b].v / cats[b].n - cats[a].v / cats[a].n), cm = Math.max(1, ...ck.map((k) => cats[k].v / cats[k].n));
+            const bar = (w, c) => `<div style="height:8px;border-radius:99px;background:rgba(148,163,184,.2);overflow:hidden;margin-top:4px;"><div style="height:100%;width:${Math.round(w * 100)}%;background:${c};border-radius:99px;"></div></div>`;
+            box.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+                    ${[['أخبار منشورة', pub.length], ['كل المشاهدات', total], ['معدل الخبر', Math.round(total / pub.length)]].map((x) => `<div style="text-align:center;padding:10px;border-radius:12px;background:var(--panel-2);border:1px solid var(--border);"><b style="font-size:20px;">${x[1]}</b><div style="opacity:.7;font-size:12px;">${x[0]}</div></div>`).join('')}</div>
+                <b style="font-size:13px;">الأكثر مشاهدة</b>
+                ${top.map((n) => `<div style="margin:8px 0;font-size:13px;"><div style="display:flex;justify-content:space-between;gap:8px;"><span class="truncate" style="max-width:75%;">${escapeHtml(n.title || '')}</span><b>${nViews(n)}</b></div>${bar(nViews(n) / mx, '#2563EB')}</div>`).join('')}
+                <b style="font-size:13px;display:block;margin-top:14px;">أي قسم يتفاعلون وياه أكثر (معدل مشاهدات الخبر)</b>
+                ${ck.map((k) => `<div style="margin:8px 0;font-size:13px;"><div style="display:flex;justify-content:space-between;"><span>${escapeHtml(NEWS_CAT_AR[k] || k)} (${cats[k].n})</span><b>${Math.round(cats[k].v / cats[k].n)}</b></div>${bar(cats[k].v / cats[k].n / cm, '#10B981')}</div>`).join('')}`;
+        }
+        // deleting a scheduled news also cancels its push (so nobody gets a notification for something that is gone)
+        window.newsDelete = async (key) => {
+            const n = newsAdm.find((x) => String(x._key) === String(key)) || {};
+            const wait = Number(n.publishAt) > Date.now();
+            if (!(await ask({ icon: 'trash-2', title: wait ? 'تلغي الجدولة وتحذف الخبر؟' : 'تحذف هذا الخبر؟', ok: 'احذف' }))) return;
+            try {
+                if (wait) {
+                    const ps = (await get(ref(db, 'pushSchedule'))).val() || {};
+                    for (const k of Object.keys(ps)) if (String(ps[k].newsId) === String(key)) { try { await workerPost({ mode: 'admincancel', ids: ps[k].ids || [] }); } catch (e) {} await remove(ref(db, 'pushSchedule/' + k)); }
+                }
+                await update(ref(db), { ['news/' + key]: null, ['notifications/' + key]: null });
+                toast('تم الحذف');
+            } catch (e) { toast('فشل الحذف', false); }
+        };
+
         window.deleteItem = (node, id) => {
             if (node === 'resources') remove(ref(db, 'resourceFiles/' + id)).catch(() => {});
             remove(ref(db, node + '/' + id)).then(() => toast('تم الحذف')).catch((e) => toast('فشل الحذف', false));
@@ -3424,25 +3532,10 @@
                 renderUsersStats();
             });
             onValue(ref(db, 'news'), (snap) => {
-                const box = el('newsList');
-                if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد أخبار منشورة</p>'; return; }
-                const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
-                box.innerHTML = vals.map(n => `
-                    <div class="row-item" style="flex-wrap:wrap;">
-                        <img src="${escapeHtml(n.image || '')}" alt="">
-                        <div class="flex-1 min-w-0">
-                            <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
-                            <div class="text-slate-400 text-xs">${escapeHtml(({ exams: 'الامتحانات', results: 'النتائج', admission: 'القبول', grants: 'المنح', schools: 'المدارس', decisions: 'القرارات', weather: 'الأنواء الجوية', other: 'أخرى' })[n.category] || n.category || '')}${n.isUrgent ? ' · عاجل' : ''}${n.isPinned ? ' · مثبت' : ''} · ${escapeHtml(n.date || '')} · ${Number(n.views) || 0} مشاهدة</div>
-                        </div>
-                        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
-                            <button class="btn-sm" onclick="newsEdit(${jsArg(n._key)})">تعديل</button>
-                            <button class="btn-sm" onclick="newsTpl(${jsArg(n._key)})">نسخ كخبر جديد</button>
-                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isPinned', ${n.isPinned ? 'false' : 'true'})">${n.isPinned ? 'إلغاء التثبيت' : 'تثبيت'}</button>
-                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isUrgent', ${n.isUrgent ? 'false' : 'true'})">${n.isUrgent ? 'شيل عاجل' : 'خلّيه عاجل'}</button>
-                            <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
-                        </div>
-                    </div>`).join('');
+                newsAdm = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0)) : [];
+                renderNewsAdmin(); renderNewsStats();
             });
+            onValue(ref(db, 'newsViews'), (snap) => { newsViewsA = snap.exists() ? snap.val() : {}; renderNewsAdmin(); renderNewsStats(); }, () => {});
             onValue(ref(db, 'resources'), (snap) => {
                 const box = el('resList');
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد ملازم منشورة</p>'; return; }

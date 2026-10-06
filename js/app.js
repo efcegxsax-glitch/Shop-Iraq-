@@ -800,6 +800,7 @@
                 setInterval(() => this.checkNetwork(), 5000);
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
                 setInterval(() => this.checkTaskReminders(), 120000);
+                setInterval(() => this._newsPendTick(), 20000);
                 setInterval(() => {
                     this.refreshTimeAgoLabels();
                     // the card switches from "today" to "tomorrow" at noon
@@ -2229,6 +2230,7 @@
                                 <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>
                                 <button onclick="app.shareNewsStory()" class="nd-btn"><i data-lucide="image"></i>ستوري</button>
                                 <button onclick="app.toggleBookmarkDetail()" class="nd-btn${news.isBookmarked ? ' on' : ''}"><i data-lucide="bookmark"></i>${news.isBookmarked ? 'محفوظ' : 'حفظ الخبر'}</button>
+                            ${/^https:\/\/[^\s"'<>]{4,300}$/.test(String(news.link || '')) ? `<a href="${escapeHtml(news.link)}" target="_blank" rel="noopener noreferrer" class="nd-btn" style="text-decoration:none;"><i data-lucide="external-link"></i>المصدر الرسمي</a>` : ''}
                             </div>
                             ${related.length ? `
                             <h3 class="nd-rel-title">أخبار ذات صلة</h3>
@@ -3197,6 +3199,53 @@
             // separate `isFirstSnapshot` flag: nothing is treated as "new" during the very
             // first callback, only on snapshots after that (and only the single newest id that
             // wasn't seen before).
+            // News the panel scheduled for later (publishAt) or aimed at some governorates only (govs): a student sees them
+            // only when the time has come and only if their governorate is listed. Scheduled ones wait in _newsPend.
+            // (until the student's governorate is known nothing is hidden; the tick below removes what is aimed elsewhere once it is)
+            _newsAimed(n) { const g = this._dsGov(); return !g || !(Array.isArray(n.govs) && n.govs.length && n.govs.indexOf(g) === -1); },
+            _newsReady(n) { return !(Number(n.publishAt) > Date.now()); },
+            _newsPendTick() {
+                // news aimed at other governorates that came in before the governorate was known
+                if (this._dsGov()) {
+                    const off = newsData.filter((n) => !this._newsAimed(n));
+                    if (off.length) {
+                        off.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
+                        newsStore.remove(off.map((n) => n.id));
+                        this.renderNews(); this.renderNewsTicker();
+                    }
+                }
+                // scheduled in-app notifications whose time has come
+                const np = this._notifPend;
+                if (np && np.length) {
+                    const due = np.filter((x) => !(Number(x.publishAt) > Date.now()));
+                    if (due.length) {
+                        this._notifPend = np.filter((x) => Number(x.publishAt) > Date.now());
+                        due.forEach((val) => {
+                            if (this.isNotifDeleted(val.id) || notifications.some((n) => n.id === val.id)) return;
+                            notifications.unshift({ id: val.id, title: val.title, description: val.description || '', time: 'الآن', read: false, type: val.type || 'announcement' });
+                            if (this.notifPrefs[val.type || 'announcement'] !== false) { this.playNotifySound(); this._heads(val.title, val.description, () => this.goToNotifications()); }
+                        });
+                        this.updateNotifBadges();
+                        if (this.currentView === 'notificationsView') this.renderNotificationsList();
+                    }
+                }
+                const p = this._newsPend; if (!p || !p.length) return;
+                const ready = p.filter((n) => this._newsReady(n));
+                if (!ready.length) return;
+                this._newsPend = p.filter((n) => !this._newsReady(n));
+                ready.forEach((item) => { if (!newsData.some((n) => n.id === item.id)) newsData.push(item); });
+                newsData.sort((a, b) => b.id - a.id);
+                newsStore.put(ready);
+                this.applyUserNewsState(); this.renderNews(); this.renderNewsTicker();
+                const top = ready[0];
+                if (top && !top.notifHandled && !notifications.some((n) => n.id === top.id) && !this.isNotifDeleted(top.id)) {
+                    notifications.unshift({ id: top.id, title: top.title, description: top.excerpt || '', time: 'الآن', read: false, type: top.isUrgent ? 'urgent' : 'announcement' });
+                    this.updateNotifBadges(); this.showToast('خبر جديد: ' + top.title);
+                }
+                if (this.currentView === 'notificationsView') this.renderNotificationsList();
+                try { lucide.createIcons(); } catch (e) {}
+            },
+
             listenForNews() {
                 if (!window.firebaseDb || this._newsListener) return;
                 // the saved copy is read first, so that only what is new is downloaded
@@ -3212,7 +3261,11 @@
                 this._newsWatch();
                 this._newsListener = onValue(q, (snap) => {
                     this._newsGot = true;
-                    const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    const rawList = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
+                    // aimed at other governorates: never shown; scheduled for later: kept aside until its time
+                    const aimed = rawList.filter((n) => this._newsAimed(n));
+                    this._newsPend = (this._newsPend || []).filter((n) => !aimed.some((a) => a.id === n.id)).concat(aimed.filter((n) => !this._newsReady(n)));
+                    const list = aimed.filter((n) => this._newsReady(n));
                     list.sort((a, b) => b.id - a.id);
                     if (!maxId && isFirstSnapshot) windowStart = list.length ? list[list.length - 1].id : Infinity;
                     let newItem = null;
@@ -3222,7 +3275,7 @@
                     list.forEach((item) => seenIds.add(item.id));
                     isFirstSnapshot = false;
                     const deletedIds = this.getDeletedNewsIds();
-                    const present = new Set(list.map((n) => n.id));
+                    const present = new Set(rawList.map((n) => n.id));
                     const changed = [];
                     list.forEach((item) => {
                         if (deletedIds.has(item.id)) return;
@@ -3231,7 +3284,7 @@
                         changed.push(item);
                     });
                     // news inside the window that the admin removed
-                    const gone = newsData.filter((n) => n.id >= windowStart && !present.has(n.id));
+                    const gone = newsData.filter((n) => n.id >= windowStart && (!present.has(n.id) || !aimed.some((a) => a.id === n.id)));
                     gone.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
                     newsData.sort((a, b) => b.id - a.id);
                     newsStore.put(changed);
@@ -3239,6 +3292,7 @@
                     this.applyUserNewsState();
                     this.renderNews();
                     this.renderNewsTicker();
+                    clearTimeout(this._nt); this._nt = setTimeout(() => this._newsPendTick(), 3000); // by then the governorate is usually known
                     if (newItem) {
                         if (!newItem.notifHandled && !notifications.some(n => n.id === newItem.id) && !this.isNotifDeleted(newItem.id)) {
                             notifications.unshift({
@@ -3313,6 +3367,7 @@
                     const raw = snap.val();
                     if (!raw || !Number.isFinite(Number(raw.id))) return;
                     if (Array.isArray(raw.govs) && raw.govs.length && raw.govs.indexOf(this._dsGov()) === -1) return;
+                    if (Number(raw.publishAt) > Date.now()) { this._notifPend = this._notifPend || []; if (!this._notifPend.some((x) => x.id === Number(raw.id))) this._notifPend.push({ ...raw, id: Number(raw.id) }); return; }
                     const val = { ...raw, id: Number(raw.id) };
                     const isNew = !seenIds.has(val.id);
                     seenIds.add(val.id);
@@ -13324,7 +13379,7 @@
                     const snap = await get(query(ref(window.firebaseDb, 'news'), orderByKey(), endBefore(String(minId)), limitToLast(this.NEWS_PAGE)));
                     const list = snap.exists() ? withNumericIds(Object.values(snap.val())) : [];
                     const deleted = this.getDeletedNewsIds();
-                    const added = list.filter((n) => !deleted.has(n.id) && !newsData.some((x) => x.id === n.id));
+                    const added = list.filter((n) => !deleted.has(n.id) && this._newsAimed(n) && this._newsReady(n) && !newsData.some((x) => x.id === n.id));
                     added.forEach((n) => newsData.push(n));
                     newsData.sort((a, b) => b.id - a.id);
                     newsStore.put(added);
