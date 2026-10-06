@@ -11,7 +11,7 @@ import os, shutil, subprocess, sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'www')
-KEEP_FILES = ['index.html', 'privacy.html', 'terms.html', 'manifest.webmanifest']
+KEEP_FILES = ['index.html', 'privacy.html', 'terms.html', 'delete-account.html', 'manifest.webmanifest']
 KEEP_DIRS = ['css', 'js', 'assets', 'icons']
 
 subprocess.check_call([sys.executable, os.path.join(ROOT, 'tools', 'build.py')], cwd=ROOT)

@@ -960,7 +960,8 @@ rules = {
     # answer; only the admin reads all of them and changes the status / reply. -----
     "complaints": {".read": ADMIN, "$uid": {".read": OWNER, "$id": {
         ".write": ors(ADMIN, ands(OWNER, "!data.exists()", "newData.child('at').val() == now",
-                                  "newData.parent().parent().parent().child('complaintLast/' + auth.uid).val() == now")),
+                                  "newData.parent().parent().parent().child('complaintLast/' + auth.uid).val() == now"),
+                      ands(OWNER, "!newData.exists()")),
         ".validate": "!newData.exists() || data.exists() || (" + ands(
             "newData.hasChildren(['uid', 'k', 't', 'st', 'at'])", "newData.child('uid').val() == $uid", "newData.child('st').val() == 'new'") + ")",
         "uid": {".validate": "newData.isString()"},
