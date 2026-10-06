@@ -11185,3 +11185,6 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .fl-chip { position: fixed; z-index: 9100; top: calc(var(--safe-t, 0px) + 74px); inset-inline-start: 10px; display: flex; align-items: center; gap: 7px; padding: 7px 12px 7px 10px; border-radius: 99px; font-size: 13px; font-weight: 900; color: #fff; background: linear-gradient(135deg, #0284c7, #0ea5e9); box-shadow: 0 8px 22px rgba(2, 132, 199, .5); font-variant-numeric: tabular-nums; }
 .fl-chip svg { width: 16px; height: 16px; transform: rotate(-30deg); }
 @media (prefers-reduced-motion: reduce) { .fl-sheet, .hud-bar i { transition: none; } .fl-done .ring { animation: none; } }
+
+/* night map: the same street tiles, darkened (the free dark tile servers need a key) */
+.fl-map.fl-night .leaflet-tile-pane, .tile-night .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.5); }
