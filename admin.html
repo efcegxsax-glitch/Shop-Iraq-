@@ -367,7 +367,7 @@
             <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
             <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
             <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
-            <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>أفكار الطلاب</span><b class="tab-badge hidden" id="idBadge"></b></button>
+            <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>شكاوي وأفكار</span><b class="tab-badge hidden" id="idBadge"></b></button>
             <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
             <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
             <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
@@ -1563,11 +1563,19 @@
             <div id="sec-ideas" class="hidden">
                 <div class="card">
                     <div class="card-head">
-                        <div class="ic" style="background:rgba(245,158,11,.14);color:#F59E0B;"><i data-lucide="lightbulb"></i></div>
-                        <div><h3>أفكار الطلاب</h3><p>غيّر حالة كل فكرة واكتب رد يشوفه الطلاب. لمن تضغط "انضافت" ياخذ صاحبها 100 نقطة (مرة وحدة)</p></div>
+                        <div class="ic" style="background:rgba(245,158,11,.14);color:#F59E0B;"><i data-lucide="life-buoy"></i></div>
+                        <div><h3>شكاوي وأفكار</h3><p>الشكاوي والمشاكل اللي يبلّغ عنها الطلاب (مع بياناتهم)، وأفكارهم. غيّر الحالة واكتب رد يشوفه الطالب.</p></div>
                     </div>
-                    <div class="subtabs" id="idTabsA"></div>
-                    <div id="idListA"></div>
+                    <div class="subtabs" id="cmSecA"></div>
+                    <div id="cmBoxA">
+                        <div class="subtabs" id="cmTabsA"></div>
+                        <div id="cmListA"></div>
+                    </div>
+                    <div id="idBoxA" class="hidden">
+                        <p style="opacity:.75;font-size:12.5px;margin:0 0 8px;">لمن تضغط "انضافت" ياخذ صاحب الفكرة 100 نقطة (مرة وحدة)</p>
+                        <div class="subtabs" id="idTabsA"></div>
+                        <div id="idListA"></div>
+                    </div>
                 </div>
             </div>
 
@@ -4391,17 +4399,74 @@
         const ID_ST = { new: 'جديدة', review: 'قيد الدراسة', doing: 'قيد التنفيذ', done: 'انضافت', no: 'ما راح تنضاف' };
         const ID_C = { study: 'الدراسة', play: 'المنافسة والنقاط', look: 'الشكل والتصميم', store: 'المتجر', other: 'غيرها' };
         let ideasA = [], idFilterA = 'new';
+        // ---------- شكاوي ومشاكل (complaints/{uid}/{id}, read by the admin only) ----------
+        const CM_ST = { new: 'جديدة', seen: 'شفتها', fixed: 'انحلت', closed: 'مسدودة' };
+        const CM_K = { bug: 'خطأ بالتطبيق', problem: 'مشكلة', complaint: 'شكوى' };
+        let cmA = [], cmFilterA = 'new', cmSecA = 'cm';
+        function loadComplaintsAdmin() {
+            onValue(ref(db, 'complaints'), (snap) => {
+                const v = snap.val() || {}; cmA = [];
+                Object.keys(v).forEach((uid) => Object.keys(v[uid] || {}).forEach((id) => cmA.push({ ...v[uid][id], id, uid })));
+                cmA.sort((a, b) => (b.at || 0) - (a.at || 0));
+                renderComplaintsAdmin();
+            }, () => {});
+        }
+        window.setCmSecA = (k) => { cmSecA = k; renderComplaintsAdmin(); };
+        window.setCmFilterA = (f) => { cmFilterA = f; renderComplaintsAdmin(); };
+        window.zoomImgA = (src) => { const o = document.createElement('div'); o.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);display:flex;align-items:center;justify-content:center;padding:12px;'; const i = document.createElement('img'); i.src = src; i.style.cssText = 'max-width:100%;max-height:100%;border-radius:10px;'; o.appendChild(i); o.onclick = () => o.remove(); document.body.appendChild(o); };
+        function renderComplaintsAdmin() {
+            const counts = {}; cmA.forEach((x) => { counts[x.st] = (counts[x.st] || 0) + 1; });
+            const idNew = (ideasA || []).filter((x) => x.st === 'new').length, total = (counts.new || 0) + idNew;
+            el('idBadge').textContent = total; el('idBadge').classList.toggle('hidden', !total);
+            el('cmSecA').innerHTML = `<button class="subtab ${cmSecA === 'cm' ? 'active' : ''}" onclick="setCmSecA('cm')">الشكاوي والمشاكل (${counts.new || 0} جديدة)</button><button class="subtab ${cmSecA === 'id' ? 'active' : ''}" onclick="setCmSecA('id')">الأفكار (${idNew} جديدة)</button>`;
+            el('cmBoxA').classList.toggle('hidden', cmSecA !== 'cm'); el('idBoxA').classList.toggle('hidden', cmSecA !== 'id');
+            if (cmSecA !== 'cm') return;
+            el('cmTabsA').innerHTML = Object.keys(CM_ST).map((k) => `<button class="subtab ${cmFilterA === k ? 'active' : ''}" onclick="setCmFilterA('${k}')">${CM_ST[k]} (${counts[k] || 0})</button>`).join('');
+            const kept = {};
+            document.querySelectorAll('#cmListA [id^="cmr_"], #cmListA [id^="cmst_"]').forEach((n) => { if (n.dataset.dirty) kept[n.id] = n.value; });
+            const list = cmA.filter((x) => x.st === cmFilterA);
+            const row = (l, v) => v ? `<div><span style="opacity:.6;">${l}:</span> ${v}</div>` : '';
+            el('cmListA').innerHTML = list.length ? list.map((x) => {
+                const u = usersData[x.uid] || {}, key = x.uid + '__' + x.id, ph = String(x.ph || '').replace(/[^\d+]/g, '');
+                const wa = ph ? 'https://wa.me/' + ph.replace(/^\+/, '').replace(/^0/, '964') : '';
+                return `<div class="ord" style="border-inline-start-color:#EF4444;">
+                <div class="ord-h"><b>${escapeHtml(CM_K[x.k] || '')}</b><span style="opacity:.7;">${new Date(Number(x.at) || 0).toLocaleString('ar-IQ')}</span></div>
+                <div style="line-height:1.9;white-space:pre-wrap;margin:6px 0;direction:rtl;">${escapeHtml(x.t)}</div>
+                ${typeof x.img === 'string' && x.img.indexOf('data:image/jpeg') === 0 ? `<img src="${x.img}" alt="" style="max-width:100%;max-height:200px;border-radius:10px;cursor:zoom-in;" onclick="zoomImgA(this.src)">` : ''}
+                <div style="margin-top:8px;padding:9px 11px;border-radius:12px;background:rgba(100,116,139,.12);font-size:12.5px;line-height:1.9;">
+                    ${row('الطالب', escapeHtml(u.fullName || x.n || ''))}${row('رقم الطالب', escapeHtml(u.studentNumber || x.s || ''))}${row('هاتف حسابه', escapeHtml(u.phone || ''))}
+                    ${ph ? `<div><span style="opacity:.6;">هاتف للتواصل:</span> <b dir="ltr">${escapeHtml(ph)}</b> <a href="tel:${escapeHtml(ph)}" style="margin-inline-start:8px;color:#60a5fa;">اتصال</a> <a href="${escapeHtml(wa)}" target="_blank" rel="noopener" style="margin-inline-start:8px;color:#4ade80;">واتساب</a></div>` : ''}
+                    ${row('الإيميل', escapeHtml(u.email || ''))}${row('المحافظة', escapeHtml(u.governorate || ''))}${row('الفرع', escapeHtml({ scientific: 'علمي', literary: 'أدبي' }[u.grade] || u.grade || ''))}${row('نقاطه', u.points != null ? escapeHtml(String(u.points)) : '')}
+                    ${row('الجهاز', escapeHtml(x.dev || ''))}${row('نسخة التطبيق', escapeHtml(x.ver || ''))}${row('كان بصفحة', escapeHtml(x.view || ''))}${row('المعرّف', '<span dir="ltr">' + escapeHtml(x.uid) + '</span>')}
+                </div>
+                <div class="field" style="margin:10px 0 0;"><select id="cmst_${escapeHtml(key)}">${Object.keys(CM_ST).map((k) => `<option value="${k}" ${x.st === k ? 'selected' : ''}>${CM_ST[k]}</option>`).join('')}</select></div>
+                <div class="field" style="margin:8px 0 0;"><textarea id="cmr_${escapeHtml(key)}" rows="2" maxlength="500" placeholder="رد يشوفه الطالب (اختياري)">${escapeHtml(x.r || '')}</textarea></div>
+                <div class="ord-act"><button class="btn-sm go" onclick="saveCmA(${jsArg(x.uid)}, ${jsArg(x.id)})">حفظ</button><button class="del" onclick="delCmA(${jsArg(x.uid)}, ${jsArg(x.id)})">حذف</button></div></div>`;
+            }).join('') : '<p style="opacity:.6;font-size:13px;">ماكو بلاغات هنا.</p>';
+            Object.keys(kept).forEach((k) => { const n = el(k); if (n) { n.value = kept[k]; n.dataset.dirty = '1'; } });
+            document.querySelectorAll('#cmListA [id^="cmr_"], #cmListA [id^="cmst_"]').forEach((n) => { n.addEventListener('input', () => { n.dataset.dirty = '1'; }); n.addEventListener('change', () => { n.dataset.dirty = '1'; }); });
+        }
+        window.saveCmA = async (uid, id) => {
+            const key = uid + '__' + id, st = el('cmst_' + key).value, r = el('cmr_' + key).value.trim().slice(0, 500);
+            try { await update(ref(db, 'complaints/' + uid + '/' + id), { st, r: r || null }); toast('انحفظ'); } catch (e) { toast('فشل الحفظ', false); }
+        };
+        window.delCmA = async (uid, id) => {
+            if (!(await ask({ icon: 'trash-2', title: 'تحذف هذا البلاغ؟', ok: 'احذف' }))) return;
+            try { await set(ref(db, 'complaints/' + uid + '/' + id), null); toast('انحذف'); } catch (e) { toast('فشل الحذف', false); }
+        };
+
+
         function loadIdeasAdmin() {
             onValue(ref(db, 'ideas'), (snap) => {
                 const v = snap.val() || {};
                 ideasA = Object.keys(v).map((k) => ({ ...v[k], id: k })).sort((a, b) => (b.v || 0) - (a.v || 0) || (b.at || 0) - (a.at || 0));
-                renderIdeasAdmin();
+                renderIdeasAdmin(); renderComplaintsAdmin();
             }, () => {});
         }
         window.setIdFilterA = (f) => { idFilterA = f; renderIdeasAdmin(); };
         function renderIdeasAdmin() {
             const counts = {}; ideasA.forEach((x) => { counts[x.st] = (counts[x.st] || 0) + 1; });
-            el('idBadge').textContent = counts.new || 0; el('idBadge').classList.toggle('hidden', !counts.new);
+            { const tot = (counts.new || 0) + cmA.filter((x) => x.st === 'new').length; el('idBadge').textContent = tot; el('idBadge').classList.toggle('hidden', !tot); }
             el('idTabsA').innerHTML = Object.keys(ID_ST).map((k) => `<button class="subtab ${idFilterA === k ? 'active' : ''}" onclick="setIdFilterA('${k}')">${ID_ST[k]} (${counts[k] || 0})</button>`).join('');
             const list = ideasA.filter((x) => x.st === idFilterA);
             // keep what the admin is still typing when the list redraws
@@ -4831,6 +4896,7 @@
             loadSpotsAdmin();
             loadVentAdmin();
             loadIdeasAdmin();
+            loadComplaintsAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();

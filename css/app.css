@@ -10993,3 +10993,21 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .ms-owl { position: fixed !important; left: 0; top: 0; margin: 0 !important; z-index: 9290; transform-origin: 50% 60%; will-change: transform; touch-action: none; }
 .ms-b { position: fixed; z-index: 9291; max-width: 230px; direction: rtl; background: #fffdf6; color: #2a1a0e; border: 2.5px solid #7a4d27; border-radius: 16px; padding: 8px 12px; font-size: 13.5px; line-height: 1.7; font-weight: 800; box-shadow: 0 8px 22px rgba(0,0,0,.28); opacity: 0; transform: scale(.85); transition: opacity .2s, transform .25s cubic-bezier(.3,1.5,.5,1); pointer-events: none; }
 .ms-b.on { opacity: 1; transform: scale(1); pointer-events: auto; }
+
+/* شكاوي ومشاكل inside the ideas box */
+.id-sw { display: flex; gap: 6px; padding: 4px; border-radius: 16px; background: var(--input-bg); margin-bottom: 12px; }
+.id-sw button { flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 6px; border-radius: 12px; font-size: 13px; font-weight: 800; color: var(--text2); }
+.id-sw button.on { background: var(--surface); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.id-sw svg { width: 16px; height: 16px; }
+.id-hero.cm { background: linear-gradient(135deg, #DC2626, #7C3AED); }
+.id-sub { font-size: 13px; font-weight: 900; color: var(--text2); margin: 4px 2px; }
+.id-card.cm { padding: 12px 14px; }
+.cm-img { max-width: 100%; max-height: 160px; border-radius: 12px; margin-top: 8px; object-fit: cover; cursor: zoom-in; }
+.cm-prev { position: relative; align-self: flex-start; }
+.cm-prev img { max-height: 150px; max-width: 100%; border-radius: 14px; display: block; }
+.cm-prev button { position: absolute; top: 6px; left: 6px; width: 28px; height: 28px; border-radius: 50%; background: rgba(0,0,0,.65); color: #fff; display: flex; align-items: center; justify-content: center; }
+.cm-file { display: flex !important; align-items: center; justify-content: center; gap: 8px; padding: 14px; border-radius: 14px; border: 2px dashed var(--border); color: var(--text2); font-weight: 800 !important; cursor: pointer; margin-top: 0 !important; }
+.cm-file svg { width: 20px; height: 20px; }
+.cm-note { color: var(--text2); line-height: 1.7; font-size: 12px; }
+.cm-zoom { position: fixed; inset: 0; z-index: 9600; background: rgba(0,0,0,.88); display: flex; align-items: center; justify-content: center; padding: 12px; }
+.cm-zoom img { max-width: 100%; max-height: 100%; border-radius: 12px; }

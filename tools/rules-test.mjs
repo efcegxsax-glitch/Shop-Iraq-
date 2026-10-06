@@ -582,6 +582,29 @@ await ok('admin answers', update(ref(db('adm'), 'ideas/d1'), { st: 'doing', r: '
 await no('author deletes after it moved on', set(ref(db('i1'), 'ideas/d1'), null));
 await ok('guest cannot read ideas', assertFails(get(ref(db(null), 'ideas'))).then(() => true));
 
+// complaints (شكاوي ومشاكل)
+const cmp = (u, id, extra) => U(u, { ['complaints/' + u + '/' + id]: Object.assign({ uid: u, k: 'bug', t: 'الصفحة تعلك لمن أفتح المتجر', st: 'new', at: TS, n: 'علي', s: '1234', ver: 'abc', dev: 'Android', view: 'homeView' }, extra || {}), ['complaintLast/' + u]: TS });
+await ok('student reports a problem', cmp('c1', 'a1'));
+await ok('with an optional phone', cmp('c2', 'a1', { ph: '07701234567' }));
+await ok('with a small photo', cmp('c3', 'a1', { img: 'data:image/jpeg;base64,/9j/4AAQ' }));
+await no('a photo that is not a jpeg', cmp('c4', 'a1', { img: 'data:text/html;base64,AAAA' }));
+await no('too short', cmp('c5', 'a1', { t: 'قصير' }));
+await no('unknown kind', cmp('c6', 'a1', { k: 'xx' }));
+await no('someone else name path', U('c7', { 'complaints/c1/a2': { uid: 'c1', k: 'bug', t: 'مشكلة من حساب ثاني', st: 'new', at: TS }, 'complaintLast/c7': TS }));
+await no('uid does not match', U('c8', { 'complaints/c8/a1': { uid: 'c9', k: 'bug', t: 'مشكلة من حساب ثاني', st: 'new', at: TS }, 'complaintLast/c8': TS }));
+await no('already answered on creation', cmp('c10', 'a1', { st: 'fixed' }));
+await no('extra field', cmp('c11', 'a1', { x: 1 }));
+await no('second one too soon', cmp('c1', 'a2'));
+await ok('owner reads their own', get(ref(db('c1'), 'complaints/c1')));
+await no('other student reads it', get(ref(db('c2'), 'complaints/c1')));
+await no('student reads all', get(ref(db('c2'), 'complaints')));
+await ok('admin reads all', get(ref(db('adm'), 'complaints')));
+await no('student edits the status', set(ref(db('c1'), 'complaints/c1/a1/st'), 'fixed'));
+await no('student deletes it', set(ref(db('c1'), 'complaints/c1/a1'), null));
+await ok('admin answers', update(ref(db('adm'), 'complaints/c1/a1'), { st: 'fixed', r: 'انحلت بالتحديث' }));
+await ok('admin deletes', set(ref(db('adm'), 'complaints/c1/a1'), null));
+await no('guest cannot report', set(ref(db(null), 'complaints/g1/a1'), { uid: 'g1', k: 'bug', t: 'مشكلة بدون تسجيل دخول', st: 'new', at: TS }));
+
 // voice calls
 await seed('blockedUsers/k9/k1', true);
 await ok('caller opens a call', set(ref(db('k1'), 'calls/k1_k2'), { id: 'c1', from: 'k1', to: 'k2', at: TS, st: 'ring' }));

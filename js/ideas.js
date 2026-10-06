@@ -8,6 +8,8 @@
     const CATS = { study: ['الدراسة', 'graduation-cap', '#2563EB'], play: ['المنافسة والنقاط', 'trophy', '#F59E0B'], look: ['الشكل والتصميم', 'palette', '#EC4899'], store: ['المتجر', 'store', '#10B981'], other: ['غيرها', 'sparkles', '#8B5CF6'] };
     const ST = { new: ['جديدة', 'circle-dot', '#64748B'], review: ['قيد الدراسة', 'search', '#2563EB'], doing: ['قيد التنفيذ', 'hammer', '#F59E0B'], done: ['انضافت', 'badge-check', '#16A34A'], no: ['ما راح تنضاف', 'circle-x', '#DC2626'] };
     const TABS = [['top', 'الأكثر تصويت', 'flame'], ['new', 'الأحدث', 'clock'], ['doing', 'قيد التنفيذ', 'hammer'], ['done', 'انضافت', 'badge-check']];
+    const CMK = { bug: ['خطأ بالتطبيق', 'bug', '#EF4444'], problem: ['مشكلة', 'alert-triangle', '#F59E0B'], complaint: ['شكوى', 'message-square-warning', '#8B5CF6'] };
+    const CMS = { new: ['انرسلت', 'send', '#64748B'], seen: ['شافتها الإدارة', 'eye', '#2563EB'], fixed: ['انحلت', 'badge-check', '#16A34A'], closed: ['مسدودة', 'circle-slash', '#94A3B8'] };
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const ago = (t) => {
         const m = Math.max(0, Math.round((Date.now() - (Number(t) || 0)) / 60000));
@@ -19,6 +21,7 @@
         idOpen() {
             this._id = this._id || { list: [], tab: 'top', cat: '', mine: {}, open: {}, loaded: false };
             this._idRender();
+            { const t = document.getElementById('idHeadT'); if (t) t.textContent = this._id.sec === 'cmp' ? 'الشكاوي والمشاكل' : 'صندوق الأفكار'; }
             if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) return;
             this._idListen();
         },
@@ -37,15 +40,25 @@
             get(ref(window.firebaseDb, 'ideaMine/' + this.authUid)).then((snap) => { s.mine = snap.val() || {}; this._idList(); }).catch(() => {});
         },
 
+        // the two halves of the page: the ideas, and the problems/complaints the student reported
+        _idSwitch() {
+            const sec = this._id.sec || 'ideas';
+            return `<div class="id-sw"><button class="${sec === 'ideas' ? 'on' : ''}" onclick="app.idSec('ideas')"><i data-lucide="lightbulb"></i>أفكار</button><button class="${sec === 'cmp' ? 'on' : ''}" onclick="app.idSec('cmp')"><i data-lucide="life-buoy"></i>شكاوي ومشاكل</button></div>`;
+        },
+        idSec(k) { this._id.sec = k; this._idRender(); const t = document.getElementById('idHeadT'); if (t) t.textContent = k === 'cmp' ? 'الشكاوي والمشاكل' : 'صندوق الأفكار'; },
+        idPlus() { if ((this._id || {}).sec === 'cmp') this.cmCompose(); else this.idCompose(); },
+
         _idRender() {
             const s = this._id, box = document.getElementById('idContent');
             if (!box) return;
+            if (s.sec === 'cmp' && this.isLoggedIn && this.authUid) { this._cmRender(); return; }
             if (!this.isLoggedIn || !this.authUid) {
                 box.innerHTML = `<div class="id-wrap"><div class="id-empty"><span><i data-lucide="lightbulb"></i></span><b>سجّل دخولك حتى تقترح وتصوّت</b><button class="id-btn" onclick="app.goToAuth('login')">تسجيل الدخول</button></div></div>`;
                 lucide.createIcons();
                 return;
             }
             box.innerHTML = `<div class="id-wrap">
+                ${this._idSwitch()}
                 <div class="id-hero">
                     <div class="id-bulb"><i data-lucide="lightbulb"></i><span></span><span></span><span></span></div>
                     <div><b>عندك فكرة تخلي التطبيق أحلى؟</b><p>اقترحها، والطلاب يصوتون، والأفكار الأكثر تصويت تنضاف. وصاحب الفكرة ياخذ <em>100 نقطة</em>.</p></div>
@@ -213,6 +226,144 @@
                 this.showToast('انرسلت فكرتك، خلي أصدقائك يصوتون عليها');
             } catch (e) {
                 this.showToast(String(e && e.message || e).includes('ermission') ? 'ما انرسلت. يمكن اقترحت قبل أقل من 10 دقايق' : 'ما انرسلت، تأكد من النت');
+                if (btn) btn.disabled = false;
+            }
+        },
+
+        // ---------- شكاوي ومشاكل ----------
+        _cmListen() {
+            const s = this._id;
+            if (s.cmOff || !window.firebaseDb) return;
+            const { ref, onValue, query, orderByChild, limitToLast } = window.firebaseDbHelpers;
+            s.cmOff = onValue(query(ref(window.firebaseDb, 'complaints/' + this.authUid), orderByChild('at'), limitToLast(50)), (snap) => {
+                const v = snap.val() || {};
+                s.cm = Object.keys(v).map((id) => Object.assign({ id }, v[id])).sort((a, b) => (b.at || 0) - (a.at || 0));
+                s.cmLoaded = true;
+                if (this.currentView === 'ideasView' && s.sec === 'cmp') this._cmList();
+            }, () => { s.cmLoaded = true; s.cmDenied = true; if (s.sec === 'cmp') this._cmList(); });
+        },
+        _cmRender() {
+            const s = this._id, box = document.getElementById('idContent');
+            if (!box) return;
+            this._cmListen();
+            box.innerHTML = `<div class="id-wrap">
+                ${this._idSwitch()}
+                <div class="id-hero cm">
+                    <div class="id-bulb"><i data-lucide="life-buoy"></i><span></span><span></span><span></span></div>
+                    <div><b>شفت خطأ أو عندك مشكلة بالتطبيق؟</b><p>اكتبها وأرفق صورة اذا تحب، والإدارة تشوفها وترد عليك هنا.</p></div>
+                    <button class="id-btn light" onclick="app.cmCompose()"><i data-lucide="plus"></i>بلّغ عن مشكلة</button>
+                </div>
+                <div class="id-list" id="cmList"></div>
+            </div>`;
+            lucide.createIcons();
+            this._cmList();
+        },
+        _cmList() {
+            const s = this._id, box = document.getElementById('cmList');
+            if (!box) return;
+            if (!s.cmLoaded) { box.innerHTML = '<div class="id-load"><i></i><i></i></div>'; return; }
+            if (s.cmDenied) { box.innerHTML = '<p class="id-none">البلاغات بعدها ما مفعلة. لازم الإدارة تنشر القواعد الجديدة.</p>'; return; }
+            if (!(s.cm || []).length) { box.innerHTML = '<div class="id-empty small"><span><i data-lucide="check-circle"></i></span><b>ما بلّغت عن شي لحد الحين</b></div>'; lucide.createIcons(); return; }
+            box.innerHTML = '<div class="id-sub">بلاغاتي</div>' + s.cm.map((x) => {
+                const k = CMK[x.k] || CMK.problem, st = CMS[x.st] || CMS.new;
+                return `<article class="id-card cm" style="--c:${k[2]};--sc:${st[2]}">
+                    <div class="id-b">
+                        <div class="id-meta"><span class="id-cat"><i data-lucide="${k[1]}"></i>${k[0]}</span><span class="id-st"><i data-lucide="${st[1]}"></i>${st[0]}</span></div>
+                        <p class="id-d" dir="auto">${esc(x.t)}</p>
+                        ${x.img ? `<img class="cm-img" src="${esc(x.img)}" alt="" onclick="app.cmZoom(this.src)">` : ''}
+                        <div class="id-by"><span>${ago(x.at)}${x.ph ? ' · رقمك: ' + esc(x.ph) : ''}</span></div>
+                        ${x.r ? `<div class="id-reply"><span><i data-lucide="megaphone"></i>رد الإدارة</span><p dir="auto">${esc(x.r)}</p></div>` : ''}
+                    </div></article>`;
+            }).join('');
+            lucide.createIcons();
+        },
+        cmZoom(src) {
+            const o = document.createElement('div');
+            o.className = 'cm-zoom'; o.innerHTML = '<img alt="">'; o.firstChild.src = src;
+            o.onclick = () => o.remove(); document.body.appendChild(o);
+        },
+
+        cmCompose() {
+            const s = this._id;
+            s.cd = { k: 'bug', t: '', ph: '', img: '' };
+            document.querySelector('.id-sheet')?.remove();
+            const el = document.createElement('div');
+            el.className = 'id-sheet';
+            el.innerHTML = '<div class="id-sp" id="idSp"></div>';
+            el.addEventListener('click', (e) => { if (e.target === el) this.idComposeClose(); });
+            document.body.appendChild(el);
+            requestAnimationFrame(() => el.classList.add('in'));
+            this._cmForm();
+            setTimeout(() => document.getElementById('cmT')?.focus(), 250);
+        },
+        _cmForm() {
+            const d = this._id.cd, box = document.getElementById('idSp');
+            if (!box) return;
+            const wait = Math.max(0, 300000 - (Date.now() - (Number((() => { try { return localStorage.getItem('isp_cm_last_' + this.authUid); } catch (e) { return 0; } })()) || 0)));
+            box.innerHTML = `<div class="id-sh"><b>بلّغ عن مشكلة</b><button onclick="app.idComposeClose()" aria-label="سد"><i data-lucide="x"></i></button></div>
+                <label>شنو نوع البلاغ؟ *</label>
+                <div class="id-pick">${Object.keys(CMK).map((k) => `<button class="${d.k === k ? 'on' : ''}" style="--c:${CMK[k][2]}" onclick="app.cmKind('${k}')"><i data-lucide="${CMK[k][1]}"></i>${CMK[k][0]}</button>`).join('')}</div>
+                <label>اكتب المشكلة بالتفصيل *</label>
+                <textarea id="cmT" maxlength="1000" rows="5" placeholder="شنو صار؟ بأي صفحة؟ شنو ضغطت؟ كل ما كتبت أكثر نكدر نحلها أسرع.">${esc(d.t)}</textarea>
+                <label>صورة توضيحية (اختياري)</label>
+                ${d.img ? `<div class="cm-prev"><img src="${esc(d.img)}" alt=""><button onclick="app.cmImg(null)" aria-label="شيل الصورة"><i data-lucide="x"></i></button></div>`
+                    : `<label class="cm-file"><i data-lucide="image-plus"></i>أرفق صورة من الكاليري<input type="file" accept="image/*" hidden onchange="app.cmImg(this.files[0])"></label>`}
+                <label>رقم هاتف للتواصل (اختياري)</label>
+                <input id="cmP" type="tel" inputmode="tel" maxlength="16" dir="ltr" value="${esc(d.ph)}" placeholder="07xxxxxxxxx">
+                <small class="cm-note">اذا تحب نتواصل وياك أو نستفسر أكثر اكتب رقمك. وتوصل وياها بياناتك بالتطبيق (الاسم ورقم الطالب) ونسخة التطبيق حتى نكدر نحل المشكلة.</small>
+                <button class="id-btn wide" id="cmSend" onclick="app.cmSubmit()" ${wait ? 'disabled' : ''}><i data-lucide="send"></i>${wait ? 'تكدر تبلّغ بعد ' + Math.ceil(wait / 60000) + ' دقيقة' : 'أرسل البلاغ'}</button>`;
+            lucide.createIcons();
+        },
+        _cmKeep() { const d = this._id.cd; d.t = (document.getElementById('cmT') || {}).value || d.t; d.ph = (document.getElementById('cmP') || {}).value || d.ph; },
+        cmKind(k) { this._cmKeep(); this._id.cd.k = k; this._cmForm(); },
+        async cmImg(file) {
+            this._cmKeep();
+            const d = this._id.cd;
+            if (!file) { d.img = ''; this._cmForm(); return; }
+            try {
+                const url = await new Promise((res, rej) => {
+                    const fr = new FileReader(); fr.onerror = rej;
+                    fr.onload = () => {
+                        const im = new Image(); im.onerror = rej;
+                        im.onload = () => {
+                            let w = Math.min(960, im.width), q = 0.72, out = '';
+                            for (let i = 0; i < 6; i++) {
+                                const cv = document.createElement('canvas'), r = w / im.width; cv.width = Math.round(im.width * r); cv.height = Math.round(im.height * r);
+                                const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(im, 0, 0, cv.width, cv.height);
+                                out = cv.toDataURL('image/jpeg', q);
+                                if (out.length <= 110000) break;
+                                w = Math.round(w * 0.8); q = Math.max(0.5, q - 0.06);
+                            }
+                            out.length <= 110000 ? res(out) : rej(new Error('big'));
+                        };
+                        im.src = fr.result;
+                    };
+                    fr.readAsDataURL(file);
+                });
+                d.img = url;
+            } catch (e) { this.showToast('ما كدرت أجهز الصورة، جرب صورة ثانية'); }
+            this._cmForm();
+        },
+        async cmSubmit() {
+            const s = this._id; this._cmKeep();
+            const d = s.cd, t = String(d.t || '').trim(), ph = String(d.ph || '').replace(/[^\d+]/g, '');
+            if (t.length < 10) { this.showToast('اكتب المشكلة بجملة أوضح (10 حروف على الأقل)'); return; }
+            if (ph && (ph.length < 9 || ph.length > 16)) { this.showToast('رقم الهاتف مو صحيح، صححه أو شيله'); return; }
+            const u = this.currentUser || {}, id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+            const native = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
+            const o = { uid: this.authUid, k: d.k, t: t.slice(0, 1000), st: 'new', at: window.firebaseDbHelpers.serverTimestamp(),
+                n: String(u.fullName || 'طالب').slice(0, 80), s: String(u.studentNumber || '').slice(0, 12), ver: String(window.APP_VER || '').slice(0, 40), view: String(this.currentView || '').slice(0, 40),
+                dev: ((native ? 'تطبيق أندرويد' : 'متصفح') + ' · ' + ((navigator.userAgent.match(/\(([^)]+)\)/) || [])[1] || '')).slice(0, 160) };
+            if (ph) o.ph = ph; if (d.img) o.img = d.img;
+            const { ref, update, serverTimestamp } = window.firebaseDbHelpers;
+            const btn = document.getElementById('cmSend'); if (btn) btn.disabled = true;
+            try {
+                await update(ref(window.firebaseDb), { ['complaints/' + this.authUid + '/' + id]: o, ['complaintLast/' + this.authUid]: serverTimestamp() });
+                try { localStorage.setItem('isp_cm_last_' + this.authUid, String(Date.now())); } catch (e) {}
+                s.cd = null; this.idComposeClose(); this._idRender();
+                this.showToast('وصل بلاغك للإدارة، شكراً لك');
+            } catch (e) {
+                this.showToast(String(e && e.message || e).includes('ermission') ? 'ما انرسل. يمكن بلّغت قبل أقل من 5 دقايق' : 'ما انرسل، تأكد من النت');
                 if (btn) btn.disabled = false;
             }
         },

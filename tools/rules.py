@@ -955,6 +955,31 @@ rules = {
     "ideaMine": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN)}},
     "ideaLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 600000)"}},
 
+    # ----- شكاوي ومشاكل: a student reports a bug, a problem or a complaint (text, an optional small photo, an optional phone).
+    # complaints/{uid}/{id}: the student creates their own (once, one every 5 minutes) and reads them back with the admin's
+    # answer; only the admin reads all of them and changes the status / reply. -----
+    "complaints": {".read": ADMIN, "$uid": {".read": OWNER, "$id": {
+        ".write": ors(ADMIN, ands(OWNER, "!data.exists()", "newData.child('at').val() == now",
+                                  "newData.parent().parent().parent().child('complaintLast/' + auth.uid).val() == now")),
+        ".validate": "!newData.exists() || data.exists() || (" + ands(
+            "newData.hasChildren(['uid', 'k', 't', 'st', 'at'])", "newData.child('uid').val() == $uid", "newData.child('st').val() == 'new'") + ")",
+        "uid": {".validate": "newData.isString()"},
+        "k": {".validate": "newData.isString() && newData.val().matches(/^(bug|problem|complaint)$/)"},
+        "t": {".validate": "newData.isString() && newData.val().length >= 10 && newData.val().length <= 1000"},
+        "ph": {".validate": "newData.isString() && newData.val().length <= 20"},
+        "img": {".validate": "newData.isString() && newData.val().length <= 120000 && newData.val().matches(/^data:image\\/jpeg;base64,/)"},
+        "n": {".validate": "newData.isString() && newData.val().length <= 80"},
+        "s": {".validate": "newData.isString() && newData.val().length <= 12"},
+        "ver": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "dev": {".validate": "newData.isString() && newData.val().length <= 160"},
+        "view": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "st": {".validate": "newData.isString() && newData.val().matches(/^(new|seen|fixed|closed)$/)"},
+        "r": {".validate": "newData.isString() && newData.val().length <= 500"},
+        "at": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }}},
+    "complaintLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"}},
+
     # ----- usage numbers and error reports (also before signing in) -----
     # anyone (signed in or not) pings with these fields only, each small
     "devices": {"$id": {
