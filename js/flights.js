@@ -81,7 +81,7 @@
             ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }],
         ];
         const SAT = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, attribution: 'Esri, Maxar, Earthstar Geographics' }];
-        const LAB = ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'];
+        const LAB = [];                                   // plain photos: no road numbers or place names drawn over them
         const lines = {};
         // a tile server that stops answering (or asks for a key) is replaced by the next one
         const useTiles = (i) => {
@@ -90,12 +90,12 @@
             over.forEach((l) => map.removeLayer(l)); over = [];
             if (mode === 'sat') {
                 // real satellite photos (houses, streets) with the roads and place names drawn over them
-                tile = L.tileLayer(SAT[0], SAT[1]).addTo(map);
+                tile = L.tileLayer(SAT[0], Object.assign({ keepBuffer: 1, updateWhenZooming: false, updateInterval: 250 }, SAT[1])).addTo(map);
                 LAB.forEach((u) => over.push(L.tileLayer(u, { maxZoom: 19, maxNativeZoom: 18, opacity: 0.95, attribution: '' }).addTo(map)));
                 tile.on('tileload', () => { errs = 0; });
                 return;
             }
-            tile = L.tileLayer(SRC[i][0], SRC[i][1]).addTo(map);
+            tile = L.tileLayer(SRC[i][0], Object.assign({ keepBuffer: 1, updateWhenZooming: false, updateInterval: 250 }, SRC[i][1])).addTo(map);
             tile.on('tileload', () => { errs = 0; });
             tile.on('tileerror', () => { if (++errs >= 6 && tried + 1 < SRC.length) useTiles(tried + 1); });
         };
@@ -104,7 +104,20 @@
             setDark(d) { dark = d; host.classList.toggle('fl-night', !!d); if (!tile) useTiles(0); },
             setMapType(t) { mode = t === 'sat' ? 'sat' : 'street'; host.classList.toggle('fl-sat', mode === 'sat'); useTiles(0); },
             view(out) { const c = map.getCenter(); out.lat = c.lat; out.lng = c.lng; out.z = map.getZoom(); out.w = host.clientWidth; out.h = host.clientHeight; return out; },
-            setView(lat, lng, z) { map.setView([lat, lng], z == null ? map.getZoom() : z, { animate: false }); },
+            // moving the camera with a fixed zoom only slides the map layer by a fraction of a pixel (no re-layout of the tiles every frame:
+            // that was the stutter); the tiles catch up a few times a second
+            setView(lat, lng, z) {
+                const cz = map.getZoom();
+                if ((z == null || Math.abs(z - cz) < 1e-4) && map._rawPanBy && map._loaded) {
+                    const a = map.project(map.getCenter(), cz), b = map.project([lat, lng], cz), dx = b.x - a.x, dy = b.y - a.y;
+                    if (Math.abs(dx) < 0.05 && Math.abs(dy) < 0.05) return;
+                    if (Math.abs(dx) > 600 || Math.abs(dy) > 600) { map.setView([lat, lng], cz, { animate: false }); return; }
+                    map._rawPanBy(L.point(dx, dy));
+                    const n = performance.now(); if (n - (A._me || 0) > 350) { A._me = n; map.fire('moveend'); }
+                    return;
+                }
+                map.setView([lat, lng], z == null ? cz : z, { animate: false });
+            },
             line(id, pts, st) {
                 const ll = pts.map((p) => [p[0], p[1]]);
                 if (!lines[id]) lines[id] = L.polyline(ll, { interactive: false, lineCap: 'round', lineJoin: 'round', ...st }).addTo(map); else { lines[id].setLatLngs(ll); lines[id].setStyle(st); }
@@ -458,7 +471,7 @@
     }
     function drawClouds(g, w, h, head, dt, k, night) {
         if (!cloudSp) { cloudSp = cloudSprite(); let r = 7; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; for (let i = 0; i < 12; i++) CLOUDS.push({ x: rnd(), y: rnd(), s: 90 + rnd() * 130, a: 0.16 + rnd() * 0.2 }); }
-        const n = C.perf ? 4 : CLOUDS.length, rad = (head * Math.PI) / 180, dx = -Math.sin(rad), dy = Math.cos(rad);
+        const n = C.perf ? 3 : 7, rad = (head * Math.PI) / 180, dx = -Math.sin(rad), dy = Math.cos(rad);
         g.save();
         for (let i = 0; i < n; i++) {
             const c = CLOUDS[i], sp = (18 + c.s * 0.32) * k;                    // bigger = closer = faster
@@ -472,7 +485,7 @@
     function drawFlow(g, v, f, hs, t) {
         if (hs.status === 'done' || hs.p >= 0.999) return;
         const n = 18, a = hs.p, b = Math.min(1, hs.p + 0.22);
-        g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([2, 15]); g.lineDashOffset = -((t / 1000) * 26) % 17; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.9)'; g.shadowColor = 'rgba(56,189,248,.9)'; g.shadowBlur = C.perf ? 0 : 6;
+        g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([2, 15]); g.lineDashOffset = -((t / 1000) * 26) % 17; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.9)'; g.shadowBlur = 0;
         g.beginPath();
         for (let i = 0; i <= n; i++) { FM.gcPoint(f.o, f.d, a + (b - a) * (i / n), POS); FM.project(v, POS[0], POS[1], Q); if (i) g.lineTo(Q[0], Q[1]); else g.moveTo(Q[0], Q[1]); }
         g.stroke(); g.restore();
@@ -531,14 +544,14 @@
         if (C.onFrame && C.onFrame() === false) return;                   // the page says: not visible
         const dt = Math.min(0.1, (t - (C._last || t)) / 1000); C._last = t;
         // measure only after the start-up (loading tiles and baking the plane make the first seconds slow) and use the median
-        if (ms() - (C._born || 0) > 6000) { C._ft.push(dt); if (C._ft.length > 150) C._ft.shift(); if (!C.perf && !C.perfAuto && C._ft.length === 150) { const m = C._ft.slice().sort((a, b) => a - b)[75]; if (m > 0.05) { C.perfAuto = true; C.setPerf(true, true); } } }
+        if (ms() - (C._born || 0) > 6000) { C._ft.push(dt); if (C._ft.length > 150) C._ft.shift(); if (!C.perf && !C.perfAuto && C._ft.length === 150) { const m = C._ft.slice().sort((a, b) => a - b)[75]; if (m > 0.042) { C.perfAuto = true; C.setPerf(true, true); } } }
         if (C.replay && !C.replay.paused) { const f = C.replay.rec; C.replay.base = Math.min(f.du + 2000, C.replay.base + dt * 1000 * C.replay.speed); }
         const now = C.now(), v = C.view(), g = C.ctx, d = C.dpr;
         const hs = C.heroState();
         cameraStep(dt, hs);
         g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, C.w, C.h);
         // the route lines: the part flown fades, the part to fly glows (refreshed about once a second)
-        if (hs && (t - (C._lineT || 0) > 900 || C._lineP == null)) { C._lineT = t; drawLines(hs); }
+        if (hs) drawRoute(g, v, hs);
         const f = C.heroFlight();
         if (C.preview) { /* the route before the flight starts: lines only (set by setPreview) */ }
         if (hs && (C.cam === 'follow' || C.cam === 'intro') && (hs.status === 'flying' || hs.status === 'landing')) drawClouds(g, C.w, C.h, hs.head, dt, clamp(hs.left / 9000, 0.12, 1) * clamp(hs.el / 7000, 0, 1) * clamp(1.5 - (v.z - 9) / 5, 0.25, 1), C.night);
@@ -586,12 +599,15 @@
         }
         if (C.pins.length) C.pins.forEach((p) => { FM.project(v, p.lat, p.lng, P); pin(g, P[0], P[1], p.label, p.color, C.night); });
     }
-    function drawLines(hs) {
-        const f = C.heroFlight(), A = C.adapter; if (!f || !A) return;
-        const p = hs.p;
-        A.line('rest', FM.gcSlice(f.o, f.d, p, 1, 48), { color: C.night ? '#38bdf8' : '#0284c7', weight: 4, opacity: 0.95, dashArray: null });
-        if (p > 0.004) A.line('done', FM.gcSlice(f.o, f.d, 0, p, Math.max(6, Math.round(p * 48))), { color: C.night ? '#94a3b8' : '#64748b', weight: 3, opacity: 0.55, dashArray: null });
-        C._lineP = p;
+    // the route is drawn on our own canvas every frame (a map-library polyline was redrawn once a second, which made the whole screen hitch)
+    function drawRoute(g, v, hs) {
+        const f = C.heroFlight(); if (!f) return;
+        const p = hs.p, night = C.night;
+        const path = (a, b, n) => { g.beginPath(); for (let i = 0; i <= n; i++) { FM.gcPoint(f.o, f.d, a + (b - a) * (i / n), POS); FM.project(v, POS[0], POS[1], Q); if (i) g.lineTo(Q[0], Q[1]); else g.moveTo(Q[0], Q[1]); } };
+        g.save(); g.lineCap = 'round'; g.lineJoin = 'round';
+        if (p > 0.004) { g.strokeStyle = night ? 'rgba(148,163,184,.6)' : 'rgba(100,116,139,.65)'; g.lineWidth = 3; path(0, p, Math.max(6, Math.round(p * 40))); g.stroke(); }
+        if (p < 0.999) { path(p, 1, 40); g.strokeStyle = 'rgba(2,6,23,.35)'; g.lineWidth = 6.5; g.stroke(); g.strokeStyle = night ? '#38bdf8' : '#0ea5e9'; g.lineWidth = 4; g.stroke(); }
+        g.restore();
     }
     // the dashed route shown while the student is still choosing
     C.setPreview = function (o, d) {
