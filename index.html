@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '4eb7c78fb0';
+        window.APP_VER = 'b284b1d990';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=18325b9a58">
+    <link rel="stylesheet" href="css/app.css?v=a71a6ccd4c">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -1662,10 +1662,10 @@
                     <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
                 </button>
                 <div class="flex-1 min-w-0">
-                    <div class="font-bold truncate theme-transition" style="color: var(--text);">صندوق الأفكار</div>
-                    <div class="text-xs truncate theme-transition" style="color: var(--text2);">اقترح وصوّت، والتطبيق يتطور بيكم</div>
+                    <div class="font-bold truncate theme-transition" id="idHeadT" style="color: var(--text);">صندوق الأفكار</div>
+                    <div class="text-xs truncate theme-transition" style="color: var(--text2);">أفكار وشكاوي، والتطبيق يتطور بيكم</div>
                 </div>
-                <button onclick="app.idCompose && app.idCompose()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="فكرة جديدة"><i data-lucide="plus" class="w-5 h-5" style="color: #F59E0B;"></i></button>
+                <button onclick="app.idPlus && app.idPlus()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="جديد"><i data-lucide="plus" class="w-5 h-5" style="color: #F59E0B;"></i></button>
             </div>
             <div id="idContent"><div class="id-wrap"><div class="id-load"><i></i><i></i></div></div></div>
         </div>
