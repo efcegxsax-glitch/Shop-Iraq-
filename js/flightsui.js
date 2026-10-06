@@ -70,6 +70,7 @@
                     <button class="fl-ic" onclick="app.flBack()" aria-label="رجوع"><i data-lucide="chevron-right"></i></button>
                     <div class="fl-title"><b>رحلة الطالب الجوية</b><small id="flSub">اختار رحلتك وخلّ الوقت يمر وانت تدرس</small></div>
                     <button class="fl-ic" id="flBtnOthers" onclick="app.flToggleOthers()" aria-label="رحلات الطلاب"><i data-lucide="users"></i></button>
+                    <button class="fl-ic" id="flBtnMap" onclick="app.flToggleMap()" aria-label="خريطة القمر الصناعي"><i data-lucide="satellite"></i></button>
                     <button class="fl-ic" id="flBtnPerf" onclick="app.flTogglePerf()" aria-label="وضع الأداء"><i data-lucide="gauge"></i></button>
                 </div>
                 <div class="fl-chips hidden" id="flChips"></div>
@@ -80,6 +81,7 @@
                     <button data-cam="overview" onclick="app.flCam('overview')" aria-label="عرض الرحلة كاملة"><i data-lucide="maximize"></i></button>
                     <button data-cam="free" onclick="app.flCam('free')" aria-label="تحريك حر"><i data-lucide="hand"></i></button>
                     <button onclick="app.flCam('follow')" aria-label="ارجع للطائرة"><i data-lucide="crosshair"></i></button>
+                    <button onclick="app.flStunt()" aria-label="حركة استعراضية"><i data-lucide="sparkles"></i></button>
                 </div>
                 <div class="fl-card hidden" id="flCard"></div>
                 <div class="fl-sheet" id="flSheet"><div class="fl-grab" id="flGrab" aria-label="اسحب لفتح اللوحة"><span></span></div><div class="fl-body" id="flBody"></div></div>
@@ -90,7 +92,7 @@
         },
         _flFill() {
             $('flBtnOthers').classList.toggle('on', C.showOthers);
-            $('flBtnPerf').classList.toggle('on', C.perf);
+            $('flBtnPerf').classList.toggle('on', C.perf); $('flBtnMap').classList.toggle('on', C.mapType === 'sat');
             if (C.hero || C.replay) this._flHud(); else this._flHome();
             this._flPad();
         },
@@ -340,7 +342,7 @@
         },
         _flCamMark(m) { document.querySelectorAll('#flCam [data-cam]').forEach((b) => b.classList.toggle('on', b.dataset.cam === m || (m === 'intro' && b.dataset.cam === 'follow'))); },
         flCam(m) { C.setCam(m); if (m === 'follow' && C.heroState() && C.adapter) { const hs = C.heroState(), z = Math.max(C.view().z, 6), sc = C.shiftCenter(hs.pos, z); C.adapter.setView(sc.lat, sc.lng, z); } },
-        _flHeroTap() { this._flSnap(U.snap === 'min' ? 'mid' : 'min'); },
+        _flHeroTap() { if (C.heroState() && C.heroState().status === 'flying') C.stunt(); this._flSnap(U.snap === 'min' ? 'mid' : 'min'); },
         flCancel() {
             if (!confirm('تنهي الرحلة هسه؟ ما تنحسب بين رحلاتك المكتملة.')) return;
             const f = C.hero; if (!f) return;
@@ -424,6 +426,11 @@
         },
         flCardClose() { this._flCardClose(); },
         _flCardClose() { this._flCardId = null; const b = $('flCard'); if (b) b.classList.add('hidden'); },
+        flToggleMap() {
+            const t = C.mapType === 'sat' ? 'street' : 'sat'; C.setMapType(t); $('flBtnMap').classList.toggle('on', t === 'sat');
+            this.showToast(t === 'sat' ? 'خريطة القمر الصناعي: كبّر الشاشة لتشوف البيوت والشوارع' : 'رجعت الخريطة العادية');
+        },
+        flStunt() { if (!C.heroState() || !C.stunt()) return; },
         flTogglePerf() { C.setPerf(!C.perf); this.showToast(C.perf ? 'وضع الأداء شغّال: جودة أقل وسلاسة أكثر' : 'وضع الأداء مطفي'); },
     });
 
