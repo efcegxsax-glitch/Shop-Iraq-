@@ -3201,9 +3201,19 @@
             // wasn't seen before).
             // News the panel scheduled for later (publishAt) or aimed at some governorates only (govs): a student sees them
             // only when the time has come and only if their governorate is listed. Scheduled ones wait in _newsPend.
-            _newsAimed(n) { return !(Array.isArray(n.govs) && n.govs.length && n.govs.indexOf(this._dsGov()) === -1); },
+            // (until the student's governorate is known nothing is hidden; the tick below removes what is aimed elsewhere once it is)
+            _newsAimed(n) { const g = this._dsGov(); return !g || !(Array.isArray(n.govs) && n.govs.length && n.govs.indexOf(g) === -1); },
             _newsReady(n) { return !(Number(n.publishAt) > Date.now()); },
             _newsPendTick() {
+                // news aimed at other governorates that came in before the governorate was known
+                if (this._dsGov()) {
+                    const off = newsData.filter((n) => !this._newsAimed(n));
+                    if (off.length) {
+                        off.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
+                        newsStore.remove(off.map((n) => n.id));
+                        this.renderNews(); this.renderNewsTicker();
+                    }
+                }
                 // scheduled in-app notifications whose time has come
                 const np = this._notifPend;
                 if (np && np.length) {
@@ -3282,6 +3292,7 @@
                     this.applyUserNewsState();
                     this.renderNews();
                     this.renderNewsTicker();
+                    clearTimeout(this._nt); this._nt = setTimeout(() => this._newsPendTick(), 3000); // by then the governorate is usually known
                     if (newItem) {
                         if (!newItem.notifHandled && !notifications.some(n => n.id === newItem.id) && !this.isNotifDeleted(newItem.id)) {
                             notifications.unshift({
