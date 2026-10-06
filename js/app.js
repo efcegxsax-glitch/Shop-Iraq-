@@ -335,6 +335,7 @@
             { id: 'schools', label: 'المدارس', icon: 'school' },
             { id: 'decisions', label: 'القرارات', icon: 'gavel' },
             { id: 'weather', label: 'الأنواء الجوية', icon: 'cloud-sun' },
+            { id: 'environment', label: 'البيئة', icon: 'leaf' },
             { id: 'other', label: 'أخرى', icon: 'more-horizontal' }
         ];
 
