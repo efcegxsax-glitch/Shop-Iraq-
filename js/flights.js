@@ -9,7 +9,7 @@
 // The page and its buttons are in js/flightsui.js. Loaded on demand by app._need('flights').
 (function () {
     const FM = window.FlightMath;
-    const KEY = { ACTIVE: 'isp_fl_active', HIST: 'isp_fl_hist', PERF: 'isp_fl_perf', STYLE: 'isp_fl_style' };
+    const KEY = { ACTIVE: 'isp_fl_active', HIST: 'isp_fl_hist', PERF: 'isp_fl_perf', STYLE: 'isp_fl_style', MAP: 'isp_fl_map' };
     const LEAFLET = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/';
     const IRAQ_BOX = { s: 28.9, n: 37.6, w: 38.7, e: 48.9 };
     const ms = () => (window.performance && performance.now ? performance.now() : Date.now());
@@ -72,19 +72,29 @@
     // ---------- the map adapter: Leaflet ----------
     async function makeLeaflet(host, start) {
         await loadLeaflet();
-        const L = window.L, map = L.map(host, { zoomControl: false, attributionControl: true, zoomSnap: 0, zoomDelta: 0.5, wheelPxPerZoomLevel: 90, minZoom: 2, maxZoom: 17, preferCanvas: true, worldCopyJump: false, inertia: true });
+        const L = window.L, map = L.map(host, { zoomControl: false, attributionControl: true, zoomSnap: 0, zoomDelta: 0.5, wheelPxPerZoomLevel: 90, minZoom: 2, maxZoom: 19, preferCanvas: true, worldCopyJump: false, inertia: true });
         map.attributionControl.setPrefix('');
         map.setView([start.lat, start.lng], start.z, { animate: false });
-        let tile = null, dark = null, errs = 0, tried = 0;
+        let tile = null, dark = null, errs = 0, tried = 0, mode = 'street', over = [];
         const SRC = [
             ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }],
             ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }],
         ];
+        const SAT = ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, maxNativeZoom: 18, attribution: 'Esri, Maxar, Earthstar Geographics' }];
+        const LAB = ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}', 'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'];
         const lines = {};
         // a tile server that stops answering (or asks for a key) is replaced by the next one
         const useTiles = (i) => {
             if (tile) map.removeLayer(tile);
             errs = 0; tried = i;
+            over.forEach((l) => map.removeLayer(l)); over = [];
+            if (mode === 'sat') {
+                // real satellite photos (houses, streets) with the roads and place names drawn over them
+                tile = L.tileLayer(SAT[0], SAT[1]).addTo(map);
+                LAB.forEach((u) => over.push(L.tileLayer(u, { maxZoom: 19, maxNativeZoom: 18, opacity: 0.95, attribution: '' }).addTo(map)));
+                tile.on('tileload', () => { errs = 0; });
+                return;
+            }
             tile = L.tileLayer(SRC[i][0], SRC[i][1]).addTo(map);
             tile.on('tileload', () => { errs = 0; });
             tile.on('tileerror', () => { if (++errs >= 6 && tried + 1 < SRC.length) useTiles(tried + 1); });
@@ -92,6 +102,7 @@
         const A = {
             kind: 'leaflet', fractional: true,
             setDark(d) { dark = d; host.classList.toggle('fl-night', !!d); if (!tile) useTiles(0); },
+            setMapType(t) { mode = t === 'sat' ? 'sat' : 'street'; host.classList.toggle('fl-sat', mode === 'sat'); useTiles(0); },
             view(out) { const c = map.getCenter(); out.lat = c.lat; out.lng = c.lng; out.z = map.getZoom(); out.w = host.clientWidth; out.h = host.clientHeight; return out; },
             setView(lat, lng, z) { map.setView([lat, lng], z == null ? map.getZoom() : z, { animate: false }); },
             line(id, pts, st) {
@@ -121,13 +132,14 @@
     async function makeGoogle(host, key, start) {
         await loadGoogle(key);
         const { Map } = await window.google.maps.importLibrary('maps');
-        const map = new Map(host, { center: { lat: start.lat, lng: start.lng }, zoom: Math.round(start.z), disableDefaultUI: true, gestureHandling: 'greedy', clickableIcons: false, backgroundColor: '#0b1220', minZoom: 2, maxZoom: 17, keyboardShortcuts: false, styles: GM_LIGHT });
+        const map = new Map(host, { center: { lat: start.lat, lng: start.lng }, zoom: Math.round(start.z), disableDefaultUI: true, gestureHandling: 'greedy', clickableIcons: false, backgroundColor: '#0b1220', minZoom: 2, maxZoom: 19, keyboardShortcuts: false, styles: GM_LIGHT });
         const lines = {}, ready = new Promise((res, rej) => { const t = setTimeout(() => rej(new Error('gm-tiles')), 14000); window.google.maps.event.addListenerOnce(map, 'tilesloaded', () => { clearTimeout(t); res(); }); });
         await ready;
         if (C.gmAuthFailed) throw new Error('gm-auth');
         let dark = null;
         const A = {
             kind: 'google', fractional: false,
+            setMapType(t) { map.setMapTypeId(t === 'sat' ? 'hybrid' : 'roadmap'); },
             setDark(d) { if (dark === d) return; dark = d; map.setOptions({ styles: d ? GM_DARK : GM_LIGHT }); },
             view(out) { const c = map.getCenter(); out.lat = c.lat(); out.lng = c.lng(); out.z = map.getZoom(); out.w = host.clientWidth; out.h = host.clientHeight; return out; },
             setView(lat, lng, z) { map.setCenter({ lat, lng }); if (z != null && Math.round(z) !== map.getZoom()) map.setZoom(Math.round(z)); },
@@ -163,6 +175,8 @@
         if (!A) A = await makeLeaflet(C.host, start);
         C.adapter = A; C._born = ms();
         C.perf = jget(KEY.PERF, null) == null ? (navigator.deviceMemory ? navigator.deviceMemory <= 2 : false) : !!jget(KEY.PERF, false);
+        C.mapType = jget(KEY.MAP, 'street') === 'sat' ? 'sat' : 'street';
+        if (C.mapType === 'sat') A.setMapType('sat');
         C.autoNight();
         A.on('drag', () => { if (C.cam !== 'free') { C.cam = 'free'; C.emit('cam', 'free'); } });
         A.on('tap', (x, y) => C.tap(x, y));
@@ -213,11 +227,12 @@
     const FLAT = new Path2D('M0,-0.5 C0.03,-0.5 0.05,-0.42 0.055,-0.3 L0.055,-0.12 L0.62,0.18 L0.62,0.25 L0.055,0.06 L0.045,0.3 L0.2,0.43 L0.2,0.5 L0.02,0.44 L0,0.5 L-0.02,0.44 L-0.2,0.5 L-0.2,0.43 L-0.045,0.3 L-0.055,0.06 L-0.62,0.25 L-0.62,0.18 L-0.055,-0.12 L-0.055,-0.3 C-0.05,-0.42 -0.03,-0.5 0,-0.5 Z');
     const ACCENT = { modern: '#0ea5e9', classic: '#dc2626', minimal: '#f8fafc' };
     // draw a plane at (x, y), heading in degrees (0 = up), size = wing span in pixels, lift = pixels of "altitude" (shadow offset)
-    function drawPlane(g, x, y, head, size, bank, sty, alpha, lift, flat) {
+    function drawPlane(g, x, y, head, size, bank, sty, alpha, lift, flat, ex) {
         g.save(); g.translate(x, y);
         const rot = (head * Math.PI) / 180;
         if (lift > 0.5) { g.save(); g.rotate(0); g.translate(lift * 0.35, lift * 0.9); g.rotate(rot); g.globalAlpha = alpha * 0.28; if (!flat && C.shadow && C.shadow[sty]) g.drawImage(C.shadow[sty], -size / 2, -size / 2, size, size); else { g.scale(size, size); g.fillStyle = '#000'; g.fill(FLAT); } g.restore(); }
         g.rotate(rot); g.globalAlpha = alpha;
+        if (ex && ex.sx != null) g.scale(ex.sx, 1);           // a roll: the wings turn edge-on and back
         if (!flat && C.sprites && C.sprites[sty]) {
             const sp = C.sprites[sty], b = clamp(bank, -28, 28);
             let i = 0; while (i < BANK_LIST.length - 2 && b > BANK_LIST[i + 1]) i++;
@@ -260,8 +275,16 @@
         return FM.stateAt(f, C.now());
     };
     // the opening move: out from the departure city, the whole route, then onto the plane
-    C.intro = function () { C.cam = 'intro'; C.camT0 = ms(); const f = C.heroFlight(); if (!f) return; C.camGoal = C.routeView(); C.introFrom = { lat: f.o[0], lng: f.o[1] }; C.emit('cam', 'intro'); };
-    const FOLLOW_Z = (goalZ) => clamp(goalZ + 2, 6.5, 11);
+    C.intro = function () { C._landZ = 0; C._zGoal = null; C.cam = 'intro'; C.camT0 = ms(); const f = C.heroFlight(); if (!f) return; C.camGoal = C.routeView(); C.introFrom = { lat: f.o[0], lng: f.o[1] }; C.emit('cam', 'intro'); };
+    const FOLLOW_Z = (goalZ) => C.mapType === 'sat' ? clamp(goalZ + 5, 11, 14) : clamp(goalZ + 2, 6.5, 11);
+    // switch between the street map and the satellite photos; the camera dives down when the photos are on
+    C.setMapType = function (t) {
+        t = t === 'sat' ? 'sat' : 'street'; C.mapType = t; jset(KEY.MAP, t);
+        if (C.adapter && C.adapter.setMapType) C.adapter.setMapType(t);
+        const rv = C.heroFlight() ? C.routeView() : null;
+        if (C.cam === 'follow' && rv) C._zGoal = FOLLOW_Z(rv.z);
+        C.emit('maptype', t);
+    };
     // the middle of the part of the screen that is not covered by the sheet / the top bar: that is where the plane should be
     C.visCenter = function () { const p = C.pad; return { x: p.l + (C.w - p.l - p.r) / 2, y: p.t + (C.h - p.t - p.b) / 2 }; };
     // the map centre that puts `pos` in the middle of the visible part at zoom z
@@ -291,7 +314,10 @@
             const k = 1 - Math.exp(-dt * 3.2), vc = C.visCenter();
             FM.project(v, hs.pos[0], hs.pos[1], P);
             const ll = FM.unproject(v, v.w / 2 + (P[0] - vc.x), v.h / 2 + (P[1] - vc.y), Q);
-            A.setView(lerp(v.lat, ll[0], k), lerp(v.lng, ll[1], k), null);
+            let zz = null;
+            if (C._zGoal != null) { zz = A.fractional ? lerp(v.z, C._zGoal, 1 - Math.exp(-dt * 2.4)) : Math.round(C._zGoal); if (Math.abs(v.z - C._zGoal) < 0.06) C._zGoal = null; }
+            else if (hs.status === 'landing' && !C._landZ) { C._landZ = 1; C._zGoal = Math.min(16, FOLLOW_Z(C.routeView() ? C.routeView().z : 7) + 1.6); }
+            A.setView(lerp(v.lat, ll[0], k), lerp(v.lng, ll[1], k), zz);
         } else if (C.cam === 'overview') {
             const g = C.camGoal || C.routeView(); if (!g) return;
             if (A.fractional) { const k = 1 - Math.exp(-dt * 4); A.setView(lerp(v.lat, g.lat, k), lerp(v.lng, g.lng, k), lerp(v.z, g.z, k)); }
@@ -452,6 +478,53 @@
         g.stroke(); g.restore();
     }
 
+    // ---------- stunts: a roll, a spin, a wing wave (tap the plane, or the sparkle button) ----------
+    const STUNTS = { roll: 2300, spin: 2600, wave: 2000, dive: 2400 };
+    C.stunt = function (kind) {
+        if (C._st) return false;
+        const ks = Object.keys(STUNTS); kind = STUNTS[kind] ? kind : ks[Math.floor(Math.random() * ks.length)];
+        C._st = { k: kind, t0: ms(), dur: STUNTS[kind] }; C.emit('stunt', kind); return kind;
+    };
+    // returns the extra look of the plane for now: { sx, rot, scale, bank, k } or null
+    function stuntNow() {
+        const st = C._st; if (!st) return null;
+        const k = (ms() - st.t0) / st.dur; if (k >= 1) { C._st = null; return null; }
+        const e = ease(k);
+        if (st.k === 'roll') return { sx: Math.cos(e * 4 * Math.PI), rot: 0, scale: 1 + 0.12 * Math.sin(Math.PI * k), bank: 0, k };
+        if (st.k === 'spin') return { sx: 1, rot: 360 * e, scale: 1 + 0.3 * Math.sin(Math.PI * k), bank: 0, k };
+        if (st.k === 'wave') return { sx: 1, rot: 0, scale: 1, bank: 26 * Math.sin(k * 6 * Math.PI) * (1 - k), k };
+        return { sx: 1, rot: 0, scale: 1 + 0.5 * Math.sin(Math.PI * k), bank: 0, k, dive: true };           // dive: swoops towards the viewer and back
+    }
+    // sparks flying out of the plane during a stunt
+    function drawSparks(g, x, y, k, size, kind) {
+        const n = C.perf ? 8 : 18; g.save();
+        for (let i = 0; i < n; i++) {
+            const a = (i / n) * 6.2832 + k * 3, r = size * (0.2 + 0.9 * ((k * 1.4 + i * 0.173) % 1)), al = 1 - ((k * 1.4 + i * 0.173) % 1);
+            g.globalAlpha = al * 0.9; g.fillStyle = i % 3 === 0 ? '#fde047' : i % 3 === 1 ? '#38bdf8' : '#fff';
+            g.beginPath(); g.arc(x + Math.cos(a) * r, y + Math.sin(a) * r, 1.6 + 2 * al, 0, 6.2832); g.fill();
+        }
+        if (kind === 'spin') { g.globalAlpha = 0.5 * (1 - k); g.strokeStyle = '#fff'; g.lineWidth = 2.5; g.beginPath(); g.arc(x, y, size * (0.4 + 0.5 * k), 0, 6.2832); g.stroke(); }
+        g.restore();
+    }
+    // thin streaks sliding past the plane against its heading (the feeling of speed)
+    const STREAKS = [];
+    function drawStreaks(g, w, h, head, dt, k, night) {
+        if (!STREAKS.length) { let r = 11; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; for (let i = 0; i < 16; i++) STREAKS.push({ x: rnd(), y: rnd(), l: 26 + rnd() * 60, v: 380 + rnd() * 420, a: 0.12 + rnd() * 0.18 }); }
+        const rad = (head * Math.PI) / 180, dx = -Math.sin(rad), dy = Math.cos(rad), n = C.perf ? 5 : STREAKS.length;
+        g.save(); g.lineCap = 'round'; g.lineWidth = 1.6;
+        for (let i = 0; i < n; i++) {
+            const c = STREAKS[i]; c.x += (dx * c.v * k * dt) / w; c.y += (dy * c.v * k * dt) / h;
+            if (c.x < -0.2) c.x += 1.4; else if (c.x > 1.2) c.x -= 1.4; if (c.y < -0.2) c.y += 1.4; else if (c.y > 1.2) c.y -= 1.4;
+            const X = c.x * w, Y = c.y * h; g.strokeStyle = 'rgba(255,255,255,' + (c.a * k * (night ? 0.6 : 1)) + ')';
+            g.beginPath(); g.moveTo(X, Y); g.lineTo(X - dx * c.l * k, Y - dy * c.l * k); g.stroke();
+        }
+        g.restore();
+    }
+    // slow pulsing rings on the two cities
+    function cityRing(g, x, y, color, t, phase) {
+        const k = ((t / 2600 + phase) % 1); g.save(); g.strokeStyle = color; g.globalAlpha = 0.55 * (1 - k); g.lineWidth = 2; g.beginPath(); g.arc(x, y, 8 + k * 34, 0, 6.2832); g.stroke(); g.restore();
+    }
+
     function frame(t) {
         C._raf = requestAnimationFrame(frame);
         if (!C._run || !C.adapter) return;
@@ -468,8 +541,10 @@
         if (hs && (t - (C._lineT || 0) > 900 || C._lineP == null)) { C._lineT = t; drawLines(hs); }
         const f = C.heroFlight();
         if (C.preview) { /* the route before the flight starts: lines only (set by setPreview) */ }
-        if (hs && (C.cam === 'follow' || C.cam === 'intro') && (hs.status === 'flying' || hs.status === 'landing')) drawClouds(g, C.w, C.h, hs.head, dt, clamp(hs.left / 9000, 0.12, 1) * clamp(hs.el / 7000, 0, 1), C.night);
+        if (hs && (C.cam === 'follow' || C.cam === 'intro') && (hs.status === 'flying' || hs.status === 'landing')) drawClouds(g, C.w, C.h, hs.head, dt, clamp(hs.left / 9000, 0.12, 1) * clamp(hs.el / 7000, 0, 1) * clamp(1.5 - (v.z - 9) / 5, 0.25, 1), C.night);
+        if (hs && (C.cam === 'follow' || C.cam === 'intro') && hs.status === 'flying') drawStreaks(g, C.w, C.h, hs.head, dt, clamp(hs.left / 9000, 0.1, 1) * clamp(hs.el / 7000, 0, 1) * clamp(1.4 - (v.z - 8) / 6, 0.35, 1), C.night);
         if (f && hs) drawFlow(g, v, f, hs, t);
+        if (hs && hs.status === 'flying' && !C.replay && C.cam === 'follow') { if (!C._nextSt) C._nextSt = ms() + 25000; else if (ms() > C._nextSt && !C._st) { C.stunt('wave'); C._nextSt = ms() + 40000 + Math.random() * 50000; } }
         drawOthers(g, v, now, f);
         if (f && hs) {
             const night = C.night, done = hs.status === 'done';
@@ -481,12 +556,18 @@
                     const pf = Math.max(0, hs.p - i * 0.0042 * (1 + v.z / 8)); FM.gcPoint(f.o, f.d, pf, POS); FM.project(v, POS[0], POS[1], Q);
                     FM.gcPoint(f.o, f.d, Math.max(0, hs.p - (i - 1) * 0.0042 * (1 + v.z / 8)), POS); FM.project(v, POS[0], POS[1], P);
                     g.strokeStyle = 'rgba(255,255,255,' + (0.5 * (1 - i / (n + 1))) + ')'; g.lineWidth = lerp(1, 3.4, 1 - i / n); g.beginPath(); g.moveTo(Q[0], Q[1]); g.lineTo(P[0], P[1]); g.stroke();
+                    if (!C.perf && v.z >= 7.5) {
+                        const sx = P[0] - Q[0], sy = P[1] - Q[1], L = Math.hypot(sx, sy) || 1, off = clamp(lerp(46, 92, clamp((v.z - 5) / 6, 0, 1)), 40, 96) * 0.3, nx = -sy / L * off, ny = sx / L * off;
+                        g.strokeStyle = 'rgba(255,255,255,' + (0.22 * (1 - i / (n + 1))) + ')'; g.lineWidth = 1.2;
+                        g.beginPath(); g.moveTo(Q[0] + nx, Q[1] + ny); g.lineTo(P[0] + nx, P[1] + ny); g.moveTo(Q[0] - nx, Q[1] - ny); g.lineTo(P[0] - nx, P[1] - ny); g.stroke();
+                    }
                 }
                 g.restore();
             }
             // end points
             FM.project(v, f.o[0], f.o[1], P); pin(g, P[0], P[1], f.on, '#0ea5e9', night);
             FM.project(v, f.d[0], f.d[1], Q); pin(g, Q[0], Q[1], f.dn, '#22c55e', night);
+            if (!C.perf && !done) { cityRing(g, Q[0], Q[1], '#22c55e', t, 0); if (hs.p < 0.25) cityRing(g, P[0], P[1], '#0ea5e9', t, 0.5); }
             // arrival ring
             if (done) { const k = ((ms() % 2200) / 2200); g.save(); g.strokeStyle = 'rgba(34,197,94,' + (1 - k) + ')'; g.lineWidth = 2.5; g.beginPath(); g.arc(Q[0], Q[1], 10 + k * 46, 0, 6.2832); g.stroke(); g.restore(); }
             // the plane: rises from the apron at the start, settles at the end
@@ -496,7 +577,9 @@
             const size = clamp(lerp(46, 92, clamp((v.z - 5) / 6, 0, 1)), 40, 96) * (0.84 + 0.16 * ease(born)) * (0.92 + 0.08 * land);
             const spawn = C.replay ? 1 : ease(born);
             const tm = Date.now(), sway = hs.status === 'flying' ? Math.sin(tm / 1500) * 3.2 + Math.sin(tm / 620) * 1.1 : 0, breathe = 1 + Math.sin(tm / 1100) * 0.012;
-            drawPlane(g, P[0] + Math.sin(tm / 900) * 0.7, P[1] + Math.cos(tm / 1300) * 0.7, hs.head, size * breathe, hs.bank + sway, f.sty || 'modern', clamp(0.15 + spawn, 0, 1), (alt * size * 0.34) * (1 + Math.sin(tm / 1700) * 0.06), C.spriteState !== 'ready');
+            const sn = stuntNow(), px = P[0] + Math.sin(tm / 900) * 0.7, py = P[1] + Math.cos(tm / 1300) * 0.7;
+            if (sn) drawSparks(g, px, py, sn.k, size, C._st && C._st.k);
+            drawPlane(g, px, py, hs.head + (sn ? sn.rot : 0), size * breathe * (sn ? sn.scale : 1), sn && sn.bank ? sn.bank : hs.bank + sway, f.sty || 'modern', clamp(0.15 + spawn, 0, 1), (alt * size * 0.34) * (1 + Math.sin(tm / 1700) * 0.06) * (sn && sn.dive ? 1 + 1.6 * Math.sin(Math.PI * sn.k) : 1), C.spriteState !== 'ready', sn);
             lights(g, P[0], P[1], hs.head, size, Date.now(), night);
             C.hits.push({ x: P[0], y: P[1], r: size / 2, hero: true });
             C._heroPx = [P[0], P[1]];

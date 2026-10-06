@@ -11036,7 +11036,7 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .fl-banner span { flex: 1; }
 .fl-banner svg { width: 18px; height: 18px; color: var(--fl-a); }
 .fl-banner button { padding: 6px 12px; border-radius: 10px; background: rgba(148, 163, 184, .2); color: #fff; font-size: 12px; font-weight: 800; }
-.fl-cam { position: absolute; z-index: 8; right: 12px; top: 50%; transform: translateY(-70%); display: flex; flex-direction: column; gap: 8px; }
+.fl-cam { position: absolute; z-index: 8; right: 12px; top: 92px; display: flex; flex-direction: column; gap: 8px; }
 .fl-cam button { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; color: #dbe7fb; background: rgba(15, 23, 42, .78); border: 1px solid var(--fl-line); backdrop-filter: blur(10px); }
 .fl-cam button.on { background: var(--fl-a2); color: #fff; border-color: transparent; }
 .fl-cam svg { width: 19px; height: 19px; }
@@ -11188,3 +11188,6 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 
 /* night map: the same street tiles, darkened (the free dark tile servers need a key) */
 .fl-map.fl-night .leaflet-tile-pane, .tile-night .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.82) contrast(.92) saturate(.5); }
+/* satellite photos: never inverted at night, only dimmed */
+.fl-map.fl-night.fl-sat .leaflet-tile-pane { filter: brightness(.6) saturate(.85) contrast(1.05); }
+.fl-map.fl-sat { background: #0b1220; }
