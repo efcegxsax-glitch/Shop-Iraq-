@@ -642,7 +642,7 @@
             _updateReady() {
                 if (this._updShown) return;
                 this._updShown = true;
-                const busy = () => !!(this._cl || this._focus || this._forest || this._gwar || this._garden || this._duelOn);
+                const busy = () => !!(this._cl || this._focus || this._forest || this._gwar || this._garden || this._duelOn || this._flightOn);
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden && this.currentView === 'homeView' && !busy()) location.reload();
                 });
@@ -802,6 +802,7 @@
                 setInterval(() => { if (this.currentView === 'homeView') this.renderExamCountdown(); }, 1000);
                 setInterval(() => this.checkTaskReminders(), 120000);
                 setInterval(() => this._newsPendTick(), 20000);
+                setInterval(() => this._flChipTick(), 1000);
                 setInterval(() => {
                     this.refreshTimeAgoLabels();
                     // the card switches from "today" to "tomorrow" at noon
@@ -1497,6 +1498,7 @@
                         .map((p) => p + uid);
                     if (/^[0-9]{3,12}$/.test(String(u.studentNumber || ''))) paths.push('numIndex/' + u.studentNumber);
                     if (pk) paths.push('phoneIndex/' + pk);
+                    try { await this._need('flightmath'); await this._need('flights'); await this._flPurge(uid, db); } catch (e) {}
                     await Promise.all(paths.map(del));
                     await del('users/' + uid);
                     // the phone can take a new account once this one is gone
@@ -3417,6 +3419,7 @@
                 this._siteCfgListener = onValue(ref(window.firebaseDb, 'siteConfig'), (snap) => {
                     const cfg = snap.exists() ? snap.val() : {};
                     try { localStorage.setItem('isp_site_config', JSON.stringify(cfg)); } catch (e) {}
+                    this._siteCfgLive = true;
                     this.applySiteConfig(cfg);
                 });
             },
@@ -5100,6 +5103,26 @@
             },
 
             // ===== شجرتي: a solo focus timer with a 3D tree (js/gardenui.js + js/garden.js) =====
+            // ===== رحلة الطالب الجوية: a real map, a real route, a plane that flies it while the student studies (js/flights.js, js/flightsui.js) =====
+            goToFlights() {
+                if (this.siteConfig && this.siteConfig.features && this.siteConfig.features.flights === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('flightsView');
+                this._need('flightmath').then(() => this._need('flights')).then(() => this._need('flightsui'))
+                    .then(() => { if (this.currentView === 'flightsView') this.flOpen(); })
+                    .catch(() => this.showToast('ما انحملت الصفحة، تأكد من النت وحاول مرة ثانية'));
+            },
+            // a small reminder on the other pages while a flight is running (the flight itself is only a start time and a length, kept on the phone)
+            _flChipTick() {
+                let f = null; try { f = JSON.parse(localStorage.getItem('isp_fl_active') || 'null'); } catch (e) {}
+                let el = document.getElementById('flChip');
+                const on = f && f.s && f.du && this.isLoggedIn && f.uid === this.authUid && this.currentView !== 'flightsView';
+                if (!on) { if (el) el.remove(); return; }
+                const left = f.s + f.du - Date.now(), t = Math.max(0, Math.ceil(left / 1000)), p2 = (n) => String(n).padStart(2, '0');
+                const txt = left > 0 ? p2(Math.floor(t / 3600)) + ':' + p2(Math.floor((t % 3600) / 60)) + ':' + p2(t % 60) : 'وصلت الرحلة';
+                if (!el) { el = document.createElement('button'); el.id = 'flChip'; el.className = 'fl-chip'; el.setAttribute('aria-label', 'رحلتك الجوية'); el.onclick = () => this.goToFlights(); el.innerHTML = '<i data-lucide="plane"></i><span></span>'; document.body.appendChild(el); try { lucide.createIcons(); } catch (e) {} }
+                const sp = el.querySelector('span'); if (sp && sp.textContent !== txt) sp.textContent = txt;
+            },
+
             goToGarden() {
                 this.switchView('gardenView');
                 if (this._withPart('gardenui', () => typeof this.gdOpen === 'function', 'gardenView', () => this.goToGarden())) return;
@@ -8750,6 +8773,7 @@
                 { id: 'bio', fn: 'goToBio', t: 'رسومات الأحياء 3D', d: 'رسومات السادس مجسّمة بأسمائها', ic: 'microscope', c: '#10B981', g: 'study' },
                 { id: 'cards', fn: 'goToCards', t: 'بطاقات المراجعة', d: 'سؤال وجواب ومراجعة ذكية', ic: 'layers', c: '#8B5CF6', g: 'study' },
                 { id: 'res', fn: 'goToResources', t: 'الملازم', d: 'ملازم رسمية لكل المراحل', ic: 'book-open', c: '#2563EB', g: 'study' },
+                { id: 'flights', fn: 'goToFlights', t: 'رحلة جوية', d: 'طيارة تطير على الخريطة وانت تدرس', ic: 'plane', c: '#0284C7', g: 'study', feat: 'flights' },
                 { id: 'garden', fn: 'goToGarden', t: 'شجرتي', d: 'ازرع بذرة وادرس لحد ما تثمر', ic: 'sprout', c: '#15803D', g: 'study' },
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
@@ -12982,6 +13006,7 @@
                 if (this._forest && viewId !== 'forestView') this.failForest('طلعت من صفحة الغابة', true);
                 if (this._garden && viewId !== 'gardenView' && this.gdFail) this.gdFail('طلعت من صفحة شجرتي', true);
                 if (this.currentView === 'gardenView' && viewId !== 'gardenView') clearInterval(this._gdSky);
+                if (this.currentView === 'flightsView' && viewId !== 'flightsView' && this.flLeave) this.flLeave();
                 if (this.currentView === 'tutorView' && viewId !== 'tutorView' && this.tutorClose) this.tutorClose();
                 if (this.currentView === 'moodMapView' && viewId !== 'moodMapView' && this.mmClose) this.mmClose();
                 if (this.currentView === 'storeView' && viewId !== 'storeView' && this.shClose) this.shClose();

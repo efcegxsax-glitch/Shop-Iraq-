@@ -1418,6 +1418,161 @@
         ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"
       }
     },
+    "flightLast": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now"
+      }
+    },
+    "flightActive": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !newData.exists()) || ((auth != null && auth.uid == $uid) && newData.child('s').val() == now && (!data.exists() || data.child('s').val() + data.child('du').val() < now) && (!root.child('flightLast/' + $uid).exists() || now - root.child('flightLast/' + $uid).val() >= 30000) && newData.parent().parent().child('flightLast/' + $uid).val() == now))",
+        ".validate": "!newData.exists() || newData.hasChildren(['f', 's', 'du', 'oa', 'oo', 'da', 'do', 'on', 'dn', 'sty', 'sh'])",
+        "f": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{8,16}$/)"
+        },
+        "s": {
+          ".validate": "newData.isNumber()"
+        },
+        "du": {
+          ".validate": "newData.isNumber() && newData.val() >= 60000 && newData.val() <= 43200000"
+        },
+        "oa": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "oo": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "da": {
+          ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+        },
+        "do": {
+          ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+        },
+        "on": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "dn": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "sty": {
+          ".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"
+        },
+        "sh": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "flightOwners": {
+      "$fid": {
+        ".read": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || data.val() == auth.uid)",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.val() == auth.uid && newData.parent().parent().child('flightActive/' + auth.uid + '/f').val() == $fid) || (auth != null && !newData.exists() && data.val() == auth.uid))",
+        ".validate": "!newData.exists() || (newData.isString() && $fid.matches(/^[a-z0-9]{8,16}$/))"
+      }
+    },
+    "flightGrid": {
+      "$cell": {
+        ".read": "auth != null",
+        ".indexOn": [
+          "s"
+        ],
+        ".validate": "$cell.matches(/^[0-9]{1,2}_[0-9]{1,2}$/)",
+        "$fid": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.parent().parent().parent().child('flightOwners/' + $fid).val() == auth.uid && newData.parent().parent().parent().child('flightActive/' + auth.uid + '/s').val() == newData.child('s').val() && newData.parent().parent().parent().child('flightActive/' + auth.uid + '/du').val() == newData.child('du').val()) || (auth != null && !newData.exists() && root.child('flightOwners/' + $fid).val() == auth.uid) || (auth != null && !newData.exists() && data.child('s').val() + data.child('du').val() < now - 3600000))",
+          ".validate": "!newData.exists() || newData.hasChildren(['oa', 'oo', 'da', 'do', 'on', 'dn', 's', 'du', 'sty', 'n'])",
+          "oa": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "oo": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "da": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "do": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "on": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "dn": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "s": {
+            ".validate": "newData.isNumber()"
+          },
+          "du": {
+            ".validate": "newData.isNumber() && newData.val() >= 60000 && newData.val() <= 43200000"
+          },
+          "sty": {
+            ".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"
+          },
+          "n": {
+            ".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 999"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "flightHistory": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
+        "$fid": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()) || ((auth != null && auth.uid == $uid) && !newData.exists()))",
+          ".validate": "!newData.exists() || newData.hasChildren(['oa', 'oo', 'da', 'do', 'on', 'dn', 's', 'du', 'dist', 'st'])",
+          "oa": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "oo": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "da": {
+            ".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"
+          },
+          "do": {
+            ".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"
+          },
+          "on": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "dn": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "s": {
+            ".validate": "newData.isNumber()"
+          },
+          "du": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 43200000"
+          },
+          "dist": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 25000"
+          },
+          "st": {
+            ".validate": "newData.isString() && newData.val().matches(/^(done|cancel)$/)"
+          },
+          "sty": {
+            ".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"
+          },
+          "sh": {
+            ".validate": "newData.isBoolean()"
+          },
+          "el": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 43200000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
     "devices": {
       "$id": {
         ".write": true,

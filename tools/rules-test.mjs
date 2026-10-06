@@ -608,6 +608,45 @@ await ok('admin answers', update(ref(db('adm'), 'complaints/c1/a1'), { st: 'fixe
 await ok('admin deletes', set(ref(db('adm'), 'complaints/c1/a1'), null));
 await no('guest cannot report', set(ref(db(null), 'complaints/g1/a1'), { uid: 'g1', k: 'bug', t: 'مشكلة بدون تسجيل دخول', st: 'new', at: TS }));
 
+// flights (رحلة الطالب الجوية)
+const FL = (u, fid, extra) => ({ f: fid, s: TS, du: 5400000, oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', sty: 'modern', sh: true, ...(extra || {}) });
+const GR = (extra) => ({ oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', s: TS, du: 5400000, sty: 'modern', n: 142, ...(extra || {}) });
+const startFlight = (u, fid, cells, extra, grid) => U(u, Object.assign({ ['flightActive/' + u]: FL(u, fid, extra), ['flightLast/' + u]: TS, ['flightOwners/' + fid]: u }, ...cells.map((c) => ({ ['flightGrid/' + c + '/' + fid]: GR(grid) }))));
+await ok('start a shared flight', startFlight('f1', 'aaaa1111bbb', ['30_56', '30_55']));
+await ok('another student reads the grid', get(ref(db('f2'), 'flightGrid/30_56')));
+await no('guest reads the grid', get(ref(db(null), 'flightGrid/30_56')));
+await ok('student reads their own running flight', get(ref(db('f1'), 'flightActive/f1')));
+await no('another student reads it', get(ref(db('f2'), 'flightActive/f1')));
+await no('another student reads who owns a flight', get(ref(db('f2'), 'flightOwners/aaaa1111bbb')));
+await ok('owner reads the owner record', get(ref(db('f1'), 'flightOwners/aaaa1111bbb')));
+await no('second flight while one is running', startFlight('f1', 'cccc2222ddd', ['30_56']));
+await no('a flight in someone else name', U('f3', { ['flightActive/f4']: FL('f4', 'eeee3333fff'), ['flightLast/f4']: TS, ['flightOwners/eeee3333fff']: 'f4' }));
+await no('claiming someone else flight id', startFlight('f5', 'aaaa1111bbb', ['30_56']));
+await no('flight shorter than a minute', startFlight('f6', 'gggg4444hhh', ['30_56'], { du: 1000 }, { du: 1000 }));
+await no('flight longer than 12 hours', startFlight('f7', 'gggg5555hhh', ['30_56'], { du: 50000000 }, { du: 50000000 }));
+await no('latitude out of range', startFlight('f8', 'gggg6666hhh', ['30_56'], { oa: 120 }, { oa: 120 }));
+await no('bad flight id', startFlight('f9', 'AB', ['30_56']));
+await no('unknown field on the grid record', startFlight('f10', 'gggg7777hhh', ['30_56'], {}, { uid: 'f10' }));
+await no('bad style', startFlight('f11', 'gggg8888hhh', ['30_56'], { sty: 'big' }, { sty: 'big' }));
+await no('bad cell name', startFlight('f12', 'gggg9999hhh', ['xx']));
+await no('grid record that does not match the running flight', U('f13', { ['flightActive/f13']: FL('f13', 'iiii1111jjj'), ['flightLast/f13']: TS, ['flightOwners/iiii1111jjj']: 'f13', ['flightGrid/30_56/iiii1111jjj']: GR({ du: 3600000 }) }));
+await no('a start time that is not the server time', U('f14', { ['flightActive/f14']: FL('f14', 'kkkk1111lll', { s: 5 }), ['flightLast/f14']: TS, ['flightOwners/kkkk1111lll']: 'f14' }));
+await no('student edits the shared record', set(ref(db('f2'), 'flightGrid/30_56/aaaa1111bbb/du'), 60000));
+await no('another student deletes a running flight', set(ref(db('f2'), 'flightGrid/30_56/aaaa1111bbb'), null));
+await ok('owner cancels', U('f1', { 'flightActive/f1': null, 'flightGrid/30_56/aaaa1111bbb': null, 'flightGrid/30_55/aaaa1111bbb': null, 'flightOwners/aaaa1111bbb': null }));
+await seed('flightOwners/old1old1old', 'f20'); await seed('flightGrid/30_56/old1old1old', { oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'x', dn: 'y', s: now - 86400000, du: 3600000, sty: 'modern', n: 111 });
+await ok('anyone cleans up a long-finished flight', set(ref(db('f21'), 'flightGrid/30_56/old1old1old'), null));
+await ok('a solo flight needs no public record', U('f30', { 'flightActive/f30': FL('f30', 'solo1solo1s', { sh: false }), 'flightLast/f30': TS }));
+await ok('finished flight goes to my history', U('f30', { 'flightHistory/f30/solo1solo1s': { oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', s: now, du: 5400000, dist: 459, st: 'done', sty: 'modern', sh: false }, 'flightActive/f30': null }));
+await ok('read my history', get(ref(db('f30'), 'flightHistory/f30')));
+await no('read someone else history', get(ref(db('f31'), 'flightHistory/f30')));
+await no('history with a distance that cannot be', set(ref(db('f30'), 'flightHistory/f30/x1x1x1x1x'), { oa: 1, oo: 1, da: 2, do: 2, on: 'a', dn: 'b', s: now, du: 100000, dist: 99999, st: 'done' }));
+await no('history written for someone else', set(ref(db('f31'), 'flightHistory/f30/y1y1y1y1y'), { oa: 1, oo: 1, da: 2, do: 2, on: 'a', dn: 'b', s: now, du: 100000, dist: 10, st: 'done' }));
+await ok('delete all my history (account deletion)', (async () => { await seed('flightHistory/f40/z1z1z1z1z', { oa: 1, oo: 1, da: 2, do: 2, on: 'a', dn: 'b', s: now, du: 100000, dist: 10, st: 'done' }); return set(ref(db('f40'), 'flightHistory/f40'), null); })());
+await no('delete someone else whole history', set(ref(db('f41'), 'flightHistory/f40'), null));
+await ok('delete my history entry', set(ref(db('f30'), 'flightHistory/f30/solo1solo1s'), null));
+await ok('admin reads flights', get(ref(db('adm'), 'flightGrid')));
+
 // voice calls
 await seed('blockedUsers/k9/k1', true);
 await ok('caller opens a call', set(ref(db('k1'), 'calls/k1_k2'), { id: 'c1', from: 'k1', to: 'k2', at: TS, st: 'ring' }));

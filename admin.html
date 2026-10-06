@@ -484,6 +484,10 @@
                         <label class="switch"><input type="checkbox" data-cfg="features.mascot" aria-label="أبو الهمّة"><span class="track"></span></label>
                     </div>
                     <div class="sw-row">
+                        <div class="sw-text"><strong>رحلة الطالب الجوية</strong><span>طيارة تطير على الخريطة وقت دراسة الطالب، وفيها رحلات الطلاب الثانيين</span></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.flights" aria-label="رحلة الطالب الجوية"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
                         <div class="sw-text"><strong>تحدي مباشر</strong><span>سباق أسئلة لحظة بلحظة بين طالبين أو ضد الحاسوب</span></div>
                         <label class="switch"><input type="checkbox" data-cfg="features.duel" aria-label="تحدي مباشر"><span class="track"></span></label>
                     </div>
@@ -572,6 +576,22 @@
                         <input type="email" id="cfg_contact" placeholder="مثال: support@example.com" maxlength="80" dir="ltr">
                     </div>
                     <button class="btn mt-2" id="cfg_save_brand">حفظ الاسم والوصف</button>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="plane"></i></div>
+                        <div>
+                            <h3>مفتاح خرائط Google (رحلة الطالب الجوية)</h3>
+                            <p>اذا تركته فاضي تشتغل الرحلة على خريطة OpenStreetMap المجانية. واذا حطيت مفتاح تشتغل على خرائط Google مع بحث الأماكن.</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="cfg_mapskey">مفتاح Google Maps (يبدأ بـ AIza)</label>
+                        <input type="text" id="cfg_mapskey" placeholder="AIza..." maxlength="80" dir="ltr" autocomplete="off" spellcheck="false">
+                    </div>
+                    <p style="opacity:.75;font-size:12.5px;line-height:1.9;margin:0 0 10px;">هذا مفتاح متصفح (يشوفه كل واحد يفتح التطبيق)، فحمايته تكون بالقيود، مو بإخفائه. من Google Cloud Console: Credentials ثم المفتاح ثم Application restrictions: <b>Websites</b> وضيف <span dir="ltr">https://efcegxsax-glitch.github.io/*</span> و <span dir="ltr">https://localhost/*</span> (للأندرويد). وبـ API restrictions اختار: <span dir="ltr">Maps JavaScript API</span> و <span dir="ltr">Places API (New)</span> (و <span dir="ltr">Routes API</span> اذا تريد وقت السيارة). لازم يكون الدفع (Billing) مفعّل بمشروع Google.</p>
+                    <div class="flex gap-2" style="flex-wrap:wrap"><button class="btn" id="cfg_save_maps">حفظ المفتاح</button><button class="btn-sm" id="cfg_clear_maps" type="button">حذف المفتاح</button></div>
                 </div>
 
                 <div class="card">
@@ -3063,6 +3083,7 @@
             setFieldIfIdle('cfg_name', cfgGet('branding.name'));
             setFieldIfIdle('cfg_tagline', cfgGet('branding.tagline'));
             setFieldIfIdle('cfg_contact', cfgGet('branding.contact'));
+            setFieldIfIdle('cfg_mapskey', cfgGet('maps.key'));
             setFieldIfIdle('cfg_ann_text', cfgGet('announcement.text'));
             const tone = cfgGet('announcement.tone') || 'info';
             document.querySelectorAll('input[name="cfg_ann_tone"]').forEach(r => { r.checked = r.value === tone; });
@@ -3091,6 +3112,13 @@
         el('cfg_save_brand').addEventListener('click', () => cfgWrite({
             'branding/name': val('cfg_name'), 'branding/tagline': val('cfg_tagline'), 'branding/contact': val('cfg_contact')
         }, 'تم حفظ الاسم والوصف'));
+
+        el('cfg_save_maps').addEventListener('click', () => {
+            const k = val('cfg_mapskey');
+            if (k && !/^AIza[0-9A-Za-z_-]{30,60}$/.test(k)) { toast('المفتاح مو بالشكل الصحيح (يبدأ بـ AIza)', false); return; }
+            cfgWrite({ 'maps/key': k || null }, k ? 'انحفظ مفتاح الخرائط' : 'انحذف المفتاح، رجعت الخريطة المجانية');
+        });
+        el('cfg_clear_maps').addEventListener('click', () => { el('cfg_mapskey').value = ''; cfgWrite({ 'maps/key': null }, 'انحذف المفتاح، رجعت الخريطة المجانية'); });
 
         el('cfg_save_ann').addEventListener('click', () => {
             const tone = document.querySelector('input[name="cfg_ann_tone"]:checked')?.value || 'info';
