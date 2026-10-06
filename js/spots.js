@@ -239,12 +239,13 @@
             const s = this._sp, dark = document.documentElement.classList.contains('dark');
             if (s.tiles) s.map.removeLayer(s.tiles);
             if (s.labels) { s.map.removeLayer(s.labels); s.labels = null; }
+            // CARTO's free tiles now ask for a key: OpenStreetMap for the street map (darkened by a CSS filter at night), Esri for the satellite and its place names
+            s.map.getContainer().classList.toggle('tile-night', dark && s.layer !== 'sat');
             if (s.layer === 'sat') {
                 s.tiles = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }).addTo(s.map);
-                s.labels = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(s.map);
+                s.labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(s.map);
             } else {
-                s.tiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/' + (dark ? 'dark_all' : 'voyager') + '/{z}/{x}/{y}{r}.png',
-                    { subdomains: 'abcd', maxZoom: 19, attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(s.map);
+                s.tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(s.map);
             }
         },
 

@@ -75,15 +75,23 @@
         const L = window.L, map = L.map(host, { zoomControl: false, attributionControl: true, zoomSnap: 0, zoomDelta: 0.5, wheelPxPerZoomLevel: 90, minZoom: 2, maxZoom: 17, preferCanvas: true, worldCopyJump: false, inertia: true });
         map.attributionControl.setPrefix('');
         map.setView([start.lat, start.lng], start.z, { animate: false });
-        let tile = null, dark = null;
+        let tile = null, dark = null, errs = 0, tried = 0;
+        const SRC = [
+            ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }],
+            ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Esri' }],
+        ];
         const lines = {};
+        // a tile server that stops answering (or asks for a key) is replaced by the next one
+        const useTiles = (i) => {
+            if (tile) map.removeLayer(tile);
+            errs = 0; tried = i;
+            tile = L.tileLayer(SRC[i][0], SRC[i][1]).addTo(map);
+            tile.on('tileload', () => { errs = 0; });
+            tile.on('tileerror', () => { if (++errs >= 6 && tried + 1 < SRC.length) useTiles(tried + 1); });
+        };
         const A = {
             kind: 'leaflet', fractional: true,
-            setDark(d) {
-                if (dark === d) return; dark = d;
-                if (tile) map.removeLayer(tile);
-                tile = L.tileLayer(d ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19, attribution: '© OpenStreetMap © CARTO' }).addTo(map);
-            },
+            setDark(d) { dark = d; host.classList.toggle('fl-night', !!d); if (!tile) useTiles(0); },
             view(out) { const c = map.getCenter(); out.lat = c.lat; out.lng = c.lng; out.z = map.getZoom(); out.w = host.clientWidth; out.h = host.clientHeight; return out; },
             setView(lat, lng, z) { map.setView([lat, lng], z == null ? map.getZoom() : z, { animate: false }); },
             line(id, pts, st) {
@@ -153,8 +161,8 @@
             try { A = await makeGoogle(C.host, key, start); } catch (e) { console.warn('google maps failed', e && e.message); C.gmError = (e && e.message) || 'gm'; C.host.innerHTML = ''; loadGoogle.p = null; }
         }
         if (!A) A = await makeLeaflet(C.host, start);
-        C.adapter = A;
-        C.perf = jget(KEY.PERF, null) == null ? (navigator.deviceMemory ? navigator.deviceMemory <= 3 : false) || (navigator.hardwareConcurrency ? navigator.hardwareConcurrency <= 3 : false) : !!jget(KEY.PERF, false);
+        C.adapter = A; C._born = ms();
+        C.perf = jget(KEY.PERF, null) == null ? (navigator.deviceMemory ? navigator.deviceMemory <= 2 : false) : !!jget(KEY.PERF, false);
         C.autoNight();
         A.on('drag', () => { if (C.cam !== 'free') { C.cam = 'free'; C.emit('cam', 'free'); } });
         A.on('tap', (x, y) => C.tap(x, y));
@@ -191,7 +199,6 @@
         if (C.spriteState) return;
         C.spriteState = 'loading';
         try {
-            if (C.perf) throw new Error('perf');
             const mod = await import(new URL('js/flight3d.js?v=' + (window.APP_VER || '1'), document.baseURI).href);
             C._styles = mod.STYLES; C._banks = mod.BANKS;
             C.sprites = mod.bake();
@@ -254,7 +261,7 @@
     };
     // the opening move: out from the departure city, the whole route, then onto the plane
     C.intro = function () { C.cam = 'intro'; C.camT0 = ms(); const f = C.heroFlight(); if (!f) return; C.camGoal = C.routeView(); C.introFrom = { lat: f.o[0], lng: f.o[1] }; C.emit('cam', 'intro'); };
-    const FOLLOW_Z = (goalZ) => clamp(goalZ + 1.4, 6, 10.5);
+    const FOLLOW_Z = (goalZ) => clamp(goalZ + 2, 6.5, 11);
     // the middle of the part of the screen that is not covered by the sheet / the top bar: that is where the plane should be
     C.visCenter = function () { const p = C.pad; return { x: p.l + (C.w - p.l - p.r) / 2, y: p.t + (C.h - p.t - p.b) / 2 }; };
     // the map centre that puts `pos` in the middle of the visible part at zoom z
@@ -415,14 +422,43 @@
         }
     };
 
+
+    // ---------- a sense of speed (a real cruise moves only a few pixels a minute, so the air around the plane moves instead) ----------
+    let cloudSp = null; const CLOUDS = [];
+    function cloudSprite() {
+        const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d');
+        [[96, 70, 56], [150, 62, 62], [196, 76, 44], [64, 82, 38], [128, 84, 50]].forEach((b) => { const gr = g.createRadialGradient(b[0], b[1], 2, b[0], b[1], b[2]); gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(0.6, 'rgba(255,255,255,.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 128); });
+        return c;
+    }
+    function drawClouds(g, w, h, head, dt, k, night) {
+        if (!cloudSp) { cloudSp = cloudSprite(); let r = 7; const rnd = () => { r = (r * 16807) % 2147483647; return r / 2147483647; }; for (let i = 0; i < 12; i++) CLOUDS.push({ x: rnd(), y: rnd(), s: 90 + rnd() * 130, a: 0.16 + rnd() * 0.2 }); }
+        const n = C.perf ? 4 : CLOUDS.length, rad = (head * Math.PI) / 180, dx = -Math.sin(rad), dy = Math.cos(rad);
+        g.save();
+        for (let i = 0; i < n; i++) {
+            const c = CLOUDS[i], sp = (18 + c.s * 0.32) * k;                    // bigger = closer = faster
+            c.x += (dx * sp * dt) / w; c.y += (dy * sp * dt) / h;
+            const m = c.s / w; if (c.x < -m) c.x += 1 + 2 * m; else if (c.x > 1 + m) c.x -= 1 + 2 * m; if (c.y < -m) c.y += 1 + 2 * m; else if (c.y > 1 + m) c.y -= 1 + 2 * m;
+            g.globalAlpha = c.a * (night ? 0.45 : 1) * k; g.drawImage(cloudSp, c.x * w - c.s, c.y * h - c.s * 0.5, c.s * 2, c.s);
+        }
+        g.restore();
+    }
+    // pulses of light running along the route ahead of the plane (the direction of travel, at a steady speed)
+    function drawFlow(g, v, f, hs, t) {
+        if (hs.status === 'done' || hs.p >= 0.999) return;
+        const n = 18, a = hs.p, b = Math.min(1, hs.p + 0.22);
+        g.save(); g.lineCap = 'round'; g.lineJoin = 'round'; g.setLineDash([2, 15]); g.lineDashOffset = -((t / 1000) * 26) % 17; g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.9)'; g.shadowColor = 'rgba(56,189,248,.9)'; g.shadowBlur = C.perf ? 0 : 6;
+        g.beginPath();
+        for (let i = 0; i <= n; i++) { FM.gcPoint(f.o, f.d, a + (b - a) * (i / n), POS); FM.project(v, POS[0], POS[1], Q); if (i) g.lineTo(Q[0], Q[1]); else g.moveTo(Q[0], Q[1]); }
+        g.stroke(); g.restore();
+    }
+
     function frame(t) {
         C._raf = requestAnimationFrame(frame);
         if (!C._run || !C.adapter) return;
         if (C.onFrame && C.onFrame() === false) return;                   // the page says: not visible
-        // performance mode draws every other frame
-        if (C.perf) { C._skip = !C._skip; if (C._skip) return; }
         const dt = Math.min(0.1, (t - (C._last || t)) / 1000); C._last = t;
-        C._ft.push(dt); if (C._ft.length > 90) { C._ft.shift(); if (!C.perf && !C.perfAuto && C._ft.length === 90) { const avg = C._ft.reduce((a, b) => a + b, 0) / 90; if (avg > 0.036) { C.perfAuto = true; C.setPerf(true, true); } } }
+        // measure only after the start-up (loading tiles and baking the plane make the first seconds slow) and use the median
+        if (ms() - (C._born || 0) > 6000) { C._ft.push(dt); if (C._ft.length > 150) C._ft.shift(); if (!C.perf && !C.perfAuto && C._ft.length === 150) { const m = C._ft.slice().sort((a, b) => a - b)[75]; if (m > 0.05) { C.perfAuto = true; C.setPerf(true, true); } } }
         if (C.replay && !C.replay.paused) { const f = C.replay.rec; C.replay.base = Math.min(f.du + 2000, C.replay.base + dt * 1000 * C.replay.speed); }
         const now = C.now(), v = C.view(), g = C.ctx, d = C.dpr;
         const hs = C.heroState();
@@ -432,16 +468,18 @@
         if (hs && (t - (C._lineT || 0) > 900 || C._lineP == null)) { C._lineT = t; drawLines(hs); }
         const f = C.heroFlight();
         if (C.preview) { /* the route before the flight starts: lines only (set by setPreview) */ }
+        if (hs && (C.cam === 'follow' || C.cam === 'intro') && (hs.status === 'flying' || hs.status === 'landing')) drawClouds(g, C.w, C.h, hs.head, dt, clamp(hs.left / 9000, 0.12, 1) * clamp(hs.el / 7000, 0, 1), C.night);
+        if (f && hs) drawFlow(g, v, f, hs, t);
         drawOthers(g, v, now, f);
         if (f && hs) {
             const night = C.night, done = hs.status === 'done';
             // contrail
-            if (!C.perf && hs.status !== 'boarding' && !done) {
+            if (hs.status !== 'boarding' && !done) {
                 g.save(); g.lineCap = 'round';
-                const n = 9;
+                const n = C.perf ? 5 : 12;
                 for (let i = n; i >= 1; i--) {
-                    const pf = Math.max(0, hs.p - i * 0.004 * (1 + v.z / 10)); FM.gcPoint(f.o, f.d, pf, POS); FM.project(v, POS[0], POS[1], Q);
-                    FM.gcPoint(f.o, f.d, Math.max(0, hs.p - (i - 1) * 0.004 * (1 + v.z / 10)), POS); FM.project(v, POS[0], POS[1], P);
+                    const pf = Math.max(0, hs.p - i * 0.0042 * (1 + v.z / 8)); FM.gcPoint(f.o, f.d, pf, POS); FM.project(v, POS[0], POS[1], Q);
+                    FM.gcPoint(f.o, f.d, Math.max(0, hs.p - (i - 1) * 0.0042 * (1 + v.z / 8)), POS); FM.project(v, POS[0], POS[1], P);
                     g.strokeStyle = 'rgba(255,255,255,' + (0.5 * (1 - i / (n + 1))) + ')'; g.lineWidth = lerp(1, 3.4, 1 - i / n); g.beginPath(); g.moveTo(Q[0], Q[1]); g.lineTo(P[0], P[1]); g.stroke();
                 }
                 g.restore();
@@ -457,7 +495,8 @@
             const alt = Math.min(ease(born), hs.status === 'done' ? 0 : 1) * (0.35 + 0.65 * land);
             const size = clamp(lerp(46, 92, clamp((v.z - 5) / 6, 0, 1)), 40, 96) * (0.84 + 0.16 * ease(born)) * (0.92 + 0.08 * land);
             const spawn = C.replay ? 1 : ease(born);
-            drawPlane(g, P[0], P[1], hs.head, size, hs.bank, f.sty || 'modern', clamp(0.15 + spawn, 0, 1), alt * size * 0.34, C.spriteState !== 'ready');
+            const tm = Date.now(), sway = hs.status === 'flying' ? Math.sin(tm / 1500) * 3.2 + Math.sin(tm / 620) * 1.1 : 0, breathe = 1 + Math.sin(tm / 1100) * 0.012;
+            drawPlane(g, P[0] + Math.sin(tm / 900) * 0.7, P[1] + Math.cos(tm / 1300) * 0.7, hs.head, size * breathe, hs.bank + sway, f.sty || 'modern', clamp(0.15 + spawn, 0, 1), (alt * size * 0.34) * (1 + Math.sin(tm / 1700) * 0.06), C.spriteState !== 'ready');
             lights(g, P[0], P[1], hs.head, size, Date.now(), night);
             C.hits.push({ x: P[0], y: P[1], r: size / 2, hero: true });
             C._heroPx = [P[0], P[1]];
