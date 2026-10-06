@@ -829,12 +829,17 @@
                     </div>
 
                     <div class="field">
-                        <label>عنوان الخبر *</label>
-                        <input type="text" id="n_title" placeholder="مثال: إعلان نتائج الامتحانات النهائية">
+                        <label>قالب جاهز (اضغط يتعبّى الخبر، وتعدّل عليه)</label>
+                        <div class="flex gap-2" style="flex-wrap:wrap" id="n_tpl"></div>
+                        <small style="opacity:.7;line-height:1.8;display:block;margin-top:6px;">الأقواس [ ] بالقالب مكان المعلومة اللي تكتبها (تاريخ، مادة، محافظة...). ما ينشر الخبر وهي بعدها موجودة إلا بعد ما تأكد.</small>
                     </div>
                     <div class="field">
-                        <label>نص مختصر</label>
-                        <textarea id="n_excerpt" rows="2" placeholder="وصف قصير للخبر..."></textarea>
+                        <label>عنوان الخبر * <span id="n_tc" style="opacity:.6;font-weight:400;"></span></label>
+                        <input type="text" id="n_title" maxlength="120" placeholder="مثال: إعلان نتائج الامتحانات النهائية">
+                    </div>
+                    <div class="field">
+                        <label>وصف الخبر <span id="n_ec" style="opacity:.6;font-weight:400;"></span></label>
+                        <textarea id="n_excerpt" rows="4" maxlength="500" placeholder="اكتب تفاصيل الخبر باختصار: شنو صار، ومتى، ولمن..."></textarea>
                     </div>
                     <div class="field">
                         <label>القسم *</label>
@@ -855,13 +860,35 @@
                         <img id="n_preview" class="hidden preview-img" style="width:96px;height:64px;" alt="معاينة">
                     </div>
 
+                    <div class="field">
+                        <label>المصدر (يظهر تحت الخبر)</label>
+                        <select id="n_source">
+                            <option value="نقلاً عن وزارة التربية العراقية">نقلاً عن وزارة التربية العراقية</option>
+                            <option value="إدارة أكـادمي السادس">إدارة أكـادمي السادس</option>
+                            <option value="نقلاً عن هيئة الأنواء الجوية والرصد الزلزالي">نقلاً عن هيئة الأنواء الجوية</option>
+                            <option value="نقلاً عن مديرية تربية المحافظة">نقلاً عن مديرية تربية المحافظة</option>
+                            <option value="مصادر رسمية">مصادر رسمية</option>
+                        </select>
+                    </div>
+
                     <div class="chk-row">
                         <label class="chk"><input type="checkbox" id="n_urgent"> عاجل</label>
                         <label class="chk"><input type="checkbox" id="n_pinned"> مثبت</label>
                         <label class="chk"><input type="checkbox" id="n_notify" checked> إشعار للطلاب (يوصل للهاتف أيضاً)</label>
                     </div>
 
-                    <button class="btn mt-4" id="n_publish">نشر الخبر</button>
+                    <div class="field" style="margin-top:12px;">
+                        <label>هيج يبين بالتطبيق</label>
+                        <div id="n_pv" style="border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:var(--panel-2);line-height:1.8;direction:rtl;"></div>
+                    </div>
+
+                    <div class="flex gap-2" style="flex-wrap:wrap;margin-top:14px;">
+                        <button class="btn" id="n_publish" style="flex:1;min-width:150px;">نشر الخبر</button>
+                        <button class="btn-sm" type="button" id="n_savetpl">حفظ كقالب</button>
+                        <button class="btn-sm" type="button" id="n_clear">تفريغ</button>
+                        <button class="btn-sm hidden" type="button" id="n_cancel">إلغاء التعديل</button>
+                    </div>
+                    <small id="n_draftnote" style="opacity:.6;display:block;margin-top:8px;"></small>
                 </div>
                 <div class="card">
                     <div class="card-head">
@@ -2095,14 +2122,118 @@
         })();
 
         // ---------- Publish News ----------
+        // ready-made news (one tap fills title, description, section and "urgent"); [ ] marks what you must fill in
+        const N_CAT = { exams: 'الامتحانات', results: 'النتائج', admission: 'القبول', grants: 'المنح', schools: 'المدارس', decisions: 'القرارات', weather: 'الأنواء الجوية', other: 'أخرى' };
+        const N_TPL = [
+            ['موعد الامتحانات', 'exams', 0, 'موعد انطلاق امتحانات [المرحلة]', 'أعلنت [الجهة] موعد انطلاق امتحانات [المرحلة] للعام الدراسي [العام] يوم [التاريخ]. نتمنى لجميع الطلبة التوفيق والنجاح.'],
+            ['جدول الامتحانات', 'exams', 0, 'صدور جدول امتحانات [المرحلة]', 'صدر جدول امتحانات [المرحلة]، وتبدأ الامتحانات يوم [التاريخ] بمادة [المادة]. راجعوا الجدول كاملاً بقسم الامتحانات بالتطبيق.'],
+            ['تأجيل امتحان', 'exams', 1, 'تأجيل امتحان مادة [المادة]', 'تقرر تأجيل امتحان مادة [المادة] المقرر يوم [التاريخ] إلى يوم [التاريخ الجديد]. يرجى متابعة القنوات الرسمية.'],
+            ['تعليمات القاعة', 'exams', 0, 'تنبيه مهم قبل دخول القاعة الامتحانية', 'تأكدوا من اصطحاب هوية الامتحان، وعدم إدخال الهواتف أو الأجهزة الإلكترونية للقاعة، والحضور قبل بدء الامتحان بنصف ساعة على الأقل.'],
+            ['الدور الثاني', 'exams', 0, 'موعد امتحانات الدور الثاني', 'تبدأ امتحانات الدور الثاني لـ[المرحلة] يوم [التاريخ]. على الطلبة الراغبين بالمشاركة مراجعة مدارسهم لإكمال إجراءات التقديم.'],
+            ['إعلان النتائج', 'results', 0, 'إعلان نتائج [المرحلة]', 'أعلنت النتائج النهائية لـ[المرحلة]، ويمكنكم الاطلاع عليها عبر الموقع الرسمي [الرابط]. مبارك للناجحين وحظاً أوفر لغيرهم.'],
+            ['موعد النتائج', 'results', 0, 'موعد إعلان نتائج [المرحلة]', 'من المتوقع إعلان نتائج [المرحلة] يوم [التاريخ]. اعتمدوا على الإعلان الرسمي فقط، وانتبهوا من الأخبار غير الموثوقة.'],
+            ['التظلمات', 'results', 0, 'فتح باب التظلم على نتائج [المرحلة]', 'فتح باب التظلم (إعادة التصحيح) على نتائج [المرحلة] من [التاريخ] ولغاية [التاريخ]. يقدم الطلب عبر [الجهة].'],
+            ['التقديم للقبول', 'admission', 0, 'بدء التقديم على القبول المركزي', 'بدأ التقديم على القبول المركزي للعام الدراسي [العام] من [التاريخ] ولغاية [التاريخ]. تأكدوا من إكمال المستمسكات المطلوبة قبل التقديم.'],
+            ['نتائج القبول', 'admission', 0, 'إعلان نتائج القبول المركزي', 'أعلنت نتائج القبول [الأولي/النهائي] للعام الدراسي [العام]. راجعوا الموقع الرسمي [الرابط] لمعرفة قبولكم.'],
+            ['منحة دراسية', 'grants', 0, 'منحة دراسية في [البلد] لطلبة العراق', 'أعلنت [الجهة] عن منحة دراسية في [البلد] لطلبة [الاختصاص]. آخر موعد للتقديم [التاريخ]. الشروط والتفاصيل على الرابط الرسمي [الرابط].'],
+            ['تعطيل الدوام', 'schools', 1, 'تعطيل الدوام الرسمي يوم [اليوم]', 'تقرر تعطيل الدوام الرسمي في المدارس يوم [اليوم] بمناسبة [المناسبة] في [المحافظة / جميع المحافظات]. كل عام وانتم بخير.'],
+            ['دوام جزئي', 'schools', 0, 'اعتماد الدوام الجزئي يوم [اليوم]', 'تقرر اعتماد الدوام الجزئي في مدارس [المحافظة] يوم [اليوم] بسبب [السبب]. يرجى الالتزام بالتعليمات.'],
+            ['العطلة الانتصافية', 'schools', 0, 'العطلة الانتصافية للعام الدراسي [العام]', 'تبدأ العطلة الانتصافية من [التاريخ] ولغاية [التاريخ]، ويستأنف الدوام الرسمي يوم [التاريخ]. عطلة سعيدة ومفيدة.'],
+            ['بدء العام الدراسي', 'schools', 0, 'بدء العام الدراسي الجديد', 'ينطلق العام الدراسي [العام] يوم [التاريخ]. نتمنى لجميع الطلبة عاماً مليئاً بالنجاح والتفوق.'],
+            ['قرار وزاري', 'decisions', 0, 'قرار وزاري بخصوص [الموضوع]', 'صدر قرار وزاري بخصوص [الموضوع]: [نص القرار]. يرجى مراجعة الجهة الرسمية لمعرفة التفاصيل.'],
+            ['نفي إشاعة', 'decisions', 0, 'نفي ما يتداول بخصوص [الموضوع]', 'ننفي ما يتداول على مواقع التواصل بخصوص [الموضوع]، وننصحكم بأخذ المعلومات من الجهات الرسمية فقط وعدم تداول الأخبار غير المؤكدة.'],
+            ['أنواء: أمطار', 'weather', 1, 'تنبيه جوي: أمطار غزيرة', 'تتعرض [المحافظات] إلى أمطار غزيرة خلال [الوقت]. خذوا الحيطة وتجنبوا الأماكن المنخفضة، ويفضل البقاء بالبيوت.'],
+            ['أنواء: عاصفة ترابية', 'weather', 1, 'تنبيه جوي: عاصفة ترابية', 'عاصفة ترابية متوقعة على [المحافظات] خلال [الوقت]. يفضل البقاء بالبيوت وإغلاق النوافذ، ولبس الكمامة عند الخروج.'],
+            ['أنواء: موجة حر', 'weather', 0, 'تنبيه جوي: ارتفاع درجات الحرارة', 'ارتفاع كبير بدرجات الحرارة تصل إلى [الدرجة] في [المحافظات]. اشربوا الماء بكثرة وتجنبوا التعرض المباشر للشمس وقت الظهيرة.'],
+            ['أنواء: انخفاض حرارة', 'weather', 0, 'تنبيه جوي: انخفاض درجات الحرارة', 'انخفاض بدرجات الحرارة إلى [الدرجة] في [المحافظات]. ارتدوا ملابس ثقيلة وانتبهوا من الصقيع صباحاً.'],
+            ['أنواء: ضباب', 'weather', 0, 'تنبيه جوي: ضباب كثيف', 'ضباب كثيف صباحاً في [المحافظات]. انتبهوا على الطرق وانطلقوا إلى مدارسكم بوقت أبكر.'],
+            ['تحديث التطبيق', 'other', 0, 'تحديث جديد لأكـادمي السادس', 'نزل تحديث جديد للتطبيق فيه: [المميزات]. حدّثوا التطبيق حتى تستفيدون منه.'],
+            ['نصيحة دراسية', 'other', 0, 'نصيحة اليوم للدراسة', '[النصيحة]. جرّبها اليوم وشاركنا برأيك.'],
+            ['تذكير مراجعة', 'other', 0, 'تذكير: قرب موعد الامتحان', 'باقي [المدة] على امتحان [المادة]. راجعوا ملازمكم وجدولوا وقتكم من اليوم، وخذوا قسط كافي من النوم.'],
+        ];
+        const NT_KEY = 'isp_admin_news_tpls', ND_KEY = 'isp_admin_news_draft';
+        let nEdit = null; // the id of the news being edited (null = a new one)
+        const myTpls = () => { try { const a = JSON.parse(localStorage.getItem(NT_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+        const nFill = (t) => {
+            el('n_title').value = t.title || ''; el('n_excerpt').value = t.desc || '';
+            if (t.cat && N_CAT[t.cat]) el('n_category').value = t.cat;
+            el('n_urgent').checked = !!t.urgent;
+            if (t.src && [...el('n_source').options].some((o) => o.value === t.src)) el('n_source').value = t.src;
+            nSync();
+        };
+        function nTplDraw() {
+            const mine = myTpls();
+            el('n_tpl').innerHTML = N_TPL.map((t, i) => `<button type="button" class="btn-sm" data-ntpl="${i}" title="${escapeHtml(N_CAT[t[1]])}">${escapeHtml(t[0])}</button>`).join('')
+                + mine.map((t, i) => `<span style="display:inline-flex;gap:2px;"><button type="button" class="btn-sm" style="border-color:#F59E0B;" data-nmy="${i}">${escapeHtml(t.name)}</button><button type="button" class="btn-sm" data-nmydel="${i}" aria-label="حذف القالب" style="padding:6px 8px;">×</button></span>`).join('');
+        }
+        el('n_tpl').addEventListener('click', (e) => {
+            const b = e.target.closest('[data-ntpl],[data-nmy],[data-nmydel]'); if (!b) return;
+            if (b.dataset.ntpl != null) { const t = N_TPL[Number(b.dataset.ntpl)]; nFill({ title: t[3], desc: t[4], cat: t[1], urgent: !!t[2] }); toast('تعبّى القالب، عدّل الأقواس [ ]'); }
+            else if (b.dataset.nmy != null) { nFill(myTpls()[Number(b.dataset.nmy)] || {}); }
+            else { const a = myTpls(); a.splice(Number(b.dataset.nmydel), 1); try { localStorage.setItem(NT_KEY, JSON.stringify(a)); } catch (er) {} nTplDraw(); }
+        });
+        el('n_savetpl').addEventListener('click', () => {
+            const title = val('n_title'); if (!title) { toast('اكتب عنوان الخبر أول', false); return; }
+            const a = myTpls(); a.push({ name: title.slice(0, 22), title, desc: val('n_excerpt'), cat: val('n_category'), urgent: el('n_urgent').checked, src: val('n_source') });
+            try { localStorage.setItem(NT_KEY, JSON.stringify(a.slice(-12))); toast('انحفظ بقوالبي'); } catch (e) { toast('ما انحفظ', false); }
+            nTplDraw();
+        });
+        // live preview, counters and a draft kept on this device (so nothing is lost if the page closes)
+        function nSync() {
+            const t = el('n_title').value, d = el('n_excerpt').value, urgent = el('n_urgent').checked;
+            el('n_tc').textContent = t.length + '/120'; el('n_ec').textContent = d.length + '/500';
+            el('n_pv').innerHTML = `<div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;"><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:rgba(37,99,235,.15);color:#60A5FA;">${escapeHtml(N_CAT[val('n_category')] || '')}</span>${urgent ? '<span style="font-size:11px;padding:2px 8px;border-radius:99px;background:#DC2626;color:#fff;">عاجل</span>' : ''}${el('n_pinned').checked ? '<span style="font-size:11px;opacity:.7;">مثبت</span>' : ''}</div>`
+                + `<b>${escapeHtml(t) || '<span style="opacity:.5">عنوان الخبر</span>'}</b><div style="opacity:.85;font-size:13px;white-space:pre-wrap;">${escapeHtml(d) || '<span style="opacity:.5">وصف الخبر</span>'}</div><div style="opacity:.55;font-size:11.5px;margin-top:4px;">${escapeHtml(val('n_source'))}</div>`;
+            if (!nEdit) { try { localStorage.setItem(ND_KEY, JSON.stringify({ t, d, c: val('n_category'), u: urgent, p: el('n_pinned').checked, s: val('n_source') })); el('n_draftnote').textContent = t || d ? 'المسودة تنحفظ تلقائياً على هذا الجهاز' : ''; } catch (e) {} }
+        }
+        ['n_title', 'n_excerpt', 'n_category', 'n_urgent', 'n_pinned', 'n_source'].forEach((id) => el(id).addEventListener('input', nSync));
+        ['n_category', 'n_urgent', 'n_pinned', 'n_source'].forEach((id) => el(id).addEventListener('change', nSync));
+        function nReset() {
+            nEdit = null; el('n_title').value = ''; el('n_excerpt').value = ''; clearPreview('n_image', 'n_preview');
+            el('n_urgent').checked = false; el('n_pinned').checked = false; el('n_notify').checked = true; el('n_notify').disabled = false;
+            el('n_publish').textContent = 'نشر الخبر'; el('n_cancel').classList.add('hidden');
+            try { localStorage.removeItem(ND_KEY); } catch (e) {} nSync();
+        }
+        el('n_clear').addEventListener('click', nReset);
+        el('n_cancel').addEventListener('click', () => { nReset(); toast('انلغى التعديل'); });
+        window.newsEdit = async (key) => {
+            const snap = await get(ref(db, 'news/' + key)); const n = snap.val(); if (!n) { toast('الخبر مو موجود', false); return; }
+            nEdit = key; nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source });
+            el('n_pinned').checked = !!n.isPinned; el('n_notify').checked = false; el('n_notify').disabled = true;
+            el('n_publish').textContent = 'حفظ التعديل'; el('n_cancel').classList.remove('hidden'); nSync();
+            el('n_title').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('عدّل وبعدها اضغط حفظ التعديل');
+        };
+        window.newsTpl = async (key) => {
+            const n = (await get(ref(db, 'news/' + key))).val(); if (!n) return;
+            nReset(); nFill({ title: n.title, desc: n.excerpt, cat: n.category, urgent: !!n.isUrgent, src: n.source }); el('n_title').scrollIntoView({ behavior: 'smooth', block: 'center' }); toast('نُسخ كخبر جديد');
+        };
+        window.newsFlag = async (key, field, v) => { try { await update(ref(db, 'news/' + key), { [field]: !!v }); } catch (e) { toast('فشل', false); } };
+        (function restore() {
+            nTplDraw();
+            try { const d = JSON.parse(localStorage.getItem(ND_KEY) || 'null'); if (d && (d.t || d.d)) { nFill({ title: d.t, desc: d.d, cat: d.c, urgent: d.u, src: d.s }); el('n_pinned').checked = !!d.p; toast('رجّعت آخر مسودة كتبتها'); } } catch (e) {}
+            nSync();
+        })();
+
         window.publishNews = async () => {
             const title = val('n_title');
             if (!title) { toast('أدخل عنوان الخبر', false); return; }
+            if (/[\[\]]/.test(title + val('n_excerpt'))) {
+                if (!(await ask({ icon: 'alert-triangle', title: 'بعدك تاركه أقواس [ ] بالنص. تنشره هيج؟', ok: 'انشر' }))) return;
+            }
             const btn = el('n_publish');
             btn.disabled = true;
             try {
-                let imageUrl = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
+                const source = val('n_source') || 'إدارة أكـادمي السادس';
                 const imgFile = el('n_image').files[0];
+                if (nEdit) {
+                    const upd = { title, excerpt: val('n_excerpt'), category: val('n_category'), isUrgent: el('n_urgent').checked, isPinned: el('n_pinned').checked, source };
+                    if (imgFile) upd.image = await uploadFile(imgFile, 'news_images/');
+                    await update(ref(db, 'news/' + nEdit), upd);
+                    // keep the notification-list entry in step with the text, only if the student list already has it
+                    if ((await get(ref(db, 'notifications/' + nEdit))).exists()) await update(ref(db, 'notifications/' + nEdit), { title, description: val('n_excerpt') });
+                    toast('انحفظ التعديل'); nReset(); btn.disabled = false; return;
+                }
+                let imageUrl = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
                 if (imgFile) imageUrl = await uploadFile(imgFile, 'news_images/');
                 const id = Date.now();
                 const urgent = el('n_urgent').checked;
@@ -2114,7 +2245,7 @@
                     category: val('n_category'),
                     date: localDateStr(),
                     time: 'الآن',
-                    source: 'وزارة التربية العراقية',
+                    source,
                     isUrgent: urgent,
                     isPinned: el('n_pinned').checked,
                     notifHandled: sendNotif,
@@ -2133,9 +2264,7 @@
                     msg += pushNote(pr);
                 }
                 toast(msg);
-                el('n_title').value = ''; el('n_excerpt').value = '';
-                clearPreview('n_image', 'n_preview');
-                el('n_urgent').checked = false; el('n_pinned').checked = false;
+                nReset();
             } catch (e) {
                 console.warn(e);
                 toast('فشل النشر: ' + (e.message || e), false);
@@ -3299,13 +3428,19 @@
                 if (!snap.exists()) { box.innerHTML = '<p class="list-empty">لا توجد أخبار منشورة</p>'; return; }
                 const vals = entriesWithKey(snap.val()).sort((a, b) => (b.id || 0) - (a.id || 0));
                 box.innerHTML = vals.map(n => `
-                    <div class="row-item">
+                    <div class="row-item" style="flex-wrap:wrap;">
                         <img src="${escapeHtml(n.image || '')}" alt="">
                         <div class="flex-1 min-w-0">
                             <div class="font-bold truncate">${escapeHtml(n.title || '')}</div>
-                            <div class="text-slate-400 text-xs">${escapeHtml(n.category || '')} ${n.isUrgent ? 'عاجل' : ''}</div>
+                            <div class="text-slate-400 text-xs">${escapeHtml(({ exams: 'الامتحانات', results: 'النتائج', admission: 'القبول', grants: 'المنح', schools: 'المدارس', decisions: 'القرارات', weather: 'الأنواء الجوية', other: 'أخرى' })[n.category] || n.category || '')}${n.isUrgent ? ' · عاجل' : ''}${n.isPinned ? ' · مثبت' : ''} · ${escapeHtml(n.date || '')} · ${Number(n.views) || 0} مشاهدة</div>
                         </div>
-                        <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;width:100%;">
+                            <button class="btn-sm" onclick="newsEdit(${jsArg(n._key)})">تعديل</button>
+                            <button class="btn-sm" onclick="newsTpl(${jsArg(n._key)})">نسخ كخبر جديد</button>
+                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isPinned', ${n.isPinned ? 'false' : 'true'})">${n.isPinned ? 'إلغاء التثبيت' : 'تثبيت'}</button>
+                            <button class="btn-sm" onclick="newsFlag(${jsArg(n._key)}, 'isUrgent', ${n.isUrgent ? 'false' : 'true'})">${n.isUrgent ? 'شيل عاجل' : 'خلّيه عاجل'}</button>
+                            <button class="del" onclick="deleteItem('news', ${jsArg(n._key)})">حذف</button>
+                        </div>
                     </div>`).join('');
             });
             onValue(ref(db, 'resources'), (snap) => {
