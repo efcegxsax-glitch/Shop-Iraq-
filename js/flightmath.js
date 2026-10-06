@@ -73,13 +73,14 @@
         return Array.from(set).slice(0, cap || 14);
     }
     // the cells that touch the visible map (at most `cap`)
+    // the cells a view covers; when there are more than `cap`, the ones nearest the middle of the view are kept
     function cellsForBounds(bd, cap) {
-        const set = [], s = clamp(bd.s, -89.99, 89.99), n = clamp(bd.n, -89.99, 89.99);
+        const all = [], s = clamp(bd.s, -89.99, 89.99), n = clamp(bd.n, -89.99, 89.99), lim = cap || 16;
         let w = bd.w, e = bd.e; if (e - w >= 360) { w = -179.99; e = 179.99; }
-        for (let la = Math.floor((s + 90) / CELL); la <= Math.floor((n + 90) / CELL); la++) {
-            for (let lo = Math.floor((clamp(w, -179.99, 179.99) + 180) / CELL); lo <= Math.floor((clamp(e, -179.99, 179.99) + 180) / CELL); lo++) { set.push(la + '_' + lo); if (set.length >= (cap || 16)) return set; }
-        }
-        return set;
+        const l0 = Math.floor((s + 90) / CELL), l1 = Math.floor((n + 90) / CELL), o0 = Math.floor((clamp(w, -179.99, 179.99) + 180) / CELL), o1 = Math.floor((clamp(e, -179.99, 179.99) + 180) / CELL);
+        for (let la = l0; la <= l1; la++) for (let lo = o0; lo <= o1; lo++) all.push([la, lo]);
+        if (all.length > lim) { const cl = (l0 + l1) / 2, co = (o0 + o1) / 2; all.sort((x, y) => (x[0] - cl) ** 2 + (x[1] - co) ** 2 - ((y[0] - cl) ** 2 + (y[1] - co) ** 2)); all.length = lim; }
+        return all.map((c) => c[0] + '_' + c[1]);
     }
 
     // ---------- Web Mercator (the same as Google Maps and Leaflet) ----------

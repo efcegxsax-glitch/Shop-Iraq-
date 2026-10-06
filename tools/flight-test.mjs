@@ -52,6 +52,7 @@ ok('path cells include both ends', (() => { const c = FM.cellsForPath(BAS, BGD);
 ok('path cells are capped', FM.cellsForPath([0, -170], [0, 170], 14).length <= 14);
 ok('bounds of Iraq need only a few cells', (() => { const c = FM.cellsForBounds({ s: 29, n: 37.5, w: 38.8, e: 48.6 }); return c.length >= 4 && c.length <= 12; })());
 ok('the whole world is capped', FM.cellsForBounds({ s: -80, n: 80, w: -180, e: 180 }, 16).length <= 16);
+ok('a capped view keeps the cells around its middle', (() => { const c = FM.cellsForBounds({ s: 20, n: 50, w: 30, e: 60 }, 6); return c.length === 6 && c.includes(FM.cellKey(35, 45)); })());
 // mercator round trip
 const v = { lat: 33, lng: 44, z: 7, w: 390, h: 800 }, px = [0, 0], back = [0, 0];
 FM.project(v, 31, 47, px); FM.unproject(v, px[0], px[1], back);
