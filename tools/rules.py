@@ -981,6 +981,85 @@ rules = {
     }}},
     "complaintLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"}},
 
+    # ----- رحلة الطالب الجوية. A flight is only its start (server time), its length and two places: the plane's place at any
+    # moment is worked out on every phone from those, so nothing is written while it flies.
+    #   flightActive/{uid}  the student's own running flight (private), one at a time, one every 30 seconds
+    #   flightOwners/{fid}  who made a shared flight (private; the public record has no uid, only an anonymous number)
+    #   flightGrid/{cell}/{fid}  the public, anonymous, coarse record of a shared flight, written in every 4-degree cell its route crosses
+    #   flightHistory/{uid}/{fid}  the student's finished flights (for "my flights" and the replay)
+    # The places are rounded on the phone before they are saved (see js/flightmath.js: coarse). -----
+    "flightLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now"}},
+    "flightActive": {"$uid": {
+        ".read": ors(OWNER, ADMIN),
+        ".write": ors(ADMIN, ands(OWNER, "!newData.exists()"),
+                      ands(OWNER, "newData.child('s').val() == now",
+                           "(!data.exists() || data.child('s').val() + data.child('du').val() < now)",
+                           "(!root.child('flightLast/' + $uid).exists() || now - root.child('flightLast/' + $uid).val() >= 30000)",
+                           "newData.parent().parent().child('flightLast/' + $uid).val() == now")),
+        ".validate": "!newData.exists() || newData.hasChildren(['f', 's', 'du', 'oa', 'oo', 'da', 'do', 'on', 'dn', 'sty', 'sh'])",
+        "f": {".validate": "newData.isString() && newData.val().matches(/^[a-z0-9]{8,16}$/)"},
+        "s": {".validate": "newData.isNumber()"},
+        "du": {".validate": "newData.isNumber() && newData.val() >= 60000 && newData.val() <= 43200000"},
+        "oa": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+        "oo": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+        "da": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+        "do": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+        "on": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "dn": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "sty": {".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"},
+        "sh": {".validate": "newData.isBoolean()"},
+        "$other": {".validate": False},
+    }},
+    "flightOwners": {"$fid": {
+        ".read": ors(ADMIN, "data.val() == auth.uid"),
+        ".write": ors(ADMIN,
+                      ands(SIGNED, "!data.exists()", "newData.val() == auth.uid", "newData.parent().parent().child('flightActive/' + auth.uid + '/f').val() == $fid"),
+                      ands(SIGNED, "!newData.exists()", "data.val() == auth.uid")),
+        ".validate": "!newData.exists() || (newData.isString() && $fid.matches(/^[a-z0-9]{8,16}$/))",
+    }},
+    "flightGrid": {"$cell": {
+        ".read": SIGNED, ".indexOn": ["s"],
+        ".validate": "$cell.matches(/^[0-9]{1,2}_[0-9]{1,2}$/)",
+        "$fid": {
+            ".write": ors(ADMIN,
+                          ands(SIGNED, "!data.exists()", "newData.parent().parent().parent().child('flightOwners/' + $fid).val() == auth.uid",
+                               "newData.parent().parent().parent().child('flightActive/' + auth.uid + '/s').val() == newData.child('s').val()",
+                               "newData.parent().parent().parent().child('flightActive/' + auth.uid + '/du').val() == newData.child('du').val()"),
+                          ands(SIGNED, "!newData.exists()", "root.child('flightOwners/' + $fid).val() == auth.uid"),
+                          ands(SIGNED, "!newData.exists()", "data.child('s').val() + data.child('du').val() < now - 3600000")),
+            ".validate": "!newData.exists() || newData.hasChildren(['oa', 'oo', 'da', 'do', 'on', 'dn', 's', 'du', 'sty', 'n'])",
+            "oa": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+            "oo": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+            "da": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+            "do": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+            "on": {".validate": "newData.isString() && newData.val().length <= 40"},
+            "dn": {".validate": "newData.isString() && newData.val().length <= 40"},
+            "s": {".validate": "newData.isNumber()"},
+            "du": {".validate": "newData.isNumber() && newData.val() >= 60000 && newData.val() <= 43200000"},
+            "sty": {".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"},
+            "n": {".validate": "newData.isNumber() && newData.val() >= 100 && newData.val() <= 999"},
+            "$other": {".validate": False},
+        },
+    }},
+    "flightHistory": {"$uid": {".read": ors(OWNER, ADMIN), ".write": ands(OWNER, "!newData.exists()"), "$fid": {
+        ".write": ors(ADMIN, ands(OWNER, "!data.exists()"), ands(OWNER, "!newData.exists()")),
+        ".validate": "!newData.exists() || newData.hasChildren(['oa', 'oo', 'da', 'do', 'on', 'dn', 's', 'du', 'dist', 'st'])",
+        "oa": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+        "oo": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+        "da": {".validate": "newData.isNumber() && newData.val() >= -90 && newData.val() <= 90"},
+        "do": {".validate": "newData.isNumber() && newData.val() >= -180 && newData.val() <= 180"},
+        "on": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "dn": {".validate": "newData.isString() && newData.val().length <= 40"},
+        "s": {".validate": "newData.isNumber()"},
+        "du": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 43200000"},
+        "dist": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 25000"},
+        "st": {".validate": "newData.isString() && newData.val().matches(/^(done|cancel)$/)"},
+        "sty": {".validate": "newData.isString() && newData.val().matches(/^(modern|classic|minimal)$/)"},
+        "sh": {".validate": "newData.isBoolean()"},
+        "el": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 43200000"},
+        "$other": {".validate": False},
+    }}},
+
     # ----- usage numbers and error reports (also before signing in) -----
     # anyone (signed in or not) pings with these fields only, each small
     "devices": {"$id": {
