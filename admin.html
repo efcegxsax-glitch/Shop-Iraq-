@@ -8,6 +8,28 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
+    <script>
+        /* desktop only: the panel scales itself to the screen (a 1080p screen at 150% Windows scaling has little room), the student can change it */
+        (function () { try {
+            var w = window.innerWidth, h = window.innerHeight, s = parseFloat(localStorage.getItem('adm_zoom')), z = 1;
+            if (w >= 1100) z = isFinite(s) && s >= 0.5 && s <= 1.3 ? s : (h <= 640 ? 0.7 : h <= 780 ? 0.8 : h <= 900 ? 0.9 : 1);
+            document.documentElement.style.setProperty('--z', z);
+        } catch (e) {} })();
+    </script>
+    <script>
+        function admZoom(d) {
+            try {
+                var cur = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--z')) || 1, z;
+                if (d === 0) { localStorage.removeItem('adm_zoom'); var h = innerHeight; z = h <= 640 ? 0.7 : h <= 780 ? 0.8 : h <= 900 ? 0.9 : 1; }
+                else { z = Math.min(1.3, Math.max(0.5, Math.round((cur + d) * 20) / 20)); localStorage.setItem('adm_zoom', String(z)); }
+                document.documentElement.style.setProperty('--z', z); admZoomLabel();
+            } catch (e) {}
+        }
+        function admZoomLabel() { var b = document.getElementById('zoomVal'); if (b) b.textContent = Math.round((parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--z')) || 1) * 100) + '%'; }
+        document.addEventListener('DOMContentLoaded', admZoomLabel);
+        /* automatic size follows the window (maximising, rotating, browser zoom) until the size is set by hand */
+        window.addEventListener('resize', function () { try { if (localStorage.getItem('adm_zoom') || innerWidth < 1100) { if (innerWidth < 1100) document.documentElement.style.setProperty('--z', 1); return; } var h = innerHeight, z = h <= 640 ? 0.7 : h <= 780 ? 0.8 : h <= 900 ? 0.9 : 1; document.documentElement.style.setProperty('--z', z); admZoomLabel(); } catch (e) {} });
+    </script>
     <title>لوحة التحكم - أكـادمي السادس</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -69,6 +91,26 @@
         }
 
 
+
+        /* ---------- Desktop scale (set by the script in <head>; --z is 1 on phones) ---------- */
+        .zoom-ctl { display: none; align-items: center; gap: 4px; }
+        @media (min-width: 1100px) {
+            html { zoom: var(--z, 1); }
+            .zoom-ctl { display: inline-flex; }
+            .zoom-ctl button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font-weight: 800; font-size: 15px; line-height: 1; cursor: pointer; }
+            .zoom-ctl button:hover { border-color: #64748B; }
+            .zoom-ctl b { min-width: 40px; text-align: center; font-size: 11.5px; color: var(--text2); }
+            .sidenav { max-height: calc(100vh / var(--z, 1) - 104px); }
+            /* the 27 sections as a compact two-column grid so (almost) all of them are in view at once */
+            .sidenav { width: 304px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
+            .sidenav .nav-group-label { grid-column: 1 / -1; margin: 10px 4px 2px; }
+            .sidenav .nav-group-label:first-child { margin-top: 0; }
+            .sidenav .tab { padding: 7px 9px; gap: 7px; font-size: 12px; line-height: 1.25; min-height: 36px; border-radius: 10px; min-width: 0; }
+            .sidenav .tab > span:not(.tab-ic) { min-width: 0; overflow-wrap: anywhere; }
+            .sidenav .tab .tab-ic svg { width: 15px; height: 15px; }
+            .sidenav .tab { white-space: normal; text-align: right; }
+        }
+
         /* ---------- Desktop (≥1100px): use the whole screen ----------
            wide shell, a sidebar that scrolls by itself (27 tabs are taller than the screen), cards in two balanced
            columns (three on very wide screens; big lists, tables and forms take the full width), compact buttons. */
@@ -76,7 +118,7 @@
             .topbar-inner, .shell { max-width: 1760px; }
             .topbar-inner { padding: 14px 32px; }
             .shell { padding: 22px 32px 70px; gap: 30px; }
-            .sidenav { width: 264px; top: 84px; max-height: calc(100vh - 104px); overflow-y: auto; padding: 0 4px 12px 8px; scrollbar-width: thin; scrollbar-color: #475569 transparent; }
+            .sidenav { width: 264px; top: 84px; max-height: calc(100vh / var(--z, 1) - 104px); overflow-y: auto; padding: 0 4px 12px 8px; scrollbar-width: thin; scrollbar-color: #475569 transparent; }
             .sidenav::-webkit-scrollbar { display: block; width: 6px; }
             .sidenav::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
             .tab { padding: 11px 14px; font-size: 13.5px; }
@@ -366,6 +408,7 @@
                 </div>
             </div>
             <div class="badges">
+                <span class="zoom-ctl" title="حجم الواجهة"><button type="button" onclick="admZoom(-0.05)" aria-label="تصغير">−</button><b id="zoomVal">100%</b><button type="button" onclick="admZoom(0.05)" aria-label="تكبير">+</button><button type="button" onclick="admZoom(0)" aria-label="تلقائي" style="width:auto;padding:0 8px;font-size:11px">تلقائي</button></span>
                 <span id="versionBadge" class="badge" style="background:#2563EB;color:#fff;">الإصدار 2.2</span>
                 <span id="modeBadge" class="badge" style="background:#334155;color:#CBD5E1;">جاري التحقق...</span>
             </div>
