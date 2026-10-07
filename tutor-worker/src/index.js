@@ -704,14 +704,14 @@ function newsDeps(env, ctx) {
         },
     };
 }
-async function newsCron(env, ctx) {
+async function newsCron(env, ctx, cron) {
     const db = makeDb(env);
     if (!db.ok) return 'no_sa';
     // a heartbeat the panel shows: "started" first, then "done" (or the error). A run that is cut off shows as started and never done.
     const t0 = Date.now(), beat = (v) => db.put('newsBot/beat', { at: Date.now(), t0, ...v }).catch(() => {});
-    await beat({ s: 'start' });
-    try { const r = await newsLoop(db, newsDeps(env, ctx)); await beat({ s: 'done', st: r.state, pub: r.pub, err: r.err.slice(0, 3).join(',') }); return r.state; }
-    catch (e) { await beat({ s: 'error', m: String(e && e.message || e).slice(0, 80) }); return 'error'; }
+    await beat({ s: 'start', cron });
+    try { const r = await newsLoop(db, newsDeps(env, ctx)); await beat({ s: 'done', cron, st: r.state, pub: r.pub, err: r.err.slice(0, 3).join(',') }); return r.state; }
+    catch (e) { await beat({ s: 'error', cron, m: String(e && e.message || e).slice(0, 80) }); return 'error'; }
 }
 
 // ---- motivation pushes (قسم تحفيز في اللوحة): plans the admin scheduled (motivPlans/{id}); see src/motiv.js ----
@@ -802,8 +802,10 @@ export default {
     async scheduled(event, env, ctx) {
         // each schedule is named in src/cron.js; one that is not named does nothing
         const job = routeCron(event.cron);
+        // which schedule text arrives (for the panel: the news watcher's own heartbeat carries it; the other two are noted here)
+        if (job === 'poll' || job === 'coach') { const d = makeDb(env); if (d.ok) ctx.waitUntil(d.put('newsBot/ticks/' + job, { cron: String(event.cron).slice(0, 40), at: Date.now() }).catch(() => {})); }
         if (job === 'poll') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); }
-        else if (job === 'news') ctx.waitUntil(newsCron(env, ctx).then((r) => console.log('news bot', r)));
+        else if (job === 'news') ctx.waitUntil(newsCron(env, ctx, String(event.cron).slice(0, 40)).then((r) => console.log('news bot', r)));
         else if (job === 'coach') ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
         else console.log('unknown schedule, nothing done:', event.cron);
     },

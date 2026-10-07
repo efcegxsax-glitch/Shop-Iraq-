@@ -12,7 +12,8 @@ t('every schedule in wrangler.toml is named', crons.every((c) => routeCron(c) !=
 t('each job has exactly one schedule', ['coach', 'poll', 'news'].every((j) => crons.filter((c) => routeCron(c) === j).length === 1));
 t('the tutor\'s push only comes from its own schedule', routeCron(COACH_CRON) === 'coach' && routeCron(POLL_CRON) === 'poll' && routeCron(NEWS_CRON) === 'news');
 t('the minute-by-minute schedule never reaches the tutor', routeCron('* * * * *') === 'news');
-t('unknown or odd schedules do nothing', ['', undefined, '2-59/5 * * * *', '5,20,35,50 * * * *', '*/1 * * * *', '0 * * * *'].every((c) => routeCron(c) === ''));
+t('an odd schedule text runs only the news watcher, never the tutor', ['2-59/5 * * * *', '5,20,35,50 * * * *', '*/1 * * * *', '0 * * * *'].every((c) => routeCron(c) === 'news'));
+t('no schedule text, nothing', routeCron('') === '' && routeCron(undefined) === '');
 t('spacing differences are tolerated', routeCron('  *  *  *  *  * ') === 'news');
 console.log(`cron tests passed ${pass} failed ${fail}`);
 process.exit(fail ? 1 : 0);
