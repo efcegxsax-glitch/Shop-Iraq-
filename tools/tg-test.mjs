@@ -61,6 +61,8 @@ const svcPage = svc(`<a class="tgme_widget_message_photo_wrap" style="${photoSty
   + svc('<div class="tgme_widget_message_text js-message_text">Admin pinned «موعد الامتحان»</div>')
   + `<div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message text_not_supported_wrap js-widget_message" data-post="mr_ali_math/205"><div class="tgme_widget_message_text js-message_text">Channel photo updated</div></div></div>`
   + `<div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message js-widget_message" data-post="mr_ali_math/206"><div class="tgme_widget_message_text js-message_text">محاضرة اليوم عن الكهربائية</div><a class="tgme_widget_message_date"><time datetime="2026-10-07T10:00:00+00:00"></time></a></div></div>`;
+const allIds = parseTgPosts(page, 'mr_ali_math').map((x) => x.i), tail = parseTgPosts(page, 'mr_ali_math', { last: 2 });
+t('a caller can ask for just the newest few posts', tail.length <= 2 && tail.every((x) => allIds.includes(x.i)) && parseTgPosts(page, 'mr_ali_math', { last: 99 }).length === allIds.length, tail.map((x) => x.i));
 const sp = parseTgPosts(svcPage, 'mr_ali_math');
 t('service notices are skipped, a real post stays', sp.length === 1 && sp[0].i === 206, sp.map((x) => x.i));
 t('service wording, English and Arabic', ['Channel photo updated', 'Channel created', 'Channel name was changed to «x»', 'تم تحديث صورة القناة', 'تم تغيير اسم القناة إلى «x»', 'Ali pinned «y»', 'تم إنشاء القناة'].every(isServiceText));

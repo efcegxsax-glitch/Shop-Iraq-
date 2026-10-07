@@ -40,9 +40,11 @@ export function parseTgInfo(html) {
 }
 
 // the posts on one page of the preview, oldest to newest as the page lists them
-export function parseTgPosts(html, chan) {
+export function parseTgPosts(html, chan, opt) {
     const out = [];
-    const parts = String(html || '').split(/<div class="tgme_widget_message_wrap/).slice(1);
+    let parts = String(html || '').split(/<div class="tgme_widget_message_wrap/).slice(1);
+    // a caller that only wants the newest posts (the news bot, every few seconds) reads just the last few: the page lists them oldest to newest
+    if (opt && opt.last > 0) parts = parts.slice(-opt.last);
     for (const part of parts) {
         const dp = /data-post="([A-Za-z0-9_]+)\/(\d+)"/.exec(part);
         if (!dp || (chan && dp[1].toLowerCase() !== String(chan).toLowerCase())) continue;
