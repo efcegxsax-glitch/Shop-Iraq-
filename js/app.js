@@ -1207,6 +1207,8 @@
             _emailSignupOn() { const f = this.siteConfig && this.siteConfig.features; return !(f && f.emailSignup === false); },
             _googleClientId() { const g = this.siteConfig && this.siteConfig.google; return String((g && g.webClientId) || window.GOOGLE_WEB_CLIENT_ID || '').trim(); },
             _googleViaOnly(user) { const p = (user && user.providerData) || []; return p.some((x) => x.providerId === 'google.com') && !p.some((x) => x.providerId === 'password'); },
+            // the iPhone app added from Safari ("Add to Home Screen"): Google's pop-up cannot open there (the page just hangs)
+            _iosStandalone() { try { return navigator.standalone === true || (/iPhone|iPad|iPod/.test(navigator.userAgent) && window.matchMedia('(display-mode: standalone)').matches); } catch (e) { return false; } },
             async _googleCredential(reauthUser) {
                 const h = window.firebaseAuthHelpers, auth = window.firebaseAuth;
                 if (this._isNative()) {
@@ -1220,9 +1222,12 @@
                     const cred = h.GoogleAuthProvider.credential(idToken);
                     return reauthUser ? h.reauthenticateWithCredential(reauthUser, cred) : h.signInWithCredential(auth, cred);
                 }
+                if (this._iosStandalone()) throw { code: 'isp/ios-standalone' };
                 const provider = new h.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
-                return reauthUser ? h.reauthenticateWithPopup(reauthUser, provider, h.browserPopupRedirectResolver) : h.signInWithPopup(auth, provider, h.browserPopupRedirectResolver);
+                const run = reauthUser ? h.reauthenticateWithPopup(reauthUser, provider, h.browserPopupRedirectResolver) : h.signInWithPopup(auth, provider, h.browserPopupRedirectResolver);
+                // a pop-up that never answers must not leave the page waiting for ever
+                return Promise.race([run, new Promise((_, rej) => setTimeout(() => rej({ code: 'isp/popup-timeout' }), 120000))]);
             },
             _googleBtns(busy) {
                 document.querySelectorAll('.g-btn').forEach((b) => { b.disabled = !!busy; b.classList.toggle('busy', !!busy); });
@@ -1236,6 +1241,8 @@
                 else if (code === 'auth/network-request-failed') this.showToast('تعذر الاتصال بالخادم، تحقق من اتصالك بالإنترنت');
                 else if (code === 'auth/account-exists-with-different-credential') this.showToast('هذا الإيميل مسجل بطريقة ثانية، سجّل دخول بكلمة المرور أول');
                 else if (code === 'isp/no-client-id') this.showToast('الدخول بـ Google على التطبيق ما انفعّل بعد (ينقص Client ID من لوحة الإدارة)');
+                else if (code === 'isp/ios-standalone') this.showToast('الدخول بـ Google ما يشتغل بتطبيق الآيفون المثبّت. سجّل بالبريد وكلمة المرور (الحقول تحت)');
+                else if (code === 'isp/popup-timeout') this.showToast('نافذة Google ما ردّت. سجّل بالبريد وكلمة المرور، أو حاول مرة ثانية');
                 else if (code === 'isp/native-old') this.showToast('حدّث التطبيق لآخر نسخة حتى يشتغل الدخول بـ Google');
                 else if (code === 'isp/native') this.showToast('Google: ' + msg.replace(/androidx\.credentials\.|android\.credentials\./g, '').slice(0, 140));
                 else this.showToast('تعذر الدخول بحساب Google (' + (code || msg.slice(0, 60) || 'خطأ') + ')');
