@@ -28,6 +28,7 @@ import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, is
 import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 import { makeDb } from './fbadmin.js';
+import { routeCron } from './cron.js';
 import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -43,7 +44,6 @@ const PUSH_LOOK = (env) => ({
     web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
 });
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const NEWS_CRON = '* * * * *';   // every minute, and inside it 3 looks 9 seconds apart (newsLoop); keep in step with wrangler.toml
 
 const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المدارس العراقية داخل تطبيق أكـادمي السادس، وأغلبهم بالسادس الإعدادي.
 
@@ -443,6 +443,8 @@ async function coachPush(env, when) {
             data: { coach: text },
             web_push_topic: 'isp-coach',
             ttl: 3 * 3600,
+            // one push per slot (Baghdad date and hour): a repeated run of the same slot is answered with the first one
+            idempotency_key: await uuidOf('coach-' + new Date(when + 3 * 3600000).toISOString().slice(0, 13)),
         }),
     });
     if (!res.ok) console.error('coach push', res.status, await res.text().catch(() => ''));
@@ -794,9 +796,12 @@ async function ytUploads(id, cont, ctx, env) {
 
 export default {
     async scheduled(event, env, ctx) {
-        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); return; }
-        if (event.cron === NEWS_CRON) { ctx.waitUntil(newsCron(env, ctx).then((r) => console.log('news bot', r))); return; }
-        ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
+        // each schedule is named in src/cron.js; one that is not named does nothing
+        const job = routeCron(event.cron);
+        if (job === 'poll') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); }
+        else if (job === 'news') ctx.waitUntil(newsCron(env, ctx).then((r) => console.log('news bot', r)));
+        else if (job === 'coach') ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
+        else console.log('unknown schedule, nothing done:', event.cron);
     },
 
     async fetch(req, env, ctx) {
