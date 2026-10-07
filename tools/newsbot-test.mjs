@@ -133,6 +133,23 @@ t('status written', db.root.newsBot.status.pub === 1);
     t('voice messages: nothing published, queued or ignored', rv.pub === 0 && rv.queue === 0 && rv.ign === 0 && !dv.root.news && !dv.root.newsBot.queue && !dv.root.newsBot.ignored, rv);
     pages.iraqedu = pv;
 }
+// a minute of watching (every 10 seconds): a post that shows up in the middle is published once, and the calls stay few
+{
+    const pv = pages.iraqedu; pages.iraqedu = [];
+    const dv = fakeDb(base()); dv.root.newsBot.chans.iraqed4.on = false;
+    let sleeps = 0, pageCalls = 0, dbCalls = 0, pubAt = -1;
+    const cnt = { ...dv }; for (const m of ['get', 'update', 'del', 'put']) cnt[m] = async (...a) => { dbCalls++; return dv[m](...a); };
+    const d = mkDeps(); const pg0 = d.page;
+    d.page = async (n) => { pageCalls++; return pg0(n); };
+    d.sleep = async () => { sleeps++; if (sleeps === 2) pages.iraqedu.push(post(30, 'جامعة بغداد تعلن موعد التسجيل للعام الجديد')); if (Object.keys(dv.root.news || {}).length && pubAt < 0) pubAt = sleeps; };
+    const { newsLoop } = await import('../tutor-worker/src/newsrun.js');
+    const rl = await newsLoop(cnt, d, { polls: 6, gap: 10000 });
+    t('minute loop: looks 6 times, waits 5 times', pageCalls === 6 && sleeps === 5, [pageCalls, sleeps]);
+    t('minute loop: the post that appeared at the 3rd look is published once, right then', rl.pub === 1 && Object.keys(dv.root.news).length === 1 && pubAt === 3, [rl, pubAt]);
+    t('minute loop: few database calls (config, channels and seen marks are kept in memory)', dbCalls <= 20, dbCalls);
+    t('minute loop: the status line is written at the end', !!dv.root.newsBot.status && dv.root.newsBot.status.pub === 1);
+    pages.iraqedu = pv;
+}
 const before = Object.keys(db.root.news).length;
 r = await newsRun(db, mkDeps());
 t('a second round publishes and queues nothing again', r.pub === 0 && r.queue === 0 && Object.keys(db.root.news).length === before, r);

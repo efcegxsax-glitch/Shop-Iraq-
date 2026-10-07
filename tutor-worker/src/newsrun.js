@@ -45,9 +45,9 @@ async function loadPool(db, now) {
 }
 
 export async function newsRun(db, deps, opt = {}) {
-    const now = deps.now(), out = { pub: 0, queue: 0, ign: 0, err: [] };
-    let cfg;
-    try { cfg = await db.get('newsBot/cfg'); } catch (e) { return { state: String(e.message) === 'no_sa' ? 'no_sa' : 'db', ...out }; }
+    const now = deps.now(), out = { pub: 0, queue: 0, ign: 0, err: [] }, mem = opt.mem || null;
+    let cfg = mem && mem.cfg !== undefined ? mem.cfg : undefined;
+    try { if (cfg === undefined) cfg = await db.get('newsBot/cfg'); } catch (e) { return { state: String(e.message) === 'no_sa' ? 'no_sa' : 'db', ...out }; }
     // the very first round ever: switch the bot on with the two news channels, publishing by themselves (only what they post from now on)
     if (cfg === null && !opt.noSeed) {
         cfg = { on: true, th: 60, notify: true, words: '' };
@@ -56,16 +56,19 @@ export async function newsRun(db, deps, opt = {}) {
         try { await db.update(up); } catch { return { state: 'db', ...out }; }
     }
     cfg = cfg || {};
+    if (mem) mem.cfg = cfg;
     if (!cfg.on) return { state: 'off', ...out };
-    let chans = {};
-    try { chans = (await db.get('newsBot/chans')) || {}; } catch { return { state: 'db', ...out }; }
+    let chans = mem && mem.chans ? mem.chans : {};
+    try { if (!(mem && mem.chans)) chans = (await db.get('newsBot/chans')) || {}; } catch { return { state: 'db', ...out }; }
+    if (mem) mem.chans = chans;
     const list = Object.values(chans).filter((c) => c && c.on !== false && isTgName(c.u)).slice(0, MAX_CHANNELS);
     const up = {}, ctx = { next: 0, pool: null };
     let budget = MAX_PER_RUN;
     for (const c of list) {
         const key = c.u.toLowerCase();
         let pg; try { pg = await deps.page(c.u); } catch { out.err.push(c.u); continue; }
-        let seen = {}; try { seen = (await db.get('newsBot/seen/' + key)) || {}; } catch { continue; }
+        let seen = mem && mem.seen[key]; try { if (!seen) seen = (await db.get('newsBot/seen/' + key)) || {}; } catch { continue; }
+        if (mem) mem.seen[key] = seen;
         const posts = pg.posts.slice(0, 12).filter((x) => !seen[x.i]).sort((a, b) => a.i - b.i);
         let did = 0;
         for (const x of posts) {
@@ -95,10 +98,28 @@ export async function newsRun(db, deps, opt = {}) {
         // forget old marks so the list stays short
         for (const [pid, t] of Object.entries(seen)) if (now - Number(t) > 10 * DAY) up['newsBot/seen/' + key + '/' + pid] = null;
     }
-    // the word lists of old news are no longer needed either
-    up['newsBot/status'] = { at: now, pub: out.pub, queue: out.queue, ign: out.ign, err: out.err.slice(0, 5).join(',') };
-    try { await db.update(up); } catch { out.err.push('save'); }
+    // what this round marked as seen is remembered in memory for the next round of the same minute
+    if (mem) for (const [path, v] of Object.entries(up)) { const m = /^newsBot\/seen\/([^/]+)\/(.+)$/.exec(path); if (m && mem.seen[m[1]]) { if (v === null) delete mem.seen[m[1]][m[2]]; else mem.seen[m[1]][m[2]] = v; } }
+    // the status line is written when something happened (or, in a minute of many rounds, on the last one)
+    // (a minute's numbers are added up, so the line says what the whole minute did)
+    const tot = mem ? (mem.tot = mem.tot || { pub: 0, queue: 0, ign: 0, err: [] }) : out;
+    if (mem) { tot.pub += out.pub; tot.queue += out.queue; tot.ign += out.ign; for (const e of out.err) if (!tot.err.includes(e)) tot.err.push(e); }
+    if (!mem || opt.last || out.pub || out.queue || out.ign || out.err.length) up['newsBot/status'] = { at: now, pub: tot.pub, queue: tot.queue, ign: tot.ign, err: tot.err.slice(0, 5).join(',') };
+    if (Object.keys(up).length) { try { await db.update(up); } catch { out.err.push('save'); } }
     return { state: 'ok', ...out };
+}
+
+// One minute of watching: a round every `gap` ms (10 s), the channels, switches and "seen" marks are read once and kept in memory.
+export async function newsLoop(db, deps, opt = {}) {
+    const polls = opt.polls || 6, gap = opt.gap == null ? 10000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {} };
+    const tot = { state: 'ok', pub: 0, queue: 0, ign: 0, err: [] };
+    for (let i = 0; i < polls; i++) {
+        const r = await newsRun(db, deps, { mem, last: i === polls - 1 });
+        if (r.state !== 'ok') { tot.state = r.state; break; }
+        tot.pub += r.pub; tot.queue += r.queue; tot.ign += r.ign; for (const e of r.err) if (!tot.err.includes(e)) tot.err.push(e);
+        if (i < polls - 1) await deps.sleep(gap);
+    }
+    return tot;
 }
 
 // the admin's decision on a held item: 'approve' (queue -> news), 'reject' (drop from the queue), 'restore' (ignored -> news), 'clear'
