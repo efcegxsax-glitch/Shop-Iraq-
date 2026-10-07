@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="d54ffa150c">
+    <meta name="admin-build" content="e3a8fea450">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -3569,6 +3569,7 @@
                 else if (b.s === 'start' && age > 45000) { t = 'الجولة تبدأ وما تخلص (تنقطع بنص الطريق)'; c = '#d97706'; }
                 else if (b.s === 'done' && b.st && b.st !== 'ok') { t = 'الخادم يشتغل، حالة الجولة: ' + ({ off: 'الجلب مطفي', busy: 'جولة ثانية شغّالة', no_sa: 'المفتاح مو موجود', db: 'تعذر الوصول لقاعدة البيانات' }[b.st] || b.st); c = '#d97706'; }
                 else t = 'الخادم يشتغل: آخر جولة قبل ' + (age < 60000 ? 'أقل من دقيقة' : mins + ' دقيقة') + (b.s === 'done' && b.err ? ' . تعذر قراءة: ' + b.err : '');
+                if (b && b.cron) t += ' . الجدولة: ' + b.cron;
                 box.textContent = t; box.style.color = c;
             });
             onValue(ref(db, 'newsBot/status'), (s) => {
