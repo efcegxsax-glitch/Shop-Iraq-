@@ -43,7 +43,7 @@ const PUSH_LOOK = (env) => ({
     web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
 });
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const NEWS_CRON = '* * * * *';   // every minute, and inside it a look every 10 seconds (newsLoop); keep in step with wrangler.toml
+const NEWS_CRON = '* * * * *';   // every minute, and inside it 3 looks 9 seconds apart (newsLoop); keep in step with wrangler.toml
 
 const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المدارس العراقية داخل تطبيق أكـادمي السادس، وأغلبهم بالسادس الإعدادي.
 
