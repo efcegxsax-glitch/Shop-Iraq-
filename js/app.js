@@ -5632,9 +5632,11 @@
                         this._maybePromptPush();
                     } catch (e) {
                         console.warn('OneSignal init failed:', e);
+                        this._osErr = String((e && e.message) || e || 'error').slice(0, 160);
                     }
                 });
                 const sc = document.createElement('script');
+                sc.onerror = () => { this._osErr = 'السكربت ما انحمّل (النت أو حاجب)'; };
                 sc.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
                 sc.defer = true;
                 document.head.appendChild(sc);
@@ -11877,6 +11879,7 @@
                 const rows = [];
                 if (ios && !native) rows.push([standalone, 'التطبيق مفتوح من أيقونة الشاشة الرئيسية', 'افتحه من الأيقونة اللي أضفتها، مو من Safari. إشعارات الآيفون تشتغل بس من الأيقونة']);
                 rows.push([native || 'Notification' in window, 'الجهاز يدعم الإشعارات', ios ? 'تحتاج iOS 16.4 أو أحدث، وتفتحه من الأيقونة' : 'المتصفح ما يدعم الإشعارات']);
+                if (!native) rows.push([!!os, 'خدمة الإشعارات (OneSignal) تحمّلت', 'ما تحمّلت' + (this._osErr ? ': ' + this._osErr : ' بعد. انتظر شوية وافتح الفحص ثاني. إذا بقت كذا فالموقع غير مضاف بإعدادات OneSignal (منصة Web)')]);
                 rows.push([perm === 'granted', 'إذن الإشعارات', perm === 'denied' ? (ios ? 'مسدود. من إعدادات الآيفون ثم الإشعارات اختار التطبيق وفعّله. أو احذف الأيقونة وأضفها من جديد' : 'مسدود من إعدادات الجهاز، فعّله من هناك') : 'لسه ما انمنح، اضغط "تفعيل الإشعارات" تحت وبعدين "سماح"']);
                 rows.push([native ? perm === 'granted' : (opted && !!sid), 'تسجيل الجهاز بخدمة الإشعارات', 'ما تسجل بعد. سكّر التطبيق وافتحه ثاني وانتظر دقيقة، أو اضغط تفعيل الإشعارات']);
                 const li = rows.map(([ok, t, h]) => `<div class="flex items-start gap-3 p-3 rounded-xl" style="background-color: var(--input-bg);"><span style="font-size:18px;line-height:1.2;color:${ok ? '#16A34A' : '#DC2626'}">${ok ? '&#10003;' : '&#10007;'}</span><div class="flex-1 min-w-0"><div class="text-sm font-bold" style="color: var(--text);">${t}</div>${ok ? '' : `<div class="text-xs mt-1" style="color: var(--text2);">${h}</div>`}</div></div>`).join('');
