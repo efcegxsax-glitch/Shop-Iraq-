@@ -126,14 +126,10 @@
             <div class="tg-ft"><button onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})"><i data-lucide="send"></i>افتح بتلكرام</button></div>
         </article>`;
     }
-    function myBar() {
-        if (!picked()) return `<div class="tu-mine ask"><div><b>خصص أساتذتك</b><small>اختار الأساتذة اللي تريدهم بس، والباقي يختفون. تكدر تعدل بأي وقت.</small></div><button onclick="app.tgPick()">اختيار</button></div>`;
-        return `<div class="tu-mine"><div><b>أساتذتك (${shownCh().length} من ${CH.length})</b><small>باقي الأساتذة مخفيين. ترجعهم من زر التعديل.</small></div><button onclick="app.tgPick()">تعديل</button></div>`;
-    }
     function pickList() {
         const box = $('tgPickList'); if (!box) return;
-        const m = mine(), sel = picked();
-        box.innerHTML = CH.map((c) => `<button class="${sel && m.has(String(c.u).toLowerCase()) ? 'on' : ''}" onclick="app.tgPickToggle('${esc(String(c.u).toLowerCase())}', this)"><i>${avatar(c)}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`).join('');
+        const m = mine(), sel = picked(), q = String((($('tgPickQ') || {}).value) || '').trim().toLowerCase();
+        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '') + ' ' + String(c.u)).toLowerCase().indexOf(q) !== -1).map((c) => `<button class="${sel && m.has(String(c.u).toLowerCase()) ? 'on' : ''}" onclick="app.tgPickToggle('${esc(String(c.u).toLowerCase())}', this)"><i>${avatar(c)}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`).join('');
         try { lucide.createIcons(); } catch (e) {}
     }
     function paint() {
@@ -154,8 +150,8 @@
                 : S.ch ? (M && M.busy ? '<div class="tu-more dim">دا يحمّل المنشورات القديمة...</div>' : M && M.fail ? '<button class="tu-more" onclick="app.tgMore()">تعذر التحميل، أعد المحاولة</button>' : M && M.done ? '' : '<button class="tu-more" onclick="app.tgMore()">منشورات أقدم</button>') : '');
         const warn = failed.length && !S.ch ? `<div class="tg-warn">ما انقرأت منشورات: ${failed.map((u) => esc((chOf(u) || { n: u }).n)).join('، ')} (يمكن القناة مو عامة)</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
-            <div class="tu-h"><span>القنوات</span><button onclick="app.tgSettings()"><i data-lucide="bell"></i>الإشعارات</button></div>
-            <div class="tu-tchs">${teachers}</div>${myBar()}` : ''}${warn}<div class="tg-feed">${feed}</div>
+            <div class="tu-h"><span>القنوات</span><span class="tu-hb"><button onclick="app.tgPick()"><i data-lucide="users"></i>أساتذتي${picked() ? ' (' + shownCh().length + ')' : ''}</button><button onclick="app.tgSettings()"><i data-lucide="bell"></i>الإشعارات</button></span></div>
+            <div class="tu-tchs">${teachers}</div>` : ''}${warn}<div class="tg-feed">${feed}</div>
             <div class="tg-ask"><button onclick="app.chReqOpen('tg')"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
     }
@@ -240,13 +236,15 @@
             $('tgPick')?.remove();
             const w = document.createElement('div'); w.id = 'tgPick'; w.className = 'tu-sheetw';
             w.innerHTML = `<div class="tu-sbd" onclick="app.tgPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tgPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                <p>اختار الأساتذة اللي تريدهم، وتطلع لك منشوراتهم وإشعاراتهم بس والباقي يختفون. ترجع تعدل بأي وقت من هنا.</p>
+                <p>ابحث واختار الأساتذة اللي تريدهم وتطلع لك منشوراتهم بس. الباقي يختفون، وترجعهم من هنا بأي وقت.</p>
+                <input id="tgPickQ" class="tg-in" type="search" placeholder="ابحث عن أستاذ..." oninput="app.tgPickFilter()">
                 <div class="tu-pkact"><button onclick="app.tgPickAll(true)">اختيار الكل</button><button onclick="app.tgPickAll(false)">مسح الكل</button></div>
                 <div class="tu-pick" id="tgPickList"></div>
                 <button class="tu-btn wide" onclick="app.tgPickClose()">تم</button></div>`;
             document.body.appendChild(w); pickList();
             requestAnimationFrame(() => w.classList.add('on'));
         },
+        tgPickFilter() { pickList(); },
         tgPickToggle(k, btn) {
             const first = !picked(); if (first) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_MINE, []); }
             const m = mine(); if (m.has(k)) m.delete(k); else m.add(k); save(K_MINE, Array.from(m));
