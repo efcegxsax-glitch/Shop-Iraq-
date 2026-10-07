@@ -444,6 +444,7 @@
 
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
+            <button class="tab" data-tab="newsbot"><span class="tab-ic"><i data-lucide="radio-tower"></i></span><span>أخبار تلكرام</span></button>
             <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
             <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
@@ -960,7 +961,7 @@
             </div>
 
             <!-- News -->
-            <div id="sec-news">
+            <div id="sec-newsbot" class="hidden">
                 <div class="card" id="nbCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="radio-tower"></i></div>
@@ -999,6 +1000,9 @@
                     <div class="field mt-3"><label>بانتظار موافقتك (<span id="nb_qn">0</span>)</label><div id="nb_queue"></div></div>
                     <div class="field mt-3"><label>المتجاهلة (<span id="nb_in">0</span>) . تكدر تنشر أي وحدة منها</label><div id="nb_ign"></div></div>
                 </div>
+            </div>
+
+            <div id="sec-news">
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="newspaper"></i></div>
@@ -2205,7 +2209,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3565,7 +3569,7 @@
                     const c = await workerPost({ mode: 'tginfo', q: u });
                     if (!c.n) { box.textContent = 'ما لكيت هذه القناة'; return; }
                     const warn = c.preview ? '' : '<div style="color:#b45309;font-size:12px;margin-top:4px">انتبه: هذه القناة ما تعرض صفحة عامة، فما راح تنجلب أخبارها.</div>';
-                    box.innerHTML = `<div style="${YT_STYLE}">${tgImg(c.a)}<div style="flex:1;min-width:0"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)} . ${c.subs ? c.subs + ' مشترك . ' : ''}${c.count} منشور ظاهر</div>${warn}</div><button class="btn" type="button" id="nb_add">أضف</button></div>`;
+                    box.innerHTML = `<div style="${YT_STYLE};flex-wrap:wrap">${tgImg(c.a)}<div style="flex:1;min-width:140px"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)} . ${c.subs ? c.subs + ' مشترك . ' : ''}${c.count} منشور ظاهر</div>${warn}</div><button class="btn" type="button" id="nb_add">أضف</button></div>`;
                     el('nb_add').addEventListener('click', async () => {
                         const key = c.u.toLowerCase();
                         if (chans[key]) { toast('هذه القناة مضافة من قبل', false); return; }
