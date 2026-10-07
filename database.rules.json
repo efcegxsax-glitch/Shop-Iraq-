@@ -80,6 +80,10 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
+    "tgChannels": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
     "exams": {
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
@@ -1416,6 +1420,50 @@
         ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         ".write": "(auth != null && auth.uid == $uid)",
         ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"
+      }
+    },
+    "chanReq": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        "$id": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists() && newData.child('at').val() == now && newData.parent().parent().parent().child('chanReqLast/' + auth.uid).val() == now) || ((auth != null && auth.uid == $uid) && !newData.exists()))",
+          ".validate": "!newData.exists() || data.exists() || ((newData.hasChildren(['uid', 'k', 'l', 'st', 'at']) && newData.child('uid').val() == $uid && newData.child('st').val() == 'new'))",
+          "uid": {
+            ".validate": "newData.isString()"
+          },
+          "k": {
+            ".validate": "newData.isString() && newData.val().matches(/^(tg|yt)$/)"
+          },
+          "l": {
+            ".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 150"
+          },
+          "n": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "s": {
+            ".validate": "newData.isString() && newData.val().length <= 12"
+          },
+          "st": {
+            ".validate": "newData.isString() && newData.val().matches(/^(new|ok|no)$/)"
+          },
+          "r": {
+            ".validate": "newData.isString() && newData.val().length <= 200"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "chanReqLast": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 120000)"
       }
     },
     "flightLast": {

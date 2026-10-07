@@ -11191,3 +11191,64 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 /* satellite photos: never inverted at night, only dimmed */
 .fl-map.fl-night.fl-sat .leaflet-tile-pane { filter: brightness(.6) saturate(.85) contrast(1.05); }
 .fl-map.fl-sat { background: #0b1220; }
+/* news card footer: the source gets its own full line (it used to be cut to "وزارة الت…"), the time and the two buttons sit under it */
+.nw-foot { flex-wrap: wrap; row-gap: 6px; }
+.nw-foot .nw-meta:first-child { display: inline-flex !important; flex: 1 1 100%; min-width: 0; }
+.nw-foot .nw-meta:first-child > span { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.5; }
+.nw-foot .nw-sep { display: none !important; }
+.nw-bm svg { color: currentColor; }
+
+/* ---------- تلكرام المدرسين ---------- */
+.tg .tu-chip.on { background: #229ED9; }
+.tg .tu-tch.on i { box-shadow: 0 0 0 2.5px #229ED9; }
+.tg .tu-tch.tg-mu { opacity: .5; }
+.tg-feed { padding: 4px 14px 0; display: flex; flex-direction: column; gap: 12px; }
+.tg-card { padding: 12px; border-radius: 20px; background: var(--surface); border: 1px solid var(--border); overflow: hidden; }
+.tg-hd { display: flex; align-items: center; gap: 10px; }
+.tg-hd .tu-av { flex: none; width: 38px; height: 38px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #229ED9; color: #fff; font-weight: 800; }
+.tg-hd .tu-av img { width: 100%; height: 100%; object-fit: cover; }
+.tg-hd .tu-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tg-hd .tu-tx b { font-size: 14px; color: var(--text); }
+.tg-hd .tu-tx small { font-size: 11.5px; color: var(--text2); }
+.tg-new { font-style: normal; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: #229ED9; color: #fff; }
+.tg-tx { margin-top: 10px; font-size: 14.5px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.tg-tx.clip { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 5; overflow: hidden; }
+.tg-more { margin-top: 2px; font: inherit; font-size: 12.5px; font-weight: 800; color: #229ED9; background: none; }
+.tg-im { display: grid; gap: 4px; margin-top: 10px; border-radius: 14px; overflow: hidden; }
+.tg-im.n1 { grid-template-columns: 1fr; } .tg-im.n2, .tg-im.n3, .tg-im.n4 { grid-template-columns: 1fr 1fr; }
+.tg-im button { display: block; padding: 0; background: var(--input-bg); aspect-ratio: 4 / 3; overflow: hidden; }
+.tg-im.n1 button { aspect-ratio: auto; max-height: 360px; }
+.tg-im img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tg-vd { position: relative; display: block; width: 100%; margin-top: 10px; padding: 0; aspect-ratio: 16 / 9; border-radius: 14px; overflow: hidden; background: #0f172a; }
+.tg-vd img { width: 100%; height: 100%; object-fit: cover; }
+.tg-play { position: absolute; inset: 0; display: grid; place-items: center; }
+.tg-play svg { width: 46px; height: 46px; padding: 12px; border-radius: 50%; color: #fff; background: rgba(0,0,0,.55); }
+.tg-vd em { position: absolute; bottom: 8px; left: 8px; padding: 2px 8px; border-radius: 8px; font-style: normal; font-size: 11px; font-weight: 800; color: #fff; background: rgba(0,0,0,.6); }
+.tg-file { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 14px; text-align: right; font: inherit; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
+.tg-file > svg:first-child { flex: none; width: 34px; height: 34px; padding: 7px; border-radius: 10px; color: #fff; background: #229ED9; }
+.tg-file > span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tg-file b { font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tg-file small { color: var(--text2); font-size: 11.5px; text-align: right; }
+.tg-file > svg:last-child { flex: none; width: 16px; height: 16px; color: var(--text2); }
+.tg-ft { margin-top: 10px; display: flex; }
+.tg-ft button { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 99px; font: inherit; font-size: 12.5px; font-weight: 800; color: #229ED9; background: rgba(34,158,217,.12); }
+.tg-ft svg { width: 15px; height: 15px; }
+.tg-warn { margin: 8px 14px 0; padding: 8px 12px; border-radius: 12px; font-size: 12px; color: #b45309; background: rgba(245,158,11,.14); }
+.tg-ask { padding: 14px; display: flex; justify-content: center; }
+.tg-ask button { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 99px; font: inherit; font-size: 13px; font-weight: 800; color: var(--text); background: var(--input-bg); border: 1px dashed var(--border); }
+.tg-ask svg { width: 17px; height: 17px; }
+.tg-in { width: 100%; padding: 12px 14px; margin: 4px 0 10px; border-radius: 14px; font: inherit; font-size: 14px; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
+.tu-btn.wide { width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; }
+.tg-rq { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-top: 1px solid var(--border); font-size: 12.5px; word-break: break-all; }
+.tg-rq em { font-style: normal; font-weight: 800; }
+.tg-chs { max-height: 40vh; overflow: auto; }
+.tg-chav { width: 30px; height: 30px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #229ED9; color: #fff; font-style: normal; flex: none; }
+.tg-chav img { width: 100%; height: 100%; object-fit: cover; }
+.tg-light { position: fixed; inset: 0; z-index: 9500; display: grid; place-items: center; background: rgba(0,0,0,.9); }
+.tg-light img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.tg-lx { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgba(255,255,255,.18); }
+.tu-more.dim { opacity: .7; text-align: center; padding: 12px; }
+.tg .tu-more, .tg .tu-btn, #tgReq .tu-btn { background: #229ED9; }
+.tg .tu-h button { color: #229ED9; }
+#tgSheet .tu-pushsw.on, #tgReq .tu-pushsw.on { border-color: #229ED9; }
+#tgSheet .tu-pushsw.on em { background: #229ED9; color: #fff; }
