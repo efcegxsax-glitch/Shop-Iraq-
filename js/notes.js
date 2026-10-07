@@ -62,6 +62,38 @@
         },
     };
 
+    // ---------- cloud copy: noteBackup/{uid}/{id}, one packed string per notebook (private to the student) ----------
+    const FBH = () => window.firebaseDbHelpers;
+    const cloudOk = () => !!(window.firebaseDb && app.authUid && FBH());
+    const cloudRef = (id) => FBH().ref(window.firebaseDb, 'noteBackup/' + app.authUid + (id ? '/' + id : ''));
+    const MAXC = 1400000, MAXN = 30;
+    async function pack(n) {
+        const c = clone(n); delete c.th;
+        const j = JSON.stringify(c);
+        if (!window.CompressionStream) return 'j:' + j;
+        const buf = new Uint8Array(await new Response(new Blob([j]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+        let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+        return 'z:' + btoa(bin);
+    }
+    async function unpack(d) {
+        if (d.startsWith('j:')) return JSON.parse(d.slice(2));
+        const bin = atob(d.slice(2)), buf = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        return JSON.parse(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
+    }
+    // 'ok' | 'big' | 'off' (not signed in) | 'fail'
+    async function cloudPut(n) {
+        if (!cloudOk()) return 'off';
+        try {
+            const d = await pack(n);
+            if (d.length > MAXC) return 'big';
+            await FBH().set(cloudRef(n.id), { t: String(n.title || '').slice(0, 60), ts: n.ts || Date.now(), pg: Math.max(1, Math.min(200, n.pages.length)), d });
+            return 'ok';
+        } catch (e) { return 'fail'; }
+    }
+    let cT = 0, cPend = null;
+    function cloudQueue(n) { if (SET.cloud === false || !cloudOk()) return; cPend = n; clearTimeout(cT); cT = setTimeout(() => { const x = cPend; cPend = null; if (x) cloudPut(x); }, 15000); }
+    async function cloudFlush() { clearTimeout(cT); const x = cPend; cPend = null; if (x) await cloudPut(x); }
+
     // ---------- state ----------
     let NOTES = [], N = null, PG = null, V = { x: 0, y: 0, z: 1 };
     let H = { u: [], r: [] }, SEL = [], ST = null, MODE = '', ptrs = new Map(), rect = null, saveT = 0, dirty = false, penSeen = false, penDown = false;
@@ -703,6 +735,7 @@
         try { PG.v = { x: Math.round(V.x), y: Math.round(V.y), z: Math.round(V.z * 100) / 100 }; N.ts = Date.now(); N.th = snapshot(N.pages[0], 360, 'jpeg').toDataURL('image/jpeg', 0.6); } catch (e) {}
         const ok = await Store.put(N);
         if (!ok) app.showToast('ما انحفظ الدفتر، المساحة ممتلئة؟');
+        else cloudQueue(N);
         const i = NOTES.findIndex((x) => x.id === N.id); if (i < 0) NOTES.unshift(N);
     }
     async function exportPage() {
@@ -790,7 +823,7 @@
         const el = $('ntList'); if (!el) return;
         const items = NOTES.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
         const date = (t) => { try { return new Date(t).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
-        el.innerHTML = `<button class="nt-new" onclick="app.ntNewSheet()"><i data-lucide="plus"></i><span>دفتر جديد</span></button>` +
+        el.innerHTML = `<button class="nt-new" onclick="app.ntNewSheet()"><i data-lucide="plus"></i><span>دفتر جديد</span></button><button class="nt-cl" onclick="app.ntCloud()"><i data-lucide="cloud"></i><span>النسخة السحابية</span><small>${SET.cloud === false ? 'مطفية' : 'شغّالة'}</small></button>` +
             (items.length ? `<div class="nt-grid">${items.map((n) => `<div class="nt-card" onclick="app.ntOpenNote('${n.id}')"><div class="nt-th">${n.th ? `<img alt="" src="${n.th}">` : '<i data-lucide="notebook-pen"></i>'}</div><div class="nt-ct"><b>${esc(n.title || 'دفتر بدون اسم')}</b><small>${n.pages.length} ${n.pages.length === 1 ? 'صفحة' : 'صفحات'} - ${date(n.ts)}</small></div><button class="nt-dots" onclick="event.stopPropagation();app.ntNoteMenu('${n.id}')" aria-label="خيارات"><i data-lucide="more-horizontal"></i></button></div>`).join('')}</div>` :
                 `<div class="nt-empty"><i data-lucide="pen-tool"></i><b>دفترك الأول يبدي من هنا</b><p>اكتب بالقلم أو بإصبعك، ارسم، سوّي خرائط ذهنية وأوراق لاصقة، وكل شي ينحفظ بجهازك.</p></div>`);
         try { lucide.createIcons(); } catch (e) {}
@@ -804,7 +837,7 @@
     }
     function closeEd() {
         closeTa(); clearTimeout(saveT);
-        const p = saveNow();
+        const p = saveNow().then(cloudFlush);
         document.removeEventListener('keydown', onKey); document.removeEventListener('keyup', onKeyUp);
         document.removeEventListener('visibilitychange', onHide); window.removeEventListener('pagehide', onHide);
         try { ro && ro.disconnect(); } catch (e) {} ro = null;
@@ -854,9 +887,52 @@
         },
         ntDelAsk(id) {
             this.ntSheetClose();
-            setTimeout(() => sheet(`<div class="tu-sh"><b>حذف الدفتر؟</b></div><p style="color:var(--text2);margin:8px 0 14px">الدفتر ينمسح من جهازك نهائياً وما ترجعه.</p><button class="tu-btn wide" style="background:#dc2626" onclick="app.ntDel('${id}')"><i data-lucide="trash-2"></i>نعم احذف</button><button class="tu-btn wide nt-alt" onclick="app.ntSheetClose()">لا</button>`), 280);
+            setTimeout(() => sheet(`<div class="tu-sh"><b>حذف الدفتر؟</b></div><p style="color:var(--text2);margin:8px 0 14px">الدفتر ينمسح من جهازك ومن النسخة السحابية نهائياً وما ترجعه.</p><button class="tu-btn wide" style="background:#dc2626" onclick="app.ntDel('${id}')"><i data-lucide="trash-2"></i>نعم احذف</button><button class="tu-btn wide nt-alt" onclick="app.ntSheetClose()">لا</button>`), 280);
         },
-        async ntDel(id) { this.ntSheetClose(); await Store.del(id); NOTES = NOTES.filter((x) => x.id !== id); listRender(); },
+        async ntDel(id) { this.ntSheetClose(); await Store.del(id); if (cloudOk()) { try { await FBH().remove(cloudRef(id)); } catch (e) {} } NOTES = NOTES.filter((x) => x.id !== id); listRender(); },
+        ntCloud() {
+            const body = (rows, msg) => {
+                const el = $('ntCloudBody'); if (!el) return;
+                const date = (t) => { try { return new Date(t).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+                el.innerHTML = `<p class="nt-note">دفاترك تنحفظ تلقائياً بحسابك بعد كل تعديل، وتكدر ترجعها إذا بدّلت جهازك أو مسحت التطبيق. محد غيرك يشوفها.</p>
+                    <button class="nt-row" onclick="app.ntCloudTog()"><i data-lucide="${SET.cloud === false ? 'square' : 'check-square'}"></i>الحفظ التلقائي بالسحابة</button>
+                    <button class="tu-btn wide" onclick="app.ntCloudAll()"><i data-lucide="cloud-upload"></i>ارفع كل دفاتري هسه</button>
+                    <div class="nt-lbl">الدفاتر المحفوظة بالسحابة</div>${msg ? `<div class="nt-hint" style="white-space:normal">${msg}</div>` : ''}` +
+                    (rows || []).map((r) => { const loc = NOTES.find((x) => x.id === r.id); const st = !loc ? 'استرجاع' : (r.ts > (loc.ts || 0) + 2000 ? 'تحديث من السحابة' : ''); return `<div class="nt-row" style="cursor:default"><div style="flex:1;min-width:0"><b>${esc(r.t || 'دفتر بدون اسم')}</b><br><small style="color:var(--text2)">${r.pg || 1} صفحة - ${date(r.ts)}${loc && !st ? ' - موجود عندك' : ''}</small></div>${st ? `<button class="nt-a pri" onclick="app.ntCloudGet('${r.id}')">${st}</button>` : ''}<button class="nt-a" onclick="app.ntCloudDel('${r.id}')" aria-label="حذف من السحابة"><i data-lucide="trash-2"></i></button></div>`; }).join('');
+                try { lucide.createIcons(); } catch (e) {}
+            };
+            this._ntCloudDraw = body;
+            sheet('<div class="tu-sh"><b>النسخة السحابية</b><button onclick="app.ntSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div><div id="ntCloudBody"></div>');
+            if (!cloudOk()) { body([], 'سجّل دخول حتى تشتغل النسخة السحابية.'); return; }
+            body([], 'لحظة...');
+            FBH().get(cloudRef()).then((snap) => {
+                const v = snap.val() || {}; this._ntCloudRows = Object.keys(v).map((id) => ({ id, t: v[id].t, ts: v[id].ts, pg: v[id].pg, d: v[id].d })).sort((a, b) => b.ts - a.ts);
+                body(this._ntCloudRows, this._ntCloudRows.length ? '' : 'ما بعد عندك دفاتر بالسحابة.');
+            }).catch(() => body([], 'ما كدرت أوصل للسحابة، تأكد من النت.'));
+        },
+        ntCloudTog() { SET.cloud = SET.cloud === false; setSave(); this._ntCloudDraw && this._ntCloudDraw(this._ntCloudRows || [], ''); listRender(); if (SET.cloud !== false && N) cloudQueue(N); },
+        async ntCloudAll() {
+            if (!cloudOk()) { this.showToast('سجّل دخول أول'); return; }
+            const list = NOTES.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, MAXN); let ok = 0, big = 0, bad = 0;
+            this.showToast('جاري الرفع...');
+            for (const n of list) { const r = await cloudPut(n); if (r === 'ok') ok++; else if (r === 'big') big++; else bad++; }
+            this.showToast(`انرفع ${ok} دفتر` + (big ? ` - ${big} كبير ما انرفع` : '') + (bad ? ` - ${bad} فشل` : ''));
+            this.ntSheetClose(); setTimeout(() => this.ntCloud(), 300);
+        },
+        async ntCloudGet(id) {
+            const r = (this._ntCloudRows || []).find((x) => x.id === id); if (!r) return;
+            try {
+                const n = await unpack(r.d); n.id = id; n.th = ''; n.ts = r.ts || Date.now();
+                if (!n.pages || !n.pages.length) throw new Error('empty');
+                await Store.put(n); const i = NOTES.findIndex((x) => x.id === id); if (i >= 0) NOTES[i] = n; else NOTES.unshift(n);
+                // the cover picture is drawn again from the first page
+                try { n.th = snapshot(n.pages[0], 360).toDataURL('image/jpeg', 0.6); await Store.put(n); } catch (e) {}
+                listRender(); this.showToast('رجع الدفتر'); this._ntCloudDraw && this._ntCloudDraw(this._ntCloudRows, '');
+            } catch (e) { this.showToast('ما كدرت أسترجع هذا الدفتر'); }
+        },
+        async ntCloudDel(id) {
+            try { await FBH().remove(cloudRef(id)); this._ntCloudRows = (this._ntCloudRows || []).filter((x) => x.id !== id); this._ntCloudDraw && this._ntCloudDraw(this._ntCloudRows, this._ntCloudRows.length ? '' : 'ما بعد عندك دفاتر بالسحابة.'); this.showToast('انحذف من السحابة'); } catch (e) { this.showToast('ما انحذف، تأكد من النت'); }
+        },
         // editor actions
         ntTool(id) { closeTa(); SET.tool = id; if (id !== 'select' && id !== 'mind') SEL = []; setSave(); toolsRender(); optsRender(); redrawLive(); },
         ntCol(c) { SET.col = c; setSave(); optsRender(); },
@@ -916,5 +992,5 @@
         ntExport() { this.ntSheetClose(); exportPage(); },
     });
     // test hooks
-    window.__nt = { get PG() { return PG; }, get V() { return V; }, get N() { return N; }, SET, Store, undo, redo };
+    window.__nt = { get PG() { return PG; }, get V() { return V; }, get N() { return N; }, SET, Store, undo, redo, cloudPut, pack, unpack };
 })();
