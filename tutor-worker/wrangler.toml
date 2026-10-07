@@ -43,4 +43,4 @@ id = "AVATARS_KV_ID"
 
 # the tutor's messages: 9:07, 13:07, 17:07 and 21:07 Baghdad time (UTC+3)
 [triggers]
-crons = ["7 6,10,14,18 * * *", "*/15 * * * *"]
+crons = ["7 6,10,14,18 * * *", "*/15 * * * *", "2-59/5 * * * *"]
