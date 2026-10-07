@@ -47,4 +47,14 @@ if n != 1:
     sys.exit('index.html: window.APP_VER not found')
 with open('index.html', 'w', encoding='utf-8') as f:
     f.write(s)
+# admin.html: a hash of the page itself (with an empty marker) so the open panel can tell when a newer one is online
+with open('admin.html', encoding='utf-8') as f:
+    ad = f.read()
+blank = re.sub(r'(<meta name="admin-build" content=")\w*(")', r'\1\2', ad)
+ah = hashlib.sha1(blank.encode('utf-8')).hexdigest()[:10]
+stamped, n = re.subn(r'(<meta name="admin-build" content=")\w*(")', r'\g<1>' + ah + r'\2', blank)
+if n != 1:
+    sys.exit('admin.html: admin-build meta not found')
+with open('admin.html', 'w', encoding='utf-8') as f:
+    f.write(stamped)
 print('built css/tw.css (%d KB), version %s' % (os.path.getsize('css/tw.css') // 1024, v_all))
