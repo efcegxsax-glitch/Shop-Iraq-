@@ -4779,6 +4779,18 @@
                 this.goBack();
             },
 
+            goToNotes() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.notes === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('notesView');
+                if (typeof this.ntOpen !== 'function') {
+                    this._need('notegeom').then(() => this._need('notes')).then(() => { if (this.currentView === 'notesView') this.goToNotes(); })
+                        .catch(() => this.showToast('ما انحملت الصفحة، تأكد من النت وحاول مرة ثانية'));
+                    return;
+                }
+                this.ntOpen();
+            },
+
             goToTg() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.tgteachers === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -5530,6 +5542,8 @@
             // true when it handled the press (closed a sheet or went back a page)
             nativeBack() {
                 const close = [
+                    ['#ntSheet', () => this.ntSheetClose()],
+                    ['#ntEd', () => this.ntBack()],
                     ['#tuSheet', () => this.tuPickClose()],
                     ['#tuPlayer', () => this.tuBack()],
                 ['#exPaper', () => this.exClosePaper()],
@@ -8825,6 +8839,7 @@
                 { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
+                { id: 'notes', fn: 'goToNotes', t: 'دفتر الملاحظات', d: 'اكتب ورسم بالقلم، خرائط ذهنية وأوراق لاصقة', ic: 'pen-tool', c: '#7C3AED', g: 'study', feat: 'notes' },
                 { id: 'tgteach', fn: 'goToTg', t: 'تلكرام المدرسين', d: 'منشورات وملازم قنوات أساتذتك بتلكرام، داخل التطبيق', ic: 'send', c: '#0284C7', g: 'study', feat: 'tgteachers' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
@@ -13101,6 +13116,7 @@
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tubeView' && viewId !== 'tubeView' && this.tuClose) this.tuClose();
                 if (this.currentView === 'tgView' && viewId !== 'tgView' && this.tgClose) this.tgClose();
+                if (this.currentView === 'notesView' && viewId !== 'notesView' && this.ntClose) this.ntClose();
                 if (this.currentView === 'examsView' && viewId !== 'examsView' && this.exClosePaper) this.exClosePaper();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();
