@@ -126,11 +126,6 @@
             <span class="tu-th"><img src="${thumb(x.v, big ? 'hqdefault' : 'mqdefault')}" alt="" loading="lazy"></span>
             <span class="tu-meta"><span class="tu-av">${av}</span><span class="tu-tx"><b>${esc(x.t)}</b><small>${esc(c.n || '')} . ${x.w ? views(x.w) + ' . ' : x.wt ? esc(x.wt) + ' . ' : ''}${x.p ? timeAgo(x.p) : x.at ? esc(x.at) : ''}</small></span></span></button>`;
     }
-    // the strip under the teachers: asks the student to choose, or says how many he follows
-    function myBar() {
-        if (!picked()) return `<div class="tu-mine ask"><div><b>خصص أساتذتك</b><small>اختار الأساتذة اللي تريدهم بس، والباقي يختفون. تكدر تعدل بأي وقت.</small></div><button onclick="app.tuPick()">اختيار</button></div>`;
-        return `<div class="tu-mine"><div><b>أساتذتك (${shownCh().length} من ${CH.length})</b><small>باقي الأساتذة مخفيين. ترجعهم من زر التعديل.</small></div><button onclick="app.tuPick()">تعديل</button></div>`;
-    }
     function paint() {
         const box = $('tuContent'); if (!box) return;
         const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v && (!picked() || !h.c || f.has(h.c))).slice(0, 8);
@@ -151,9 +146,9 @@
         const A = S.teacher && ALL[S.teacher], tc = S.teacher && chById(S.teacher);
         const chan = tc ? `<div class="tu-chan"><div><b>${esc(tc.n)}</b><small>${A && A.busy ? 'دا يحمّل كل فيديوهات القناة...' : A && A.fail ? 'ما كدرت أجيب الفيديوهات القديمة' + (A.why ? ' (' + esc(A.why) + ')' : '') : A && A.list.length ? A.list.length + ' فيديو محمّل' + (A.next ? ' ، والباقي بزر عرض المزيد' : ' ، هذا كل شي') : 'آخر فيديوهاته'}</small></div>${A && A.fail && !A.busy ? '<button onclick="app.tuChanRetry()">إعادة المحاولة</button>' : ''}</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
-            <div class="tu-h"><span>الأساتذة</span><button onclick="app.tuPick()"><i data-lucide="sliders-horizontal"></i>تعديل أساتذتي</button></div>
+            <div class="tu-h"><span>الأساتذة</span><span class="tu-hb"><button onclick="app.tuPick()"><i data-lucide="users"></i>أساتذتي${picked() ? ' (' + shownCh().length + ')' : ''}</button></span></div>
             <div class="tu-tchs">${teachers}</div>
-${myBar()}` : ''}
+` : ''}
             ${recent}${chan}<div class="tu-feed">${body}</div>
             <div class="tg-ask"><button onclick="app._need('tgroom').then(() => app.chReqOpen('yt')).catch(() => app.showToast('ما انفتح الطلب، تأكد من النت'))"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
@@ -313,8 +308,8 @@ ${myBar()}` : ''}
 
     function pickList() {
         const box = document.getElementById('tuPickList'); if (!box) return;
-        const f = favs(), sel = picked();
-        box.innerHTML = CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${sel && f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('');
+        const f = favs(), sel = picked(), q = String((document.getElementById('tuPickQ') || {}).value || '').trim().toLowerCase();
+        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '')).toLowerCase().indexOf(q) !== -1).map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${sel && f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('');
         try { lucide.createIcons(); } catch (e) {}
     }
 
@@ -395,7 +390,8 @@ ${myBar()}` : ''}
             document.getElementById('tuSheet')?.remove();
             const w = document.createElement('div'); w.id = 'tuSheet'; w.className = 'tu-sheetw';
             w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                <p>اختار الأساتذة اللي تريدهم، وتطلع لك محاضراتهم بس والباقي يختفون. ترجع تعدل بأي وقت من هنا.</p>
+                <p>ابحث واختار الأساتذة اللي تريدهم وتطلع لك محاضراتهم بس. الباقي يختفون، وترجعهم من هنا بأي وقت.</p>
+                <input id="tuPickQ" class="tg-in" type="search" placeholder="ابحث عن أستاذ..." oninput="app.tuPickFilter()">
                 <div class="tu-pkact"><button onclick="app.tuPickAll(true)">اختيار الكل</button><button onclick="app.tuPickAll(false)">مسح الكل</button></div>
                 <button class="tu-pushsw ${pushOn() ? 'on' : ''}" onclick="app.tuPushToggle(this)"><i data-lucide="bell"></i><span><b>إشعار عند نزول محاضرة جديدة</b><small>يوصلك اسم المحاضرة أول ما ينزلها الأستاذ</small></span><em><i data-lucide="check"></i></em></button>
                 <div class="tu-pick" id="tuPickList"></div>
@@ -403,6 +399,7 @@ ${myBar()}` : ''}
             document.body.appendChild(w); pickList();
             requestAnimationFrame(() => w.classList.add('on'));
         },
+        tuPickFilter() { pickList(); },
         tuPickAll(on) { save(K_FAV, on ? CH.map((c) => c.id) : []); try { localStorage.setItem(K_SEL, '1'); } catch (e) {} pickList(); paint(); },
         tuPushToggle(btn) {
             app.toggleNotifPref('tube');
