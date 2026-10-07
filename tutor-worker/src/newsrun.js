@@ -8,7 +8,7 @@ import { cleanPost, splitNews, pickCategory, adCheck, findDup, itemTokens, token
 import { isTgName, isServiceText } from './tg.js';
 
 const DEFAULT_CHANNELS = [['iraqedu', 'iraqedu'], ['iraqed4', 'iraqed4']];
-const DAY = 86400000, MAX_CHANNELS = 10, MAX_PER_CHANNEL = 6, MAX_PER_RUN = 8;   // a Worker run may make about 50 calls: 2 per channel + 3 per published news
+const LOCK_MS = 75000, DAY = 86400000, MAX_CHANNELS = 10, MAX_PER_CHANNEL = 6, MAX_PER_RUN = 8;   // a Worker run may make about 50 calls: 2 per channel + 3 per published news
 const rec = (c, x, it, why, extra) => ({ c, pid: x.i, t: it.title, d: it.excerpt, img: it.image || '', urg: it.urgent ? 1 : 0, cat: it.category, link: it.link || '', why, at: it.now, ...(extra || {}) });
 
 async function lastId(db, now) {
@@ -67,6 +67,11 @@ export async function newsRun(db, deps, opt = {}) {
     for (const c of list) {
         const key = c.u.toLowerCase();
         let pg; try { pg = await deps.page(c.u); } catch { out.err.push(c.u); continue; }
+        // what was seen on the channel this time (for the panel: why did nothing come?), written only when it changed or at the end of the minute
+        const top = pg.posts[0], cs = { at: now, n: pg.posts.length, id: top ? top.i : 0, last: top ? top.p : 0 };
+        if (mem) mem.chstat = mem.chstat || {};
+        if (!mem || opt.last || !mem.chstat[key] || mem.chstat[key].id !== cs.id) up['newsBot/chstat/' + key] = cs;
+        if (mem) mem.chstat[key] = cs;
         let seen = mem && mem.seen[key]; try { if (!seen) seen = (await db.get('newsBot/seen/' + key)) || {}; } catch { continue; }
         if (mem) mem.seen[key] = seen;
         const posts = pg.posts.slice(0, 12).filter((x) => !seen[x.i]).sort((a, b) => a.i - b.i);
@@ -112,14 +117,19 @@ export async function newsRun(db, deps, opt = {}) {
 
 // One minute of watching: a round every `gap` ms (10 s), the channels, switches and "seen" marks are read once and kept in memory.
 export async function newsLoop(db, deps, opt = {}) {
-    const polls = opt.polls || 6, gap = opt.gap == null ? 10000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {} };
+    const polls = opt.polls || 6, gap = opt.gap == null ? 10000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {}, chstat: {} };
     const tot = { state: 'ok', pub: 0, queue: 0, ign: 0, err: [] };
-    for (let i = 0; i < polls; i++) {
-        const r = await newsRun(db, deps, { mem, last: i === polls - 1 });
-        if (r.state !== 'ok') { tot.state = r.state; break; }
-        tot.pub += r.pub; tot.queue += r.queue; tot.ign += r.ign; for (const e of r.err) if (!tot.err.includes(e)) tot.err.push(e);
-        if (i < polls - 1) await deps.sleep(gap);
-    }
+    // one watcher at a time: a minute that is still running (or a manual round) must not be doubled by the next one
+    try { const lk = await db.get('newsBot/lock'); if (lk && deps.now() - Number(lk) < LOCK_MS) return { ...tot, state: 'busy' }; await db.put('newsBot/lock', deps.now()); }
+    catch (e) { return { ...tot, state: String(e.message) === 'no_sa' ? 'no_sa' : 'db' }; }
+    try {
+        for (let i = 0; i < polls; i++) {
+            const r = await newsRun(db, deps, { mem, last: i === polls - 1 });
+            if (r.state !== 'ok') { tot.state = r.state; break; }
+            tot.pub += r.pub; tot.queue += r.queue; tot.ign += r.ign; for (const e of r.err) if (!tot.err.includes(e)) tot.err.push(e);
+            if (i < polls - 1) await deps.sleep(gap);
+        }
+    } finally { try { await db.del('newsBot/lock'); } catch { /* it expires by itself */ } }
     return tot;
 }
 
