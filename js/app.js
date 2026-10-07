@@ -5614,6 +5614,7 @@
                     try {
                         await OneSignal.init({
                             appId: this.ONESIGNAL_APP_ID,
+                            safari_web_id: 'web.onesignal.auto.4463433a-b41c-4a34-809b-879a9d93883b', // for Safari on a Mac (iPhone uses the standard web push)
                             serviceWorkerPath: base.replace(/^\//, '') + 'OneSignalSDKWorker.js',
                             serviceWorkerParam: { scope: base },
                             notifyButton: { enable: false },
