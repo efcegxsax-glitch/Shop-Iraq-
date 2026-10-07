@@ -8,7 +8,7 @@ import { cleanPost, splitNews, pickCategory, adCheck, findDup, itemTokens, token
 import { isTgName, isServiceText } from './tg.js';
 
 const DEFAULT_CHANNELS = [['iraqedu', 'iraqedu'], ['iraqed4', 'iraqed4']];
-const LOCK_MS = 75000, DAY = 86400000, MAX_CHANNELS = 10, MAX_PER_CHANNEL = 6, MAX_PER_RUN = 8;   // a Worker run may make about 50 calls: 2 per channel + 3 per published news
+const LOCK_MS = 45000, DAY = 86400000, MAX_CHANNELS = 10, MAX_PER_CHANNEL = 6, MAX_PER_RUN = 8;   // a Worker run may make about 50 calls: 2 per channel + 3 per published news
 const rec = (c, x, it, why, extra) => ({ c, pid: x.i, t: it.title, d: it.excerpt, img: it.image || '', urg: it.urgent ? 1 : 0, cat: it.category, link: it.link || '', why, at: it.now, ...(extra || {}) });
 
 async function lastId(db, now) {
@@ -115,9 +115,10 @@ export async function newsRun(db, deps, opt = {}) {
     return { state: 'ok', ...out };
 }
 
-// One minute of watching: a round every `gap` ms (10 s), the channels, switches and "seen" marks are read once and kept in memory.
+// Each minute (the cron) the Worker looks 3 times, 9 s apart: a scheduled run that comes more often than hourly may only live about 30 seconds, so a longer
+// loop was cut off before it could write its status. A post waits 15 s on average (40 s at most). Config, channels and "seen" marks are read once and kept in memory.
 export async function newsLoop(db, deps, opt = {}) {
-    const polls = opt.polls || 6, gap = opt.gap == null ? 10000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {}, chstat: {} };
+    const polls = opt.polls || 3, gap = opt.gap == null ? 9000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {}, chstat: {} };
     const tot = { state: 'ok', pub: 0, queue: 0, ign: 0, err: [] };
     // one watcher at a time: a minute that is still running (or a manual round) must not be doubled by the next one
     try { const lk = await db.get('newsBot/lock'); if (lk && deps.now() - Number(lk) < LOCK_MS) return { ...tot, state: 'busy' }; await db.put('newsBot/lock', deps.now()); }
