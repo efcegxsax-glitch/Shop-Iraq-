@@ -68,6 +68,34 @@
             .tab { width: 100%; }
         }
 
+
+        /* ---------- Desktop (≥1100px): use the whole screen ----------
+           wide shell, a sidebar that scrolls by itself (27 tabs are taller than the screen), cards in two balanced
+           columns (three on very wide screens; big lists, tables and forms take the full width), compact buttons. */
+        @media (min-width: 1100px) {
+            .topbar-inner, .shell { max-width: 1760px; }
+            .topbar-inner { padding: 14px 32px; }
+            .shell { padding: 22px 32px 70px; gap: 30px; }
+            .sidenav { width: 264px; top: 84px; max-height: calc(100vh - 104px); overflow-y: auto; padding: 0 4px 12px 8px; scrollbar-width: thin; scrollbar-color: #475569 transparent; }
+            .sidenav::-webkit-scrollbar { display: block; width: 6px; }
+            .sidenav::-webkit-scrollbar-thumb { background: #475569; border-radius: 6px; }
+            .tab { padding: 11px 14px; font-size: 13.5px; }
+            .content > div[id^="sec-"]:not(.hidden) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; grid-auto-flow: row dense; }
+            .content > div[id^="sec-"] > * { margin: 0; min-width: 0; }
+            .content > div[id^="sec-"] > .live-note,
+            .content > div[id^="sec-"] > .subtabs,
+            .content > div[id^="sec-"] > .stat-grid,
+            .content > div[id^="sec-"] > .card:has(table, .stat-grid, textarea, canvas, .user-row, .row-item, .ord, .err-row, .pl-row, .un-a-grid, .shp-pic, [data-wide]) { grid-column: 1 / -1; }
+            .card { padding: 22px 24px; }
+            input, select, textarea { font-size: 14.5px; padding: 10px 13px; }
+            .content .btn { width: auto; min-width: 150px; padding: 11px 28px; display: inline-block; }
+            .sw-row { padding: 13px 0; }
+            #toast { max-width: 460px; }
+        }
+        @media (min-width: 1900px) {
+            .content > div[id^="sec-"]:not(.hidden) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+
         /* ---------- Cards ---------- */
         .card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
         .card-head { display: flex; align-items: flex-start; gap: 11px; margin-bottom: 18px; padding-bottom: 15px; border-bottom: 1px solid var(--border); }
