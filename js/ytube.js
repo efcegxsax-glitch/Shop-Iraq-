@@ -10,7 +10,7 @@
         if (!im || im.tagName !== 'IMG' || !im.dataset || !im.dataset.ini || !im.closest('#tubeView, #tuPlayer, #tuSheet')) return;
         const sp = document.createElement('span'); sp.textContent = im.dataset.ini; im.replaceWith(sp);
     }, true);
-    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', K_SEL = 'isp_tube_sel', FEED_TTL = 10 * 60000, PAGE = 20;
+    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', K_HIDE = 'isp_tube_hide', K_SEL = 'isp_tube_sel', FEED_TTL = 10 * 60000, PAGE = 20;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
@@ -40,16 +40,23 @@
     const chById = (id) => CH.find((c) => c.id === id) || null;
     const pushOn = () => app.notifPrefs.tube !== false;
     const favs = () => new Set(load(K_FAV, []));
-    // "my teachers": once the student has chosen, only those teachers are shown (the others stay hidden until he edits the choice)
-    const picked = () => { try { return localStorage.getItem(K_SEL) === '1'; } catch (e) { return false; } };
-    const shownCh = () => { if (!picked()) return CH; const f = favs(); return CH.filter((c) => f.has(c.id)); };
+    // every teacher the admin adds shows up by itself; the student can hide the ones he does not want (and bring them back) with "أساتذتي"
+    const hid = () => new Set(load(K_HIDE, []));
+    const shownCh = () => { const h = hid(); return CH.filter((c) => !h.has(c.id)); };
+    // an older version saved the opposite list ("my teachers"): turn it into the hidden list once, when the channels are known
+    function migrate() {
+        try {
+            if (!CH.length || localStorage.getItem(K_HIDE) != null || localStorage.getItem(K_SEL) !== '1') return;
+            const f = favs(); save(K_HIDE, CH.filter((c) => !f.has(c.id)).map((c) => c.id));
+        } catch (e) {}
+    }
     function listenChannels() {
         if (un || !window.firebaseDb) return;
         const { ref, onValue } = H();
         un = onValue(ref(window.firebaseDb, 'ytChannels'), (snap) => {
             const v = snap.exists() ? snap.val() : {};
             CH = Object.keys(v).map((k) => ({ k, ...v[k] })).filter((c) => c && /^UC[A-Za-z0-9_-]{22}$/.test(String(c.id || ''))).sort((a, b) => (Number(a.o) || 0) - (Number(b.o) || 0));
-            paint(); fetchFeed(false);
+            migrate(); paint(); fetchFeed(false);
         }, () => { err = 'ما كدرت أجيب قائمة الأساتذة'; paint(); });
     }
     async function fetchFeed(force) {
@@ -106,14 +113,14 @@
     // ---------- the page ----------
     function subjects() { const s = []; shownCh().forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
     function visible() {
-        const f = favs(), q = String(($('tuSearch') || {}).value || '').trim();
+        const q = String(($('tuSearch') || {}).value || '').trim();
         const a = S.teacher && ALL[S.teacher] && ALL[S.teacher].list.length ? ALL[S.teacher] : null;
         // the teacher's full list, with the newest ones' numbers taken from the feed
         const src = a ? a.list.map((x) => { const n = FEED.find((f) => f.v === x.v); return n ? Object.assign({}, x, n) : x; }) : FEED;
         return src.filter((x) => {
             const c = chById(x.c); if (!c) return false;
             if (S.teacher && c.id !== S.teacher) return false;
-            if (picked() && !f.has(c.id)) return false;
+            if (hid().has(c.id)) return false;
             if (S.subj !== 'all' && String(c.s || '') !== S.subj) return false;
             if (q && (x.t + ' ' + c.n).indexOf(q) === -1) return false;
             return true;
@@ -128,17 +135,17 @@
     }
     function paint() {
         const box = $('tuContent'); if (!box) return;
-        const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v && (!picked() || !h.c || f.has(h.c))).slice(0, 8);
+        const subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v && (!h.c || !hid().has(h.c))).slice(0, 8);
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tuSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
         const teachers = shownCh().filter((c) => S.subj === 'all' || String(c.s || '') === S.subj).map((c) => {
             const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
-            return `<button class="tu-tch${S.teacher === c.id ? ' on' : ''}${f.has(c.id) ? ' fav' : ''}" onclick="app.tuTeacher('${c.id}')"><i>${av}</i><small>${esc(c.n)}</small></button>`;
+            return `<button class="tu-tch${S.teacher === c.id ? ' on' : ''}" onclick="app.tuTeacher('${c.id}')"><i>${av}</i><small>${esc(c.n)}</small></button>`;
         }).join('');
         let body;
         if (!CH.length) body = '<div class="tu-empty"><i data-lucide="graduation-cap"></i><b>ما انضاف أي أستاذ بعد</b><p>الإدارة تضيف قنوات المدرسين من لوحة التحكم، وتطلع هنا.</p></div>';
         else if (!FEED.length && !err && shownCh().length) body = '<div class="tu-skel">' + '<i></i>'.repeat(3) + '</div>';
         else if (err && !FEED.length) body = `<div class="tu-empty"><i data-lucide="wifi-off"></i><b>${esc(err)}</b><button class="tu-btn" onclick="app.tuRefresh()">إعادة المحاولة</button></div>`;
-        else if (picked() && !shownCh().length) body = '<div class="tu-empty"><i data-lucide="users"></i><b>ما اخترت أي أستاذ</b><p>اختار أساتذتك وتطلع محاضراتهم هنا بس.</p><button class="tu-btn" onclick="app.tuPick()">اختيار أساتذتي</button></div>';
+        else if (CH.length && !shownCh().length) body = '<div class="tu-empty"><i data-lucide="users"></i><b>أخفيت كل الأساتذة</b><p>ارجع علّم على اللي تريد تشوف محاضراتهم.</p><button class="tu-btn" onclick="app.tuPick()">أساتذتي</button></div>';
         else if (!list.length) body = '<div class="tu-empty"><i data-lucide="search-x"></i><b>ما لكيت فيديوهات</b></div>';
         else body = list.slice(0, S.shown).map((x, i) => card(x, i % 3 === 0)).join('') + (list.length > S.shown || (S.teacher && ALL[S.teacher] && (ALL[S.teacher].next || ALL[S.teacher].busy)) ? `<button class="tu-more" onclick="app.tuMore()">${S.teacher && ALL[S.teacher] && ALL[S.teacher].busy ? 'دا يحمّل...' : 'عرض المزيد'}</button>` : '');
         const recent = !S.teacher && S.tab === 'all' && S.subj === 'all' && hist.length ? `<div class="tu-h"><span>آخر ما شاهدته</span><button onclick="app.tuClearHist()">مسح</button></div>
@@ -146,7 +153,7 @@
         const A = S.teacher && ALL[S.teacher], tc = S.teacher && chById(S.teacher);
         const chan = tc ? `<div class="tu-chan"><div><b>${esc(tc.n)}</b><small>${A && A.busy ? 'دا يحمّل كل فيديوهات القناة...' : A && A.fail ? 'ما كدرت أجيب الفيديوهات القديمة' + (A.why ? ' (' + esc(A.why) + ')' : '') : A && A.list.length ? A.list.length + ' فيديو محمّل' + (A.next ? ' ، والباقي بزر عرض المزيد' : ' ، هذا كل شي') : 'آخر فيديوهاته'}</small></div>${A && A.fail && !A.busy ? '<button onclick="app.tuChanRetry()">إعادة المحاولة</button>' : ''}</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
-            <div class="tu-h"><span>الأساتذة</span><span class="tu-hb"><button onclick="app.tuPick()"><i data-lucide="users"></i>أساتذتي${picked() ? ' (' + shownCh().length + ')' : ''}</button></span></div>
+            <div class="tu-h"><span>الأساتذة</span><span class="tu-hb"><button onclick="app.tuPick()"><i data-lucide="users"></i>أساتذتي${hid().size && CH.length ? ' (' + shownCh().length + ' من ' + CH.length + ')' : ''}</button></span></div>
             <div class="tu-tchs">${teachers}</div>
 ` : ''}
             ${recent}${chan}<div class="tu-feed">${body}</div>
@@ -308,8 +315,8 @@
 
     function pickList() {
         const box = document.getElementById('tuPickList'); if (!box) return;
-        const f = favs(), sel = picked(), q = String((document.getElementById('tuPickQ') || {}).value || '').trim().toLowerCase();
-        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '')).toLowerCase().indexOf(q) !== -1).map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${sel && f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('');
+        const h = hid(), q = String((document.getElementById('tuPickQ') || {}).value || '').trim().toLowerCase();
+        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '')).toLowerCase().indexOf(q) !== -1).map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${!h.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('');
         try { lucide.createIcons(); } catch (e) {}
     }
 
@@ -318,7 +325,7 @@
             S = { subj: 'all', tab: 'all', teacher: '', shown: PAGE };
             const q = $('tuSearch'); if (q) q.value = '';
             $('tuSearchBar')?.classList.add('hidden');
-            app._need('ytroom').then(() => { listenChannels(); paint(); }).catch(() => { err = 'ما انحمّلت الصفحة، حاول مرة ثانية'; paint(); });
+            app._need('ytroom').then(() => { migrate(); listenChannels(); paint(); }).catch(() => { err = 'ما انحمّلت الصفحة، حاول مرة ثانية'; paint(); });
             paint();
             if (CH.length) fetchFeed(false);
         },
@@ -390,7 +397,7 @@
             document.getElementById('tuSheet')?.remove();
             const w = document.createElement('div'); w.id = 'tuSheet'; w.className = 'tu-sheetw';
             w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                <p>ابحث واختار الأساتذة اللي تريدهم وتطلع لك محاضراتهم بس. الباقي يختفون، وترجعهم من هنا بأي وقت.</p>
+                <p>كل الأساتذة معلّم عليهم وتطلع محاضراتهم. شيل العلامة عن اللي ما تريده وينخفي، وارجع علّمه بأي وقت. أي أستاذ تضيفه الإدارة يطلع لك تلقائياً.</p>
                 <input id="tuPickQ" class="tg-in" type="search" placeholder="ابحث عن أستاذ..." oninput="app.tuPickFilter()">
                 <div class="tu-pkact"><button onclick="app.tuPickAll(true)">اختيار الكل</button><button onclick="app.tuPickAll(false)">مسح الكل</button></div>
                 <button class="tu-pushsw ${pushOn() ? 'on' : ''}" onclick="app.tuPushToggle(this)"><i data-lucide="bell"></i><span><b>إشعار عند نزول محاضرة جديدة</b><small>يوصلك اسم المحاضرة أول ما ينزلها الأستاذ</small></span><em><i data-lucide="check"></i></em></button>
@@ -400,18 +407,16 @@
             requestAnimationFrame(() => w.classList.add('on'));
         },
         tuPickFilter() { pickList(); },
-        tuPickAll(on) { save(K_FAV, on ? CH.map((c) => c.id) : []); try { localStorage.setItem(K_SEL, '1'); } catch (e) {} pickList(); paint(); },
+        tuPickAll(on) { save(K_HIDE, on ? [] : CH.map((c) => c.id)); pickList(); paint(); },
         tuPushToggle(btn) {
             app.toggleNotifPref('tube');
             btn && btn.classList.toggle('on', pushOn());
         },
         tuFavToggle(id, btn) {
-            // the first tap starts "my teachers": what was shown before (everyone) is not chosen yet, so begin from an empty choice
-            const first = !picked(); if (first) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_FAV, []); }
-            const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); save(K_FAV, Array.from(f));
-            if (first) pickList(); else btn && btn.classList.toggle('on', f.has(id));
+            const h = hid(); if (h.has(id)) h.delete(id); else h.add(id); save(K_HIDE, Array.from(h));
+            btn && btn.classList.toggle('on', !h.has(id));
             paint();
         },
-        tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); S.shown = PAGE; if (S.teacher && picked() && !favs().has(S.teacher)) S.teacher = ''; fetchFeed(false); paint(); },
+        tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); S.shown = PAGE; if (S.teacher && hid().has(S.teacher)) S.teacher = ''; fetchFeed(false); paint(); },
     });
 })();

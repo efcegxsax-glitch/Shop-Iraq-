@@ -4631,14 +4631,16 @@
                 try {
                     const all = this.notifPrefs.tg === false; let mu = []; try { mu = JSON.parse(localStorage.getItem('isp_tg_mute') || '[]'); } catch (e) {}
                     if (!names) {
-                        if (!all && !mu.length && localStorage.getItem('isp_tg_sel') !== '1' && localStorage.getItem('isp_tg_dirty') !== '1') return;
+                        if (!all && !mu.length && localStorage.getItem('isp_tg_sel') !== '1' && (localStorage.getItem('isp_tg_hide') || '[]') === '[]' && localStorage.getItem('isp_tg_dirty') !== '1') return;
                         if (this._tgNames && Date.now() - (this._tgNamesAt || 0) < 3600000) names = this._tgNames;
                         else { const { ref, get } = window.firebaseDbHelpers, s = await get(ref(window.firebaseDb, 'tgChannels')); names = s.exists() ? Object.keys(s.val()) : []; }
                     }
                     this._tgNames = names; this._tgNamesAt = Date.now();
-                    const set = new Set(mu), t = {}; let anyOff = false, mine = []; try { mine = JSON.parse(localStorage.getItem('isp_tg_mine') || '[]'); } catch (e) {}
-                    const selOn = localStorage.getItem('isp_tg_sel') === '1', mineSet = new Set(mine.map((x) => String(x).toLowerCase()));
-                    names.forEach((n) => { const off = all || set.has(String(n).toLowerCase()) || (selOn && !mineSet.has(String(n).toLowerCase())); if (off) anyOff = true; t['tg_' + String(n).toLowerCase()] = off ? 'off' : 'on'; });
+                    const set = new Set(mu), t = {}; let anyOff = false;
+                    // hidden channels (the student's "أساتذتي" choice) get no pushes either; an older version saved the opposite list
+                    const lcn = (x) => String(x).toLowerCase(); let hide = null;
+                    try { const r = localStorage.getItem('isp_tg_hide'); if (r != null) hide = new Set(JSON.parse(r).map(lcn)); else if (localStorage.getItem('isp_tg_sel') === '1') { const m = new Set(JSON.parse(localStorage.getItem('isp_tg_mine') || '[]').map(lcn)); hide = new Set(names.map(lcn).filter((n) => !m.has(n))); } } catch (e) {}
+                    names.forEach((n) => { const off = all || set.has(lcn(n)) || (hide && hide.has(lcn(n))); if (off) anyOff = true; t['tg_' + lcn(n)] = off ? 'off' : 'on'; });
                     if (Object.keys(t).length) this._pnTags(t);
                     try { localStorage.setItem('isp_tg_dirty', anyOff ? '1' : '0'); } catch (e) {}
                 } catch (e) {}
