@@ -25,6 +25,7 @@ import { cleanExam, uuidOf } from './exam.js';
 import { pushTargets, sendAfter } from './push.js';
 import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from './plan.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
+import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -659,6 +660,40 @@ async function tgNotify(env, ctx, when) {
     return 'sent_' + sent;
 }
 
+// ---- motivation pushes (قسم تحفيز في اللوحة): plans the admin scheduled (motivPlans/{id}); see src/motiv.js ----
+// Every 15 minutes: each plan that falls due in the next minutes goes to OneSignal with its exact send time. The student's own
+// switch for this kind is the tag off_motiv (like the other kinds), so a student who switched them off gets nothing.
+async function motivNotify(env, ctx, when) {
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID || !env.FIREBASE_DB_URL) return 'no_key';
+    const base = env.FIREBASE_DB_URL.replace(/\/$/, '');
+    let plans = {};
+    try {
+        const sw = await fetch(base + '/siteConfig/features/motiv.json');
+        if (sw.ok && (await sw.json()) === false) return 'off';
+        const r = await fetch(base + '/motivPlans.json');
+        if (r.ok) plans = (await r.json()) || {};
+    } catch { return 'db'; }
+    const now = Date.now(), { targets } = pushTargets([], 'motiv'), target = targets[0];
+    let sent = 0;
+    for (const [id, p] of Object.entries(plans).slice(0, 120)) {
+        for (const d of motivDue(p, now)) {
+            const title = str(p.t, 80), text = str(p.b, 300) || title, wait = d.ts - now, sa = wait >= 90000 ? sendAfter(d.ts, now) : '';
+            const res = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                body: JSON.stringify({
+                    app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target,
+                    headings: { en: title, ar: title }, contents: { en: text, ar: text }, ...PUSH_LOOK(env),
+                    ...(sa ? { send_after: sa } : {}), data: { motiv: 1 }, ttl: 6 * 3600,
+                    // a repeat of the same plan on the same day is answered with the first one
+                    idempotency_key: await uuidOf('mv-' + id + '-' + d.date),
+                }),
+            });
+            if (res.ok) sent++; else console.error('motiv push', res.status, (await res.text().catch(() => '')).slice(0, 200));
+        }
+    }
+    return 'sent_' + sent;
+}
+
 // a channel's uploads, 100 at a time (the first page is cached for 30 minutes). Three ways, tried in turn:
 // YouTube's own app endpoint (no page to parse), the playlist web page, and (if the key secret exists) the official API.
 // YouTube's own app endpoint, asked the way its apps ask (the public web key and each client's headers); tried as the web client, then as the Android app.
@@ -711,7 +746,7 @@ async function ytUploads(id, cont, ctx, env) {
 
 export default {
     async scheduled(event, env, ctx) {
-        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); return; }
+        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); return; }
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
     },
 

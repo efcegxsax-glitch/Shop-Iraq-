@@ -628,6 +628,16 @@ await ok('admin adds a telegram channel', set(ref(db('adm'), 'tgChannels/mr_ali_
 await ok('student reads telegram channels', get(ref(db('q2'), 'tgChannels')));
 await no('student adds a telegram channel', set(ref(db('q2'), 'tgChannels/x1'), { u: 'x1', n: 'x', o: 1 }));
 
+// motivation plans and templates (تحفيز): everybody reads (the Worker reads them), only the admin writes
+await ok('admin saves a plan', set(ref(db('adm'), 'motivPlans/p1'), { t: 'رجعتو من المدرسة؟', b: 'ارتاحوا وتغدوا', time: '14:30', mode: 'forever', start: '2026-10-07', wd: [6, 0, 1, 2, 3, 4], on: true, at: now }));
+await no('student saves a plan', set(ref(db('m1'), 'motivPlans/p2'), { t: 'x', time: '14:30', mode: 'forever', start: '2026-10-07' }));
+await ok('student reads the plans (the Worker has no sign-in)', get(ref(db('m1'), 'motivPlans')));
+await ok('guest reads the plans', get(ref(db(null), 'motivPlans')));
+await no('student edits a plan', set(ref(db('m1'), 'motivPlans/p1/on'), false));
+await ok('admin pauses a plan', set(ref(db('adm'), 'motivPlans/p1/on'), false));
+await ok('admin saves a template', set(ref(db('adm'), 'motivTemplates/t1'), { g: 'pm', t: 'قالبي', b: 'نص', time: '20:00' }));
+await no('student saves a template', set(ref(db('m1'), 'motivTemplates/t2'), { g: 'pm', t: 'x' }));
+
 // flights (رحلة الطالب الجوية)
 const FL = (u, fid, extra) => ({ f: fid, s: TS, du: 5400000, oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', sty: 'modern', sh: true, ...(extra || {}) });
 const GR = (extra) => ({ oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', s: TS, du: 5400000, sty: 'modern', n: 142, ...(extra || {}) });
