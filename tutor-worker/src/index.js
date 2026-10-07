@@ -28,7 +28,7 @@ import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, is
 import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 import { makeDb } from './fbadmin.js';
-import { routeCron } from './cron.js';
+import { routeCron, cronPeriod } from './cron.js';
 import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -607,7 +607,7 @@ async function ytNotify(env, ctx, when) {
 
 // ---- Telegram channels (the teachers' Telegram page): the public preview page of a channel, read here ----
 // a channel's newest page of posts (cached for 5 minutes), or an older page (?before=<post id>, not cached)
-async function tgPage(name, before, ctx, fresh) {
+async function tgPage(name, before, ctx, fresh, have) {
     const cache = caches.default, key = before || fresh ? null : new Request('https://tg-cache.invalid/p/' + name.toLowerCase());
     if (key) { const hit = await cache.match(key); if (hit) return hit.json(); }
     const go = (init) => fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', ...init });
@@ -615,6 +615,8 @@ async function tgPage(name, before, ctx, fresh) {
     const r = await (fresh ? go({ cache: 'no-store' }).catch(() => go({})) : go({ cf: { cacheTtl: 120 } }));
     if (!r.ok) throw new Error('http' + r.status);
     const html = await r.text();
+    // the news watcher already knows the channel's posts up to the id `have`: if the page has nothing newer, it is not read any further
+    if (fresh && have) { let mx = 0; for (const m of html.matchAll(/data-post="[A-Za-z0-9_]+\/(\d+)"/g)) { const n = Number(m[1]); if (n > mx) mx = n; } if (mx && mx <= have) return { skip: true, info: {}, posts: [] }; }
     const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name, fresh ? { last: 14 } : undefined).sort((a, b) => b.i - a.i) };
     if (key) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } })));
     return out;
@@ -671,7 +673,7 @@ async function tgNotify(env, ctx, when) {
 function newsDeps(env, ctx) {
     return {
         now: () => Date.now(),
-        page: (name) => tgPage(name, 0, ctx, true),                // always the live page: no copy kept for minutes
+        page: (name, have) => tgPage(name, 0, ctx, true, have),                // always the live page: no copy kept for minutes
         sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
         // the picture goes into the news record itself (like the pictures the admin uploads); a big one stays a link to Telegram's copy
         img: async (url) => {
@@ -708,9 +710,12 @@ async function newsCron(env, ctx, cron) {
     const db = makeDb(env);
     if (!db.ok) return 'no_sa';
     // a heartbeat the panel shows: "started" first, then "done" (or the error). A run that is cut off shows as started and never done.
-    const t0 = Date.now(), beat = (v) => db.put('newsBot/beat', { at: Date.now(), t0, ...v }).catch(() => {});
+    // a run watches for about as long as the schedule's period (a minute: 3 looks 9 s apart; 5 minutes: 10 looks about 27 s apart), so the news
+    // wait only a few seconds even when the schedule is slower than asked. A run may last up to 15 minutes, only its CPU time is small.
+    const per = cronPeriod(cron), plan = per <= 60 ? { polls: 3, gap: 9000 } : { polls: 10, gap: Math.max(15000, Math.floor((per * 1000 - 25000) / 10)), lockMs: per * 1000 + 20000 };
+    const t0 = Date.now(), beat = (v) => db.put('newsBot/beat', { at: Date.now(), t0, per, gap: plan.gap, n: plan.polls, ...v }).catch(() => {});
     await beat({ s: 'start', cron });
-    try { const r = await newsLoop(db, newsDeps(env, ctx)); await beat({ s: 'done', cron, st: r.state, pub: r.pub, err: r.err.slice(0, 3).join(',') }); return r.state; }
+    try { const r = await newsLoop(db, newsDeps(env, ctx), plan); await beat({ s: 'done', cron, st: r.state, pub: r.pub, err: r.err.slice(0, 3).join(',') }); return r.state; }
     catch (e) { await beat({ s: 'error', cron, m: String(e && e.message || e).slice(0, 80) }); return 'error'; }
 }
 
@@ -805,7 +810,7 @@ export default {
         // which schedule text arrives (for the panel: the news watcher's own heartbeat carries it; the other two are noted here)
         if (job === 'poll' || job === 'coach') { const d = makeDb(env); if (d.ok) ctx.waitUntil(d.put('newsBot/ticks/' + job, { cron: String(event.cron).slice(0, 40), at: Date.now() }).catch(() => {})); }
         if (job === 'poll') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); }
-        else if (job === 'news') ctx.waitUntil(newsCron(env, ctx, String(event.cron).slice(0, 40)).then((r) => console.log('news bot', r)));
+        else if (job === 'news') console.log('news bot', await newsCron(env, ctx, String(event.cron).slice(0, 40)));   // awaited: the run may last minutes
         else if (job === 'coach') ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
         else console.log('unknown schedule, nothing done:', event.cron);
     },

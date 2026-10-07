@@ -66,14 +66,18 @@ export async function newsRun(db, deps, opt = {}) {
     let budget = MAX_PER_RUN;
     for (const c of list) {
         const key = c.u.toLowerCase();
-        let pg; try { pg = await deps.page(c.u); } catch { out.err.push(c.u); continue; }
+        let seen = mem && mem.seen[key]; try { if (!seen) seen = (await db.get('newsBot/seen/' + key)) || {}; } catch { continue; }
+        if (mem) mem.seen[key] = seen;
+        // from the second look of a run on, a page whose newest post is one we have already seen is not read any further (saves the Worker's time)
+        const prev = mem && mem.chstat && mem.chstat[key];
+        const have = prev ? Math.max(0, ...Object.keys(seen).map(Number).filter(Number.isFinite)) : 0;
+        let pg; try { pg = await deps.page(c.u, have); } catch { out.err.push(c.u); continue; }
+        if (pg.skip) { prev.at = now; if (opt.last) up['newsBot/chstat/' + key] = prev; continue; }
         // what was seen on the channel this time (for the panel: why did nothing come?), written only when it changed or at the end of the minute
         const top = pg.posts[0], cs = { at: now, n: pg.posts.length, id: top ? top.i : 0, last: top ? top.p : 0 };
         if (mem) mem.chstat = mem.chstat || {};
         if (!mem || opt.last || !mem.chstat[key] || mem.chstat[key].id !== cs.id) up['newsBot/chstat/' + key] = cs;
         if (mem) mem.chstat[key] = cs;
-        let seen = mem && mem.seen[key]; try { if (!seen) seen = (await db.get('newsBot/seen/' + key)) || {}; } catch { continue; }
-        if (mem) mem.seen[key] = seen;
         const posts = pg.posts.slice(0, 12).filter((x) => !seen[x.i]).sort((a, b) => a.i - b.i);
         let did = 0;
         for (const x of posts) {
@@ -118,12 +122,16 @@ export async function newsRun(db, deps, opt = {}) {
 // Each minute (the cron) the Worker looks 3 times, 9 s apart: a scheduled run that comes more often than hourly may only live about 30 seconds, so a longer
 // loop was cut off before it could write its status. A post waits 15 s on average (40 s at most). Config, channels and "seen" marks are read once and kept in memory.
 export async function newsLoop(db, deps, opt = {}) {
-    const polls = opt.polls || 3, gap = opt.gap == null ? 9000 : opt.gap, mem = { cfg: undefined, chans: null, seen: {}, chstat: {} };
+    let polls = opt.polls || 3; const gap = opt.gap == null ? 9000 : opt.gap, lockMs = opt.lockMs || LOCK_MS, mem = { cfg: undefined, chans: null, seen: {}, chstat: {} };
     const tot = { state: 'ok', pub: 0, queue: 0, ign: 0, err: [] };
     // one watcher at a time: a minute that is still running (or a manual round) must not be doubled by the next one
-    try { const lk = await db.get('newsBot/lock'); if (lk && deps.now() - Number(lk) < LOCK_MS) return { ...tot, state: 'busy' }; await db.put('newsBot/lock', deps.now()); }
+    try { const lk = await db.get('newsBot/lock'); if (lk && deps.now() - Number(lk) < lockMs) return { ...tot, state: 'busy' }; await db.put('newsBot/lock', deps.now()); }
     catch (e) { return { ...tot, state: String(e.message) === 'no_sa' ? 'no_sa' : 'db' }; }
     try {
+        // a Worker run may make about 50 calls: with many channels the number of looks shrinks (the channel list is read once, here)
+        try { mem.chans = (await db.get('newsBot/chans')) || {}; } catch { return { ...tot, state: 'db' }; }
+        const k = Object.values(mem.chans).filter((c) => c && c.on !== false).length;
+        polls = Math.max(1, Math.min(polls, Math.floor(34 / Math.max(1, k))));
         for (let i = 0; i < polls; i++) {
             const r = await newsRun(db, deps, { mem, last: i === polls - 1 });
             if (r.state !== 'ok') { tot.state = r.state; break; }
