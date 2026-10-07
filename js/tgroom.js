@@ -48,7 +48,7 @@
         return r.json();
     }
     // the posts are kept on the phone in a small copy (text cut short) so the page opens at once
-    const slim = (p) => ({ c: p.c, i: p.i, p: p.p, t: String(p.t || '').slice(0, 700), im: (p.im || []).slice(0, 4), d: (p.d || []).slice(0, 4), vd: p.vd || null, vo: p.vo || 0, w: p.w || 0 });
+    const slim = (p) => ({ c: p.c, i: p.i, p: p.p, t: String(p.t || '').slice(0, 700), im: (p.im || []).slice(0, 4), d: (p.d || []).slice(0, 4), vd: p.vd ? { th: p.vd.th || '', du: p.vd.du || '', u: p.vd.u || '' } : null, vo: p.vo && typeof p.vo === 'object' ? { u: p.vo.u || '', du: p.vo.du || '' } : (p.vo ? { u: '', du: '' } : 0), w: p.w || 0 });
     async function fetchFeed(force) {
         const names = CH.map((c) => c.u), sig = names.join(',').toLowerCase();
         if (!names.length) { POSTS = []; paint(); return; }
@@ -110,8 +110,10 @@
         const c = chOf(x.c) || { n: x.c, u: x.c };
         const seen = load(K_SEEN, {})[String(c.u).toLowerCase()] || 0;
         const media = (x.im && x.im.length ? `<div class="tg-im n${x.im.length}">${x.im.map((u) => `<button onclick="app.tgImg(${jsArg(u)})" aria-label="صورة"><img src="${esc(u)}" alt="" loading="lazy" referrerpolicy="no-referrer"></button>`).join('')}</div>` : '')
-            + (x.vd ? `<button class="tg-vd" onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})">${x.vd.th ? `<img src="${esc(x.vd.th)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}<span class="tg-play"><i data-lucide="play"></i></span>${x.vd.du ? `<em>${esc(x.vd.du)}</em>` : ''}</button>` : '')
-            + (x.vo ? `<button class="tg-file" onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})"><i data-lucide="mic"></i><span><b>رسالة صوتية</b><small>تنفتح بتلكرام</small></span><i data-lucide="external-link"></i></button>` : '')
+            + (x.vd ? (x.vd.u ? `<button class="tg-vd" onclick="app.tgPlayVideo(this, ${jsArg(x.vd.u)})" aria-label="شغّل الفيديو">${x.vd.th ? `<img src="${esc(x.vd.th)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}<span class="tg-play"><i data-lucide="play"></i></span>${x.vd.du ? `<em>${esc(x.vd.du)}</em>` : ''}</button>`
+                : `<button class="tg-vd" onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})">${x.vd.th ? `<img src="${esc(x.vd.th)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ''}<span class="tg-play"><i data-lucide="play"></i></span>${x.vd.du ? `<em>${esc(x.vd.du)}</em>` : ''}<span class="tg-vdn">فيديو كبير، ينفتح بتلكرام</span></button>`) : '')
+            + (x.vo ? (x.vo.u ? `<div class="tg-voice"><i data-lucide="mic"></i><audio controls preload="none" controlsList="nodownload" src="${esc(x.vo.u)}"></audio>${x.vo.du ? `<em dir="ltr">${esc(x.vo.du)}</em>` : ''}</div>`
+                : `<button class="tg-file" onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})"><i data-lucide="mic"></i><span><b>رسالة صوتية${x.vo.du ? ' ' + esc(x.vo.du) : ''}</b><small>ما تتشغل هنا، تنفتح بتلكرام</small></span><i data-lucide="external-link"></i></button>`) : '')
             + (x.d || []).map((d) => `<button class="tg-file" onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})"><i data-lucide="${fileIc(d.n)}"></i><span><b dir="auto">${esc(d.n)}</b><small dir="ltr">${esc(d.z)}</small></span><i data-lucide="external-link"></i></button>`).join('');
         return `<article class="tg-card">
             <div class="tg-hd"><span class="tu-av">${avatar(c)}</span><span class="tu-tx"><b>${esc(c.n)}</b><small>${x.p ? timeAgo(x.p) : ''}${x.w ? ' . ' + views(x.w) + ' مشاهدة' : ''}</small></span>${x.p > seen ? '<i class="tg-new">جديد</i>' : ''}</div>
@@ -160,6 +162,9 @@
         }).catch(() => {});
     }
 
+    // only one voice note / video plays at a time
+    document.addEventListener('play', (e) => { const t = e.target; if (!t || !t.closest || !t.closest('#tgView')) return; document.querySelectorAll('#tgView video, #tgView audio').forEach((m) => { if (m !== t) { try { m.pause(); } catch (x) {} } }); }, true);
+
     Object.assign(app, {
         tgOpen() {
             S = { subj: 'all', ch: '', shown: PAGE };
@@ -169,7 +174,7 @@
             if (CH.length) fetchFeed(false);
             // what the student sees now stops being "new" when they leave the page
         },
-        tgClose() { markSeen(); },
+        tgClose() { document.querySelectorAll('#tgView video, #tgView audio').forEach((m) => { try { m.pause(); } catch (e) {} }); markSeen(); },
         tgSubj(s) { S.subj = s; S.shown = PAGE; paint(); },
         tgChan(u) {
             S.ch = S.ch.toLowerCase() === String(u).toLowerCase() ? '' : u; S.shown = PAGE; paint();
@@ -186,6 +191,14 @@
         tgExpand(c, i) { const k = c + '/' + i; if (OPEN.has(k)) OPEN.delete(k); else OPEN.add(k); paint(); },
         // the real post (and its files) open in Telegram; the app never stores them
         tgOpenPost(c, i) { try { window.open('https://t.me/' + encodeURIComponent(c) + '/' + Number(i), '_blank', 'noopener'); } catch (e) { app.showToast('ما انفتح تلكرام'); } },
+        // a video plays right here (streamed from Telegram's servers, nothing is saved on the phone)
+        tgPlayVideo(btn, u) {
+            if (!/^https:\/\/[^\s"'<>]+$/.test(u || '') || !btn) return;
+            document.querySelectorAll('#tgView video, #tgView audio').forEach((m) => { try { m.pause(); } catch (e) {} });
+            const v = document.createElement('video'); v.className = 'tg-vp'; v.controls = true; v.autoplay = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('controlsList', 'nodownload'); v.setAttribute('referrerpolicy', 'no-referrer'); v.src = u;
+            v.addEventListener('error', () => { app.showToast('ما اشتغل الفيديو هنا'); }, { once: true });
+            btn.replaceWith(v);
+        },
         tgImg(u) {
             if (!/^https:\/\/[^\s"'<>]+$/.test(u || '')) return;
             const w = document.createElement('div'); w.id = 'tgLight'; w.className = 'tg-light';
