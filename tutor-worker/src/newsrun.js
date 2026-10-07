@@ -74,6 +74,7 @@ export async function newsRun(db, deps, opt = {}) {
             if (did >= MAX_PER_CHANNEL || budget <= 0) break;
             did++; budget--;
             up['newsBot/seen/' + key + '/' + x.i] = now;
+            if (x.vo) continue;                                       // a voice message: never published (even with a caption)
             const cl = cleanPost(x.t);
             if (!cl.text) continue;                                   // a picture or file with no words
             const sp = splitNews(cl.text);
