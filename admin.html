@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="5368f5dc6a">
+    <meta name="admin-build" content="b007e19199">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -416,6 +416,9 @@
     </div>
     <button id="gateOut" class="gate-out hidden" onclick="gateSignOut()">تسجيل خروج</button>
 
+    <!-- the news watcher stopped: shown at the top of every section (see loadNewsBotAdmin) -->
+    <div id="nbAlarm" role="alert" style="display:none;background:#DC2626;color:#fff;padding:10px 14px;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;font-weight:700;font-size:14px;text-align:center"><span id="nbAlarmTxt"></span><button type="button" id="nbAlarmGo" style="background:#fff;color:#991B1B;border:0;border-radius:10px;padding:6px 14px;font-weight:800;font-family:inherit;font-size:13px;cursor:pointer">افتح القسم</button></div>
+
     <header class="topbar">
         <div class="topbar-inner">
             <div class="brand">
@@ -445,7 +448,7 @@
 
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
-            <button class="tab" data-tab="newsbot"><span class="tab-ic"><i data-lucide="radio-tower"></i></span><span>أخبار تلكرام</span></button>
+            <button class="tab" data-tab="newsbot"><span class="tab-ic"><i data-lucide="radio-tower"></i></span><span>أخبار تلكرام</span><b class="tab-badge hidden" id="nbBadge"></b></button>
             <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
             <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
             <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
@@ -3545,10 +3548,30 @@
         const NB_WHY = { review: 'قناة بوضع المراجعة', phone: 'فيه رقم هاتف', link: 'فيه رابط ترويجي', dup: 'خبر مكرر', ad: 'كلمة ممنوعة', fwd: 'معاد توجيهه من قناة ثانية' };
         function loadNewsBotAdmin() {
             let chans = {}, cfg = {};
+            let lastBeat = null;
+            // the watcher's health, for the whole panel: when the switch is on and no heartbeat came for 10 minutes, a red bar at the top, a badge on the
+            // section (so the bell, the beep and the page title count it) and a toast the first time
+            const got = { cfg: false, beat: false };
+            let alarmOn = false;
+            const nbWatch = () => {
+                if (!got.cfg || !got.beat) return;
+                const b = lastBeat, per = Number(b && b.per) || 60, age = b ? Date.now() - Number(b.at || 0) : Infinity;
+                const stale = !!cfg.on && age > Math.max(10 * 60000, per * 2000 + 60000);
+                const bar = el('nbAlarm'); if (!bar) return;
+                if (stale) {
+                    const m = Math.round(age / 60000);
+                    el('nbAlarmTxt').textContent = b ? 'مراقب أخبار تلكرام متوقف: آخر نبضة من الخادم قبل ' + (m >= 120 ? Math.round(m / 60) + ' ساعة' : m + ' دقيقة') + '. الأخبار الجديدة ما راح تنزل لحد ما يرجع.' : 'مراقب أخبار تلكرام ما أرسل أي نبضة: الأخبار الجديدة ما راح تنزل.';
+                    bar.style.display = 'flex';
+                } else bar.style.display = 'none';
+                setBadge('nbBadge', stale ? 1 : 0);
+                alarmOn = stale;
+            };
+            el('nbAlarmGo').addEventListener('click', () => { document.querySelector('.tab[data-tab="newsbot"]')?.click(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+            setInterval(nbWatch, 30000);
             const ago = (t) => { const m = Math.round((Date.now() - Number(t || 0)) / 60000); return !t ? 'ما اشتغل بعد' : m < 1 ? 'هسه' : m < 90 ? 'قبل ' + m + ' دقيقة' : 'قبل ' + Math.round(m / 60) + ' ساعة'; };
             const nbSet = (path, v, msg) => set(ref(db, 'newsBot/' + path), v).then(() => msg && toast(msg)).catch((e) => toast('تعذر الحفظ: ' + (e.message || e), false));
             onValue(ref(db, 'newsBot/cfg'), (s) => {
-                cfg = s.val() || {};
+                cfg = s.val() || {}; got.cfg = true; nbWatch();
                 el('nb_on').checked = !!cfg.on; el('nb_notify').checked = cfg.notify !== false;
                 el('nb_th').value = cfg.th || 60; el('nb_thv').textContent = cfg.th || 60;
                 if (document.activeElement !== el('nb_words')) el('nb_words').value = cfg.words || '';
@@ -3559,7 +3582,6 @@
             el('nb_th').addEventListener('change', () => nbSet('cfg/th', Number(el('nb_th').value), 'انحفظت الحساسية'));
             el('nb_wsave').addEventListener('click', () => nbSet('cfg/words', el('nb_words').value.slice(0, 1500), 'انحفظت الكلمات'));
             // the countdown: when the Worker's next run is due, worked out from the schedule text it reports (minute schedules only)
-            let lastBeat = null;
             const cronNext = (cron, from) => {
                 const m = /^(\*|\*\/(\d+)|(\d+)-59\/(\d+)|(\d+)) \* \* \* \*$/.exec(String(cron || '').trim().replace(/\s+/g, ' '));
                 if (!m) return null;
@@ -3582,7 +3604,7 @@
             setInterval(tickTimer, 1000);
             // the Worker's heartbeat: it writes "start" when a minute's run begins and "done" (or "error") when it ends
             onValue(ref(db, 'newsBot/beat'), (s) => {
-                const b = s.val(), box = el('nb_beat'); lastBeat = b; tickTimer(); if (!box) return;
+                const b = s.val(), box = el('nb_beat'); lastBeat = b; got.beat = true; nbWatch(); tickTimer(); if (!box) return;
                 const age = b ? Date.now() - Number(b.at || 0) : Infinity, mins = Math.round(age / 60000);
                 let t, c = '#16a34a';
                 if (!b) { t = 'الخادم ما بدأ أي جولة بعد (الجدولة ما اشتغلت، أو الخادم قديم)'; c = '#dc2626'; }
