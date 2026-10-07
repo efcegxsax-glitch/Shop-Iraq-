@@ -130,7 +130,7 @@
         const box = $('tuContent'); if (!box) return;
         const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v && (!picked() || !h.c || f.has(h.c))).slice(0, 8);
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tuSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
-        const teachers = shownCh().map((c) => {
+        const teachers = shownCh().filter((c) => S.subj === 'all' || String(c.s || '') === S.subj).map((c) => {
             const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
             return `<button class="tu-tch${S.teacher === c.id ? ' on' : ''}${f.has(c.id) ? ' fav' : ''}" onclick="app.tuTeacher('${c.id}')"><i>${av}</i><small>${esc(c.n)}</small></button>`;
         }).join('');
@@ -323,7 +323,7 @@
             if (CH.length) fetchFeed(false);
         },
         tuClose() { closePlayer(true); },
-        tuSubj(s) { S.subj = s; S.shown = PAGE; paint(); },
+        tuSubj(s) { S.subj = s; S.shown = PAGE; const c = S.teacher && chById(S.teacher); if (c && s !== 'all' && String(c.s || '') !== s) S.teacher = ''; paint(); },
         tuTab(t) { S.tab = t; S.shown = PAGE; paint(); },
         tuTeacher(id) { S.teacher = S.teacher === id ? '' : id; S.shown = PAGE; paint(); if (S.teacher) loadAll(S.teacher); },
         tuChanRetry() { const a = S.teacher && ALL[S.teacher]; if (a) { a.fail = false; a.why = ''; loadAll(S.teacher, a.pages > 0); } },

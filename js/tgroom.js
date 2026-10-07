@@ -137,7 +137,8 @@
         const subs = subjects(), list = visible();
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tgSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
         const mu = muted();
-        const teachers = shownCh().map((c) => `<button class="tu-tch${S.ch && S.ch.toLowerCase() === String(c.u).toLowerCase() ? ' on' : ''}${mu.has(String(c.u).toLowerCase()) ? ' tg-mu' : ''}" onclick="app.tgChan('${esc(c.u)}')"><i>${avatar(c)}</i><small>${esc(c.n)}</small></button>`).join('');
+        // a subject chip narrows the strip to that subject's teachers (and only the student's own teachers once he has chosen them)
+        const teachers = shownCh().filter((c) => S.subj === 'all' || String(c.s || '') === S.subj).map((c) => `<button class="tu-tch${S.ch && S.ch.toLowerCase() === String(c.u).toLowerCase() ? ' on' : ''}${mu.has(String(c.u).toLowerCase()) ? ' tg-mu' : ''}" onclick="app.tgChan('${esc(c.u)}')"><i>${avatar(c)}</i><small>${esc(c.n)}</small></button>`).join('');
         let feed;
         const M = S.ch && MORE[S.ch];
         if (picked() && CH.length && !shownCh().length) feed = '<div class="tu-empty"><i data-lucide="users"></i><b>ما اخترت أي أستاذ</b><p>اختار أساتذتك وتطلع منشوراتهم هنا بس.</p><button class="tu-btn" onclick="app.tgPick()">اختيار أساتذتي</button></div>';
@@ -187,7 +188,7 @@
             // what the student sees now stops being "new" when they leave the page
         },
         tgClose() { document.querySelectorAll('#tgView video, #tgView audio').forEach((m) => { try { m.pause(); } catch (e) {} }); markSeen(); },
-        tgSubj(s) { S.subj = s; S.shown = PAGE; paint(); },
+        tgSubj(s) { S.subj = s; S.shown = PAGE; const c = S.ch && chOf(S.ch); if (c && s !== 'all' && String(c.s || '') !== s) S.ch = ''; paint(); },
         tgChan(u) {
             S.ch = S.ch.toLowerCase() === String(u).toLowerCase() ? '' : u; S.shown = PAGE; paint();
             if (S.ch) loadOlder(S.ch);
