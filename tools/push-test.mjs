@@ -2,6 +2,9 @@
 //   node tools/push-test.mjs
 import { pushTargets, KINDS, sendAfter } from '../tutor-worker/src/push.js';
 let ok = 0, bad = 0;
+// the news bot's pushes: the kind AND the Telegram-news switch, both plain AND filters
+const nb = pushTargets([], 'urgent', undefined, ['tgnews']);
+
 const t = (name, cond) => { if (cond) ok++; else { bad++; console.log('FAIL', name); } };
 const none = pushTargets([], '');
 t('no kind, no governorate: everybody', none.kind === '' && none.targets.length === 1 && none.targets[0].included_segments[0] === 'Total Subscriptions');
@@ -22,4 +25,8 @@ t('send time format', sendAfter(Date.UTC(2026, 9, 6, 4, 0, 0), now) === '2026-10
 t('send time too soon', sendAfter(now + 30000, now) === null);
 t('send time too far', sendAfter(now + 31 * 86400000, now) === null);
 t('send time junk', sendAfter('x', now) === null && sendAfter(undefined, now) === null);
+t('news bot push: skips who switched the kind OR the Telegram news off (two AND filters)', nb.kind === 'urgent' && nb.targets.length === 1 && nb.targets[0].filters.length === 2 && nb.targets[0].filters.map((f) => f.key).join() === 'off_urgent,off_tgnews' && !nb.targets[0].filters.some((f) => f.operator));
+t('...with a governorate each send still has only AND filters', pushTargets(['baghdad'], 'announcement', undefined, ['tgnews']).targets[0].filters.length === 3);
+t('an unknown extra kind is ignored, a repeated one is not doubled', pushTargets([], 'announcement', undefined, ['nonsense', 'announcement']).targets[0].filters.length === 1);
+t('the Telegram news kind exists for admin pushes too', KINDS.includes('tgnews'));
 console.log(bad ? bad + ' failed' : 'all ' + ok + ' passed'); process.exit(bad ? 1 : 0);

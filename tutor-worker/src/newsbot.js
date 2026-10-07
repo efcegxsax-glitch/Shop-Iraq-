@@ -126,5 +126,5 @@ export function newsDoc(it, now) {
 }
 export const notifDoc = (it) => ({
     id: it.id, title: it.title, description: it.excerpt || '', time: 'الآن', read: false,
-    type: it.urgent ? 'urgent' : it.category === 'weather' ? 'weather' : 'announcement', createdAt: { '.sv': 'timestamp' },
+    type: it.urgent ? 'urgent' : it.category === 'weather' ? 'weather' : 'announcement', src: 'tg', createdAt: { '.sv': 'timestamp' },
 });
