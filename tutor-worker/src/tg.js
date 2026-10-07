@@ -22,6 +22,8 @@ const plain = (html) => dec(String(html || '').replace(/<br\s*\/?>/gi, '\n').rep
 // only pictures that Telegram itself serves
 const okImg = (u) => /^https:\/\/[a-z0-9.-]*(telesco\.pe|cdn-telegram\.org|telegram\.org|t\.me)\//i.test(u || '');
 const bgUrl = (style) => { const m = /url\((['"]?)(https:[^'")]+)\1\)/i.exec(style || ''); return m && okImg(dec(m[2])) ? dec(m[2]) : ''; };
+// a media file's address inside the preview (voice notes and short videos are streamed straight from Telegram's servers)
+const srcUrl = (html, tag) => { const m = new RegExp('<' + tag + '\\b[^>]*?\\ssrc="([^"]+)"', 'i').exec(html); const u = m ? dec(m[1]) : ''; return okImg(u) ? u : ''; };
 // "1.2K", "3M" -> a number
 const kmb = (s) => { const m = /^([\d.,]+)\s*([KMkm]?)/.exec(String(s || '').trim()); if (!m) return 0; const n = parseFloat(m[1].replace(',', '.')); return Math.round(n * (/k/i.test(m[2]) ? 1e3 : /m/i.test(m[2]) ? 1e6 : 1)) || 0; };
 
@@ -59,14 +61,16 @@ export function parseTgPosts(html, chan) {
         const vt = /<i class="tgme_widget_message_video_thumb"[^>]*style="([^"]*)"/i.exec(part) || /<i class="tgme_widget_message_roundvideo_thumb"[^>]*style="([^"]*)"/i.exec(part);
         if (vt || /tgme_widget_message_video_player|tgme_widget_message_roundvideo_player/.test(part)) {
             const du = /<time[^>]*class="message_video_duration[^"]*"[^>]*>([^<]*)<\/time>/i.exec(part) || /class="message_video_duration[^"]*"[^>]*>([^<]*)</i.exec(part);
-            vd = { th: vt ? bgUrl(vt[1]) : '', du: du ? du[1].trim().slice(0, 10) : '' };
+            vd = { th: vt ? bgUrl(vt[1]) : '', du: du ? du[1].trim().slice(0, 10) : '', u: srcUrl(part, 'video') };
         }
-        const voice = /tgme_widget_message_voice/.test(part);
+        const isVoice = /tgme_widget_message_voice/.test(part);
+        const vdur = /<time[^>]*class="tgme_widget_message_voice_duration[^"]*"[^>]*>([^<]*)<\/time>/i.exec(part) || /class="tgme_widget_message_voice_duration[^"]*"[^>]*>([^<]*)</i.exec(part);
+        const voice = isVoice ? { u: srcUrl(part, 'audio'), du: vdur ? vdur[1].trim().slice(0, 10) : '' } : null;
         const tm = /<time[^>]*datetime="([^"]+)"/i.exec(part);
         const p = tm ? Date.parse(tm[1]) || 0 : 0;
         const vw = /<span class="tgme_widget_message_views">([^<]*)<\/span>/i.exec(part);
         if (!t && !im.length && !docs.length && !vd && !voice) continue;
-        out.push({ c: dp[1], i: id, p, t, im, d: docs, vd, vo: voice ? 1 : 0, w: vw ? kmb(vw[1]) : 0 });
+        out.push({ c: dp[1], i: id, p, t, im, d: docs, vd, vo: voice, w: vw ? kmb(vw[1]) : 0 });
     }
     return out;
 }
