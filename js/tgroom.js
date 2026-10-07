@@ -10,7 +10,7 @@
         if (!im || im.tagName !== 'IMG' || !im.dataset || !im.dataset.ini || !im.closest('#tgView, #tgSheet')) return;
         const sp = document.createElement('span'); sp.textContent = im.dataset.ini; im.replaceWith(sp);
     }, true);
-    const K_FEED = 'isp_tg_feed', K_MUTE = 'isp_tg_mute', K_SEEN = 'isp_tg_seen', K_SEL = 'isp_tg_sel', K_MINE = 'isp_tg_mine', FEED_TTL = 5 * 60000, PAGE = 12;
+    const K_FEED = 'isp_tg_feed', K_MUTE = 'isp_tg_mute', K_SEEN = 'isp_tg_seen', K_HIDE = 'isp_tg_hide', K_SEL = 'isp_tg_sel', K_MINE = 'isp_tg_mine', FEED_TTL = 5 * 60000, PAGE = 12;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const $ = (id) => document.getElementById(id);
@@ -23,10 +23,17 @@
     // a pasted link or @name -> the channel's user name ('' if it is not a public channel link)
     const tgName = (x) => { let s = String(x || '').trim().replace(/^@/, ''); s = s.replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me|telegram\.dog)\//i, '').replace(/^s\//i, ''); if (/^(\+|joinchat)/i.test(s)) return ''; s = s.split(/[/?#]/)[0]; return /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(s) ? s : ''; };
     const muted = () => new Set(load(K_MUTE, []));
-    // "my teachers": once chosen, only those channels are shown (and pushed); the rest stay hidden until the student edits the choice
-    const mine = () => new Set(load(K_MINE, []).map((x) => String(x).toLowerCase()));
-    const picked = () => { try { return localStorage.getItem(K_SEL) === '1'; } catch (e) { return false; } };
-    const shownCh = () => { if (!picked()) return CH; const m = mine(); return CH.filter((c) => m.has(String(c.u).toLowerCase())); };
+    // every channel the admin adds shows up by itself; the student can hide the ones he does not want (and bring them back) with "أساتذتي"
+    const lc = (x) => String(x).toLowerCase();
+    const hidden = () => new Set(load(K_HIDE, []).map(lc));
+    const shownCh = () => { const h = hidden(); return CH.filter((c) => !h.has(lc(c.u))); };
+    // an older version saved the opposite list ("my teachers"): turn it into the hidden list once, when the channels are known
+    function migrate() {
+        try {
+            if (!CH.length || localStorage.getItem(K_HIDE) != null || localStorage.getItem(K_SEL) !== '1') return;
+            const m = new Set(load(K_MINE, []).map(lc)); save(K_HIDE, CH.filter((c) => !m.has(lc(c.u))).map((c) => lc(c.u)));
+        } catch (e) {}
+    }
     const chOf = (u) => CH.find((c) => String(c.u).toLowerCase() === String(u).toLowerCase()) || null;
     const picOf = (c) => { const f = FRESH[c.u]; const u = (f && f.a) || c.a; return /^https:\/\/[^\s"'<>]+$/.test(u || '') ? u : ''; };
     const avatar = (c) => { const u = picOf(c); return u ? `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" data-ini="${ini(c)}">` : `<span>${ini(c)}</span>`; };
@@ -38,6 +45,7 @@
         un = onValue(ref(window.firebaseDb, 'tgChannels'), (snap) => {
             const v = snap.exists() ? snap.val() : {};
             CH = Object.keys(v).map((k) => ({ k, ...v[k] })).filter((c) => c && /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(String(c.u || ''))).sort((a, b) => (Number(a.o) || 0) - (Number(b.o) || 0));
+            migrate();
             if (S.ch && !shownCh().some((c) => String(c.u).toLowerCase() === S.ch.toLowerCase())) S.ch = '';
             app._tgTagSync && app._tgTagSync(CH.map((c) => String(c.u).toLowerCase()));
             paint(); fetchFeed(false);
@@ -96,7 +104,7 @@
         const q = String(($('tgSearch') || {}).value || '').trim();
         return base.filter((x) => {
             const c = chOf(x.c); if (!c) return false;
-            if (picked() && !mine().has(String(c.u).toLowerCase())) return false;
+            if (hidden().has(lc(c.u))) return false;
             if (S.ch && String(c.u).toLowerCase() !== S.ch.toLowerCase()) return false;
             if (S.subj !== 'all' && String(c.s || '') !== S.subj) return false;
             if (q && ((x.t || '') + ' ' + (x.d || []).map((d) => d.n).join(' ') + ' ' + c.n).indexOf(q) === -1) return false;
@@ -128,8 +136,8 @@
     }
     function pickList() {
         const box = $('tgPickList'); if (!box) return;
-        const m = mine(), sel = picked(), q = String((($('tgPickQ') || {}).value) || '').trim().toLowerCase();
-        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '') + ' ' + String(c.u)).toLowerCase().indexOf(q) !== -1).map((c) => `<button class="${sel && m.has(String(c.u).toLowerCase()) ? 'on' : ''}" onclick="app.tgPickToggle('${esc(String(c.u).toLowerCase())}', this)"><i>${avatar(c)}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`).join('');
+        const h = hidden(), q = String((($('tgPickQ') || {}).value) || '').trim().toLowerCase();
+        box.innerHTML = CH.filter((c) => !q || (String(c.n) + ' ' + String(c.s || '') + ' ' + String(c.u)).toLowerCase().indexOf(q) !== -1).map((c) => `<button class="${!h.has(lc(c.u)) ? 'on' : ''}" onclick="app.tgPickToggle('${esc(String(c.u).toLowerCase())}', this)"><i>${avatar(c)}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`).join('');
         try { lucide.createIcons(); } catch (e) {}
     }
     function paint() {
@@ -141,7 +149,7 @@
         const teachers = shownCh().filter((c) => S.subj === 'all' || String(c.s || '') === S.subj).map((c) => `<button class="tu-tch${S.ch && S.ch.toLowerCase() === String(c.u).toLowerCase() ? ' on' : ''}${mu.has(String(c.u).toLowerCase()) ? ' tg-mu' : ''}" onclick="app.tgChan('${esc(c.u)}')"><i>${avatar(c)}</i><small>${esc(c.n)}</small></button>`).join('');
         let feed;
         const M = S.ch && MORE[S.ch];
-        if (picked() && CH.length && !shownCh().length) feed = '<div class="tu-empty"><i data-lucide="users"></i><b>ما اخترت أي أستاذ</b><p>اختار أساتذتك وتطلع منشوراتهم هنا بس.</p><button class="tu-btn" onclick="app.tgPick()">اختيار أساتذتي</button></div>';
+        if (CH.length && !shownCh().length) feed = '<div class="tu-empty"><i data-lucide="users"></i><b>أخفيت كل الأساتذة</b><p>ارجع علّم على اللي تريد تشوف منشوراتهم.</p><button class="tu-btn" onclick="app.tgPick()">أساتذتي</button></div>';
         else if (!CH.length) feed = '<div class="tu-empty"><i data-lucide="send"></i><b>ما انضافت أي قناة بعد</b><p>الإدارة تضيف قنوات تلكرام من لوحة التحكم، أو اطلب إضافة قناة أستاذك من زر + فوق.</p></div>';
         else if (!POSTS.length && !err && netBusy) feed = '<div class="tu-skel">' + '<i></i>'.repeat(3) + '</div>';
         else if (err && !POSTS.length) feed = `<div class="tu-empty"><i data-lucide="wifi-off"></i><b>${esc(err)}</b><button class="tu-btn" onclick="app.tgRefresh()">إعادة المحاولة</button></div>`;
@@ -151,7 +159,7 @@
                 : S.ch ? (M && M.busy ? '<div class="tu-more dim">دا يحمّل المنشورات القديمة...</div>' : M && M.fail ? '<button class="tu-more" onclick="app.tgMore()">تعذر التحميل، أعد المحاولة</button>' : M && M.done ? '' : '<button class="tu-more" onclick="app.tgMore()">منشورات أقدم</button>') : '');
         const warn = failed.length && !S.ch ? `<div class="tg-warn">ما انقرأت منشورات: ${failed.map((u) => esc((chOf(u) || { n: u }).n)).join('، ')} (يمكن القناة مو عامة)</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
-            <div class="tu-h"><span>القنوات</span><span class="tu-hb"><button onclick="app.tgPick()"><i data-lucide="users"></i>أساتذتي${picked() ? ' (' + shownCh().length + ')' : ''}</button><button onclick="app.tgSettings()"><i data-lucide="bell"></i>الإشعارات</button></span></div>
+            <div class="tu-h"><span>القنوات</span><span class="tu-hb"><button onclick="app.tgPick()"><i data-lucide="users"></i>أساتذتي${hidden().size && CH.length ? ' (' + shownCh().length + ' من ' + CH.length + ')' : ''}</button><button onclick="app.tgSettings()"><i data-lucide="bell"></i>الإشعارات</button></span></div>
             <div class="tu-tchs">${teachers}</div>` : ''}${warn}<div class="tg-feed">${feed}</div>
             <div class="tg-ask"><button onclick="app.chReqOpen('tg')"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
@@ -183,7 +191,7 @@
             S = { subj: 'all', ch: '', shown: PAGE };
             const q = $('tgSearch'); if (q) q.value = '';
             $('tgSearchBar')?.classList.add('hidden');
-            listenChannels(); paint();
+            migrate(); listenChannels(); paint();
             if (CH.length) fetchFeed(false);
             // what the student sees now stops being "new" when they leave the page
         },
@@ -237,7 +245,7 @@
             $('tgPick')?.remove();
             const w = document.createElement('div'); w.id = 'tgPick'; w.className = 'tu-sheetw';
             w.innerHTML = `<div class="tu-sbd" onclick="app.tgPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tgPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                <p>ابحث واختار الأساتذة اللي تريدهم وتطلع لك منشوراتهم بس. الباقي يختفون، وترجعهم من هنا بأي وقت.</p>
+                <p>كل الأساتذة معلّم عليهم وتطلع منشوراتهم. شيل العلامة عن اللي ما تريده وينخفي، وارجع علّمه بأي وقت. أي أستاذ تضيفه الإدارة يطلع لك تلقائياً.</p>
                 <input id="tgPickQ" class="tg-in" type="search" placeholder="ابحث عن أستاذ..." oninput="app.tgPickFilter()">
                 <div class="tu-pkact"><button onclick="app.tgPickAll(true)">اختيار الكل</button><button onclick="app.tgPickAll(false)">مسح الكل</button></div>
                 <div class="tu-pick" id="tgPickList"></div>
@@ -247,12 +255,11 @@
         },
         tgPickFilter() { pickList(); },
         tgPickToggle(k, btn) {
-            const first = !picked(); if (first) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_MINE, []); }
-            const m = mine(); if (m.has(k)) m.delete(k); else m.add(k); save(K_MINE, Array.from(m));
-            if (first) pickList(); else btn && btn.classList.toggle('on', m.has(k));
+            const h = hidden(); if (h.has(k)) h.delete(k); else h.add(k); save(K_HIDE, Array.from(h));
+            btn && btn.classList.toggle('on', !h.has(k));
             paint();
         },
-        tgPickAll(on) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_MINE, on ? CH.map((c) => String(c.u).toLowerCase()) : []); pickList(); paint(); },
+        tgPickAll(on) { save(K_HIDE, on ? [] : CH.map((c) => lc(c.u))); pickList(); paint(); },
         tgPickClose() {
             closeSheet('tgPick'); S.shown = PAGE;
             if (S.ch && !shownCh().some((c) => String(c.u).toLowerCase() === S.ch.toLowerCase())) S.ch = '';
