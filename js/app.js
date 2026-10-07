@@ -729,6 +729,10 @@
                 // a push about a teacher's new video (?tube=<video id>) opens that video
                 try { const m = location.search.match(/[?&]tube=([A-Za-z0-9_-]{11})(?:&|$)/); if (m) this._tubePending = m[1]; } catch (e) {}
                 try { const m = location.search.match(/[?&]tg=([A-Za-z][A-Za-z0-9_]{3,31})(?:&|$)/); if (m) this._tgPending = m[1]; } catch (e) {}
+                try { const m = location.search.match(/[?&]ch=(UC[\w-]{22})(?:&|$)/); if (m) this._tuWant = m[1]; } catch (e) {}
+                // a notification about a news, new handouts or the day-off page (?go=news&id=...)
+                try { const q = new URLSearchParams(location.search), g = q.get('go'); if (g && /^(news|res|holiday)$/.test(g)) this._goPending = { go: g, id: String(q.get('id') || '') }; } catch (e) {}
+                setTimeout(() => { if (!this._pushReady) { this._pushReady = true; this._pushRun(); } }, 6000);   // a visitor who is not signed in
                 try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
                 try { const m = location.search.match(/[?&]dl=([a-z0-9]{6})(?![a-z0-9])/i); if (m) this._dlPending = m[1].toLowerCase(); } catch (e) {}
                 // an invite link (?ref=<uid>) is remembered until the visitor creates an account
@@ -2849,6 +2853,7 @@
                     this._pnSync();
                     this._prizeListen();
                     if (this._tgPending) { const u = this._tgPending; this._tgPending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this._need('tgroom').then(() => this.tgGo(u)).catch(() => {}); }, 900); }
+                    this._pushReady = true; this._pushRun();
                     if (this._tubePending) { const v = this._tubePending; this._tubePending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(v)).catch(() => {}); }, 900); }
                     this._clRingListen();
                     this.listenForUserTasks();
@@ -4958,6 +4963,44 @@
                 }
             },
             // a tap on a call or message push: open that chat once the student is signed in
+            // A tapped notification lands where it is about: a teacher's new video (on that teacher), a Telegram channel, a news, new handouts,
+            // the day-off page, the timetable. `x` = the notification's own data. It waits until the app is ready, then opens.
+            _pushOpen(x) {
+                x = x || {};
+                if (typeof x.tube === 'string' && /^[A-Za-z0-9_-]{11}$/.test(x.tube)) this._goPending = { go: 'tube', id: x.tube, ch: String(x.ch || '') };
+                else if (typeof x.tg === 'string' && x.tg) this._goPending = { go: 'tg', id: x.tg };
+                else if (x.tb) this._goPending = { go: 'table' };
+                else if (typeof x.go === 'string' && /^(news|res|holiday)$/.test(x.go)) this._goPending = { go: x.go, id: String(x.id || '') };
+                else return false;
+                this._pushRun();
+                return true;
+            },
+            _pushRun() {
+                const g = this._goPending; if (!g || !this._pushReady) return;
+                this._goPending = null;
+                try { history.replaceState(history.state, '', location.pathname); } catch (e) {}
+                const id = String(g.id || '');
+                setTimeout(() => {
+                    try {
+                        if (g.go === 'news' && /^\d{6,16}$/.test(id)) this._pushOpenNews(Number(id));
+                        else if (g.go === 'tube' && /^[A-Za-z0-9_-]{11}$/.test(id)) { this._tuWant = /^UC[\w-]{22}$/.test(g.ch || '') ? g.ch : ''; this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(id)).catch(() => {}); }
+                        else if (g.go === 'tg' && /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(id)) this._need('tgroom').then(() => this.tgGo(id)).catch(() => {});
+                        else if (g.go === 'res') this.goToResources();
+                        else if (g.go === 'holiday') this.goToHolidays();
+                        else if (g.go === 'table') this.goToTable();
+                    } catch (e) { console.warn('push open failed', e); }
+                }, 700);
+            },
+            // the news may not have been downloaded yet (a fresh one, a cold start): ask for it, then open it
+            async _pushOpenNews(id) {
+                if (!newsData.some((n) => n.id === id)) {
+                    try {
+                        const { ref, get } = window.firebaseDbHelpers, s = await get(ref(window.firebaseDb, 'news/' + id));
+                        if (s.exists()) { const n = withNumericIds([s.val()])[0]; if (n && !newsData.some((x) => x.id === id)) { newsData.push(n); newsData.sort((a, b) => b.id - a.id); try { this.applyUserNewsState(); this.renderNews(); } catch (e) {} } }
+                    } catch (e) { /* offline: the toast below */ }
+                }
+                if (newsData.some((n) => n.id === id)) this.openNews(id); else this.showToast('ما لكيت هذا الخبر');
+            },
             _openChatFromPush(uid, name) {
                 if (!uid) return;
                 let n = 0;
@@ -5599,6 +5642,7 @@
                                 const text = typeof extra.coach === 'string' ? extra.coach : (m ? decodeURIComponent(m[1]) : '');
                                 if (text) { this._coachPending = text; this._coachOpen(); }
                                 if (extra.kind === 'call' || extra.kind === 'msg') this._openChatFromPush(extra.from, extra.fromName);
+                                else this._pushOpen(extra);
                             } catch (e) {}
                         });
                         this._os = {

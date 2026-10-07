@@ -1,6 +1,6 @@
 // Checks who an admin push goes to (tutor-worker/src/push.js).
 //   node tools/push-test.mjs
-import { pushTargets, KINDS, sendAfter } from '../tutor-worker/src/push.js';
+import { pushTargets, KINDS, sendAfter, goData, goUrl, GO_PLACES } from '../tutor-worker/src/push.js';
 let ok = 0, bad = 0;
 // the news bot's pushes: the kind AND the Telegram-news switch, both plain AND filters
 const nb = pushTargets([], 'urgent', undefined, ['tgnews']);
@@ -29,4 +29,9 @@ t('news bot push: skips who switched the kind OR the Telegram news off (two AND 
 t('...with a governorate each send still has only AND filters', pushTargets(['baghdad'], 'announcement', undefined, ['tgnews']).targets[0].filters.length === 3);
 t('an unknown extra kind is ignored, a repeated one is not doubled', pushTargets([], 'announcement', undefined, ['nonsense', 'announcement']).targets[0].filters.length === 1);
 t('the Telegram news kind exists for admin pushes too', KINDS.includes('tgnews'));
+// where a tap on a notification lands
+t('goData: a news with its id', JSON.stringify(goData('news', 1791999999999)) === '{"go":"news","id":"1791999999999"}' && JSON.stringify(goData('news', '123')) === '{"go":"news","id":"123"}');
+t('goData: a place without an id is fine, an odd id is dropped', JSON.stringify(goData('res')) === '{"go":"res"}' && JSON.stringify(goData('holiday', 'x;DROP')) === '{"go":"holiday"}' && JSON.stringify(goData('news', '1'.repeat(30))) === '{"go":"news"}');
+t('goData: only known places', goData('admin') === null && goData('') === null && goData(undefined) === null && GO_PLACES.length === 3);
+t('goUrl: the web address carries the place', goUrl('https://x.io/app/', goData('news', 77)) === 'https://x.io/app/?go=news&id=77' && goUrl('https://x.io/app/', goData('holiday')) === 'https://x.io/app/?go=holiday' && goUrl('https://x.io/app/', null) === 'https://x.io/app/');
 console.log(bad ? bad + ' failed' : 'all ' + ok + ' passed'); process.exit(bad ? 1 : 0);
