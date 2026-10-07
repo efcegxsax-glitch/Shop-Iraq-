@@ -92,6 +92,23 @@
 
 
 
+
+        /* ---------- alerts: a badge on every section that has something new, and a bell that lists them ---------- */
+        .tab-badge { animation: tbPulse 1.8s ease-in-out infinite; }
+        @keyframes tbPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(220,38,38,.55); } 50% { box-shadow: 0 0 0 6px rgba(220,38,38,0); } }
+        .tab.active .tab-badge { background: #fff; color: #DC2626; }
+        .alert-wrap { position: relative; display: inline-block; }
+        .alert-btn { position: relative; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text); display: grid; place-items: center; cursor: pointer; }
+        .alert-btn svg { width: 18px; height: 18px; }
+        .alert-btn.on { border-color: #DC2626; color: #FCA5A5; animation: tbRing 1.4s ease-in-out 2; }
+        @keyframes tbRing { 0%, 100% { transform: rotate(0); } 20% { transform: rotate(14deg); } 40% { transform: rotate(-12deg); } 60% { transform: rotate(8deg); } 80% { transform: rotate(-6deg); } }
+        .alert-btn b { position: absolute; top: -6px; left: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: #DC2626; color: #fff; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; }
+        .alert-menu { position: absolute; top: 44px; left: 0; z-index: 60; width: 280px; max-height: 70vh; overflow-y: auto; padding: 8px; border-radius: 14px; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 14px 40px rgba(0,0,0,.5); }
+        .alert-menu button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px; border-radius: 10px; border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-align: right; cursor: pointer; }
+        .alert-menu button:hover { background: var(--panel-2); }
+        .alert-menu button em { margin-inline-start: auto; font-style: normal; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: #DC2626; color: #fff; font-size: 11.5px; display: grid; place-items: center; }
+        .alert-menu p { margin: 10px; font-size: 12.5px; color: var(--text2); text-align: center; }
+
         /* ---------- Desktop scale (set by the script in <head>; --z is 1 on phones) ---------- */
         .zoom-ctl { display: none; align-items: center; gap: 4px; }
         @media (min-width: 1100px) {
@@ -408,6 +425,7 @@
                 </div>
             </div>
             <div class="badges">
+                <span class="alert-wrap"><button type="button" id="alertBtn" class="alert-btn" onclick="admAlerts(event)" aria-label="الإشعارات"><i data-lucide="bell"></i><b id="alertCnt" class="hidden"></b></button><div id="alertMenu" class="alert-menu hidden"></div></span>
                 <span class="zoom-ctl" title="حجم الواجهة"><button type="button" onclick="admZoom(-0.05)" aria-label="تصغير">−</button><b id="zoomVal">100%</b><button type="button" onclick="admZoom(0.05)" aria-label="تكبير">+</button><button type="button" onclick="admZoom(0)" aria-label="تلقائي" style="width:auto;padding:0 8px;font-size:11px">تلقائي</button></span>
                 <span id="versionBadge" class="badge" style="background:#2563EB;color:#fff;">الإصدار 2.2</span>
                 <span id="modeBadge" class="badge" style="background:#334155;color:#CBD5E1;">جاري التحقق...</span>
@@ -419,7 +437,7 @@
         <!-- Side / top navigation -->
         <nav class="sidenav" id="panel">
             <div class="nav-group-label">الموقع</div>
-            <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span></button>
+            <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span><b class="tab-badge hidden" id="siteBadge"></b></button>
 
             <div class="nav-group-label">الإحصائيات</div>
             <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
@@ -441,7 +459,7 @@
             <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>شكاوي وأفكار</span><b class="tab-badge hidden" id="idBadge"></b></button>
             <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
             <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
-            <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span></button>
+            <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span><b class="tab-badge hidden" id="drBadge"></b></button>
 
             <div class="nav-group-label">التواصل والوسائط</div>
             <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إشعارات</span></button>
@@ -3399,6 +3417,7 @@
             const v = snap.exists() ? snap.val() : {}, rows = [];
             Object.keys(v).forEach((uid) => Object.keys(v[uid] || {}).forEach((id) => rows.push({ uid, id, ...v[uid][id] })));
             rows.sort((a, b) => (a.st === 'new' ? 0 : 1) - (b.st === 'new' ? 0 : 1) || (b.at || 0) - (a.at || 0));
+            chanReqBadge(rows);
             const L = el('rq_list');
             L.innerHTML = rows.length ? rows.slice(0, 100).map((r) => `<div style="${YT_STYLE};flex-wrap:wrap"><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${r.k === 'tg' ? '#0284c7' : '#dc2626'};color:#fff">${r.k === 'tg' ? 'تلكرام' : 'يوتيوب'}</span><div style="flex:1;min-width:160px"><div dir="ltr" style="font-size:13px;word-break:break-all">${escapeHtml(r.l)}</div><div style="font-size:11px;opacity:.7">${escapeHtml(r.n || '')} ${r.s ? '. رقم ' + escapeHtml(r.s) : ''} . ${new Date(r.at || 0).toLocaleDateString('ar-IQ')} . ${r.st === 'new' ? 'جديد' : r.st === 'ok' ? 'مقبول' : 'مرفوض'}</div></div>${r.st === 'new' ? `<button class="btn" type="button" data-rqopen="${escapeHtml(r.uid + '/' + r.id)}">افتحها بالأداة</button><button class="btn" type="button" style="background:#16a34a" data-rqok="${escapeHtml(r.uid + '/' + r.id)}">تمت الإضافة</button><button class="btn" type="button" style="background:#b45309" data-rqno="${escapeHtml(r.uid + '/' + r.id)}">رفض</button>` : ''}<button class="btn" type="button" style="background:#64748b" data-rqdel="${escapeHtml(r.uid + '/' + r.id)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما كو طلبات</div>';
             const find = (k) => rows.find((r) => r.uid + '/' + r.id === k);
@@ -3412,6 +3431,57 @@
             L.querySelectorAll('[data-rqno]').forEach((b) => b.addEventListener('click', () => { const why = prompt('سبب الرفض (يشوفه الطالب):', 'القناة مو عامة أو مو دراسية'); if (why !== null) mark(b.dataset.rqno, 'no', String(why).slice(0, 200)); }));
             L.querySelectorAll('[data-rqdel]').forEach((b) => b.addEventListener('click', () => remove(ref(db, 'chanReq/' + b.dataset.rqdel)).then(() => toast('انحذف')).catch(() => toast('تعذر الحذف', false))));
         }); }
+
+
+        // ---------- alerts: every section's badge is watched; a new arrival rings the bell, beeps and shows a toast ----------
+        const ALERT = { prev: {}, ready: false, last: 0 };
+        function alertScan() {
+            const rows = [...document.querySelectorAll('.tab[data-tab]')].map((t) => {
+                const b = t.querySelector('.tab-badge'), n = b && !b.classList.contains('hidden') ? (parseInt(b.textContent, 10) || 0) : 0;
+                const lab = t.querySelector('span:not(.tab-ic)');
+                return { tab: t.dataset.tab, label: lab ? lab.textContent.trim() : t.dataset.tab, n };
+            }).filter((r) => r.n > 0);
+            const total = rows.reduce((a, r) => a + r.n, 0), cnt = el('alertCnt');
+            if (cnt) { cnt.textContent = total > 99 ? '99+' : total; cnt.classList.toggle('hidden', !total); }
+            document.title = (total ? '(' + total + ') ' : '') + 'لوحة التحكم - أكـادمي السادس';
+            // what is new since the last scan (not during the first load of the lists)
+            const fresh = rows.filter((r) => r.n > (ALERT.prev[r.tab] || 0));
+            ALERT.prev = Object.fromEntries(rows.map((r) => [r.tab, r.n]));
+            const menu = el('alertMenu');
+            if (menu && !menu.classList.contains('hidden')) alertMenuPaint(rows);
+            ALERT.rows = rows;
+            if (!ALERT.ready || !fresh.length || Date.now() - ALERT.last < 1500) return;
+            ALERT.last = Date.now();
+            const btn = el('alertBtn'); if (btn) { btn.classList.remove('on'); void btn.offsetWidth; btn.classList.add('on'); }
+            toast('جديد: ' + fresh.map((r) => r.label + ' (' + r.n + ')').join('، '));
+            alertBeep();
+        }
+        function alertBeep() {
+            try {
+                const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+                const a = ALERT.ctx = ALERT.ctx || new C(), o = a.createOscillator(), g = a.createGain();
+                o.type = 'sine'; o.frequency.setValueAtTime(880, a.currentTime); o.frequency.setValueAtTime(1175, a.currentTime + 0.12);
+                g.gain.setValueAtTime(0.0001, a.currentTime); g.gain.exponentialRampToValueAtTime(0.18, a.currentTime + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, a.currentTime + 0.35);
+                o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.4);
+            } catch (e) {}
+        }
+        function alertMenuPaint(rows) {
+            const m = el('alertMenu'); if (!m) return;
+            m.innerHTML = rows.length ? rows.map((r) => `<button type="button" data-goto="${escapeHtml(r.tab)}">${escapeHtml(r.label)}<em>${r.n}</em></button>`).join('') : '<p>ما كو شي جديد</p>';
+            m.querySelectorAll('[data-goto]').forEach((b) => b.addEventListener('click', () => { m.classList.add('hidden'); document.querySelector('.tab[data-tab="' + b.dataset.goto + '"]')?.click(); }));
+        }
+        window.admAlerts = function (e) { e && e.stopPropagation(); const m = el('alertMenu'); if (!m) return; alertMenuPaint(ALERT.rows || []); m.classList.toggle('hidden'); };
+        document.addEventListener('click', (e) => { const m = el('alertMenu'); if (m && !m.classList.contains('hidden') && !e.target.closest('.alert-wrap')) m.classList.add('hidden'); });
+        { let t = 0; const obs = new MutationObserver(() => { clearTimeout(t); t = setTimeout(alertScan, 250); });
+          document.querySelectorAll('.tab-badge').forEach((b) => obs.observe(b, { childList: true, characterData: true, subtree: true, attributes: true, attributeFilter: ['class'] }));
+          setTimeout(() => { ALERT.ready = true; alertScan(); }, 6000); }
+        const setBadge = (id, n) => { const b = el(id); if (!b) return; b.textContent = n; b.classList.toggle('hidden', !n); };
+        // channel requests wait for an answer: the badge sits on "التحكم بالموقع" where the requests card is
+        function chanReqBadge(rows) { setBadge('siteBadge', rows.filter((r) => r.st === 'new').length); }
+        // dreams the students posted since the panel's dreams page was last opened
+        let drSeen = Number(localStorage.getItem('adm_seen_dreams') || 0) || 0;
+        function dreamsBadge() { const n = Object.values(dreamsData || {}).filter((d) => d && d.at > drSeen && d.t).length; setBadge('drBadge', n); }
+        document.querySelector('.tab[data-tab="dreams"]')?.addEventListener('click', () => { drSeen = Date.now(); try { localStorage.setItem('adm_seen_dreams', String(drSeen)); } catch (e) {} setBadge('drBadge', 0); });
 
         // ---------- Exams: a handout -> an A4 question paper, and past ministerial papers (no file size limit) ----------
         const EX_SUBJ = ['الأحياء', 'الفيزياء', 'الكيمياء', 'الرياضيات', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية'];
@@ -5164,7 +5234,7 @@
         const DREAM_CAT_NAMES = { study: 'دراسة', career: 'مهنة', family: 'عائلة', travel: 'سفر', other: 'حلم آخر' };
         function loadDreamsAdmin() {
             el('drSearch').addEventListener('input', renderDreamsAdmin);
-            onValue(ref(db, 'dreams'), (s) => { dreamsData = s.val() || {}; renderDreamsAdmin(); });
+            onValue(ref(db, 'dreams'), (s) => { dreamsData = s.val() || {}; renderDreamsAdmin(); if (typeof dreamsBadge === 'function') dreamsBadge(); });
         }
         function renderDreamsAdmin() {
             const box = el('drAdminList');
