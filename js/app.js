@@ -11867,6 +11867,44 @@
                     <button class="btn-press w-full py-2.5 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="window.IspNative.notifSettings()">افتح إعدادات إشعارات التطبيق</button>
                 </div>`;
             },
+            // "why do the notifications not arrive?": what the phone says, and a test push sent to this student only
+            async pushCheck(result) {
+                const content = document.getElementById('walletModalContent'); if (!content) return;
+                const ua = navigator.userAgent, ios = /iPhone|iPad|iPod/.test(ua), native = this._isNative();
+                const standalone = this._iosStandalone() || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+                const perm = this._pushPerm(), os = this._os, sub = os && os.User && os.User.PushSubscription;
+                let opted = false, sid = ''; try { opted = !!(sub && sub.optedIn); sid = (sub && sub.id) || ''; } catch (e) {}
+                const rows = [];
+                if (ios && !native) rows.push([standalone, 'التطبيق مفتوح من أيقونة الشاشة الرئيسية', 'افتحه من الأيقونة اللي أضفتها، مو من Safari. إشعارات الآيفون تشتغل بس من الأيقونة']);
+                rows.push([native || 'Notification' in window, 'الجهاز يدعم الإشعارات', ios ? 'تحتاج iOS 16.4 أو أحدث، وتفتحه من الأيقونة' : 'المتصفح ما يدعم الإشعارات']);
+                rows.push([perm === 'granted', 'إذن الإشعارات', perm === 'denied' ? (ios ? 'مسدود. من إعدادات الآيفون ثم الإشعارات اختار التطبيق وفعّله. أو احذف الأيقونة وأضفها من جديد' : 'مسدود من إعدادات الجهاز، فعّله من هناك') : 'لسه ما انمنح، اضغط "تفعيل الإشعارات" تحت وبعدين "سماح"']);
+                rows.push([native ? perm === 'granted' : (opted && !!sid), 'تسجيل الجهاز بخدمة الإشعارات', 'ما تسجل بعد. سكّر التطبيق وافتحه ثاني وانتظر دقيقة، أو اضغط تفعيل الإشعارات']);
+                const li = rows.map(([ok, t, h]) => `<div class="flex items-start gap-3 p-3 rounded-xl" style="background-color: var(--input-bg);"><span style="font-size:18px;line-height:1.2;color:${ok ? '#16A34A' : '#DC2626'}">${ok ? '&#10003;' : '&#10007;'}</span><div class="flex-1 min-w-0"><div class="text-sm font-bold" style="color: var(--text);">${t}</div>${ok ? '' : `<div class="text-xs mt-1" style="color: var(--text2);">${h}</div>`}</div></div>`).join('');
+                const msg = result ? `<p class="text-xs mt-3 p-3 rounded-xl" style="background-color: var(--input-bg); color: var(--text);">${escapeHtml(result)}</p>` : '';
+                content.innerHTML = `<p class="text-sm font-bold mb-3" style="color: var(--text);">فحص الإشعارات</p><div class="flex flex-col gap-2">${li}</div>${msg}
+                    <div class="flex flex-col gap-2 mt-3">
+                        ${perm === 'default' ? '<button class="btn-press w-full py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.pushCheckEnable()">تفعيل الإشعارات</button>' : ''}
+                        <button class="btn-press w-full py-3 rounded-xl text-sm font-bold" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pushCheckTest()">أرسل لي إشعار تجريبي</button>
+                        <button class="btn-press w-full py-2 rounded-xl text-xs" style="color: var(--text2);" onclick="app.openNotifPreferences()">رجوع</button>
+                    </div>`;
+                const t = document.getElementById('walletModalTitle'); if (t) t.textContent = 'فحص الإشعارات';
+            },
+            pushCheckEnable() {
+                if (!this._os && !this._isNative()) { this.pushCheck('الإشعارات تشتغل من رابط الموقع المثبّت أو من التطبيق. إذا أنت على الآيفون افتحه من الأيقونة'); return; }
+                Promise.resolve(this._os.Notifications.requestPermission()).then(() => { try { this.syncWebPush(); } catch (e) {} setTimeout(() => this.pushCheck(), 1500); }).catch(() => this.pushCheck());
+            },
+            async pushCheckTest() {
+                try {
+                    const user = window.firebaseAuth && window.firebaseAuth.currentUser; if (!user) { this.pushCheck('سجّل دخولك أول'); return; }
+                    const cu = String((this.siteConfig && this.siteConfig.tutorUrl) || '').trim().replace(/\/+$/, '');
+                    const base = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
+                    const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await user.getIdToken()) }, body: JSON.stringify({ mode: 'selftest' }) });
+                    const j = await r.json().catch(() => ({}));
+                    if (r.status === 429) { this.pushCheck('اصبر شوية وجرّب ثاني'); return; }
+                    if (!r.ok) { this.pushCheck('تعذر الإرسال (' + (j.error || r.status) + ')'); return; }
+                    this.pushCheck(j.id && j.recipients > 0 ? 'انرسل لك إشعار. إذا ما وصل خلال دقيقة، شوف إعدادات الإشعارات بالتلفون.' : 'الخدمة ما لكت جهازك مسجّل، فما كو وين تدز الإشعار. يعني الإذن ما انمنح أو الجهاز ما تسجل بعد. اضغط "تفعيل الإشعارات"، وإذا بعدها ما اشتغل فإعداد الويب بخدمة OneSignal ناقص (يسويه صاحب المنصة).');
+                } catch (e) { this.pushCheck('تعذر الاتصال بالخادم'); }
+            },
             openNotifPreferences() {
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تفضيلات الإشعارات';
@@ -11883,6 +11921,7 @@
                 content.innerHTML = `
                     <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر الإشعارات اللي تريد توصلك، واللي طفيتها ما توصلك بالهاتف ولا تظهر بقائمة الإشعارات.</p>
                     ${this._notifHelp()}
+                    <button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pushCheck()">فحص الإشعارات وإرسال تجربة</button>
                     ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك: إعدادات الهاتف ثم التطبيقات ثم أكاديمي السادس ثم الإشعارات.</p>'
                         : perm === 'default' ? '<button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.enableWebPush()">فعّل إشعارات الهاتف حتى توصلك وانت خارج التطبيق</button>' : ''}
                     <div class="flex flex-col gap-2">${this.PN_LIST.map(row).join('')}</div>

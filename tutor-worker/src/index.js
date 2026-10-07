@@ -849,6 +849,25 @@ export default {
             return json(200, { videos: videos.slice(0, 120) }, headers);
         }
 
+        // a test push to this student only ("فحص الإشعارات" in the app): tells whether OneSignal knows the phone at all
+        if (body.mode === 'selftest') {
+            if (env.PER_NOTIFY) {
+                const { success } = await env.PER_NOTIFY.limit({ key: 'st' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+            const r = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                body: JSON.stringify({
+                    app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', include_aliases: { external_id: [uid] },
+                    headings: { en: 'تجربة الإشعارات', ar: 'تجربة الإشعارات' }, contents: { en: 'إذا وصلك هذا الإشعار فالإشعارات تشتغل عندك', ar: 'إذا وصلك هذا الإشعار فالإشعارات تشتغل عندك' },
+                    ...PUSH_LOOK(env), ttl: 300,
+                }),
+            });
+            const j = await r.json().catch(() => ({}));
+            return json(200, { ok: r.ok, id: j.id || '', recipients: Number(j.recipients) || 0, errors: j.errors || null }, headers);
+        }
+
         // the teachers' Telegram channels: the newest posts of up to 12 channels, merged, newest first
         if (body.mode === 'tgfeed') {
             if (env.PER_NOTIFY) {
