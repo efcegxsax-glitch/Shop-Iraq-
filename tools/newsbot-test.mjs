@@ -125,6 +125,14 @@ t('the forwarded post was ignored', ign.some((x) => x.why === 'fwd' && x.pid ===
 t('the phone-number post waits in the review list', que.some((x) => x.why === 'phone' && x.pid === 5), que.map((x) => [x.pid, x.why]));
 t('a review-mode channel puts a normal post in the review list', que.some((x) => x.pid === 7 && x.why === 'review'), que.map((x) => [x.pid, x.why]));
 t('status written', db.root.newsBot.status.pub === 1);
+// voice messages are never published, with or without words, and are not listed anywhere
+{
+    const pv = pages.iraqedu; pages.iraqedu = [post(20, 'تسجيل صوتي من الوزارة حول الامتحانات', { vo: { u: 'https://cdn.telesco.pe/a.ogg', du: '0:30' } }), post(21, '', { vo: { u: 'https://cdn.telesco.pe/b.ogg', du: '0:10' } })];
+    const dv = fakeDb(base()); dv.root.newsBot.chans.iraqed4.on = false;
+    const rv = await newsRun(dv, mkDeps());
+    t('voice messages: nothing published, queued or ignored', rv.pub === 0 && rv.queue === 0 && rv.ign === 0 && !dv.root.news && !dv.root.newsBot.queue && !dv.root.newsBot.ignored, rv);
+    pages.iraqedu = pv;
+}
 const before = Object.keys(db.root.news).length;
 r = await newsRun(db, mkDeps());
 t('a second round publishes and queues nothing again', r.pub === 0 && r.queue === 0 && Object.keys(db.root.news).length === before, r);
