@@ -10,7 +10,7 @@
         if (!im || im.tagName !== 'IMG' || !im.dataset || !im.dataset.ini || !im.closest('#tubeView, #tuPlayer, #tuSheet')) return;
         const sp = document.createElement('span'); sp.textContent = im.dataset.ini; im.replaceWith(sp);
     }, true);
-    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', FEED_TTL = 10 * 60000, PAGE = 20;
+    const K_HIST = 'isp_tube_hist', K_FAV = 'isp_tube_fav', K_FEED = 'isp_tube_feed', K_MARK = 'isp_tube_marks', K_SEL = 'isp_tube_sel', FEED_TTL = 10 * 60000, PAGE = 20;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
@@ -40,6 +40,9 @@
     const chById = (id) => CH.find((c) => c.id === id) || null;
     const pushOn = () => app.notifPrefs.tube !== false;
     const favs = () => new Set(load(K_FAV, []));
+    // "my teachers": once the student has chosen, only those teachers are shown (the others stay hidden until he edits the choice)
+    const picked = () => { try { return localStorage.getItem(K_SEL) === '1'; } catch (e) { return false; } };
+    const shownCh = () => { if (!picked()) return CH; const f = favs(); return CH.filter((c) => f.has(c.id)); };
     function listenChannels() {
         if (un || !window.firebaseDb) return;
         const { ref, onValue } = H();
@@ -50,7 +53,7 @@
         }, () => { err = 'ما كدرت أجيب قائمة الأساتذة'; paint(); });
     }
     async function fetchFeed(force) {
-        const ids = CH.map((c) => c.id), sig = ids.join(',');
+        const ids = shownCh().map((c) => c.id), sig = ids.join(',');
         if (!ids.length) { FEED = []; paint(); return; }
         const cache = load(K_FEED, null);
         if (cache && cache.sig === sig && Array.isArray(cache.v)) {
@@ -101,7 +104,7 @@
         if (q && S.teacher === id && a.next && a.pages < 8 && !a.fail && !visible().length) loadAll(id, true);
     }
     // ---------- the page ----------
-    function subjects() { const s = []; CH.forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
+    function subjects() { const s = []; shownCh().forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
     function visible() {
         const f = favs(), q = String(($('tuSearch') || {}).value || '').trim();
         const a = S.teacher && ALL[S.teacher] && ALL[S.teacher].list.length ? ALL[S.teacher] : null;
@@ -110,7 +113,7 @@
         return src.filter((x) => {
             const c = chById(x.c); if (!c) return false;
             if (S.teacher && c.id !== S.teacher) return false;
-            if (S.tab === 'mine' && !f.has(c.id)) return false;
+            if (picked() && !f.has(c.id)) return false;
             if (S.subj !== 'all' && String(c.s || '') !== S.subj) return false;
             if (q && (x.t + ' ' + c.n).indexOf(q) === -1) return false;
             return true;
@@ -123,19 +126,24 @@
             <span class="tu-th"><img src="${thumb(x.v, big ? 'hqdefault' : 'mqdefault')}" alt="" loading="lazy"></span>
             <span class="tu-meta"><span class="tu-av">${av}</span><span class="tu-tx"><b>${esc(x.t)}</b><small>${esc(c.n || '')} . ${x.w ? views(x.w) + ' . ' : x.wt ? esc(x.wt) + ' . ' : ''}${x.p ? timeAgo(x.p) : x.at ? esc(x.at) : ''}</small></span></span></button>`;
     }
+    // the strip under the teachers: asks the student to choose, or says how many he follows
+    function myBar() {
+        if (!picked()) return `<div class="tu-mine ask"><div><b>خصص أساتذتك</b><small>اختار الأساتذة اللي تريدهم بس، والباقي يختفون. تكدر تعدل بأي وقت.</small></div><button onclick="app.tuPick()">اختيار</button></div>`;
+        return `<div class="tu-mine"><div><b>أساتذتك (${shownCh().length} من ${CH.length})</b><small>باقي الأساتذة مخفيين. ترجعهم من زر التعديل.</small></div><button onclick="app.tuPick()">تعديل</button></div>`;
+    }
     function paint() {
         const box = $('tuContent'); if (!box) return;
-        const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v).slice(0, 8);
+        const f = favs(), subs = subjects(), list = visible(), hist = load(K_HIST, []).filter((h) => h && h.v && (!picked() || !h.c || f.has(h.c))).slice(0, 8);
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tuSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
-        const teachers = CH.map((c) => {
+        const teachers = shownCh().map((c) => {
             const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
             return `<button class="tu-tch${S.teacher === c.id ? ' on' : ''}${f.has(c.id) ? ' fav' : ''}" onclick="app.tuTeacher('${c.id}')"><i>${av}</i><small>${esc(c.n)}</small></button>`;
         }).join('');
         let body;
         if (!CH.length) body = '<div class="tu-empty"><i data-lucide="graduation-cap"></i><b>ما انضاف أي أستاذ بعد</b><p>الإدارة تضيف قنوات المدرسين من لوحة التحكم، وتطلع هنا.</p></div>';
-        else if (!FEED.length && !err) body = '<div class="tu-skel">' + '<i></i>'.repeat(3) + '</div>';
+        else if (!FEED.length && !err && shownCh().length) body = '<div class="tu-skel">' + '<i></i>'.repeat(3) + '</div>';
         else if (err && !FEED.length) body = `<div class="tu-empty"><i data-lucide="wifi-off"></i><b>${esc(err)}</b><button class="tu-btn" onclick="app.tuRefresh()">إعادة المحاولة</button></div>`;
-        else if (S.tab === 'mine' && !f.size) body = '<div class="tu-empty"><i data-lucide="users"></i><b>لم تحدد أي أستاذ بعد</b><p>اختار أساتذتك وتطلع محاضراتهم هنا بس.</p><button class="tu-btn" onclick="app.tuPick()">تحديد أساتذتي</button></div>';
+        else if (picked() && !shownCh().length) body = '<div class="tu-empty"><i data-lucide="users"></i><b>ما اخترت أي أستاذ</b><p>اختار أساتذتك وتطلع محاضراتهم هنا بس.</p><button class="tu-btn" onclick="app.tuPick()">اختيار أساتذتي</button></div>';
         else if (!list.length) body = '<div class="tu-empty"><i data-lucide="search-x"></i><b>ما لكيت فيديوهات</b></div>';
         else body = list.slice(0, S.shown).map((x, i) => card(x, i % 3 === 0)).join('') + (list.length > S.shown || (S.teacher && ALL[S.teacher] && (ALL[S.teacher].next || ALL[S.teacher].busy)) ? `<button class="tu-more" onclick="app.tuMore()">${S.teacher && ALL[S.teacher] && ALL[S.teacher].busy ? 'دا يحمّل...' : 'عرض المزيد'}</button>` : '');
         const recent = !S.teacher && S.tab === 'all' && S.subj === 'all' && hist.length ? `<div class="tu-h"><span>آخر ما شاهدته</span><button onclick="app.tuClearHist()">مسح</button></div>
@@ -145,7 +153,7 @@
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
             <div class="tu-h"><span>الأساتذة</span><button onclick="app.tuPick()"><i data-lucide="sliders-horizontal"></i>تعديل أساتذتي</button></div>
             <div class="tu-tchs">${teachers}</div>
-            <div class="tu-tabs"><button class="${S.tab === 'all' ? 'on' : ''}" onclick="app.tuTab('all')">الكل</button><button class="${S.tab === 'mine' ? 'on' : ''}" onclick="app.tuTab('mine')">أساتذتي</button></div>` : ''}
+${myBar()}` : ''}
             ${recent}${chan}<div class="tu-feed">${body}</div>
             <div class="tg-ask"><button onclick="app._need('tgroom').then(() => app.chReqOpen('yt')).catch(() => app.showToast('ما انفتح الطلب، تأكد من النت'))"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
@@ -303,6 +311,13 @@
         p.check = { want }; p.checkTimer = setTimeout(() => app.tuCheckAns(-1), 30000);
     }
 
+    function pickList() {
+        const box = document.getElementById('tuPickList'); if (!box) return;
+        const f = favs(), sel = picked();
+        box.innerHTML = CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${sel && f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('');
+        try { lucide.createIcons(); } catch (e) {}
+    }
+
     Object.assign(app, {
         tuOpen() {
             S = { subj: 'all', tab: 'all', teacher: '', shown: PAGE };
@@ -378,20 +393,28 @@
         },
         tuPick() {
             document.getElementById('tuSheet')?.remove();
-            const f = favs();
             const w = document.createElement('div'); w.id = 'tuSheet'; w.className = 'tu-sheetw';
-            w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                <p>اختار الأساتذة اللي تريد تتابعهم، وتطلع محاضراتهم بتبويب "أساتذتي".</p>
+            w.innerHTML = `<div class="tu-sbd" onclick="app.tuPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tuPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
+                <p>اختار الأساتذة اللي تريدهم، وتطلع لك محاضراتهم بس والباقي يختفون. ترجع تعدل بأي وقت من هنا.</p>
+                <div class="tu-pkact"><button onclick="app.tuPickAll(true)">اختيار الكل</button><button onclick="app.tuPickAll(false)">مسح الكل</button></div>
                 <button class="tu-pushsw ${pushOn() ? 'on' : ''}" onclick="app.tuPushToggle(this)"><i data-lucide="bell"></i><span><b>إشعار عند نزول محاضرة جديدة</b><small>يوصلك اسم المحاضرة أول ما ينزلها الأستاذ</small></span><em><i data-lucide="check"></i></em></button>
-                <div class="tu-pick">${CH.map((c) => { const av = c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="" data-ini="${esc(String(c.n || 'أ').trim().charAt(0))}">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`; return `<button class="${f.has(c.id) ? 'on' : ''}" onclick="app.tuFavToggle('${c.id}', this)"><i>${av}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
-            document.body.appendChild(w); try { lucide.createIcons(); } catch (e) {}
+                <div class="tu-pick" id="tuPickList"></div>
+                <button class="tu-btn wide" onclick="app.tuPickClose()">تم</button></div>`;
+            document.body.appendChild(w); pickList();
             requestAnimationFrame(() => w.classList.add('on'));
         },
+        tuPickAll(on) { save(K_FAV, on ? CH.map((c) => c.id) : []); try { localStorage.setItem(K_SEL, '1'); } catch (e) {} pickList(); paint(); },
         tuPushToggle(btn) {
             app.toggleNotifPref('tube');
             btn && btn.classList.toggle('on', pushOn());
         },
-        tuFavToggle(id, btn) { const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); save(K_FAV, Array.from(f)); btn && btn.classList.toggle('on', f.has(id)); paint(); },
-        tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); },
+        tuFavToggle(id, btn) {
+            // the first tap starts "my teachers": what was shown before (everyone) is not chosen yet, so begin from an empty choice
+            const first = !picked(); if (first) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_FAV, []); }
+            const f = favs(); if (f.has(id)) f.delete(id); else f.add(id); save(K_FAV, Array.from(f));
+            if (first) pickList(); else btn && btn.classList.toggle('on', f.has(id));
+            paint();
+        },
+        tuPickClose() { const w = document.getElementById('tuSheet'); if (!w) return; w.classList.remove('on'); setTimeout(() => w.remove(), 250); S.shown = PAGE; if (S.teacher && picked() && !favs().has(S.teacher)) S.teacher = ''; fetchFeed(false); paint(); },
     });
 })();

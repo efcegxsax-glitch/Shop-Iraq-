@@ -10,7 +10,7 @@
         if (!im || im.tagName !== 'IMG' || !im.dataset || !im.dataset.ini || !im.closest('#tgView, #tgSheet')) return;
         const sp = document.createElement('span'); sp.textContent = im.dataset.ini; im.replaceWith(sp);
     }, true);
-    const K_FEED = 'isp_tg_feed', K_MUTE = 'isp_tg_mute', K_SEEN = 'isp_tg_seen', FEED_TTL = 5 * 60000, PAGE = 12;
+    const K_FEED = 'isp_tg_feed', K_MUTE = 'isp_tg_mute', K_SEEN = 'isp_tg_seen', K_SEL = 'isp_tg_sel', K_MINE = 'isp_tg_mine', FEED_TTL = 5 * 60000, PAGE = 12;
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
     const H = () => window.firebaseDbHelpers;
     const $ = (id) => document.getElementById(id);
@@ -23,6 +23,10 @@
     // a pasted link or @name -> the channel's user name ('' if it is not a public channel link)
     const tgName = (x) => { let s = String(x || '').trim().replace(/^@/, ''); s = s.replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me|telegram\.dog)\//i, '').replace(/^s\//i, ''); if (/^(\+|joinchat)/i.test(s)) return ''; s = s.split(/[/?#]/)[0]; return /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(s) ? s : ''; };
     const muted = () => new Set(load(K_MUTE, []));
+    // "my teachers": once chosen, only those channels are shown (and pushed); the rest stay hidden until the student edits the choice
+    const mine = () => new Set(load(K_MINE, []).map((x) => String(x).toLowerCase()));
+    const picked = () => { try { return localStorage.getItem(K_SEL) === '1'; } catch (e) { return false; } };
+    const shownCh = () => { if (!picked()) return CH; const m = mine(); return CH.filter((c) => m.has(String(c.u).toLowerCase())); };
     const chOf = (u) => CH.find((c) => String(c.u).toLowerCase() === String(u).toLowerCase()) || null;
     const picOf = (c) => { const f = FRESH[c.u]; const u = (f && f.a) || c.a; return /^https:\/\/[^\s"'<>]+$/.test(u || '') ? u : ''; };
     const avatar = (c) => { const u = picOf(c); return u ? `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" data-ini="${ini(c)}">` : `<span>${ini(c)}</span>`; };
@@ -34,7 +38,7 @@
         un = onValue(ref(window.firebaseDb, 'tgChannels'), (snap) => {
             const v = snap.exists() ? snap.val() : {};
             CH = Object.keys(v).map((k) => ({ k, ...v[k] })).filter((c) => c && /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(String(c.u || ''))).sort((a, b) => (Number(a.o) || 0) - (Number(b.o) || 0));
-            if (S.ch && !chOf(S.ch)) S.ch = '';
+            if (S.ch && !shownCh().some((c) => String(c.u).toLowerCase() === S.ch.toLowerCase())) S.ch = '';
             app._tgTagSync && app._tgTagSync(CH.map((c) => String(c.u).toLowerCase()));
             paint(); fetchFeed(false);
         }, () => { err = 'ما كدرت أجيب قائمة القنوات'; paint(); });
@@ -50,7 +54,7 @@
     // the posts are kept on the phone in a small copy (text cut short) so the page opens at once
     const slim = (p) => ({ c: p.c, i: p.i, p: p.p, t: String(p.t || '').slice(0, 700), im: (p.im || []).slice(0, 4), d: (p.d || []).slice(0, 4), vd: p.vd ? { th: p.vd.th || '', du: p.vd.du || '', u: p.vd.u || '' } : null, vo: p.vo && typeof p.vo === 'object' ? { u: p.vo.u || '', du: p.vo.du || '' } : (p.vo ? { u: '', du: '' } : 0), w: p.w || 0 });
     async function fetchFeed(force) {
-        const names = CH.map((c) => c.u), sig = names.join(',').toLowerCase();
+        const names = shownCh().map((c) => c.u), sig = names.join(',').toLowerCase();
         if (!names.length) { POSTS = []; paint(); return; }
         const cache = load(K_FEED, null);
         if (cache && cache.sig === sig && Array.isArray(cache.v)) {
@@ -86,12 +90,13 @@
     }
 
     // ---------- the page ----------
-    function subjects() { const s = []; CH.forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
+    function subjects() { const s = []; shownCh().forEach((c) => { const x = String(c.s || '').trim(); if (x && s.indexOf(x) === -1) s.push(x); }); return s; }
     function visible() {
         const base = S.ch && MORE[S.ch] ? POSTS.concat(MORE[S.ch].list) : POSTS;
         const q = String(($('tgSearch') || {}).value || '').trim();
         return base.filter((x) => {
             const c = chOf(x.c); if (!c) return false;
+            if (picked() && !mine().has(String(c.u).toLowerCase())) return false;
             if (S.ch && String(c.u).toLowerCase() !== S.ch.toLowerCase()) return false;
             if (S.subj !== 'all' && String(c.s || '') !== S.subj) return false;
             if (q && ((x.t || '') + ' ' + (x.d || []).map((d) => d.n).join(' ') + ' ' + c.n).indexOf(q) === -1) return false;
@@ -121,15 +126,26 @@
             <div class="tg-ft"><button onclick="app.tgOpenPost('${esc(x.c)}', ${x.i})"><i data-lucide="send"></i>افتح بتلكرام</button></div>
         </article>`;
     }
+    function myBar() {
+        if (!picked()) return `<div class="tu-mine ask"><div><b>خصص أساتذتك</b><small>اختار الأساتذة اللي تريدهم بس، والباقي يختفون. تكدر تعدل بأي وقت.</small></div><button onclick="app.tgPick()">اختيار</button></div>`;
+        return `<div class="tu-mine"><div><b>أساتذتك (${shownCh().length} من ${CH.length})</b><small>باقي الأساتذة مخفيين. ترجعهم من زر التعديل.</small></div><button onclick="app.tgPick()">تعديل</button></div>`;
+    }
+    function pickList() {
+        const box = $('tgPickList'); if (!box) return;
+        const m = mine(), sel = picked();
+        box.innerHTML = CH.map((c) => `<button class="${sel && m.has(String(c.u).toLowerCase()) ? 'on' : ''}" onclick="app.tgPickToggle('${esc(String(c.u).toLowerCase())}', this)"><i>${avatar(c)}</i><span><b>${esc(c.n)}</b><small>${esc(c.s || '')}</small></span><em><i data-lucide="check"></i></em></button>`).join('');
+        try { lucide.createIcons(); } catch (e) {}
+    }
     function paint() {
         const box = $('tgContent'); if (!box) return;
         const subs = subjects(), list = visible();
         const chips = ['all'].concat(subs).map((s) => `<button class="tu-chip${S.subj === s ? ' on' : ''}" onclick="app.tgSubj(${jsArg(s)})">${s === 'all' ? 'الكل' : esc(s)}</button>`).join('');
         const mu = muted();
-        const teachers = CH.map((c) => `<button class="tu-tch${S.ch && S.ch.toLowerCase() === String(c.u).toLowerCase() ? ' on' : ''}${mu.has(String(c.u).toLowerCase()) ? ' tg-mu' : ''}" onclick="app.tgChan('${esc(c.u)}')"><i>${avatar(c)}</i><small>${esc(c.n)}</small></button>`).join('');
+        const teachers = shownCh().map((c) => `<button class="tu-tch${S.ch && S.ch.toLowerCase() === String(c.u).toLowerCase() ? ' on' : ''}${mu.has(String(c.u).toLowerCase()) ? ' tg-mu' : ''}" onclick="app.tgChan('${esc(c.u)}')"><i>${avatar(c)}</i><small>${esc(c.n)}</small></button>`).join('');
         let feed;
         const M = S.ch && MORE[S.ch];
-        if (!CH.length) feed = '<div class="tu-empty"><i data-lucide="send"></i><b>ما انضافت أي قناة بعد</b><p>الإدارة تضيف قنوات تلكرام من لوحة التحكم، أو اطلب إضافة قناة أستاذك من زر + فوق.</p></div>';
+        if (picked() && CH.length && !shownCh().length) feed = '<div class="tu-empty"><i data-lucide="users"></i><b>ما اخترت أي أستاذ</b><p>اختار أساتذتك وتطلع منشوراتهم هنا بس.</p><button class="tu-btn" onclick="app.tgPick()">اختيار أساتذتي</button></div>';
+        else if (!CH.length) feed = '<div class="tu-empty"><i data-lucide="send"></i><b>ما انضافت أي قناة بعد</b><p>الإدارة تضيف قنوات تلكرام من لوحة التحكم، أو اطلب إضافة قناة أستاذك من زر + فوق.</p></div>';
         else if (!POSTS.length && !err && netBusy) feed = '<div class="tu-skel">' + '<i></i>'.repeat(3) + '</div>';
         else if (err && !POSTS.length) feed = `<div class="tu-empty"><i data-lucide="wifi-off"></i><b>${esc(err)}</b><button class="tu-btn" onclick="app.tgRefresh()">إعادة المحاولة</button></div>`;
         else if (!list.length) feed = `<div class="tu-empty"><i data-lucide="search-x"></i><b>${POSTS.length ? 'ما لكيت منشورات' : 'ما كدرت أقرأ منشورات هذه القنوات'}</b>${POSTS.length ? '' : '<p>تأكد إن القناة عامة وتفتح بالمتصفح، أو جرّب بعد شوية.</p>'}</div>`;
@@ -139,7 +155,7 @@
         const warn = failed.length && !S.ch ? `<div class="tg-warn">ما انقرأت منشورات: ${failed.map((u) => esc((chOf(u) || { n: u }).n)).join('، ')} (يمكن القناة مو عامة)</div>` : '';
         box.innerHTML = `${CH.length ? `<div class="tu-chips">${chips}</div>
             <div class="tu-h"><span>القنوات</span><button onclick="app.tgSettings()"><i data-lucide="bell"></i>الإشعارات</button></div>
-            <div class="tu-tchs">${teachers}</div>` : ''}${warn}<div class="tg-feed">${feed}</div>
+            <div class="tu-tchs">${teachers}</div>${myBar()}` : ''}${warn}<div class="tg-feed">${feed}</div>
             <div class="tg-ask"><button onclick="app.chReqOpen('tg')"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
     }
@@ -214,11 +230,36 @@
             w.innerHTML = `<div class="tu-sbd" onclick="app.tgSheetClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>إشعارات قنوات تلكرام</b><button onclick="app.tgSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
                 <p>اطفي الإشعار لقناة معينة، أو لكل القنوات، إذا تزعجك. المنشورات تبقى تطلع بالصفحة.</p>
                 <button class="tu-pushsw ${on ? 'on' : ''}" onclick="app.tgPushAll(this)"><i data-lucide="bell"></i><span><b>إشعارات كل القنوات</b><small>يوصلك إشعار لما أستاذ ينزل منشور جديد</small></span><em><i data-lucide="check"></i></em></button>
-                <div class="tg-chs">${CH.map((c) => { const k = String(c.u).toLowerCase(); return `<button class="tu-pushsw ${!mu.has(k) && on ? 'on' : ''}" onclick="app.tgPushOne('${esc(k)}', this)"><i class="tg-chav">${avatar(c)}</i><span><b>${esc(c.n)}</b></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
+                <div class="tg-chs">${shownCh().map((c) => { const k = String(c.u).toLowerCase(); return `<button class="tu-pushsw ${!mu.has(k) && on ? 'on' : ''}" onclick="app.tgPushOne('${esc(k)}', this)"><i class="tg-chav">${avatar(c)}</i><span><b>${esc(c.n)}</b></span><em><i data-lucide="check"></i></em></button>`; }).join('')}</div></div>`;
             document.body.appendChild(w); try { lucide.createIcons(); } catch (e) {}
             requestAnimationFrame(() => w.classList.add('on'));
         },
         tgSheetClose() { closeSheet('tgSheet'); },
+        // ----- my teachers -----
+        tgPick() {
+            $('tgPick')?.remove();
+            const w = document.createElement('div'); w.id = 'tgPick'; w.className = 'tu-sheetw';
+            w.innerHTML = `<div class="tu-sbd" onclick="app.tgPickClose()"></div><div class="tu-sheet"><div class="tu-grab"></div><div class="tu-sh"><b>اختيار أساتذتي</b><button onclick="app.tgPickClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
+                <p>اختار الأساتذة اللي تريدهم، وتطلع لك منشوراتهم وإشعاراتهم بس والباقي يختفون. ترجع تعدل بأي وقت من هنا.</p>
+                <div class="tu-pkact"><button onclick="app.tgPickAll(true)">اختيار الكل</button><button onclick="app.tgPickAll(false)">مسح الكل</button></div>
+                <div class="tu-pick" id="tgPickList"></div>
+                <button class="tu-btn wide" onclick="app.tgPickClose()">تم</button></div>`;
+            document.body.appendChild(w); pickList();
+            requestAnimationFrame(() => w.classList.add('on'));
+        },
+        tgPickToggle(k, btn) {
+            const first = !picked(); if (first) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_MINE, []); }
+            const m = mine(); if (m.has(k)) m.delete(k); else m.add(k); save(K_MINE, Array.from(m));
+            if (first) pickList(); else btn && btn.classList.toggle('on', m.has(k));
+            paint();
+        },
+        tgPickAll(on) { try { localStorage.setItem(K_SEL, '1'); } catch (e) {} save(K_MINE, on ? CH.map((c) => String(c.u).toLowerCase()) : []); pickList(); paint(); },
+        tgPickClose() {
+            closeSheet('tgPick'); S.shown = PAGE;
+            if (S.ch && !shownCh().some((c) => String(c.u).toLowerCase() === S.ch.toLowerCase())) S.ch = '';
+            app._tgTagSync && app._tgTagSync(CH.map((c) => String(c.u).toLowerCase()));
+            fetchFeed(false); paint();
+        },
         tgPushAll(btn) {
             const on = app.notifPrefs.tg === false; // toggling: it is switched on now if it was off
             app.notifPrefs.tg = on; app.saveNotifPrefs && app.saveNotifPrefs();
