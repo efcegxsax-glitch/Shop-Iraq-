@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="09740bd66d">
+    <meta name="admin-build" content="d54ffa150c">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -972,7 +972,7 @@
                         </div>
                     </div>
                     <div class="sw-row">
-                        <div class="sw-text"><strong>تشغيل الجلب التلقائي</strong><small id="nb_status" style="display:block;opacity:.7;margin-top:2px"></small></div>
+                        <div class="sw-text"><strong>تشغيل الجلب التلقائي</strong><small id="nb_status" style="display:block;opacity:.7;margin-top:2px"></small><small id="nb_beat" style="display:block;margin-top:3px;font-weight:700"></small></div>
                         <label class="switch"><input type="checkbox" id="nb_on" aria-label="تشغيل جلب الأخبار"><span class="track"></span></label>
                     </div>
                     <div class="sw-row">
@@ -3558,6 +3558,19 @@
             el('nb_th').addEventListener('input', () => { el('nb_thv').textContent = el('nb_th').value; });
             el('nb_th').addEventListener('change', () => nbSet('cfg/th', Number(el('nb_th').value), 'انحفظت الحساسية'));
             el('nb_wsave').addEventListener('click', () => nbSet('cfg/words', el('nb_words').value.slice(0, 1500), 'انحفظت الكلمات'));
+            // the Worker's heartbeat: it writes "start" when a minute's run begins and "done" (or "error") when it ends
+            onValue(ref(db, 'newsBot/beat'), (s) => {
+                const b = s.val(), box = el('nb_beat'); if (!box) return;
+                const age = b ? Date.now() - Number(b.at || 0) : Infinity, mins = Math.round(age / 60000);
+                let t, c = '#16a34a';
+                if (!b) { t = 'الخادم ما بدأ أي جولة بعد (الجدولة ما اشتغلت، أو الخادم قديم)'; c = '#dc2626'; }
+                else if (age > 180000) { t = 'آخر نبضة من الخادم قبل ' + mins + ' دقيقة: الجدولة وقفت'; c = '#dc2626'; }
+                else if (b.s === 'error') { t = 'الخادم يشتغل بس الجولة فشلت: ' + (b.m || ''); c = '#dc2626'; }
+                else if (b.s === 'start' && age > 45000) { t = 'الجولة تبدأ وما تخلص (تنقطع بنص الطريق)'; c = '#d97706'; }
+                else if (b.s === 'done' && b.st && b.st !== 'ok') { t = 'الخادم يشتغل، حالة الجولة: ' + ({ off: 'الجلب مطفي', busy: 'جولة ثانية شغّالة', no_sa: 'المفتاح مو موجود', db: 'تعذر الوصول لقاعدة البيانات' }[b.st] || b.st); c = '#d97706'; }
+                else t = 'الخادم يشتغل: آخر جولة قبل ' + (age < 60000 ? 'أقل من دقيقة' : mins + ' دقيقة') + (b.s === 'done' && b.err ? ' . تعذر قراءة: ' + b.err : '');
+                box.textContent = t; box.style.color = c;
+            });
             onValue(ref(db, 'newsBot/status'), (s) => {
                 const v = s.val(); el('nb_status').textContent = v ? 'آخر فحص: ' + ago(v.at) + ' . نزل ' + (v.pub || 0) + ' . بالانتظار ' + (v.queue || 0) + ' . متجاهل ' + (v.ign || 0) + (v.err ? ' . تعذر قراءة: ' + v.err : '') : 'ما اشتغل بعد';
             });

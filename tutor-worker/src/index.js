@@ -615,7 +615,7 @@ async function tgPage(name, before, ctx, fresh) {
     const r = await (fresh ? go({ cache: 'no-store' }).catch(() => go({})) : go({ cf: { cacheTtl: 120 } }));
     if (!r.ok) throw new Error('http' + r.status);
     const html = await r.text();
-    const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name).sort((a, b) => b.i - a.i) };
+    const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name, fresh ? { last: 14 } : undefined).sort((a, b) => b.i - a.i) };
     if (key) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } })));
     return out;
 }
@@ -707,7 +707,11 @@ function newsDeps(env, ctx) {
 async function newsCron(env, ctx) {
     const db = makeDb(env);
     if (!db.ok) return 'no_sa';
-    try { return (await newsLoop(db, newsDeps(env, ctx))).state; } catch (e) { return 'error ' + String(e && e.message || e).slice(0, 60); }
+    // a heartbeat the panel shows: "started" first, then "done" (or the error). A run that is cut off shows as started and never done.
+    const t0 = Date.now(), beat = (v) => db.put('newsBot/beat', { at: Date.now(), t0, ...v }).catch(() => {});
+    await beat({ s: 'start' });
+    try { const r = await newsLoop(db, newsDeps(env, ctx)); await beat({ s: 'done', st: r.state, pub: r.pub, err: r.err.slice(0, 3).join(',') }); return r.state; }
+    catch (e) { await beat({ s: 'error', m: String(e && e.message || e).slice(0, 80) }); return 'error'; }
 }
 
 // ---- motivation pushes (قسم تحفيز في اللوحة): plans the admin scheduled (motivPlans/{id}); see src/motiv.js ----
