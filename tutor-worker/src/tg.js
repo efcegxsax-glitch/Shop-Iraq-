@@ -70,7 +70,7 @@ export function parseTgPosts(html, chan) {
         const p = tm ? Date.parse(tm[1]) || 0 : 0;
         const vw = /<span class="tgme_widget_message_views">([^<]*)<\/span>/i.exec(part);
         if (!t && !im.length && !docs.length && !vd && !voice) continue;
-        out.push({ c: dp[1], i: id, p, t, im, d: docs, vd, vo: voice, w: vw ? kmb(vw[1]) : 0 });
+        out.push({ c: dp[1], i: id, p, t, im, d: docs, vd, vo: voice, w: vw ? kmb(vw[1]) : 0, ...(/tgme_widget_message_forwarded_from/.test(part) ? { fw: 1 } : {}) });
     }
     return out;
 }

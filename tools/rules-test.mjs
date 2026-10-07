@@ -620,6 +620,15 @@ await no('unknown field is refused', set(ref(db('nb1'), 'noteBackup/nb1/n4'), { 
 await no('missing data is refused', set(ref(db('nb1'), 'noteBackup/nb1/n5'), { t: 'x', ts: TS }));
 await ok('owner deletes the backup', set(ref(db('nb1'), 'noteBackup/nb1/n1'), null));
 
+// news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*
+await no('student reads the news bot data', get(ref(db('nb1'), 'newsBot/cfg')));
+await no('student switches the news bot on', set(ref(db('nb1'), 'newsBot/cfg/on'), true));
+await no('guest reads the news bot data', get(ref(db(null), 'newsBot/queue')));
+await ok('admin switches the news bot on', set(ref(db('adm'), 'newsBot/cfg'), { on: true, th: 60 }));
+await ok('admin adds a channel', set(ref(db('adm'), 'newsBot/chans/iraqedu'), { u: 'iraqedu', n: 'x', on: true, mode: 'review', since: TS }));
+await ok('admin reads the held posts', get(ref(db('adm'), 'newsBot/queue')));
+await no('student writes news', set(ref(db('nb1'), 'news/1'), { id: 1, title: 'x' }));
+
 // channel requests (طلب إضافة قناة)
 const CQ = (u, id, extra) => U(u, { ['chanReq/' + u + '/' + id]: Object.assign({ uid: u, k: 'tg', l: 'https://t.me/mr_ali_math', st: 'new', at: TS, n: 'علي' }, extra || {}), ['chanReqLast/' + u]: TS });
 await ok('student requests a telegram channel', CQ('q1', 'a1'));

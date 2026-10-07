@@ -27,6 +27,8 @@ import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from 
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
+import { makeDb } from './fbadmin.js';
+import { newsRun, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
@@ -41,6 +43,7 @@ const PUSH_LOOK = (env) => ({
     web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
 });
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const NEWS_CRON = '2-59/5 * * * *';   // every 5 minutes (at :02, :07, ...); keep in step with wrangler.toml
 
 const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المدارس العراقية داخل تطبيق أكـادمي السادس، وأغلبهم بالسادس الإعدادي.
 
@@ -660,6 +663,48 @@ async function tgNotify(env, ctx, when) {
     return 'sent_' + sent;
 }
 
+// ---- أخبار تلكرام: the news bot (src/newsbot.js cleans, src/newsrun.js decides). It has its own cron because one round makes many calls. ----
+function newsDeps(env, ctx) {
+    return {
+        now: () => Date.now(),
+        page: (name) => tgPage(name, 0, ctx),
+        // the picture goes into the news record itself (like the pictures the admin uploads); a big one stays a link to Telegram's copy
+        img: async (url) => {
+            try {
+                if (!/^https:\/\//.test(url)) return url;
+                const r = await fetch(url, { headers: ytHeaders });
+                const type = (r.headers.get('content-type') || '').split(';')[0];
+                if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type)) return url;
+                const buf = new Uint8Array(await r.arrayBuffer());
+                if (buf.length > 220000) return url;
+                let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+                return 'data:' + type + ';base64,' + btoa(s);
+            } catch { return url; }
+        },
+        push: async (x) => {
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return false;
+            const { kind, targets } = pushTargets([], x.urgent ? 'urgent' : 'announcement');
+            const title = str((x.urgent ? 'عاجل: ' : '') + x.title, 80), text = str(x.excerpt || x.title, 300);
+            for (const target of targets) {
+                const res = await fetch('https://api.onesignal.com/notifications?c=push', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                    body: JSON.stringify({
+                        app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text, ar: text },
+                        ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}), idempotency_key: await uuidOf('nb-' + x.id),
+                    }),
+                });
+                if (!res.ok) console.error('news push', res.status, (await res.text().catch(() => '')).slice(0, 200));
+            }
+            return true;
+        },
+    };
+}
+async function newsCron(env, ctx) {
+    const db = makeDb(env);
+    if (!db.ok) return 'no_sa';
+    try { return (await newsRun(db, newsDeps(env, ctx))).state; } catch (e) { return 'error ' + String(e && e.message || e).slice(0, 60); }
+}
+
 // ---- motivation pushes (قسم تحفيز في اللوحة): plans the admin scheduled (motivPlans/{id}); see src/motiv.js ----
 // Every 15 minutes: each plan that falls due in the next minutes goes to OneSignal with its exact send time. The student's own
 // switch for this kind is the tag off_motiv (like the other kinds), so a student who switched them off gets nothing.
@@ -747,6 +792,7 @@ async function ytUploads(id, cont, ctx, env) {
 export default {
     async scheduled(event, env, ctx) {
         if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); ctx.waitUntil(motivNotify(env, ctx, event.scheduledTime).then((r) => console.log('motiv notify', r))); return; }
+        if (event.cron === NEWS_CRON) { ctx.waitUntil(newsCron(env, ctx).then((r) => console.log('news bot', r))); return; }
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
     },
 
@@ -904,6 +950,24 @@ export default {
             const u = tgNameOf(body.q);
             if (!u) return json(400, { error: 'empty' }, headers);
             try { const f = await tgPage(u, 0, ctx); return json(200, { u, n: f.info.n, a: f.info.a, subs: f.info.subs, preview: f.info.preview, count: f.posts.length }, headers); } catch (e) { return json(502, { error: 'telegram', why: String(e && e.message || e).slice(0, 30) }, headers); }
+        }
+
+        // admin only: the news bot. "newsrun" = a round now; "newsact" = approve / reject a held post, or publish an ignored one anyway
+        if (body.mode === 'newsrun' || body.mode === 'newsact') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const db = makeDb(env);
+            if (!db.ok) return json(503, { error: 'no_sa' }, headers);
+            try {
+                if (body.mode === 'newsrun') return json(200, await newsRun(db, newsDeps(env, ctx)), headers);
+                const act = ['approve', 'reject', 'restore', 'clear'].includes(body.act) ? body.act : '';
+                if (!act) return json(400, { error: 'bad' }, headers);
+                const r = await newsAct(db, newsDeps(env, ctx), act, String(body.key || ''));
+                return json(r.error ? 400 : 200, r, headers);
+            } catch (e) { return json(502, { error: 'db', why: String(e && e.message || e).slice(0, 40) }, headers); }
         }
 
         // admin only: the pages of a handout as pictures -> their text (for scanned PDFs)

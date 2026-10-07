@@ -961,6 +961,44 @@
 
             <!-- News -->
             <div id="sec-news">
+                <div class="card" id="nbCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="radio-tower"></i></div>
+                        <div>
+                            <h3>أخبار تلكرام (جلب تلقائي)</h3>
+                            <p>الخادم يقرأ قنوات تلكرام العامة كل 5 دقايق، وينظّف النص (يشيل رموز المشاركة والروابط)، ويحوّل "عاجل" لشارة حمرة، وينشر الخبر بقسم الأخبار باسم "نقلاً عن أكـادمي السادس" ووقت نزوله بالتطبيق. الخبر المكرر من قناة ثانية أو اللي نشرته أنت ما ينشر. القناة الجديدة تنزل أخبارها من وقت إضافتها فقط.</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>تشغيل الجلب التلقائي</strong><small id="nb_status" style="display:block;opacity:.7;margin-top:2px"></small></div>
+                        <label class="switch"><input type="checkbox" id="nb_on" aria-label="تشغيل جلب الأخبار"><span class="track"></span></label>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إشعار لكل خبر ينزل</strong></div>
+                        <label class="switch"><input type="checkbox" id="nb_notify" aria-label="إشعار لكل خبر"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3">
+                        <label for="nb_q">إضافة قناة أخبار</label>
+                        <input id="nb_q" placeholder="https://t.me/اسم_القناة  أو  @اسم_القناة" dir="ltr">
+                        <div class="flex gap-2" style="flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" id="nb_find">جلب معلومات القناة</button></div>
+                    </div>
+                    <div id="nb_res" class="mt-2"></div>
+                    <div class="field mt-3"><label>القنوات</label><div id="nb_list"></div></div>
+                    <div class="field mt-3">
+                        <label for="nb_th">حساسية التكرار: الخبرين المتشابهين بنسبة <span id="nb_thv">60</span>% أو أكثر يعتبر مكرر</label>
+                        <input type="range" id="nb_th" min="40" max="90" step="5" value="60">
+                    </div>
+                    <div class="field">
+                        <label for="nb_words">كلمات ممنوعة إضافية (كلمة بكل سطر). المنشور اللي فيه وحدة منها ينحجب ويروح لـ"المتجاهلة"</label>
+                        <textarea id="nb_words" rows="3" maxlength="1500" placeholder="مثال:&#10;كورس مدفوع&#10;خصم"></textarea>
+                        <button class="btn mt-2" type="button" id="nb_wsave">حفظ الكلمات</button>
+                    </div>
+                    <div class="flex gap-2" style="flex-wrap:wrap;margin-top:12px;align-items:center">
+                        <button class="btn" type="button" id="nb_run">جلب الآن</button><span id="nb_runmsg" style="font-size:12.5px;opacity:.85"></span>
+                    </div>
+                    <div class="field mt-3"><label>بانتظار موافقتك (<span id="nb_qn">0</span>)</label><div id="nb_queue"></div></div>
+                    <div class="field mt-3"><label>المتجاهلة (<span id="nb_in">0</span>) . تكدر تنشر أي وحدة منها</label><div id="nb_ign"></div></div>
+                </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="newspaper"></i></div>
@@ -3498,6 +3536,82 @@
             L.querySelectorAll('[data-rqdel]').forEach((b) => b.addEventListener('click', () => remove(ref(db, 'chanReq/' + b.dataset.rqdel)).then(() => toast('انحذف')).catch(() => toast('تعذر الحذف', false))));
         }); }
 
+        // ---------- أخبار تلكرام: the news bot (newsBot/*, worked by the Worker; see tutor-worker/src/newsrun.js) ----------
+        const NB_WHY = { review: 'قناة بوضع المراجعة', phone: 'فيه رقم هاتف', link: 'فيه رابط ترويجي', dup: 'خبر مكرر', ad: 'كلمة ممنوعة', fwd: 'معاد توجيهه من قناة ثانية' };
+        function loadNewsBotAdmin() {
+            let chans = {}, cfg = {};
+            const ago = (t) => { const m = Math.round((Date.now() - Number(t || 0)) / 60000); return !t ? 'ما اشتغل بعد' : m < 1 ? 'هسه' : m < 90 ? 'قبل ' + m + ' دقيقة' : 'قبل ' + Math.round(m / 60) + ' ساعة'; };
+            const nbSet = (path, v, msg) => set(ref(db, 'newsBot/' + path), v).then(() => msg && toast(msg)).catch((e) => toast('تعذر الحفظ: ' + (e.message || e), false));
+            onValue(ref(db, 'newsBot/cfg'), (s) => {
+                cfg = s.val() || {};
+                el('nb_on').checked = !!cfg.on; el('nb_notify').checked = cfg.notify !== false;
+                el('nb_th').value = cfg.th || 60; el('nb_thv').textContent = cfg.th || 60;
+                if (document.activeElement !== el('nb_words')) el('nb_words').value = cfg.words || '';
+            });
+            el('nb_on').addEventListener('change', () => nbSet('cfg/on', el('nb_on').checked, el('nb_on').checked ? 'شغّلت جلب الأخبار' : 'أطفيت جلب الأخبار'));
+            el('nb_notify').addEventListener('change', () => nbSet('cfg/notify', el('nb_notify').checked, el('nb_notify').checked ? 'كل خبر ينزل يوصل إشعار' : 'الأخبار تنزل بدون إشعار'));
+            el('nb_th').addEventListener('input', () => { el('nb_thv').textContent = el('nb_th').value; });
+            el('nb_th').addEventListener('change', () => nbSet('cfg/th', Number(el('nb_th').value), 'انحفظت الحساسية'));
+            el('nb_wsave').addEventListener('click', () => nbSet('cfg/words', el('nb_words').value.slice(0, 1500), 'انحفظت الكلمات'));
+            onValue(ref(db, 'newsBot/status'), (s) => {
+                const v = s.val(); el('nb_status').textContent = v ? 'آخر فحص: ' + ago(v.at) + ' . نزل ' + (v.pub || 0) + ' . بالانتظار ' + (v.queue || 0) + ' . متجاهل ' + (v.ign || 0) + (v.err ? ' . تعذر قراءة: ' + v.err : '') : 'ما اشتغل بعد';
+            });
+            // adding a channel
+            el('nb_find').addEventListener('click', async () => {
+                const u = tgNameOf(val('nb_q')), box = el('nb_res');
+                if (!u) { box.textContent = 'الرابط غير صحيح. لازم رابط قناة عامة مثل t.me/اسم_القناة'; return; }
+                box.textContent = 'جاري الجلب...';
+                try {
+                    const c = await workerPost({ mode: 'tginfo', q: u });
+                    if (!c.n) { box.textContent = 'ما لكيت هذه القناة'; return; }
+                    const warn = c.preview ? '' : '<div style="color:#b45309;font-size:12px;margin-top:4px">انتبه: هذه القناة ما تعرض صفحة عامة، فما راح تنجلب أخبارها.</div>';
+                    box.innerHTML = `<div style="${YT_STYLE}">${tgImg(c.a)}<div style="flex:1;min-width:0"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)} . ${c.subs ? c.subs + ' مشترك . ' : ''}${c.count} منشور ظاهر</div>${warn}</div><button class="btn" type="button" id="nb_add">أضف</button></div>`;
+                    el('nb_add').addEventListener('click', async () => {
+                        const key = c.u.toLowerCase();
+                        if (chans[key]) { toast('هذه القناة مضافة من قبل', false); return; }
+                        // a new channel starts in review mode, and only posts made from now on are taken
+                        await nbSet('chans/' + key, { u: c.u, n: String(c.n).slice(0, 80), a: c.a || '', on: true, mode: 'review', since: Date.now() }, 'انضافت القناة بوضع المراجعة');
+                        box.textContent = ''; el('nb_q').value = '';
+                    });
+                } catch (e) { box.textContent = 'تعذر الجلب: ' + (e.message || e); }
+            });
+            onValue(ref(db, 'newsBot/chans'), (s) => {
+                chans = s.val() || {};
+                const rows = Object.keys(chans).map((k) => ({ k, ...chans[k] })).sort((a, b) => (a.since || 0) - (b.since || 0));
+                const L = el('nb_list');
+                L.innerHTML = rows.length ? rows.map((c) => `<div style="${YT_STYLE};flex-wrap:wrap">${tgImg(c.a)}<div style="flex:1;min-width:140px"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)}</div></div>
+                    <select data-nbmode="${escapeHtml(c.k)}" aria-label="وضع النشر" style="width:150px"><option value="auto" ${c.mode === 'auto' ? 'selected' : ''}>تنزل مباشرة</option><option value="review" ${c.mode !== 'auto' ? 'selected' : ''}>تنتظر موافقتي</option></select>
+                    <label class="switch"><input type="checkbox" data-nbon="${escapeHtml(c.k)}" ${c.on !== false ? 'checked' : ''} aria-label="تشغيل القناة"><span class="track"></span></label>
+                    <button class="btn" type="button" style="background:#dc2626" data-nbdel="${escapeHtml(c.k)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما انضافت قنوات بعد</div>';
+                L.querySelectorAll('[data-nbmode]').forEach((i) => i.addEventListener('change', () => nbSet('chans/' + i.dataset.nbmode + '/mode', i.value, i.value === 'auto' ? 'أخبار هذه القناة تنزل مباشرة' : 'أخبار هذه القناة تنتظر موافقتك')));
+                L.querySelectorAll('[data-nbon]').forEach((i) => i.addEventListener('change', () => nbSet('chans/' + i.dataset.nbon + '/on', i.checked, i.checked ? 'شغّلت القناة' : 'أطفيت القناة')));
+                L.querySelectorAll('[data-nbdel]').forEach((b) => b.addEventListener('click', async () => { if (await ask({ icon: 'trash-2', tone: 'warn', title: 'حذف القناة؟', text: 'يوقف جلب أخبارها. الأخبار اللي نزلت منها تبقى.' })) remove(ref(db, 'newsBot/chans/' + b.dataset.nbdel)).then(() => toast('انحذفت')).catch(() => toast('تعذر الحذف', false)); }));
+            });
+            // what waits for the admin, and what the bot held back
+            const card = (r, key, btns) => `<div style="${YT_STYLE};align-items:flex-start;flex-wrap:wrap">${/^https:/.test(r.img || '') ? `<img src="${escapeHtml(r.img)}" alt="" referrerpolicy="no-referrer" style="width:64px;height:64px;border-radius:10px;object-fit:cover">` : ''}<div style="flex:1;min-width:180px">${r.urg ? '<span style="font-size:11px;padding:1px 8px;border-radius:99px;background:#DC2626;color:#fff">عاجل</span> ' : ''}<b>${escapeHtml(r.t || '')}</b><div style="font-size:12.5px;opacity:.85;white-space:pre-wrap;margin-top:2px">${escapeHtml(String(r.d || '').slice(0, 160))}</div><div style="font-size:11px;opacity:.65;margin-top:3px">@${escapeHtml(r.c || '')} . ${escapeHtml(NB_WHY[r.why] || r.why || '')}${r.why === 'ad' && r.w ? ' (' + escapeHtml(r.w) + ')' : ''}${r.why === 'dup' && r.of ? ' . يشبه: ' + escapeHtml(String(r.of).slice(0, 60)) : ''}</div></div>${btns}</div>`;
+            const act = async (b, a, key) => { b.disabled = true; try { await workerPost({ mode: 'newsact', act: a, key }); toast(a === 'approve' || a === 'restore' ? 'اننشر الخبر' : 'تم'); } catch (e) { toast('تعذر: ' + (e.message || e), false); b.disabled = false; } };
+            onValue(ref(db, 'newsBot/queue'), (s) => {
+                const v = s.val() || {}, rows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (b.at || 0) - (a.at || 0)); el('nb_qn').textContent = rows.length;
+                const L = el('nb_queue'); L.innerHTML = rows.length ? rows.map((r) => card(r, r.k, `<button class="btn" type="button" style="background:#16a34a" data-nbok="${escapeHtml(r.k)}">انشر</button><button class="btn" type="button" style="background:#b45309" data-nbno="${escapeHtml(r.k)}">ارفض</button>`)).join('') : '<div style="opacity:.7;font-size:13px">ما كو شي بالانتظار</div>';
+                L.querySelectorAll('[data-nbok]').forEach((b) => b.addEventListener('click', () => act(b, 'approve', b.dataset.nbok)));
+                L.querySelectorAll('[data-nbno]').forEach((b) => b.addEventListener('click', () => act(b, 'reject', b.dataset.nbno)));
+            });
+            onValue(ref(db, 'newsBot/ignored'), (s) => {
+                const v = s.val() || {}, rows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, 60); el('nb_in').textContent = Object.keys(v).length;
+                const L = el('nb_ign'); L.innerHTML = rows.length ? rows.map((r) => card(r, r.k, `<button class="btn" type="button" data-nbre="${escapeHtml(r.k)}">انشرها</button><button class="btn" type="button" style="background:#64748b" data-nbcl="${escapeHtml(r.k)}">احذف</button>`)).join('') : '<div style="opacity:.7;font-size:13px">ما انحجب شي</div>';
+                L.querySelectorAll('[data-nbre]').forEach((b) => b.addEventListener('click', () => act(b, 'restore', b.dataset.nbre)));
+                L.querySelectorAll('[data-nbcl]').forEach((b) => b.addEventListener('click', () => act(b, 'clear', b.dataset.nbcl)));
+            });
+            el('nb_run').addEventListener('click', async () => {
+                const b = el('nb_run'), m = el('nb_runmsg'); b.disabled = true; m.textContent = 'جاري الجلب...';
+                try {
+                    const r = await workerPost({ mode: 'newsrun' });
+                    m.textContent = r.state === 'off' ? 'الجلب مطفي. شغّله من المفتاح فوق.' : r.state === 'ok' ? 'خلص: نزل ' + r.pub + ' . بالانتظار ' + r.queue + ' . متجاهل ' + r.ign + (r.err.length ? ' . تعذر قراءة: ' + r.err.join(',') : '') : 'ما اشتغل: ' + r.state;
+                } catch (e) { m.textContent = 'تعذر: ' + (e.message || e); }
+                b.disabled = false;
+            });
+        }
+
 
         // ---------- alerts: every section's badge is watched; a new arrival rings the bell, beeps and shows a toast ----------
         const ALERT = { prev: {}, ready: false, last: 0 };
@@ -3651,7 +3765,7 @@
             const url = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
             const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await auth.currentUser.getIdToken()) }, body: JSON.stringify(body) });
             const j = await r.json().catch(() => ({}));
-            if (!r.ok || j.error) throw new Error(j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح Claude مو مضاف بالخادم (ANTHROPIC_API_KEY)' : j.error === 'slow_down' ? 'اصبر شوية وجرّب' : j.error === 'short' ? 'النص المقروء قليل' : ('خطأ ' + (r.ok ? '' : r.status + ' ') + (j.error || '')));
+            if (!r.ok || j.error) throw new Error(j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_sa' ? 'مفتاح الكتابة بقاعدة البيانات مو مضاف للخادم (FIREBASE_SERVICE_ACCOUNT)' : j.error === 'no_key' ? 'مفتاح Claude مو مضاف بالخادم (ANTHROPIC_API_KEY)' : j.error === 'slow_down' ? 'اصبر شوية وجرّب' : j.error === 'short' ? 'النص المقروء قليل' : ('خطأ ' + (r.ok ? '' : r.status + ' ') + (j.error || '')));
             return j;
         }
         async function loadPdfJs() {
@@ -5566,6 +5680,7 @@
             loadIdeasAdmin();
             loadComplaintsAdmin();
             loadChanReqAdmin();
+            loadNewsBotAdmin();
             loadMotivAdmin();
             loadVoiceAdmin();
             loadForestWeather();
