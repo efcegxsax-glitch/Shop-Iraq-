@@ -146,8 +146,14 @@ t('status written', db.root.newsBot.status.pub === 1);
     const rl = await newsLoop(cnt, d, { polls: 6, gap: 10000 });
     t('minute loop: looks 6 times, waits 5 times', pageCalls === 6 && sleeps === 5, [pageCalls, sleeps]);
     t('minute loop: the post that appeared at the 3rd look is published once, right then', rl.pub === 1 && Object.keys(dv.root.news).length === 1 && pubAt === 3, [rl, pubAt]);
-    t('minute loop: few database calls (config, channels and seen marks are kept in memory)', dbCalls <= 20, dbCalls);
+    t('minute loop: few database calls (config, channels and seen marks are kept in memory)', dbCalls <= 28, dbCalls);
     t('minute loop: the status line is written at the end', !!dv.root.newsBot.status && dv.root.newsBot.status.pub === 1);
+    t('minute loop: the lock is released at the end', dv.root.newsBot.lock === undefined);
+    t('minute loop: what was seen on each channel is saved for the panel', dv.root.newsBot.chstat && dv.root.newsBot.chstat.iraqedu && dv.root.newsBot.chstat.iraqedu.n === 1 && dv.root.newsBot.chstat.iraqedu.id === 30, dv.root.newsBot.chstat);
+    // a second watcher while the first still runs does nothing
+    const db2 = fakeDb(base()); db2.root.newsBot.lock = NOW - 20000; pages.iraqedu = [post(50, 'خبر لا يجب أن ينزل الآن')];
+    const rb = await newsLoop(db2, mkDeps(), { polls: 2, gap: 0 });
+    t('busy: a second watcher stops at once, and an old lock (stale) is taken over', rb.state === 'busy' && !db2.root.news && (db2.root.newsBot.lock = NOW - 90000, (await newsLoop(db2, mkDeps(), { polls: 1, gap: 0 })).state === 'ok'));
     pages.iraqedu = pv;
 }
 // a channel's "photo updated" notice that slipped through the page reader is still not published

@@ -608,7 +608,9 @@ async function ytNotify(env, ctx, when) {
 async function tgPage(name, before, ctx, fresh) {
     const cache = caches.default, key = before || fresh ? null : new Request('https://tg-cache.invalid/p/' + name.toLowerCase());
     if (key) { const hit = await cache.match(key); if (hit) return hit.json(); }
-    const r = await fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', ...(fresh ? { cache: 'no-store' } : { cf: { cacheTtl: 120 } }) });
+    const go = (init) => fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', ...init });
+    // a live read: no copy kept (if this runtime does not know the cache option, a plain read is used)
+    const r = await (fresh ? go({ cache: 'no-store' }).catch(() => go({})) : go({ cf: { cacheTtl: 120 } }));
     if (!r.ok) throw new Error('http' + r.status);
     const html = await r.text();
     const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name).sort((a, b) => b.i - a.i) };
@@ -963,7 +965,7 @@ export default {
             const db = makeDb(env);
             if (!db.ok) return json(503, { error: 'no_sa' }, headers);
             try {
-                if (body.mode === 'newsrun') return json(200, await newsRun(db, newsDeps(env, ctx)), headers);
+                if (body.mode === 'newsrun') return json(200, await newsLoop(db, newsDeps(env, ctx), { polls: 1 }), headers);
                 const act = ['approve', 'reject', 'restore', 'clear'].includes(body.act) ? body.act : '';
                 if (!act) return json(400, { error: 'bad' }, headers);
                 const r = await newsAct(db, newsDeps(env, ctx), act, String(body.key || ''));

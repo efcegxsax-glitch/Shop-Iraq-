@@ -3574,23 +3574,26 @@
                         const key = c.u.toLowerCase();
                         if (chans[key]) { toast('هذه القناة مضافة من قبل', false); return; }
                         // a new channel starts in review mode, and only posts made from now on are taken
-                        await nbSet('chans/' + key, { u: c.u, n: String(c.n).slice(0, 80), a: c.a || '', on: true, mode: 'review', since: Date.now() }, 'انضافت القناة بوضع المراجعة');
+                        await nbSet('chans/' + key, { u: c.u, n: String(c.n).slice(0, 80), a: c.a || '', on: true, mode: 'auto', since: Date.now() }, 'انضافت القناة، وأخبارها تنزل مباشرة من هسه');
                         box.textContent = ''; el('nb_q').value = '';
                     });
                 } catch (e) { box.textContent = 'تعذر الجلب: ' + (e.message || e); }
             });
-            onValue(ref(db, 'newsBot/chans'), (s) => {
-                chans = s.val() || {};
+            let chst = {};
+            const since = (t) => { const m = Math.round((Date.now() - Number(t || 0)) / 60000); return !t ? 'ما أعرف' : m < 1 ? 'هسه' : m < 90 ? 'قبل ' + m + ' دقيقة' : m < 2880 ? 'قبل ' + Math.round(m / 60) + ' ساعة' : 'قبل ' + Math.round(m / 1440) + ' يوم'; };
+            const drawChans = () => {
                 const rows = Object.keys(chans).map((k) => ({ k, ...chans[k] })).sort((a, b) => (a.since || 0) - (b.since || 0));
                 const L = el('nb_list');
-                L.innerHTML = rows.length ? rows.map((c) => `<div style="${YT_STYLE};flex-wrap:wrap">${tgImg(c.a)}<div style="flex:1;min-width:140px"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)}</div></div>
+                L.innerHTML = rows.length ? rows.map((c) => `<div style="${YT_STYLE};flex-wrap:wrap">${tgImg(c.a)}<div style="flex:1;min-width:140px"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)}</div>${(() => { const x = chst[c.k]; return x ? `<div style="font-size:11.5px;opacity:.75;margin-top:2px">آخر قراءة: ${since(x.at)} . ${x.n} منشور ظاهر . أحدث منشور: ${since(x.last)}</div>` : '<div style="font-size:11.5px;opacity:.6;margin-top:2px">ما انقرت بعد</div>'; })()}</div>
                     <select data-nbmode="${escapeHtml(c.k)}" aria-label="وضع النشر" style="width:150px"><option value="auto" ${c.mode === 'auto' ? 'selected' : ''}>تنزل مباشرة</option><option value="review" ${c.mode !== 'auto' ? 'selected' : ''}>تنتظر موافقتي</option></select>
                     <label class="switch"><input type="checkbox" data-nbon="${escapeHtml(c.k)}" ${c.on !== false ? 'checked' : ''} aria-label="تشغيل القناة"><span class="track"></span></label>
                     <button class="btn" type="button" style="background:#dc2626" data-nbdel="${escapeHtml(c.k)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما انضافت قنوات بعد</div>';
                 L.querySelectorAll('[data-nbmode]').forEach((i) => i.addEventListener('change', () => nbSet('chans/' + i.dataset.nbmode + '/mode', i.value, i.value === 'auto' ? 'أخبار هذه القناة تنزل مباشرة' : 'أخبار هذه القناة تنتظر موافقتك')));
                 L.querySelectorAll('[data-nbon]').forEach((i) => i.addEventListener('change', () => nbSet('chans/' + i.dataset.nbon + '/on', i.checked, i.checked ? 'شغّلت القناة' : 'أطفيت القناة')));
                 L.querySelectorAll('[data-nbdel]').forEach((b) => b.addEventListener('click', async () => { if (await ask({ icon: 'trash-2', tone: 'warn', title: 'حذف القناة؟', text: 'يوقف جلب أخبارها. الأخبار اللي نزلت منها تبقى.' })) remove(ref(db, 'newsBot/chans/' + b.dataset.nbdel)).then(() => toast('انحذفت')).catch(() => toast('تعذر الحذف', false)); }));
-            });
+            };
+            onValue(ref(db, 'newsBot/chans'), (s) => { chans = s.val() || {}; drawChans(); });
+            onValue(ref(db, 'newsBot/chstat'), (s) => { chst = s.val() || {}; drawChans(); });
             // what waits for the admin, and what the bot held back
             const card = (r, key, btns) => `<div style="${YT_STYLE};align-items:flex-start;flex-wrap:wrap">${/^https:/.test(r.img || '') ? `<img src="${escapeHtml(r.img)}" alt="" referrerpolicy="no-referrer" style="width:64px;height:64px;border-radius:10px;object-fit:cover">` : ''}<div style="flex:1;min-width:180px">${r.urg ? '<span style="font-size:11px;padding:1px 8px;border-radius:99px;background:#DC2626;color:#fff">عاجل</span> ' : ''}<b>${escapeHtml(r.t || '')}</b><div style="font-size:12.5px;opacity:.85;white-space:pre-wrap;margin-top:2px">${escapeHtml(String(r.d || '').slice(0, 160))}</div><div style="font-size:11px;opacity:.65;margin-top:3px">@${escapeHtml(r.c || '')} . ${escapeHtml(NB_WHY[r.why] || r.why || '')}${r.why === 'ad' && r.w ? ' (' + escapeHtml(r.w) + ')' : ''}${r.why === 'dup' && r.of ? ' . يشبه: ' + escapeHtml(String(r.of).slice(0, 60)) : ''}</div></div>${btns}</div>`;
             const act = async (b, a, key) => { b.disabled = true; try { await workerPost({ mode: 'newsact', act: a, key }); toast(a === 'approve' || a === 'restore' ? 'اننشر الخبر' : 'تم'); } catch (e) { toast('تعذر: ' + (e.message || e), false); b.disabled = false; } };
@@ -3610,7 +3613,7 @@
                 const b = el('nb_run'), m = el('nb_runmsg'); b.disabled = true; m.textContent = 'جاري الجلب...';
                 try {
                     const r = await workerPost({ mode: 'newsrun' });
-                    m.textContent = r.state === 'off' ? 'الجلب مطفي. شغّله من المفتاح فوق.' : r.state === 'ok' ? 'خلص: نزل ' + r.pub + ' . بالانتظار ' + r.queue + ' . متجاهل ' + r.ign + (r.err.length ? ' . تعذر قراءة: ' + r.err.join(',') : '') : 'ما اشتغل: ' + r.state;
+                    m.textContent = r.state === 'busy' ? 'الجلب شغّال هسه (كل دقيقة)، جرّب بعد شوية.' : r.state === 'off' ? 'الجلب مطفي. شغّله من المفتاح فوق.' : r.state === 'ok' ? 'خلص: نزل ' + r.pub + ' . بالانتظار ' + r.queue + ' . متجاهل ' + r.ign + (r.err.length ? ' . تعذر قراءة: ' + r.err.join(',') : '') : 'ما اشتغل: ' + r.state;
                 } catch (e) { m.textContent = 'تعذر: ' + (e.message || e); }
                 b.disabled = false;
             });
