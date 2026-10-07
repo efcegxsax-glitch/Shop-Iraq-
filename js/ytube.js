@@ -322,10 +322,11 @@
 
     Object.assign(app, {
         tuOpen() {
-            S = { subj: 'all', tab: 'all', teacher: '', shown: PAGE };
+            // a tapped notification about a teacher's new video opens his page (app._tuWant = his channel id)
+            S = { subj: 'all', tab: 'all', teacher: /^UC[\w-]{22}$/.test(app._tuWant || '') ? app._tuWant : '', shown: PAGE }; app._tuWant = '';
             const q = $('tuSearch'); if (q) q.value = '';
             $('tuSearchBar')?.classList.add('hidden');
-            app._need('ytroom').then(() => { migrate(); listenChannels(); paint(); }).catch(() => { err = 'ما انحمّلت الصفحة، حاول مرة ثانية'; paint(); });
+            app._need('ytroom').then(() => { migrate(); listenChannels(); paint(); if (S.teacher) loadAll(S.teacher); }).catch(() => { err = 'ما انحمّلت الصفحة، حاول مرة ثانية'; paint(); });
             paint();
             if (CH.length) fetchFeed(false);
         },

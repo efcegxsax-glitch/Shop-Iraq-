@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="23c3876c7b">
+    <meta name="admin-build" content="5368f5dc6a">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -2587,7 +2587,7 @@
                 }
                 let msg = at ? 'انجدول الخبر ويبين ' + new Date(at).toLocaleString('ar-IQ') : 'تم نشر الخبر بنجاح';
                 if (sendNotif) {
-                    const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), govs, urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', at ? { sendAt: at } : null);
+                    const pr = await pushPhones((urgent ? 'عاجل: ' : val('n_category') === 'weather' ? 'الأنواء الجوية: ' : '') + title, val('n_excerpt'), govs, urgent ? 'urgent' : val('n_category') === 'weather' ? 'weather' : 'announcement', { ...(at ? { sendAt: at } : {}), go: 'news', id });
                     if (at && pr.ok && pr.ids && pr.ids.length) await set(ref(db, 'pushSchedule/' + Date.now()), { title, body: val('n_excerpt'), cat: urgent ? 'urgent' : val('n_category'), at, ids: pr.ids, newsId: id, createdAt: serverTimestamp() }).catch(() => {});
                     msg += pushNote(pr);
                 }
@@ -2634,7 +2634,7 @@
                 });
                 let rmsg = 'تم نشر الملزمة بنجاح';
                 if (el('r_notify').checked) {
-                    const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', [], 'res');
+                    const pr = await pushPhones('ملزمة جديدة: ' + title, val('r_stage') || '', [], 'res', { go: 'res' });
                     rmsg += pushNote(pr);
                 }
                 toast(rmsg);
@@ -2664,7 +2664,7 @@
             try { token = await auth.currentUser.getIdToken(); } catch (e) { return { ok: false, why: 'ما كدرت أتأكد من دخولك، سجّل خروج وادخل من جديد' }; }
             try {
                 const codes = (govs || []).map((g) => GOV_CODES[g]).filter(Boolean);
-                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '', ...(opts && opts.sendAt ? { sendAt: opts.sendAt } : {}), ...(opts && opts.uids ? { uids: opts.uids } : {}) }) });
+                const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: JSON.stringify({ mode: 'adminpush', title, body, govs: codes, cat: cat || '', ...(opts && opts.sendAt ? { sendAt: opts.sendAt } : {}), ...(opts && opts.uids ? { uids: opts.uids } : {}), ...(opts && opts.go ? { go: opts.go, id: opts.id } : {}) }) });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) return { ok: false, why: j.error === 'admin' ? 'هذا الحساب مو حساب اللوحة' : j.error === 'no_key' ? 'مفتاح OneSignal غير مضاف بالسيرفر' : j.error === 'signin' ? 'السيرفر ما قبل تسجيل دخولك' : j.error === 'time' ? 'وقت الإرسال لازم يكون من دقيقة إلى 30 يوم قدام' : j.error === 'onesignal' ? 'رفضه OneSignal (' + (j.status || r.status) + ')' + (j.detail ? ' ' + JSON.stringify(j.detail).slice(0, 120) : '') : 'رد السيرفر ' + r.status };
                 return { ok: true, n: j.recipients, id: j.id || '', ids: j.ids || [], sent: j.sent, of: j.of };
@@ -4395,7 +4395,7 @@
                     const body = reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : '');
                     let pushed = false;
                     if (el('ds_notify').checked) {
-                        const pr = await pushPhones(title, body, allIraq ? [] : govs, 'holiday');
+                        const pr = await pushPhones(title, body, allIraq ? [] : govs, 'holiday', { go: 'holiday' });
                         pushed = pr.ok && !!pr.id;
                         if (!pr.ok) toast('انتشر الإعلان بس ما طلع كإشعار للهاتف: ' + pr.why, false);
                         else if (!pr.id) toast('انتشر الإعلان بس ما لكى أي جهاز مطابق للإشعار. الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة', false);

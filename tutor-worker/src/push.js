@@ -17,6 +17,15 @@ export function pushTargets(govs, cat, uids, also) {
     return { kind, targets };
 }
 
+// Where a tapped notification should land in the app: { go: 'news' | 'res' | 'holiday', id? } (validated: only these places, a number for the id)
+export const GO_PLACES = ['news', 'res', 'holiday'];
+export function goData(go, id) {
+    if (!GO_PLACES.includes(go)) return null;
+    const n = /^\d{1,16}$/.test(String(id == null ? '' : id)) ? String(id) : '';
+    return { go, ...(n ? { id: n } : {}) };
+}
+export const goUrl = (base, g) => (g ? base + '?go=' + g.go + (g.id ? '&id=' + g.id : '') : base);
+
 // OneSignal wants a scheduled time as "YYYY-MM-DD HH:mm:ss GMT+0000"; null when it is not a sensible moment (1 minute to 30 days ahead)
 export function sendAfter(at, now) {
     at = Number(at); now = Number(now);

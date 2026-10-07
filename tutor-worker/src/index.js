@@ -22,7 +22,7 @@ import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { cleanExam, uuidOf } from './exam.js';
-import { pushTargets, sendAfter } from './push.js';
+import { pushTargets, sendAfter, goData, goUrl } from './push.js';
 import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from './plan.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 import { motivDue } from './motiv.js';
@@ -593,8 +593,8 @@ async function ytNotify(env, ctx, when) {
                     app_id: env.ONESIGNAL_APP_ID, target_channel: 'push',
                     filters: [{ field: 'tag', key: 'tube', relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: 'tube', relation: '=', value: 'on' }],
                     headings: { en: str(c.n, 40) || 'محاضرة جديدة', ar: str(c.n, 40) || 'محاضرة جديدة' }, contents: { en: v.t, ar: v.t },
-                    ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tube=' + v.v,
-                    data: { tube: v.v }, web_push_topic: 'isp-tube-' + v.v.slice(0, 20), ttl: 12 * 3600,
+                    ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tube=' + v.v + '&ch=' + c.id,
+                    data: { tube: v.v, ch: c.id }, web_push_topic: 'isp-tube-' + v.v.slice(0, 20), ttl: 12 * 3600,
                     // OneSignal answers a second send with the same key by returning the first, so a video is never pushed twice
                     idempotency_key: await uuidOf('yt-' + v.v),
                 }),
@@ -659,7 +659,7 @@ async function tgNotify(env, ctx, when) {
                     filters: [{ field: 'tag', key: tag, relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: tag, relation: '=', value: 'on' }],
                     headings: { en: str(c.n, 40) || 'قناة مدرس', ar: str(c.n, 40) || 'قناة مدرس' }, contents: { en: tgPushText(x), ar: tgPushText(x) },
                     ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tg=' + c.u,
-                    data: { tg: c.u }, web_push_topic: ('isp-tg-' + nm).slice(0, 30), ttl: 12 * 3600,
+                    data: { tg: c.u, post: x.i }, web_push_topic: ('isp-tg-' + nm).slice(0, 30), ttl: 12 * 3600,
                     idempotency_key: await uuidOf('tg-' + nm + '-' + x.i),
                 }),
             });
@@ -698,7 +698,8 @@ function newsDeps(env, ctx) {
                     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
                     body: JSON.stringify({
                         app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text, ar: text },
-                        ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}), idempotency_key: await uuidOf('nb-' + x.id),
+                        ...PUSH_LOOK(env), web_url: goUrl(env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/', goData('news', x.id)),
+                        data: { ...(kind ? { cat: kind } : {}), ...goData('news', x.id) }, idempotency_key: await uuidOf('nb-' + x.id),
                     }),
                 });
                 if (!res.ok) console.error('news push', res.status, (await res.text().catch(() => '')).slice(0, 200));
@@ -861,10 +862,11 @@ export default {
             const { kind, targets } = pushTargets(govs, body.cat, uids);
             const when = body.sendAt ? sendAfter(body.sendAt, Date.now()) : '';
             if (body.sendAt && !when) return json(400, { error: 'time' }, headers);
+            const go = goData(String(body.go || ''), body.id);       // where a tap on the notification lands (a news, the handouts, the day-off page)
             const sends = await Promise.all(targets.map(async (target) => {
                 const r = await fetch('https://api.onesignal.com/notifications?c=push', {
                     method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
-                    body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env), ...(kind ? { data: { cat: kind } } : {}), ...(when ? { send_after: when } : {}) }),
+                    body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text || title, ar: text || title }, ...PUSH_LOOK(env), ...(go ? { web_url: goUrl(env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/', go) } : {}), ...(kind || go ? { data: { ...(kind ? { cat: kind } : {}), ...(go || {}) } } : {}), ...(when ? { send_after: when } : {}) }),
                 });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) console.error('adminpush', r.status, JSON.stringify(j).slice(0, 300));
