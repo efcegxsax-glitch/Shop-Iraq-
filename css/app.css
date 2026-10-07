@@ -11258,3 +11258,13 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .tg-voice em { font-style: normal; font-size: 11.5px; color: var(--text2); }
 .tg-vp { display: block; width: 100%; margin-top: 10px; border-radius: 14px; background: #000; max-height: 70vh; }
 .tg-vdn { position: absolute; bottom: 8px; right: 8px; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 800; color: #fff; background: rgba(0,0,0,.6); }
+/* my teachers: the bar that asks / says how many are followed, and the picker's quick buttons */
+.tu-mine { display: flex; align-items: center; gap: 10px; margin: 10px 14px 0; padding: 10px 12px; border-radius: 14px; background: var(--input-bg); border: 1px solid var(--border); }
+.tu-mine.ask { border-color: #F59E0B; background: rgba(245,158,11,.1); }
+.tu-mine > div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.tu-mine b { font-size: 13.5px; color: var(--text); } .tu-mine small { font-size: 11.5px; color: var(--text2); line-height: 1.5; }
+.tu-mine button { flex: none; padding: 8px 16px; border-radius: 999px; font: inherit; font-size: 12.5px; font-weight: 800; color: #fff; background: #DC2626; }
+.tg .tu-mine button { background: #229ED9; }
+.tu-pkact { display: flex; gap: 8px; margin: 0 0 10px; }
+.tu-pkact button { flex: 1; padding: 8px; border-radius: 12px; font: inherit; font-size: 12.5px; font-weight: 800; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
+#tgPick .tu-pick button.on { border-color: #229ED9; } #tgPick .tu-pick .on em { background: #229ED9; border-color: #229ED9; }
