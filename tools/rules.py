@@ -999,6 +999,17 @@ rules = {
         "at": {".validate": "newData.isNumber()"},
         "$other": {".validate": False},
     }}},
+    # ----- نسخة سحابية لدفتر الملاحظات: noteBackup/{uid}/{noteId} = the notebook packed into one string (gzip + base64), private to its owner -----
+    "noteBackup": {"$uid": {".read": OWNER, "$id": {
+        ".write": OWNER,
+        ".validate": "!newData.exists() || (newData.hasChildren(['t', 'ts', 'd']) && $id.length <= 24)",
+        "t": {".validate": "newData.isString() && newData.val().length <= 60"},
+        "ts": {".validate": "newData.isNumber()"},
+        "pg": {".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 200"},
+        "d": {".validate": "newData.isString() && newData.val().length <= 1500000"},
+        "$other": {".validate": False},
+    }}},
+
     "chanReqLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 120000)"}},
 
     # ----- رحلة الطالب الجوية. A flight is only its start (server time), its length and two places: the plane's place at any

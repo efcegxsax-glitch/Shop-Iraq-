@@ -608,6 +608,18 @@ await ok('admin answers', update(ref(db('adm'), 'complaints/c1/a1'), { st: 'fixe
 await ok('admin deletes', set(ref(db('adm'), 'complaints/c1/a1'), null));
 await no('guest cannot report', set(ref(db(null), 'complaints/g1/a1'), { uid: 'g1', k: 'bug', t: 'مشكلة بدون تسجيل دخول', st: 'new', at: TS }));
 
+// notebook cloud backup
+await ok('owner saves a notebook backup', set(ref(db('nb1'), 'noteBackup/nb1/n1'), { t: 'فيزياء', ts: TS, pg: 2, d: 'z:AAAA' }));
+await ok('owner reads it back', get(ref(db('nb1'), 'noteBackup/nb1/n1')));
+await no('another student reads it', get(ref(db('nb2'), 'noteBackup/nb1/n1')));
+await ok('admin can read it (like everything)', get(ref(db('adm'), 'noteBackup/nb1/n1')));
+await no('another student writes into it', set(ref(db('nb2'), 'noteBackup/nb1/n2'), { t: 'x', ts: TS, d: 'j:{}' }));
+await no('a stranger without login writes', set(ref(db(null), 'noteBackup/nb1/n2'), { t: 'x', ts: TS, d: 'j:{}' }));
+await no('data over 1.5 MB is refused', set(ref(db('nb1'), 'noteBackup/nb1/n3'), { t: 'x', ts: TS, d: 'a'.repeat(1500001) }));
+await no('unknown field is refused', set(ref(db('nb1'), 'noteBackup/nb1/n4'), { t: 'x', ts: TS, d: 'j:{}', z: 1 }));
+await no('missing data is refused', set(ref(db('nb1'), 'noteBackup/nb1/n5'), { t: 'x', ts: TS }));
+await ok('owner deletes the backup', set(ref(db('nb1'), 'noteBackup/nb1/n1'), null));
+
 // channel requests (طلب إضافة قناة)
 const CQ = (u, id, extra) => U(u, { ['chanReq/' + u + '/' + id]: Object.assign({ uid: u, k: 'tg', l: 'https://t.me/mr_ali_math', st: 'new', at: TS, n: 'علي' }, extra || {}), ['chanReqLast/' + u]: TS });
 await ok('student requests a telegram channel', CQ('q1', 'a1'));
