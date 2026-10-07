@@ -150,6 +150,14 @@ t('status written', db.root.newsBot.status.pub === 1);
     t('minute loop: the status line is written at the end', !!dv.root.newsBot.status && dv.root.newsBot.status.pub === 1);
     pages.iraqedu = pv;
 }
+// a channel's "photo updated" notice that slipped through the page reader is still not published
+{
+    const pv = pages.iraqedu; pages.iraqedu = [post(40, '#عاجل Channel photo updated'), post(41, 'تم تحديث صورة القناة')];
+    const dv = fakeDb(base()); dv.root.newsBot.chans.iraqed4.on = false; const p0 = pushes.length;
+    const rv = await newsRun(dv, mkDeps());
+    t('"Channel photo updated" is never published, queued or listed', rv.pub === 0 && rv.queue === 0 && rv.ign === 0 && !dv.root.news && !dv.root.newsBot.queue && !dv.root.newsBot.ignored && pushes.length === p0, [rv, pushes.length, p0]);
+    pages.iraqedu = pv;
+}
 const before = Object.keys(db.root.news).length;
 r = await newsRun(db, mkDeps());
 t('a second round publishes and queues nothing again', r.pub === 0 && r.queue === 0 && Object.keys(db.root.news).length === before, r);

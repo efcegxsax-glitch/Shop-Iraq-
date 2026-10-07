@@ -47,10 +47,12 @@ export function parseTgPosts(html, chan) {
         const dp = /data-post="([A-Za-z0-9_]+)\/(\d+)"/.exec(part);
         if (!dp || (chan && dp[1].toLowerCase() !== String(chan).toLowerCase())) continue;
         const id = parseInt(dp[2], 10);
-        if (/tgme_widget_message_service/.test(part.slice(0, 400))) continue;
+        // service lines (channel created, photo or name changed, a message pinned) are the channel's own notices, not posts
+        if (/service_message/.test(part.slice(0, 400)) || /tgme_widget_message_service/.test(part.slice(0, 1500))) continue;
         // the post's own text (a quoted reply has its own block with another class)
         const tx = /<div class="tgme_widget_message_text[^"]*js-message_text[^"]*"[^>]*>([\s\S]*?)<\/div>/i.exec(part);
         const t = tx ? plain(tx[1]).slice(0, 1200) : '';
+        if (isServiceText(t)) continue;
         const im = [];
         const re = /<a class="tgme_widget_message_photo_wrap[^"]*"[^>]*style="([^"]*)"/gi; let m;
         while ((m = re.exec(part)) && im.length < 4) { const u = bgUrl(m[1]); if (u) im.push(u); }
@@ -74,6 +76,10 @@ export function parseTgPosts(html, chan) {
     }
     return out;
 }
+
+// the words Telegram itself writes when a channel's photo, name or description changes, or a message is pinned (English and Arabic page)
+const SERVICE = /^(?:channel (?:photo|video|name|description|created|deleted)|new channel (?:photo|name)|photo (?:updated|changed|removed)|.{0,60}\bpinned\b|تم (?:تحديث|تغيير|حذف|إزالة) (?:صور[ةه]|اسم|وصف) (?:ال)?قن[اة]|تم إنشاء (?:ال)?قناة|تم تثبيت رسال[ةه]|تحديث صور[ةه] (?:ال)?قناة|تغيير (?:صور[ةه]|اسم) (?:ال)?قناة)/i;
+export const isServiceText = (t) => { const s = String(t || '').trim(); return s.length > 0 && s.length <= 140 && SERVICE.test(s); };
 
 // the id of the oldest post on the page (for "older posts": ?before=<id>)
 export const tgOldest = (posts) => posts.reduce((m, x) => (m === 0 || x.i < m ? x.i : m), 0);
