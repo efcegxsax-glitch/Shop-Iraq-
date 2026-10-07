@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
+    <meta name="admin-build" content="09740bd66d">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -5745,5 +5746,31 @@
         };
     </script>
     <script src="js/pickers.js"></script>
+<script>
+/* "صدر تحديث" bar: build.py stamps a hash of this page into the admin-build meta. The page asks the server for itself now and then;
+   when the server's hash is not the one this page was loaded with, a bar with a refresh button appears. */
+(function () {
+    var m = document.querySelector('meta[name="admin-build"]'), cur = m && m.content;
+    if (!cur) return;
+    try { var vb = document.getElementById('versionBadge'); if (vb) vb.textContent += ' . ' + cur.slice(0, 4); } catch (e) {}
+    var shown = false;
+    function show(nv) {
+        if (shown) return; shown = true;
+        var b = document.createElement('div'); b.id = 'updBar'; b.setAttribute('role', 'alert');
+        b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#16A34A;color:#fff;display:flex;gap:12px;align-items:center;justify-content:center;padding:10px 12px;font-weight:700;font-size:14px;direction:rtl;box-shadow:0 4px 14px rgba(0,0,0,.35)';
+        b.innerHTML = '<span>صدر تحديث جديد للوحة التحكم</span><button type="button" style="background:#fff;color:#166534;border:0;border-radius:10px;padding:7px 18px;font-weight:800;font-size:14px;cursor:pointer;font-family:inherit">حدّث</button>';
+        b.querySelector('button').onclick = function () { location.replace(location.pathname + '?u=' + encodeURIComponent(nv)); };
+        document.body.appendChild(b);
+    }
+    function check() {
+        fetch(location.pathname + '?_c=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (t) {
+            var x = /<meta name="admin-build" content="(\w+)"/.exec(t);
+            if (x && x[1] && x[1] !== cur) show(x[1]);
+        }).catch(function () {});
+    }
+    setTimeout(check, 15000); setInterval(check, 90000);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) check(); });
+})();
+</script>
 </body>
 </html>
