@@ -690,7 +690,8 @@ function newsDeps(env, ctx) {
         },
         push: async (x) => {
             if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return false;
-            const { kind, targets } = pushTargets([], x.urgent ? 'urgent' : 'announcement');
+            // an urgent / official news AND a "news of the Telegram channels" (its own switch in the student's notification settings)
+            const { kind, targets } = pushTargets([], x.urgent ? 'urgent' : 'announcement', undefined, ['tgnews']);
             const title = str((x.urgent ? 'عاجل: ' : '') + x.title, 80), text = str(x.excerpt || x.title, 300);
             for (const target of targets) {
                 const res = await fetch('https://api.onesignal.com/notifications?c=push', {

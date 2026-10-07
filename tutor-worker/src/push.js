@@ -2,13 +2,15 @@
 // The app sets the tag off_<kind> only while the student has that kind of notification switched off, so "tag off_<kind> does not
 // exist" keeps everybody who never touched it (older installs too). Only plain AND filters are used, so nothing depends on how
 // OneSignal ranks OR against AND; each governorate is its own send.
-export const KINDS = ['urgent', 'announcement', 'weather', 'res', 'general', 'holiday', 'motiv'];
+export const KINDS = ['urgent', 'announcement', 'weather', 'res', 'general', 'holiday', 'motiv', 'tgnews'];
 
-export function pushTargets(govs, cat, uids) {
+// `also`: more kinds a push belongs to (the news bot's pushes are an urgent / official news AND a Telegram news): a student who switched any of them off is skipped
+export function pushTargets(govs, cat, uids, also) {
     // named students (prize winners): only them, whatever their governorate or switches
     if (Array.isArray(uids) && uids.length) return { kind: '', targets: [{ include_aliases: { external_id: uids } }] };
     const kind = KINDS.includes(cat) ? cat : '';
-    const offOk = kind ? [{ field: 'tag', key: 'off_' + kind, relation: 'not_exists' }] : [];
+    const kinds = (kind ? [kind] : []).concat((Array.isArray(also) ? also : []).filter((k) => KINDS.includes(k) && k !== kind));
+    const offOk = kinds.map((k) => ({ field: 'tag', key: 'off_' + k, relation: 'not_exists' }));
     const targets = govs.length
         ? govs.map((g) => ({ filters: [{ field: 'tag', key: 'gov', relation: '=', value: g }, ...offOk] }))
         : [offOk.length ? { filters: offOk } : { included_segments: ['Total Subscriptions'] }];
