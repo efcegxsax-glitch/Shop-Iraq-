@@ -98,7 +98,7 @@ const pages = {
     iraqed4: [post(3, 'التربية تحدد ضوابط تنقلات الطلبة للعام الدراسي 2026-2027 حسب كتاب رسمي'), post(4, 'عرض خاص للبيع ملازم السادس بأسعار مخفضة'), post(5, 'اتصل على 07701234567 لحجز مقعدك بدورة تقوية'), post(6, 'تعلن الوزارة موعد امتحانات الدور الثاني\nتبدأ يوم السبت', { fw: 1 }), post(7, 'موعد امتحانات الدور الثاني للسادس الاعدادي يبدأ يوم السبت')],
 };
 const pushes = [];
-const mkDeps = () => ({ now: () => NOW, page: async (n) => { if (!pages[n]) throw new Error('x'); return { info: {}, posts: pages[n].slice().sort((a, b) => b.i - a.i) }; }, img: async (u) => 'data:image/jpeg;base64,AAAA', push: async (x) => { pushes.push(x); return true; } });
+const mkDeps = () => ({ sleep: async () => {}, now: () => NOW, page: async (n, have) => { if (!pages[n]) throw new Error('x'); const posts = pages[n].slice().sort((a, b) => b.i - a.i); if (have && posts.length && posts[0].i <= have) return { skip: true, info: {}, posts: [] }; return { info: {}, posts }; }, img: async (u) => 'data:image/jpeg;base64,AAAA', push: async (x) => { pushes.push(x); return true; } });
 const base = () => ({ newsBot: { cfg: { on: true, th: 60, words: '', notify: true }, chans: { iraqedu: { u: 'iraqedu', on: true, mode: 'auto', since: SINCE }, iraqed4: { u: 'iraqed4', on: true, mode: 'review', since: SINCE } } } });
 
 let db = fakeDb({ ...base(), newsBot: { ...base().newsBot, cfg: { on: false } } });
@@ -165,6 +165,26 @@ t('status written', db.root.newsBot.status.pub === 1);
     const dv = fakeDb(base()); dv.root.newsBot.chans.iraqed4.on = false; const p0 = pushes.length;
     const rv = await newsRun(dv, mkDeps());
     t('"Channel photo updated" is never published, queued or listed', rv.pub === 0 && rv.queue === 0 && rv.ign === 0 && !dv.root.news && !dv.root.newsBot.queue && !dv.root.newsBot.ignored && pushes.length === p0, [rv, pushes.length, p0]);
+    pages.iraqedu = pv;
+}
+// a slow schedule (every 5 minutes): one run of 10 looks; looks at a page with nothing new are cheap and the channel line is still saved
+{
+    const pv = pages.iraqedu; pages.iraqedu = [post(60, 'خبر أول من القناة')];
+    const dv = fakeDb(base()); dv.root.newsBot.chans.iraqed4.on = false;
+    let sl = 0, parsed = 0, skipped = 0, pc = 0; const d = mkDeps(), pg0 = d.page;
+    d.page = async (n, have) => { pc++; const r = await pg0(n, have); if (r.skip) skipped++; else parsed++; return r; };
+    d.sleep = async () => { sl++; if (sl === 6) pages.iraqedu.push(post(61, 'خبر ثاني ينزل بنص الجولة')); };
+    const { newsLoop } = await import('../tutor-worker/src/newsrun.js');
+    const rl = await newsLoop(dv, d, { polls: 10, gap: 27000, lockMs: 320000 });
+    t('long run: 10 looks, 9 waits', pc === 10 && sl === 9, [pc, sl]);
+    t('long run: both posts published (the second one in the middle of the run), once each', rl.pub === 2 && Object.keys(dv.root.news).length === 2, rl);
+    t('long run: after the first look, a page with nothing new is skipped (not read any further)', skipped >= 6 && parsed <= 4, [parsed, skipped]);
+    t('long run: the channel line (reads, newest post) is saved at the end', dv.root.newsBot.chstat.iraqedu.id === 61 && dv.root.newsBot.chstat.iraqedu.n === 2, dv.root.newsBot.chstat);
+    // many channels: fewer looks (a Worker run has about 50 calls)
+    const dm = fakeDb(base()); for (let i = 0; i < 9; i++) dm.root.newsBot.chans['chan' + i + 'xx'] = { u: 'chan' + i + 'xx', on: true, mode: 'auto', since: SINCE };
+    let pm = 0; const d2 = mkDeps(); d2.page = async () => { pm++; return { info: {}, posts: [] }; };
+    await newsLoop(dm, d2, { polls: 10, gap: 0 });
+    t('many channels: the number of looks is cut so the calls stay under the limit', pm <= 40 && pm >= 11, pm);
     pages.iraqedu = pv;
 }
 const before = Object.keys(db.root.news).length;

@@ -1,7 +1,7 @@
 // Every schedule in tutor-worker/wrangler.toml must be named in src/cron.js, and only the tutor's own schedule may reach the tutor's push.
 //   node tools/cron-test.mjs
 import fs from 'node:fs';
-import { routeCron, COACH_CRON, POLL_CRON, NEWS_CRON } from '../tutor-worker/src/cron.js';
+import { routeCron, cronPeriod, COACH_CRON, POLL_CRON, NEWS_CRON } from '../tutor-worker/src/cron.js';
 let pass = 0, fail = 0;
 const t = (n, ok, info) => { if (ok) pass++; else { fail++; console.log('FAIL', n, info === undefined ? '' : JSON.stringify(info)); } };
 const toml = fs.readFileSync(new URL('../tutor-worker/wrangler.toml', import.meta.url), 'utf8');
@@ -15,5 +15,6 @@ t('the minute-by-minute schedule never reaches the tutor', routeCron('* * * * *'
 t('an odd schedule text runs only the news watcher, never the tutor', ['2-59/5 * * * *', '5,20,35,50 * * * *', '*/1 * * * *', '0 * * * *'].every((c) => routeCron(c) === 'news'));
 t('no schedule text, nothing', routeCron('') === '' && routeCron(undefined) === '');
 t('spacing differences are tolerated', routeCron('  *  *  *  *  * ') === 'news');
+t('schedule periods in seconds', cronPeriod('* * * * *') === 60 && cronPeriod('2-59/5 * * * *') === 300 && cronPeriod('*/15 * * * *') === 900 && cronPeriod('*/2 * * * *') === 120 && cronPeriod('0 * * * *') === 60 && cronPeriod(undefined) === 60);
 console.log(`cron tests passed ${pass} failed ${fail}`);
 process.exit(fail ? 1 : 0);
