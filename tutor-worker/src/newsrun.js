@@ -5,7 +5,7 @@
 //   cfg {on, th, words, notify}   chans/{name} {u, n, on, mode: 'auto'|'review', since}   seen/{name}/{postId} = time
 //   idx/{newsId} {k, t, at} (word lists of what the bot published)   queue/{name_postId}, ignored/{name_postId}   status
 import { cleanPost, splitNews, pickCategory, adCheck, findDup, itemTokens, tokens, newsDoc, notifDoc } from './newsbot.js';
-import { isTgName } from './tg.js';
+import { isTgName, isServiceText } from './tg.js';
 
 const DEFAULT_CHANNELS = [['iraqedu', 'iraqedu'], ['iraqed4', 'iraqed4']];
 const DAY = 86400000, MAX_CHANNELS = 10, MAX_PER_CHANNEL = 6, MAX_PER_RUN = 8;   // a Worker run may make about 50 calls: 2 per channel + 3 per published news
@@ -80,6 +80,7 @@ export async function newsRun(db, deps, opt = {}) {
             if (x.vo) continue;                                       // a voice message: never published (even with a caption)
             const cl = cleanPost(x.t);
             if (!cl.text) continue;                                   // a picture or file with no words
+            if (isServiceText(cl.text)) continue;                     // "channel photo updated" and the like
             const sp = splitNews(cl.text);
             if (!sp.title) continue;
             const it = { title: sp.title, excerpt: sp.excerpt, image: (x.im && x.im[0]) || (x.vd && x.vd.th) || '', urgent: cl.urgent, category: pickCategory(cl.text), link: cl.links[0] || '', now };

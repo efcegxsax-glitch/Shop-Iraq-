@@ -1,6 +1,6 @@
 // Checks the Telegram page readers in tutor-worker/src/tg.js against a small saved sample of a channel's public preview page.
 //   node tools/tg-test.mjs
-import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from '../tutor-worker/src/tg.js';
+import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText, isServiceText } from '../tutor-worker/src/tg.js';
 let ok = 0, bad = 0;
 const t = (name, cond) => { if (cond) ok++; else { bad++; console.log('FAIL', name); } };
 t('names', isTgName('mr_ali_math') && !isTgName('ab') && !isTgName('1abc') && !isTgName('a-b-c-d'));
@@ -51,5 +51,19 @@ t('no voice on a normal post', posts[0].vo === null);
 t('push text', tgPushText(posts[0]) === 'محاضرة اليوم مهمة' && tgPushText(posts[1]) === 'ملزمة الفصل' && tgPushText({ t: '', d: [{ n: 'a.pdf' }] }) === 'ملف جديد: a.pdf' && tgPushText({ t: '', vd: {} }) === 'فيديو جديد' && tgPushText({ t: '', im: ['x'], d: [] }) === 'صورة جديدة');
 t('empty page', parseTgPosts('', 'x').length === 0 && parseTgPosts('<html></html>', 'x').length === 0);
 t('script text is not kept as markup', !/[<>]/.test(parseTgPosts('<div class="tgme_widget_message_wrap"><div data-post="abcd/5"><div class="tgme_widget_message_text js-message_text">a <script>alert(1)</script> b</div><time datetime="2026-10-01T00:00:00+00:00"></time>', 'abcd')[0].t.replace('alert(1)', '')));
+
+// a channel's own notices ("photo updated", "name changed", "pinned") are never posts, whatever the markup
+const svc = (inner, cls) => `<div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message ${cls || 'service_message'}" data-post="mr_ali_math/200">${inner}</div></div>`;
+const photoStyle = 'background-image:url(\'https://cdn4.cdn-telegram.org/file/' + 'x'.repeat(500) + '.jpg\')';
+const svcPage = svc(`<a class="tgme_widget_message_photo_wrap" style="${photoStyle}"></a><div class="tgme_widget_message_text js-message_text">Channel photo updated</div>`)
+  + svc('<div class="tgme_widget_message_text js-message_text">Channel name was changed to «الأستاذ علي»</div>')
+  + svc('<div class="tgme_widget_message_text js-message_text">تم تحديث صورة القناة</div>')
+  + svc('<div class="tgme_widget_message_text js-message_text">Admin pinned «موعد الامتحان»</div>')
+  + `<div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message text_not_supported_wrap js-widget_message" data-post="mr_ali_math/205"><div class="tgme_widget_message_text js-message_text">Channel photo updated</div></div></div>`
+  + `<div class="tgme_widget_message_wrap js-widget_message_wrap"><div class="tgme_widget_message js-widget_message" data-post="mr_ali_math/206"><div class="tgme_widget_message_text js-message_text">محاضرة اليوم عن الكهربائية</div><a class="tgme_widget_message_date"><time datetime="2026-10-07T10:00:00+00:00"></time></a></div></div>`;
+const sp = parseTgPosts(svcPage, 'mr_ali_math');
+t('service notices are skipped, a real post stays', sp.length === 1 && sp[0].i === 206, sp.map((x) => x.i));
+t('service wording, English and Arabic', ['Channel photo updated', 'Channel created', 'Channel name was changed to «x»', 'تم تحديث صورة القناة', 'تم تغيير اسم القناة إلى «x»', 'Ali pinned «y»', 'تم إنشاء القناة'].every(isServiceText));
+t('real news that starts alike is not a service line', !isServiceText('تم تثبيت موعد الامتحانات يوم السبت') && !isServiceText('تحديث جدول الامتحانات للسادس الاعدادي') && !isServiceText('') && !isServiceText('Channel photo updated '.repeat(20)));
 console.log('tg tests passed', ok, 'failed', bad);
 process.exit(bad ? 1 : 0);
