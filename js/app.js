@@ -501,7 +501,7 @@
             userBookmarks: {},
             userDeletedNotifs: {},
             calendarMonthOffset: 0,
-            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, tg: true, msg: true, call: true, lec: true, holiday: true },
+            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, tg: true, msg: true, call: true, lec: true, holiday: true, motiv: true },
             currentChatUid: null,
             currentChatOther: null,
             sentFriendRequests: {},
@@ -11798,6 +11798,7 @@
             // (msg, call) through pushPrefs/{uid} in the database, and lecture reminders by not scheduling them at all.
             PN_LIST: [
                 ['urgent', 'الأخبار العاجلة', 'خبر مهم ومستعجل من الوزارة', 'siren', '#DC2626'],
+                ['motiv', 'رسائل التحفيز', 'رسائل تحفيز لدراستك بأوقات الدوام', 'flame', '#F97316'],
                 ['holiday', 'الدوام والعطل', 'باچر دوام لو عطلة؟ وقرارات الدوام لمحافظتك', 'calendar-days', '#0EA5E9'],
                 ['announcement', 'الأخبار والإعلانات الرسمية', 'القرارات والنتائج والإعلانات', 'newspaper', '#2563EB'],
                 ['weather', 'الأنواء الجوية', 'حالة الطقس والتنبيهات الجوية', 'cloud-sun', '#0891B2'],
@@ -11834,7 +11835,7 @@
                 if (this._fcmPath && window.firebaseDb) { const { ref, update } = window.firebaseDbHelpers; update(ref(window.firebaseDb, this._fcmPath), { off: this._pnOff() }).catch(() => {}); }
                 // the broadcast kinds the server filters on: the tag off_<kind> exists only while the kind is switched off
                 const rm = [];
-                ['urgent', 'announcement', 'weather', 'res', 'general', 'holiday'].forEach((k) => { if (this._pnOn(k)) rm.push('off_' + k); else t['off_' + k] = '1'; });
+                ['urgent', 'announcement', 'weather', 'res', 'general', 'holiday', 'motiv'].forEach((k) => { if (this._pnOn(k)) rm.push('off_' + k); else t['off_' + k] = '1'; });
                 rm.push('pn_urgent', 'pn_announcement', 'pn_weather', 'pn_res', 'pn_general'); // the first version of these tags
                 t.tube = this._pnOn('tube') ? 'on' : 'off'; t.coach = this._pnOn('coach') ? 'on' : 'off';
                 this._pnTags(t, rm);
