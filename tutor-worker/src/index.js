@@ -28,7 +28,7 @@ import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, is
 import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 import { makeDb } from './fbadmin.js';
-import { newsRun, newsAct } from './newsrun.js';
+import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
@@ -43,7 +43,7 @@ const PUSH_LOOK = (env) => ({
     web_url: env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/',
 });
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const NEWS_CRON = '2-59/5 * * * *';   // every 5 minutes (at :02, :07, ...); keep in step with wrangler.toml
+const NEWS_CRON = '* * * * *';   // every minute, and inside it a look every 10 seconds (newsLoop); keep in step with wrangler.toml
 
 const SYSTEM = `أنت "المعلم"، مدرس خصوصي لطلاب المدارس العراقية داخل تطبيق أكـادمي السادس، وأغلبهم بالسادس الإعدادي.
 
@@ -605,10 +605,10 @@ async function ytNotify(env, ctx, when) {
 
 // ---- Telegram channels (the teachers' Telegram page): the public preview page of a channel, read here ----
 // a channel's newest page of posts (cached for 5 minutes), or an older page (?before=<post id>, not cached)
-async function tgPage(name, before, ctx) {
-    const cache = caches.default, key = before ? null : new Request('https://tg-cache.invalid/p/' + name.toLowerCase());
+async function tgPage(name, before, ctx, fresh) {
+    const cache = caches.default, key = before || fresh ? null : new Request('https://tg-cache.invalid/p/' + name.toLowerCase());
     if (key) { const hit = await cache.match(key); if (hit) return hit.json(); }
-    const r = await fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', cf: { cacheTtl: 120 } });
+    const r = await fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', ...(fresh ? { cache: 'no-store' } : { cf: { cacheTtl: 120 } }) });
     if (!r.ok) throw new Error('http' + r.status);
     const html = await r.text();
     const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name).sort((a, b) => b.i - a.i) };
@@ -667,7 +667,8 @@ async function tgNotify(env, ctx, when) {
 function newsDeps(env, ctx) {
     return {
         now: () => Date.now(),
-        page: (name) => tgPage(name, 0, ctx),
+        page: (name) => tgPage(name, 0, ctx, true),                // always the live page: no copy kept for minutes
+        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
         // the picture goes into the news record itself (like the pictures the admin uploads); a big one stays a link to Telegram's copy
         img: async (url) => {
             try {
@@ -702,7 +703,7 @@ function newsDeps(env, ctx) {
 async function newsCron(env, ctx) {
     const db = makeDb(env);
     if (!db.ok) return 'no_sa';
-    try { return (await newsRun(db, newsDeps(env, ctx))).state; } catch (e) { return 'error ' + String(e && e.message || e).slice(0, 60); }
+    try { return (await newsLoop(db, newsDeps(env, ctx))).state; } catch (e) { return 'error ' + String(e && e.message || e).slice(0, 60); }
 }
 
 // ---- motivation pushes (قسم تحفيز في اللوحة): plans the admin scheduled (motivPlans/{id}); see src/motiv.js ----
