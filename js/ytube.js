@@ -146,7 +146,8 @@
             <div class="tu-h"><span>الأساتذة</span><button onclick="app.tuPick()"><i data-lucide="sliders-horizontal"></i>تعديل أساتذتي</button></div>
             <div class="tu-tchs">${teachers}</div>
             <div class="tu-tabs"><button class="${S.tab === 'all' ? 'on' : ''}" onclick="app.tuTab('all')">الكل</button><button class="${S.tab === 'mine' ? 'on' : ''}" onclick="app.tuTab('mine')">أساتذتي</button></div>` : ''}
-            ${recent}${chan}<div class="tu-feed">${body}</div>`;
+            ${recent}${chan}<div class="tu-feed">${body}</div>
+            <div class="tg-ask"><button onclick="app._need('tgroom').then(() => app.chReqOpen('yt')).catch(() => app.showToast('ما انفتح الطلب، تأكد من النت'))"><i data-lucide="plus-circle"></i>اطلب إضافة قناة أستاذك</button></div>`;
         try { lucide.createIcons(); } catch (e) {}
     }
 

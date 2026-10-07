@@ -608,6 +608,26 @@ await ok('admin answers', update(ref(db('adm'), 'complaints/c1/a1'), { st: 'fixe
 await ok('admin deletes', set(ref(db('adm'), 'complaints/c1/a1'), null));
 await no('guest cannot report', set(ref(db(null), 'complaints/g1/a1'), { uid: 'g1', k: 'bug', t: 'مشكلة بدون تسجيل دخول', st: 'new', at: TS }));
 
+// channel requests (طلب إضافة قناة)
+const CQ = (u, id, extra) => U(u, { ['chanReq/' + u + '/' + id]: Object.assign({ uid: u, k: 'tg', l: 'https://t.me/mr_ali_math', st: 'new', at: TS, n: 'علي' }, extra || {}), ['chanReqLast/' + u]: TS });
+await ok('student requests a telegram channel', CQ('q1', 'a1'));
+await ok('student requests a youtube channel', CQ('q3', 'a1', { k: 'yt', l: 'https://youtube.com/@teacher' }));
+await no('two requests inside two minutes', CQ('q1', 'a2'));
+await no('unknown kind', CQ('q4', 'a1', { k: 'fb' }));
+await no('link too short', CQ('q5', 'a1', { l: 'x' }));
+await no('someone else name path', U('q7', { 'chanReq/q1/a2': { uid: 'q1', k: 'tg', l: 'https://t.me/abc', st: 'new', at: TS }, 'chanReqLast/q7': TS }));
+await no('already approved when created', CQ('q6', 'a1', { st: 'ok' }));
+await ok('owner reads their own', get(ref(db('q1'), 'chanReq/q1')));
+await no('other student reads it', get(ref(db('q2'), 'chanReq/q1')));
+await no('student reads all', get(ref(db('q2'), 'chanReq')));
+await ok('admin reads all', get(ref(db('adm'), 'chanReq')));
+await no('student approves their own', set(ref(db('q1'), 'chanReq/q1/a1/st'), 'ok'));
+await ok('admin approves', update(ref(db('adm'), 'chanReq/q1/a1'), { st: 'ok', r: 'تمت الإضافة' }));
+await ok('student deletes their own', set(ref(db('q1'), 'chanReq/q1/a1'), null));
+await ok('admin adds a telegram channel', set(ref(db('adm'), 'tgChannels/mr_ali_math'), { u: 'mr_ali_math', n: 'الأستاذ علي', s: 'رياضيات', o: 1 }));
+await ok('student reads telegram channels', get(ref(db('q2'), 'tgChannels')));
+await no('student adds a telegram channel', set(ref(db('q2'), 'tgChannels/x1'), { u: 'x1', n: 'x', o: 1 }));
+
 // flights (رحلة الطالب الجوية)
 const FL = (u, fid, extra) => ({ f: fid, s: TS, du: 5400000, oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', sty: 'modern', sh: true, ...(extra || {}) });
 const GR = (extra) => ({ oa: 30.5, oo: 47.8, da: 33.3, do: 44.4, on: 'البصرة', dn: 'بغداد', s: TS, du: 5400000, sty: 'modern', n: 142, ...(extra || {}) });

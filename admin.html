@@ -680,6 +680,38 @@
                     <datalist id="yt_subj"><option value="الفيزياء"><option value="الكيمياء"><option value="الأحياء"><option value="الرياضيات"><option value="اللغة العربية"><option value="اللغة الإنجليزية"><option value="التربية الإسلامية"></datalist>
                 </div>
 
+                <div class="card" id="tgCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="send"></i></div>
+                        <div>
+                            <h3>تلكرام المدرسين (قنوات تلكرام)</h3>
+                            <p>الصق رابط قناة تلكرام عامة (مثل t.me/اسم_القناة). تطلع منشوراتها بصفحة "تلكرام المدرسين" داخل التطبيق، وتوصل إشعارات للطلاب. الملفات تبقى على تلكرام ولا تخزن بالتطبيق. القناة لازم تكون عامة وتعرض صفحتها بالمتصفح.</p>
+                        </div>
+                    </div>
+                    <div class="sw-row">
+                        <div class="sw-text"><strong>إظهار الصفحة للطلاب</strong></div>
+                        <label class="switch"><input type="checkbox" data-cfg="features.tgteachers" aria-label="تلكرام المدرسين"><span class="track"></span></label>
+                    </div>
+                    <div class="field mt-3">
+                        <label for="tg_q">رابط القناة</label>
+                        <input id="tg_q" placeholder="https://t.me/اسم_القناة  أو  @اسم_القناة" dir="ltr">
+                        <div class="flex gap-2" style="flex-wrap:wrap;margin-top:8px"><button class="btn" type="button" id="tg_find">جلب معلومات القناة</button></div>
+                    </div>
+                    <div id="tg_res" class="mt-2"></div>
+                    <div class="field mt-3"><label>القنوات المضافة</label><div id="tg_list"></div></div>
+                </div>
+
+                <div class="card" id="reqCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="inbox"></i></div>
+                        <div>
+                            <h3>طلبات إضافة قنوات من الطلاب</h3>
+                            <p>الطالب يرسل رابط قناة تلكرام أو يوتيوب. اضغط "افتحها بالأداة" لتنجلب معلوماتها وتضيفها، وبعدين اضغط "تمت الإضافة" حتى يشوف الطالب إنها انقبلت، أو "رفض".</p>
+                        </div>
+                    </div>
+                    <div id="rq_list"></div>
+                </div>
+
                 <div class="card" id="promoCard">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="sparkles"></i></div>
@@ -3257,6 +3289,59 @@
             L.querySelectorAll('[data-ydn]').forEach((b) => b.addEventListener('click', () => swap(b.dataset.ydn, 1)));
         });
 
+
+        // ---------- teachers' Telegram channels (tgChannels) and the students' requests (chanReq) ----------
+        let tgCur = {}, tgFound = null;
+        const tgNameOf = (x) => { let s = String(x || '').trim().replace(/^@/, ''); s = s.replace(/^(https?:\/\/)?(www\.)?(t\.me|telegram\.me|telegram\.dog)\//i, '').replace(/^s\//i, ''); if (/^(\+|joinchat)/i.test(s)) return ''; s = s.split(/[\/?#]/)[0]; return /^[A-Za-z][A-Za-z0-9_]{3,31}$/.test(s) ? s : ''; };
+        const tgImg = (u) => (/^https:\/\/[^\s"'<>]+$/.test(String(u || '')) ? `<img src="${escapeHtml(u)}" alt="" referrerpolicy="no-referrer" style="width:40px;height:40px;border-radius:50%;object-fit:cover">` : '<span style="width:40px;height:40px;border-radius:50%;background:#e2e8f0;display:inline-block"></span>');
+        el('tg_find').addEventListener('click', async () => {
+            const q = val('tg_q'), u = tgNameOf(q); const box = el('tg_res');
+            if (!u) { box.textContent = 'الرابط غير صحيح. لازم رابط قناة عامة مثل t.me/اسم_القناة (روابط الدعوة الخاصة ما تشتغل)'; return; }
+            box.textContent = 'جاري الجلب...';
+            try {
+                const c = await workerPost({ mode: 'tginfo', q: u });
+                tgFound = c;
+                if (!c.n) { box.textContent = 'ما لكيت هذه القناة'; return; }
+                const warn = c.preview ? '' : '<div style="color:#b45309;font-size:12px;margin-top:4px">انتبه: هذه القناة ما تعرض صفحة عامة (المنشورات ما راح تطلع للطلاب). لازم تكون القناة عامة.</div>';
+                box.innerHTML = `<div style="${YT_STYLE}">${tgImg(c.a)}<div style="flex:1;min-width:0"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)} . ${c.subs ? c.subs + ' مشترك . ' : ''}${c.count} منشور ظاهر</div>${warn}</div><input list="yt_subj" id="tg_s" placeholder="المادة" style="width:110px"><button class="btn" type="button" id="tg_add">أضف</button></div>`;
+                el('tg_add').addEventListener('click', async () => {
+                    const s = (el('tg_s').value || '').trim().slice(0, 30), key = c.u.toLowerCase();
+                    if (tgCur[key]) { toast('هذه القناة مضافة من قبل', false); return; }
+                    try { await set(ref(db, 'tgChannels/' + key), { u: c.u, n: String(c.n).slice(0, 80), a: c.a || '', s, o: Date.now() }); toast('تمت إضافة القناة'); box.textContent = ''; el('tg_q').value = ''; }
+                    catch (e) { toast('تعذرت الإضافة: ' + (e.message || e), false); }
+                });
+            } catch (e) { box.textContent = 'تعذر الجلب: ' + (e.message || e); }
+        });
+        onValue(ref(db, 'tgChannels'), (snap) => {
+            const v = snap.exists() ? snap.val() : {}; tgCur = v;
+            const rows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (Number(a.o) || 0) - (Number(b.o) || 0));
+            const L = el('tg_list');
+            L.innerHTML = rows.length ? rows.map((c, i) => `<div style="${YT_STYLE}">${tgImg(c.a)}<div style="flex:1;min-width:0"><b>${escapeHtml(c.n)}</b><div style="font-size:12px;opacity:.7" dir="ltr">@${escapeHtml(c.u)}</div></div><input list="yt_subj" value="${escapeHtml(c.s || '')}" data-ts="${escapeHtml(c.k)}" placeholder="المادة" style="width:110px"><button class="btn" type="button" data-tup="${escapeHtml(c.k)}" ${i === 0 ? 'disabled' : ''} aria-label="فوق">↑</button><button class="btn" type="button" data-tdn="${escapeHtml(c.k)}" ${i === rows.length - 1 ? 'disabled' : ''} aria-label="تحت">↓</button><button class="btn" type="button" style="background:#dc2626" data-tdel="${escapeHtml(c.k)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما انضافت أي قناة بعد</div>';
+            L.querySelectorAll('[data-ts]').forEach((i) => i.addEventListener('change', () => set(ref(db, 'tgChannels/' + i.dataset.ts + '/s'), i.value.trim().slice(0, 30)).then(() => toast('انحفظت المادة')).catch(() => toast('تعذر الحفظ', false))));
+            L.querySelectorAll('[data-tdel]').forEach((b) => b.addEventListener('click', async () => { if (await ask({ icon: 'trash-2', tone: 'warn', title: 'حذف القناة؟', text: 'تختفي من صفحة تلكرام المدرسين عند كل الطلاب.' })) remove(ref(db, 'tgChannels/' + b.dataset.tdel)).then(() => toast('انحذفت')).catch(() => toast('تعذر الحذف', false)); }));
+            const swap = (k, d) => { const i = rows.findIndex((r) => r.k === k), j = i + d; if (i < 0 || j < 0 || j >= rows.length) return; const a = rows[i], b = rows[j]; const oa = Number(a.o) || i, ob = Number(b.o) || j; update(ref(db), { ['tgChannels/' + a.k + '/o']: ob === oa ? ob + d : ob, ['tgChannels/' + b.k + '/o']: oa }).catch(() => toast('تعذر الترتيب', false)); };
+            L.querySelectorAll('[data-tup]').forEach((b) => b.addEventListener('click', () => swap(b.dataset.tup, -1)));
+            L.querySelectorAll('[data-tdn]').forEach((b) => b.addEventListener('click', () => swap(b.dataset.tdn, 1)));
+        });
+        // the students' requests: the link only (shown as text, opened by the admin on purpose)
+        function loadChanReqAdmin() { onValue(ref(db, 'chanReq'), (snap) => {
+            const v = snap.exists() ? snap.val() : {}, rows = [];
+            Object.keys(v).forEach((uid) => Object.keys(v[uid] || {}).forEach((id) => rows.push({ uid, id, ...v[uid][id] })));
+            rows.sort((a, b) => (a.st === 'new' ? 0 : 1) - (b.st === 'new' ? 0 : 1) || (b.at || 0) - (a.at || 0));
+            const L = el('rq_list');
+            L.innerHTML = rows.length ? rows.slice(0, 100).map((r) => `<div style="${YT_STYLE};flex-wrap:wrap"><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${r.k === 'tg' ? '#0284c7' : '#dc2626'};color:#fff">${r.k === 'tg' ? 'تلكرام' : 'يوتيوب'}</span><div style="flex:1;min-width:160px"><div dir="ltr" style="font-size:13px;word-break:break-all">${escapeHtml(r.l)}</div><div style="font-size:11px;opacity:.7">${escapeHtml(r.n || '')} ${r.s ? '. رقم ' + escapeHtml(r.s) : ''} . ${new Date(r.at || 0).toLocaleDateString('ar-IQ')} . ${r.st === 'new' ? 'جديد' : r.st === 'ok' ? 'مقبول' : 'مرفوض'}</div></div>${r.st === 'new' ? `<button class="btn" type="button" data-rqopen="${escapeHtml(r.uid + '/' + r.id)}">افتحها بالأداة</button><button class="btn" type="button" style="background:#16a34a" data-rqok="${escapeHtml(r.uid + '/' + r.id)}">تمت الإضافة</button><button class="btn" type="button" style="background:#b45309" data-rqno="${escapeHtml(r.uid + '/' + r.id)}">رفض</button>` : ''}<button class="btn" type="button" style="background:#64748b" data-rqdel="${escapeHtml(r.uid + '/' + r.id)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما كو طلبات</div>';
+            const find = (k) => rows.find((r) => r.uid + '/' + r.id === k);
+            L.querySelectorAll('[data-rqopen]').forEach((b) => b.addEventListener('click', () => {
+                const r = find(b.dataset.rqopen); if (!r) return;
+                if (r.k === 'tg') { el('tg_q').value = r.l; el('tg_find').click(); el('tgCard').scrollIntoView({ behavior: 'smooth' }); }
+                else { el('yt_q').value = r.l; el('yt_find').click(); el('tubeCard').scrollIntoView({ behavior: 'smooth' }); }
+            }));
+            const mark = (k, st, rs) => update(ref(db, 'chanReq/' + k), { st, r: rs || null }).then(() => toast('انحفظ')).catch(() => toast('تعذر الحفظ', false));
+            L.querySelectorAll('[data-rqok]').forEach((b) => b.addEventListener('click', () => mark(b.dataset.rqok, 'ok', 'انضافت القناة')));
+            L.querySelectorAll('[data-rqno]').forEach((b) => b.addEventListener('click', () => { const why = prompt('سبب الرفض (يشوفه الطالب):', 'القناة مو عامة أو مو دراسية'); if (why !== null) mark(b.dataset.rqno, 'no', String(why).slice(0, 200)); }));
+            L.querySelectorAll('[data-rqdel]').forEach((b) => b.addEventListener('click', () => remove(ref(db, 'chanReq/' + b.dataset.rqdel)).then(() => toast('انحذف')).catch(() => toast('تعذر الحذف', false))));
+        }); }
+
         // ---------- Exams: a handout -> an A4 question paper, and past ministerial papers (no file size limit) ----------
         const EX_SUBJ = ['الأحياء', 'الفيزياء', 'الكيمياء', 'الرياضيات', 'اللغة العربية', 'اللغة الإنجليزية', 'التربية الإسلامية'];
         ['ex_subj', 'pa_subj'].forEach((id) => { el(id).innerHTML = EX_SUBJ.map((x) => `<option>${x}</option>`).join(''); });
@@ -5181,6 +5266,7 @@
             loadVentAdmin();
             loadIdeasAdmin();
             loadComplaintsAdmin();
+            loadChanReqAdmin();
             loadVoiceAdmin();
             loadForestWeather();
             loadVerified();

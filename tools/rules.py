@@ -209,7 +209,7 @@ rules = {
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
-                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels", "exams"]},
+                                  "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels", "tgChannels", "exams"]},
     # big files (PDFs) live apart from the lists so opening the app never downloads them
     "resourceFiles": {
         ".read": True, ".write": ADMIN,
@@ -980,6 +980,26 @@ rules = {
         "$other": {".validate": False},
     }}},
     "complaintLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"}},
+
+    # ----- طلب إضافة قناة (تلكرام أو يوتيوب): a student sends the channel's link, the admin approves or refuses it from the panel.
+    # chanReq/{uid}/{id}: the student creates their own (one every 2 minutes) and reads the answer back; only the admin reads all of them. -----
+    "chanReq": {".read": ADMIN, "$uid": {".read": OWNER, "$id": {
+        ".write": ors(ADMIN, ands(OWNER, "!data.exists()", "newData.child('at').val() == now",
+                                  "newData.parent().parent().parent().child('chanReqLast/' + auth.uid).val() == now"),
+                      ands(OWNER, "!newData.exists()")),
+        ".validate": "!newData.exists() || data.exists() || (" + ands(
+            "newData.hasChildren(['uid', 'k', 'l', 'st', 'at'])", "newData.child('uid').val() == $uid", "newData.child('st').val() == 'new'") + ")",
+        "uid": {".validate": "newData.isString()"},
+        "k": {".validate": "newData.isString() && newData.val().matches(/^(tg|yt)$/)"},
+        "l": {".validate": "newData.isString() && newData.val().length >= 4 && newData.val().length <= 150"},
+        "n": {".validate": "newData.isString() && newData.val().length <= 80"},
+        "s": {".validate": "newData.isString() && newData.val().length <= 12"},
+        "st": {".validate": "newData.isString() && newData.val().matches(/^(new|ok|no)$/)"},
+        "r": {".validate": "newData.isString() && newData.val().length <= 200"},
+        "at": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }}},
+    "chanReqLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 120000)"}},
 
     # ----- رحلة الطالب الجوية. A flight is only its start (server time), its length and two places: the plane's place at any
     # moment is worked out on every phone from those, so nothing is written while it flies.

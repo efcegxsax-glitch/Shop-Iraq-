@@ -501,7 +501,7 @@
             userBookmarks: {},
             userDeletedNotifs: {},
             calendarMonthOffset: 0,
-            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, msg: true, call: true, lec: true, holiday: true },
+            notifPrefs: { urgent: true, announcement: true, circular: true, update: true, reminder: true, general: true, weather: true, res: true, tube: true, tg: true, msg: true, call: true, lec: true, holiday: true },
             currentChatUid: null,
             currentChatOther: null,
             sentFriendRequests: {},
@@ -728,6 +728,7 @@
                 try { const m = location.search.match(/[?&]yr=([a-z0-9]{6,20})/i); if (m) this._yrPending = m[1].toLowerCase(); } catch (e) {}
                 // a push about a teacher's new video (?tube=<video id>) opens that video
                 try { const m = location.search.match(/[?&]tube=([A-Za-z0-9_-]{11})(?:&|$)/); if (m) this._tubePending = m[1]; } catch (e) {}
+                try { const m = location.search.match(/[?&]tg=([A-Za-z][A-Za-z0-9_]{3,31})(?:&|$)/); if (m) this._tgPending = m[1]; } catch (e) {}
                 try { const m = location.search.match(/[?&]rm=([a-z0-9]{4,12})/i); if (m) this._rmPending = m[1].toLowerCase(); } catch (e) {}
                 try { const m = location.search.match(/[?&]dl=([a-z0-9]{6})(?![a-z0-9])/i); if (m) this._dlPending = m[1].toLowerCase(); } catch (e) {}
                 // an invite link (?ref=<uid>) is remembered until the visitor creates an account
@@ -1925,7 +1926,7 @@
                     return;
                 }
                 this.showNewsList();
-                if (container) container.innerHTML = filtered.map(news => this.createNewsCard(news)).join('');
+                if (container) container.innerHTML = filtered.map(news => this.createNewsCard(news)).join(''); if (window.lucide) lucide.createIcons();
                 this._newsMoreBtn();
             },
 
@@ -2327,7 +2328,7 @@
                             <p class="text-sm theme-transition" style="color: var(--text2);">جرب كلمات بحث أخرى</p>
                         </div>`;
                 } else {
-                    container.innerHTML = results.map(n => this.createNewsCard(n)).join('');
+                    container.innerHTML = results.map(n => this.createNewsCard(n)).join(''); if (window.lucide) lucide.createIcons();
                 }
                 this._skipHistory = true;
                 this.switchView('searchView');
@@ -2840,6 +2841,7 @@
                     this._coachTag(this._coachGet().on);
                     this._pnSync();
                     this._prizeListen();
+                    if (this._tgPending) { const u = this._tgPending; this._tgPending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this._need('tgroom').then(() => this.tgGo(u)).catch(() => {}); }, 900); }
                     if (this._tubePending) { const v = this._tubePending; this._tubePending = null; try { history.replaceState(history.state, '', location.pathname); } catch (e) {} setTimeout(() => { this.goToTube(); this._need('ytube').then(() => this.tuPlay && this.tuPlay(v)).catch(() => {}); }, 900); }
                     this._clRingListen();
                     this.listenForUserTasks();
@@ -4623,6 +4625,23 @@
             // the push service skips students who switched the messages off (tag coach=off)
             _coachTag(on) { this._pnTags({ coach: on ? 'on' : 'off' }); },
             // new-video pushes from teachers: on unless the student switched them off in the teachers page
+            // Telegram channel pushes: a tag per channel (tg_<name> = on / off). The server pushes a channel's post to the phones that
+            // did not mute it (or switch every channel off). `names` is known when the teachers' page is open; otherwise it is read once.
+            async _tgTagSync(names) {
+                try {
+                    const all = this.notifPrefs.tg === false; let mu = []; try { mu = JSON.parse(localStorage.getItem('isp_tg_mute') || '[]'); } catch (e) {}
+                    if (!names) {
+                        if (!all && !mu.length && localStorage.getItem('isp_tg_dirty') !== '1') return;
+                        if (this._tgNames && Date.now() - (this._tgNamesAt || 0) < 3600000) names = this._tgNames;
+                        else { const { ref, get } = window.firebaseDbHelpers, s = await get(ref(window.firebaseDb, 'tgChannels')); names = s.exists() ? Object.keys(s.val()) : []; }
+                    }
+                    this._tgNames = names; this._tgNamesAt = Date.now();
+                    const set = new Set(mu), t = {}; let anyOff = false;
+                    names.forEach((n) => { const off = all || set.has(String(n).toLowerCase()); if (off) anyOff = true; t['tg_' + String(n).toLowerCase()] = off ? 'off' : 'on'; });
+                    if (Object.keys(t).length) this._pnTags(t);
+                    try { localStorage.setItem('isp_tg_dirty', anyOff ? '1' : '0'); } catch (e) {}
+                } catch (e) {}
+            },
             _tubeTag() { this._pnTags({ tube: this.notifPrefs.tube === false ? 'off' : 'on' }); },
             _coachTick() {
                 const cfg = this.siteConfig || {};
@@ -4748,6 +4767,14 @@
                 if (document.getElementById('exPaper')) { this.exClosePaper(); return; }
                 if (this.exBack && this.exBack()) return;
                 this.goBack();
+            },
+
+            goToTg() {
+                const cfg = this.siteConfig || {};
+                if (cfg.features && cfg.features.tgteachers === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
+                this.switchView('tgView');
+                if (this._withPart('tgroom', () => typeof this.tgOpen === 'function', 'tgView', () => this.goToTg())) return;
+                this.tgOpen();
             },
 
             goToTube() {
@@ -8785,6 +8812,7 @@
                 { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
+                { id: 'tgteach', fn: 'goToTg', t: 'تلكرام المدرسين', d: 'منشورات وملازم قنوات أساتذتك بتلكرام، داخل التطبيق', ic: 'send', c: '#0284C7', g: 'study', feat: 'tgteachers' },
                 { id: 'yt', fn: 'goToYoutubeStudy', t: 'يوتيوب دراسة', d: 'ادرس بفيديو واكسب نقاط', ic: 'video', c: '#EF4444', g: 'study' },
                 { id: 'tasks', fn: 'goToTasks', t: 'مهامي اليومية', d: 'مهام وتذكيرات', ic: 'list-checks', c: '#F59E0B', g: 'study' },
                 { id: 'cal', fn: 'goToCalendar', t: 'التقويم الشهري', d: 'تقدمك يوم بيوم', ic: 'calendar-days', c: '#6366F1', g: 'study' },
@@ -11772,6 +11800,7 @@
                 ['weather', 'الأنواء الجوية', 'حالة الطقس والتنبيهات الجوية', 'cloud-sun', '#0891B2'],
                 ['res', 'ملازم جديدة', 'لما تنزل ملزمة جديدة', 'book-open', '#16A34A'],
                 ['tube', 'محاضرات المدرسين', 'لما أستاذ ينزل فيديو جديد', 'clapperboard', '#EF4444'],
+                ['tg', 'قنوات تلكرام المدرسين', 'لما أستاذ ينزل منشور أو ملف بقناته', 'send', '#0284C7'],
                 ['general', 'إعلانات عامة من الإدارة', 'أخبار ومناسبات عامة', 'megaphone', '#7C3AED'],
                 ['coach', 'رسائل المعلم', 'تشجيع وتذكير بالدراسة', 'message-circle-warning', '#6366F1'],
                 ['lec', 'تذكير المحاضرات', 'قبل موعد محاضرتك بجدولك', 'alarm-clock', '#F59E0B'],
@@ -11806,6 +11835,7 @@
                 rm.push('pn_urgent', 'pn_announcement', 'pn_weather', 'pn_res', 'pn_general'); // the first version of these tags
                 t.tube = this._pnOn('tube') ? 'on' : 'off'; t.coach = this._pnOn('coach') ? 'on' : 'off';
                 this._pnTags(t, rm);
+                this._tgTagSync();
                 if (this.isLoggedIn && this.authUid && window.firebaseDb) {
                     const off = {}; ['msg', 'call'].forEach((k) => { if (!this._pnOn(k)) off[k] = false; });
                     const sig = JSON.stringify(off);
@@ -12959,7 +12989,7 @@
                             <p class="text-sm theme-transition" style="color: var(--text2);">قم بحفظ الأخبار المهمة للاطلاع عليها لاحقاً</p>
                         </div>`;
                 } else {
-                    container.innerHTML = saved.map(n => this.createNewsCard(n)).join('');
+                    container.innerHTML = saved.map(n => this.createNewsCard(n)).join(''); if (window.lucide) lucide.createIcons();
                 }
                 this.switchView('savedView');
                 lucide.createIcons();
@@ -13016,6 +13046,7 @@
                 if (this.currentView === 'dhikrView' && viewId !== 'dhikrView' && this.dkClose) this.dkClose();
                 if (this.currentView === 'hallView' && viewId !== 'hallView' && this.hlClose) this.hlClose();
                 if (this.currentView === 'tubeView' && viewId !== 'tubeView' && this.tuClose) this.tuClose();
+                if (this.currentView === 'tgView' && viewId !== 'tgView' && this.tgClose) this.tgClose();
                 if (this.currentView === 'examsView' && viewId !== 'examsView' && this.exClosePaper) this.exClosePaper();
                 if (this.currentView === 'tableView' && viewId !== 'tableView' && this.tbClose) this.tbClose();
                 if (this.currentView === 'moneyView' && viewId !== 'moneyView' && this.mnClose) this.mnClose();

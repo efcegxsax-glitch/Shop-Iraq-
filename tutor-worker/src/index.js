@@ -25,6 +25,7 @@ import { cleanExam, uuidOf } from './exam.js';
 import { pushTargets, sendAfter } from './push.js';
 import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from './plan.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
+import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
 // tried in order: when one is overloaded (503), out of free quota (429) or retired (404), the next answers
@@ -598,6 +599,66 @@ async function ytNotify(env, ctx, when) {
     return 'sent_' + sent;
 }
 
+// ---- Telegram channels (the teachers' Telegram page): the public preview page of a channel, read here ----
+// a channel's newest page of posts (cached for 5 minutes), or an older page (?before=<post id>, not cached)
+async function tgPage(name, before, ctx) {
+    const cache = caches.default, key = before ? null : new Request('https://tg-cache.invalid/p/' + name.toLowerCase());
+    if (key) { const hit = await cache.match(key); if (hit) return hit.json(); }
+    const r = await fetch('https://t.me/s/' + name + (before ? '?before=' + before : ''), { headers: { ...ytHeaders, 'Accept-Language': 'ar,en;q=0.8' }, redirect: 'follow', cf: { cacheTtl: 120 } });
+    if (!r.ok) throw new Error('http' + r.status);
+    const html = await r.text();
+    const out = { info: parseTgInfo(html), posts: parseTgPosts(html, name).sort((a, b) => b.i - a.i) };
+    if (key) ctx.waitUntil(cache.put(key, new Response(JSON.stringify(out), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' } })));
+    return out;
+}
+
+// ---- a teacher posted on Telegram: a push to the students who did not mute that channel ----
+// Same plan as the YouTube pushes: every 15 minutes, a channel's first look never pushes its old posts, with the KV store each post
+// goes out once, without it only the last 20 minutes count. A student mutes a channel in the app: the tag tg_<channel> = off.
+async function tgNotify(env, ctx, when) {
+    if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID || !env.FIREBASE_DB_URL) return 'no_key';
+    const base = env.FIREBASE_DB_URL.replace(/\/$/, '');
+    let chans = {};
+    try {
+        const sw = await fetch(base + '/siteConfig/features/tgteachers.json');
+        if (sw.ok && (await sw.json()) === false) return 'off';
+        const r = await fetch(base + '/tgChannels.json');
+        if (r.ok) chans = (await r.json()) || {};
+    } catch { return 'db'; }
+    const list = Object.values(chans).filter((c) => c && isTgName(c.u)).slice(0, 30);
+    const kv = env.AVATARS, now = Date.now();
+    let sent = 0;
+    for (const c of list) {
+        let pg; try { pg = await tgPage(c.u, 0, ctx); } catch { continue; }
+        const posts = pg.posts.slice(0, 6), nm = c.u.toLowerCase();
+        let fresh;
+        if (kv) {
+            const first = !(await kv.get('tg:init:' + nm));
+            if (first) { await kv.put('tg:init:' + nm, '1'); for (const x of posts) await kv.put('tg:sent:' + nm + '/' + x.i, '1', { expirationTtl: 30 * 86400 }); continue; }
+            fresh = [];
+            for (const x of posts) if (x.p > now - 6 * 3600000 && !(await kv.get('tg:sent:' + nm + '/' + x.i))) fresh.push(x);
+        } else fresh = posts.filter((x) => x.p > when - 20 * 60000 && x.p <= when + 60000);
+        fresh.sort((a, b) => a.i - b.i);
+        for (const x of fresh.slice(-2)) {
+            if (kv) await kv.put('tg:sent:' + nm + '/' + x.i, '1', { expirationTtl: 30 * 86400 });
+            const tag = 'tg_' + nm;
+            const res = await fetch('https://api.onesignal.com/notifications?c=push', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                body: JSON.stringify({
+                    app_id: env.ONESIGNAL_APP_ID, target_channel: 'push',
+                    filters: [{ field: 'tag', key: tag, relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: tag, relation: '=', value: 'on' }],
+                    headings: { en: str(c.n, 40) || 'قناة مدرس', ar: str(c.n, 40) || 'قناة مدرس' }, contents: { en: tgPushText(x), ar: tgPushText(x) },
+                    ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tg=' + c.u,
+                    data: { tg: c.u }, web_push_topic: ('isp-tg-' + nm).slice(0, 30), ttl: 12 * 3600,
+                    idempotency_key: await uuidOf('tg-' + nm + '-' + x.i),
+                }),
+            });
+            if (res.ok) sent++; else console.error('tg push', res.status, (await res.text().catch(() => '')).slice(0, 200));
+        }
+    }
+    return 'sent_' + sent;
+}
+
 // a channel's uploads, 100 at a time (the first page is cached for 30 minutes). Three ways, tried in turn:
 // YouTube's own app endpoint (no page to parse), the playlist web page, and (if the key secret exists) the official API.
 // YouTube's own app endpoint, asked the way its apps ask (the public web key and each client's headers); tried as the web client, then as the Android app.
@@ -650,7 +711,7 @@ async function ytUploads(id, cont, ctx, env) {
 
 export default {
     async scheduled(event, env, ctx) {
-        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); return; }
+        if (event.cron === '*/15 * * * *') { ctx.waitUntil(ytNotify(env, ctx, event.scheduledTime).then((r) => console.log('yt notify', r))); ctx.waitUntil(tgNotify(env, ctx, event.scheduledTime).then((r) => console.log('tg notify', r))); return; }
         ctx.waitUntil(coachPush(env, event.scheduledTime).then((r) => console.log('coach push', r)));
     },
 
@@ -751,6 +812,44 @@ export default {
             for (const { id, f } of feeds) for (const v of f.videos.slice(0, 15)) videos.push({ ...v, c: id });
             videos.sort((a, b) => b.p - a.p);
             return json(200, { videos: videos.slice(0, 120) }, headers);
+        }
+
+        // the teachers' Telegram channels: the newest posts of up to 12 channels, merged, newest first
+        if (body.mode === 'tgfeed') {
+            if (env.PER_NOTIFY) {
+                const { success } = await env.PER_NOTIFY.limit({ key: 'tg' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const names = (Array.isArray(body.names) ? body.names : []).filter(isTgName).slice(0, 12);
+            if (!names.length) return json(200, { posts: [] }, headers);
+            const pages = await Promise.all(names.map((u) => tgPage(u, 0, ctx).then((f) => ({ u, f })).catch(() => ({ u, f: null }))));
+            const posts = [], fail = [], chans = {};
+            for (const { u, f } of pages) { if (!f) { fail.push(u); continue; } chans[u] = { n: f.info.n, a: f.info.a }; for (const x of f.posts.slice(0, 15)) posts.push(x); }
+            posts.sort((a, b) => b.p - a.p);
+            return json(200, { posts: posts.slice(0, 150), fail, chans }, headers);
+        }
+
+        // one Telegram channel's older posts, a page at a time
+        if (body.mode === 'tgchan') {
+            if (env.PER_NOTIFY) {
+                const { success } = await env.PER_NOTIFY.limit({ key: 'tc' + uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const u = String(body.u || ''), before = Number.isInteger(body.before) && body.before > 0 ? body.before : 0;
+            if (!isTgName(u)) return json(400, { error: 'bad' }, headers);
+            try { const f = await tgPage(u, before, ctx); return json(200, { posts: f.posts, next: f.posts.length ? tgOldest(f.posts) : 0 }, headers); } catch (e) { return json(502, { error: 'telegram', why: String(e && e.message || e).slice(0, 30) }, headers); }
+        }
+
+        // admin only: a Telegram channel's name and picture from its link (also tells whether its public preview works)
+        if (body.mode === 'tginfo') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (env.PER_CALL) {
+                const { success } = await env.PER_CALL.limit({ key: uid });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const u = tgNameOf(body.q);
+            if (!u) return json(400, { error: 'empty' }, headers);
+            try { const f = await tgPage(u, 0, ctx); return json(200, { u, n: f.info.n, a: f.info.a, subs: f.info.subs, preview: f.info.preview, count: f.posts.length }, headers); } catch (e) { return json(502, { error: 'telegram', why: String(e && e.message || e).slice(0, 30) }, headers); }
         }
 
         // admin only: the pages of a handout as pictures -> their text (for scanned PDFs)
