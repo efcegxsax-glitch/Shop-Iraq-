@@ -620,6 +620,24 @@ await no('unknown field is refused', set(ref(db('nb1'), 'noteBackup/nb1/n4'), { 
 await no('missing data is refused', set(ref(db('nb1'), 'noteBackup/nb1/n5'), { t: 'x', ts: TS }));
 await ok('owner deletes the backup', set(ref(db('nb1'), 'noteBackup/nb1/n1'), null));
 
+// the panel's student file: one multi-path write changes the account and every copy of it, and logs it
+await seed('users/ed1', { fullName: 'علي', email: 'ali@x.iq', phone: '07701234567', studentNumber: '111111', governorate: 'بغداد', grade: 'scientific', points: 100, balance: 5 });
+await seed('pub/ed1', { n: 'علي', s: '111111', g: 'بغداد' });
+await seed('leaderboard/ed1', { name: 'علي', points: 100, grade: 'scientific' });
+await seed('numIndex/111111', 'ed1'); await seed('phoneIndex/07701234567', { e: 'ali@x.iq', u: 'ed1' });
+await no('a student cannot read the audit log', get(ref(db('ed1'), 'auditLog')));
+await no('a student cannot write the audit log', set(ref(db('ed1'), 'auditLog/x1'), { at: TS, k: 'userEdit' }));
+await no('a student cannot change another student\'s name', update(ref(db('nb2'), 'users/ed1'), { fullName: 'مزوّر' }));
+await ok('the admin edits name, number, phone, governorate, branch and points in one write', update(ref(db('adm')), {
+  'users/ed1/fullName': 'علي حسين', 'users/ed1/studentNumber': '222222', 'users/ed1/phone': '07809999999', 'users/ed1/governorate': 'البصرة', 'users/ed1/grade': 'literary', 'users/ed1/points': 5000,
+  'pub/ed1/n': 'علي حسين', 'pub/ed1/s': '222222', 'pub/ed1/g': 'البصرة', 'leaderboard/ed1/name': 'علي حسين', 'leaderboard/ed1/grade': 'literary', 'leaderboard/ed1/points': 5000,
+  'numIndex/222222': 'ed1', 'numIndex/111111': null, 'phoneIndex/07809999999': { e: 'ali@x.iq', u: 'ed1' }, 'phoneIndex/07701234567': null,
+  'auditLog/l1': { at: TS, by: { t: 'panel', e: 'panel.admin@iraqi-student-platform.app' }, k: 'userEdit', uid: 'ed1', num: '222222', name: 'علي حسين', ch: { fullName: ['علي', 'علي حسين'] } },
+}));
+await ok('the admin reads the audit log', get(ref(db('adm'), 'auditLog')));
+await no('the admin cannot give a balance above the limit', update(ref(db('adm')), { 'users/ed1/balance': 100001 }));
+await ok('the owner can still read their own record afterwards', get(ref(db('ed1'), 'users/ed1')));
+
 // news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*
 await no('student reads the news bot data', get(ref(db('nb1'), 'newsBot/cfg')));
 await no('student switches the news bot on', set(ref(db('nb1'), 'newsBot/cfg/on'), true));

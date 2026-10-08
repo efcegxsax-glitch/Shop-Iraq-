@@ -968,8 +968,13 @@
                     const v = snap.val();
                     if (typeof v.balance === 'number') this.currentUser.balance = v.balance;
                     if (typeof v.points === 'number') this.currentUser.points = v.points;
+                    // the profile fields the admin panel can edit (name, phone, governorate, branch, student number): taken from the server, so this phone
+                    // does not write its old copy back at the next sync
+                    let edited = false;
+                    ['fullName', 'governorate', 'phone', 'grade', 'studentNumber'].forEach((k) => { if (typeof v[k] === 'string' && (v[k] !== '' || k === 'phone' || k === 'governorate') && v[k] !== (this.currentUser[k] || '')) { this.currentUser[k] = v[k]; edited = true; } });
                     this._adoptServerGradesMoods(v);
                     this.saveUserData();
+                    if (edited) { try { this.updateProfileView(); } catch (e) {} }
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'pointsStoreView') this.renderPointsStore();
                 });
