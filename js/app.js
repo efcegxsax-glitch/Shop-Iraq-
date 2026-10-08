@@ -791,6 +791,7 @@
                 this.initWebPush();
                 this.listenForPolls();
                 this.listenForVerified();
+                this.listenForMods();
                 this._clockSync();
                 this.initGolden();
                 setTimeout(() => this.pingDevice(), 3000);
@@ -1190,7 +1191,7 @@
                 } else {
                     this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
                 }
-                this.listenForOwnUserRecord();
+                this.listenForOwnUserRecord(); this.listenForMods();
                 this.checkDailyStreak();
                 this._ttNudgeSoon();
                 this._smPing();
@@ -2250,6 +2251,7 @@
                                 <button onclick="app.shareCurrentNews()" class="nd-btn"><i data-lucide="share-2"></i>مشاركة</button>
                                 <button onclick="app.shareNewsStory()" class="nd-btn"><i data-lucide="image"></i>ستوري</button>
                                 <button onclick="app.toggleBookmarkDetail()" class="nd-btn${news.isBookmarked ? ' on' : ''}"><i data-lucide="bookmark"></i>${news.isBookmarked ? 'محفوظ' : 'حفظ الخبر'}</button>
+                                ${this.modCan('delNews') ? `<button onclick="app.modDelNews(${jsNum(news.id)})" class="nd-btn" style="color:#dc2626;white-space:nowrap;font-size:12.5px"><i data-lucide="trash-2"></i>حذف للكل</button>` : ''}
                             ${/^https:\/\/[^\s"'<>]{4,300}$/.test(String(news.link || '')) ? `<a href="${escapeHtml(news.link)}" target="_blank" rel="noopener noreferrer" class="nd-btn" style="text-decoration:none;"><i data-lucide="external-link"></i>المصدر الرسمي</a>` : ''}
                             </div>
                             ${related.length ? `
@@ -2845,7 +2847,7 @@
                         console.warn('User news state load failed:', stateErr);
                     }
                     this.updateProfileView();
-                    this.listenForOwnUserRecord();
+                    this.listenForOwnUserRecord(); this.listenForMods();
                     this.initPushNotifications();
                     this.syncNativePush();
                     this.checkDailyStreak();
@@ -13369,7 +13371,89 @@
                 });
             },
             isVerified(uid) { return !!(uid && this._verified && this._verified[uid]); },
-            vb(uid, size) { return this.isVerified(uid) ? `<span class="vbadge${size ? ' ' + size : ''}" title="حساب موثّق" role="img" aria-label="حساب موثّق">${VERIFIED_SVG}</span>` : ''; },
+            vb(uid, size) { return this.modBadge(uid) + (this.isVerified(uid) ? `<span class="vbadge${size ? ' ' + size : ''}" title="حساب موثّق" role="img" aria-label="حساب موثّق">${VERIFIED_SVG}</span>` : ''); },
+
+            // ===== Moderators =====
+            // mods/{uid} = {on, p:{pubNews, delNews, delVent}} is set from the admin panel; the rules decide what a moderator may really do.
+            listenForMods() {
+                if (this._modListening || !window.firebaseDb || !this.authUid) return; // mods/ is for signed-in students; called again after sign-in
+                this._modListening = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, 'mods'), (snap) => { this._mods = snap.val() || {}; this._refreshVerifiedViews(); this._modUiRefresh(); }, () => { this._modListening = false; });
+                onValue(ref(window.firebaseDb, 'newsGone'), (snap) => { this._newsGone = snap.val() || {}; this._applyNewsGone(); }, () => {});
+            },
+            isMod(uid) { const m = uid && this._mods && this._mods[uid]; return !!(m && m.on === true); },
+            modCan(perm) { const m = this._mods && this.authUid && this._mods[this.authUid]; return !!(m && m.on === true && m.p && m.p[perm] === true); },
+            modBadge(uid) { return this.isMod(uid) ? '<span class="modbadge" title="مشرف" role="img" aria-label="مشرف"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5l8 3v6c0 4.9-3.3 8.9-8 10-4.7-1.1-8-5.1-8-10v-6l8-3z" fill="#16a34a"/><path d="M8.2 12.2l2.6 2.6 5-5.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>مشرف</b></span>' : ''; },
+            _modUiRefresh() {
+                try {
+                    const b = document.getElementById('modPubBtn'); if (b) b.classList.toggle('hidden', !this.modCan('pubNews'));
+                    if (this.currentView === 'detailsView' && this.currentNewsId) this.openNews(this.currentNewsId);
+                    if (this.currentView === 'ventView' && this._vtRender) this._vtRender();
+                } catch (e) {}
+            },
+            // a deleted news is dropped from this phone, also when an older copy was saved here
+            _applyNewsGone() {
+                const g = this._newsGone || {};
+                const gone = newsData.filter((n) => g[n.id] === true);
+                if (!gone.length) return;
+                gone.forEach((n) => { const i = newsData.indexOf(n); if (i > -1) newsData.splice(i, 1); });
+                try { newsStore.remove(gone.map((n) => n.id)); } catch (e) {}
+                this.renderNews();
+                if (this.currentView === 'detailsView' && gone.some((n) => n.id === this.currentNewsId)) { this.showToast('هذا الخبر انحذف'); this.goBack(); }
+            },
+            async _modLog(k, extra) {
+                const { ref, set, serverTimestamp } = window.firebaseDbHelpers;
+                const me = this.currentUser || {};
+                const id = Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+                return { path: 'auditLog/' + id, val: Object.assign({ at: serverTimestamp(), k, by: { t: 'mod', u: this.authUid, n: String(me.fullName || '').slice(0, 40), num: String(me.studentNumber || '') } }, extra || {}) };
+            },
+            async modDelNews(id) {
+                if (!this.modCan('delNews')) return;
+                const n = newsData.find((x) => x.id === id); if (!n) return;
+                if (!confirm('تحذف هذا الخبر من كل المستخدمين؟\n\n' + String(n.title || '').slice(0, 80))) return;
+                const { ref, update } = window.firebaseDbHelpers;
+                try {
+                    const lg = await this._modLog('newsDel', { id, title: String(n.title || '').slice(0, 100) });
+                    await update(ref(window.firebaseDb), { ['news/' + id]: null, ['notifications/' + id]: null, ['newsGone/' + id]: true, [lg.path]: lg.val });
+                    this.showToast('انحذف الخبر من الكل');
+                } catch (e) { this.showToast('ما انحذف، صلاحيتك مطفية أو انقطع النت'); }
+            },
+            modPubOpen() {
+                if (!this.modCan('pubNews')) return;
+                document.getElementById('modPubSheet')?.remove();
+                const el = document.createElement('div'); el.id = 'modPubSheet';
+                el.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center';
+                const cats = categories.filter((c) => c.id !== 'all');
+                el.innerHTML = `<div style="width:100%;max-width:520px;background:var(--surface);color:var(--text);border-radius:20px 20px 0 0;padding:16px;max-height:90vh;overflow:auto" dir="rtl">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><b style="font-size:16px">نشر خبر</b><button type="button" onclick="document.getElementById('modPubSheet').remove()" style="font-size:22px;line-height:1;padding:4px 10px" aria-label="سد">&times;</button></div>
+                    <input id="mpT" maxlength="150" placeholder="عنوان الخبر" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px">
+                    <textarea id="mpX" rows="6" maxlength="3000" placeholder="نص الخبر" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px"></textarea>
+                    <select id="mpC" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px">${cats.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('')}</select>
+                    <input id="mpS" maxlength="60" placeholder="المصدر (اختياري)" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:10px">
+                    <button type="button" id="mpGo" onclick="app.modPublish()" class="btn-press" style="width:100%;padding:12px;border-radius:12px;background:#16a34a;color:#fff;font-weight:700">نشر للكل</button>
+                </div>`;
+                el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+                document.body.appendChild(el);
+            },
+            async modPublish() {
+                if (!this.modCan('pubNews')) return;
+                const g = (i) => String((document.getElementById(i) || {}).value || '').trim();
+                const title = g('mpT'), excerpt = g('mpX');
+                if (title.length < 3) { this.showToast('اكتب عنوان الخبر'); return; }
+                if (excerpt.length < 3) { this.showToast('اكتب نص الخبر'); return; }
+                const btn = document.getElementById('mpGo'); if (btn) { btn.disabled = true; btn.textContent = 'جاري النشر...'; }
+                const { ref, update, serverTimestamp } = window.firebaseDbHelpers;
+                const id = Date.now();
+                const d = new Date(id), pad = (x) => String(x).padStart(2, '0');
+                const rec = { id, title, excerpt, image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop', category: g('mpC') || 'other', date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), time: 'الآن', source: g('mpS') || 'إدارة المنصة', isUrgent: false, isPinned: false, notifHandled: false, isRead: false, isBookmarked: false, views: 0, publishedAt: serverTimestamp(), byMod: this.authUid };
+                try {
+                    const lg = await this._modLog('newsPub', { id, title: title.slice(0, 100) });
+                    await update(ref(window.firebaseDb), { ['news/' + id]: rec, [lg.path]: lg.val });
+                    document.getElementById('modPubSheet')?.remove();
+                    this.showToast('اننشر الخبر');
+                } catch (e) { this.showToast('ما اننشر، صلاحيتك مطفية أو انقطع النت'); if (btn) { btn.disabled = false; btn.textContent = 'نشر للكل'; } }
+            },
             _refreshVerifiedViews() {
                 const v = this.currentView;
                 try {

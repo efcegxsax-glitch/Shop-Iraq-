@@ -11340,3 +11340,12 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .nt-cl i { width: 20px; height: 20px; color: #2563eb; }
 .nt-cl small { margin-inline-start: auto; font-size: 11px; color: var(--text2); }
 .nt-note { font-size: 12.5px; line-height: 1.8; color: var(--text2); margin: 4px 0 8px; }
+
+/* moderator badge: green shield + the word */
+.modbadge { display: inline-flex; align-items: center; gap: .18em; margin-inline-start: .3em; vertical-align: -0.12em; padding: 0 .38em 0 .3em; border-radius: 999px; background: rgba(22,163,74,.14); color: #15803d; font-size: .72em; line-height: 1.5; flex-shrink: 0; }
+.modbadge svg { width: 1.15em; height: 1.15em; display: block; }
+.modbadge b { font-weight: 700; }
+.lb-row-name .modbadge { margin-inline-start: 0; }
+.vt-w { position: relative; }
+.vt-mdel { position: absolute; top: 6px; left: 6px; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: rgba(220,38,38,.12); color: #dc2626; }
+.vt-mdel svg { width: 15px; height: 15px; }

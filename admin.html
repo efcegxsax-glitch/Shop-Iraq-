@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="29c8dbb9e6">
+    <meta name="admin-build" content="ee0cb51668">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -446,6 +446,7 @@
             <div class="nav-group-label">الإحصائيات</div>
             <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
             <button class="tab" data-tab="student"><span class="tab-ic"><i data-lucide="user-search"></i></span><span>ملف الطالب</span></button>
+            <button class="tab" data-tab="mods"><span class="tab-ic"><i data-lucide="shield-check"></i></span><span>المشرفون</span></button>
 
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
@@ -873,6 +874,34 @@
 
             <!-- Users / Analytics -->
             <!-- ملف الطالب: find a student by number, see every detail of the account, edit it; every change is logged (auditLog) -->
+            <div id="sec-mods" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="shield-plus"></i></div>
+                        <div><h3>رفع مشرف</h3><p>اكتب رقم الطالب وارفعه مشرف. يظهر له درع أخضر + كلمة "مشرف" عند اسمه، ويشتغل داخل التطبيق فقط بالصلاحيات اللي تفتحها له.</p></div>
+                    </div>
+                    <div class="field">
+                        <label for="md_q">رقم الطالب</label>
+                        <input id="md_q" inputmode="search" placeholder="مثال: 482915  (أو الاسم)" dir="auto" autocomplete="off">
+                        <div class="flex gap-2" style="margin-top:8px"><button class="btn" type="button" id="md_go">ابحث</button></div>
+                    </div>
+                    <div id="md_res" style="margin-top:10px"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="shield-check"></i></div>
+                        <div><h3>المشرفون الحاليون <span id="md_n" style="opacity:.6;font-weight:500"></span></h3><p>شغّل أو اطفي أي صلاحية لكل مشرف لوحده، أو كفّه كلياً، أو شيل الإشراف عنه.</p></div>
+                    </div>
+                    <div id="md_list"></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="history"></i></div>
+                        <div><h3>شنو سوّوا المشرفين</h3><p>آخر عمليات المشرفين (حذف أخبار، نشر، حذف فضفضة) مع الاسم والوقت</p></div>
+                    </div>
+                    <div id="md_log"></div>
+                </div>
+            </div>
             <div id="sec-student" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -2241,7 +2270,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'student', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -4155,7 +4184,7 @@
                     const ps = (await get(ref(db, 'pushSchedule'))).val() || {};
                     for (const k of Object.keys(ps)) if (String(ps[k].newsId) === String(key)) { try { await workerPost({ mode: 'admincancel', ids: ps[k].ids || [] }); } catch (e) {} await remove(ref(db, 'pushSchedule/' + k)); }
                 }
-                await update(ref(db), { ['news/' + key]: null, ['notifications/' + key]: null });
+                await update(ref(db), { ['news/' + key]: null, ['notifications/' + key]: null, ['newsGone/' + key]: true });
                 toast('تم الحذف');
             } catch (e) { toast('فشل الحذف', false); }
         };
@@ -4739,16 +4768,82 @@
         function loadStudentAdmin() {
             el('st_go').addEventListener('click', stSearch);
             el('st_q').addEventListener('keydown', (e) => { if (e.key === 'Enter') stSearch(); });
-            onValue(query(ref(db, 'auditLog'), limitToLast(60)), (s) => {
-                const v = s.val() || {}, rows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (b.at || 0) - (a.at || 0));
-                el('st_log').innerHTML = rows.length ? rows.map((r) => `<div class="row-item" style="display:block;padding:10px 12px"><div style="font-size:12px;opacity:.7">${escapeHtml(new Date(r.at || 0).toLocaleString('ar-IQ'))} . ${escapeHtml(stWho(r))}</div><div style="font-size:13.5px;margin-top:2px">${escapeHtml(stLogText(r))}</div></div>`).join('') : '<p class="list-empty">ما كو تعديلات بعد</p>';
+            onValue(query(ref(db, 'auditLog'), limitToLast(120)), (s) => {
+                const v = s.val() || {};
+                auditRows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (b.at || 0) - (a.at || 0));
+                drawAuditLogs();
             });
+            loadModsAdmin();
+        }
+        let auditRows = [];
+        const auditRowHtml = (r) => `<div class="row-item" style="display:block;padding:10px 12px"><div style="font-size:12px;opacity:.7">${escapeHtml(new Date(r.at || 0).toLocaleString('ar-IQ'))} . ${escapeHtml(stWho(r))}</div><div style="font-size:13.5px;margin-top:2px">${escapeHtml(stLogText(r))}</div></div>`;
+        function drawAuditLogs() {
+            const st = auditRows.slice(0, 60), md = auditRows.filter((r) => (r.by && r.by.t === 'mod') || /^mod/.test(r.k || '')).slice(0, 60);
+            if (el('st_log')) el('st_log').innerHTML = st.length ? st.map(auditRowHtml).join('') : '<p class="list-empty">ما كو تعديلات بعد</p>';
+            if (el('md_log')) el('md_log').innerHTML = md.length ? md.map(auditRowHtml).join('') : '<p class="list-empty">ما كو عمليات مشرفين بعد</p>';
+        }
+        // ---------- المشرفون ----------
+        // mods/{uid} = {on, p:{pubNews, delNews, delVent}, at, by}. The database rules (not the app) decide what a moderator may do, so a switched-off permission really is off.
+        const MOD_PERMS = [['pubNews', 'نشر الأخبار'], ['delNews', 'حذف الأخبار'], ['delVent', 'حذف الفضفضة والتعليقات']];
+        let modsData = {};
+        const modLog = (k, uid, extra) => {
+            const u = usersData[uid] || {};
+            return set(ref(db, 'auditLog/' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)), { at: serverTimestamp(), by: { t: 'panel', e: (auth.currentUser && auth.currentUser.email) || '' }, k, uid, num: String(u.studentNumber || ''), name: u.fullName || '', ...(extra || {}) }).catch(() => {});
+        };
+        function loadModsAdmin() {
+            el('md_go').addEventListener('click', modSearch);
+            el('md_q').addEventListener('keydown', (e) => { if (e.key === 'Enter') modSearch(); });
+            onValue(ref(db, 'mods'), (s) => { modsData = s.val() || {}; drawMods(); });
+        }
+        function modSearch() {
+            const q = stDigits(val('md_q')), box = el('md_res'); if (!q) { toast('اكتب رقم الطالب', false); return; }
+            const ql = q.toLowerCase();
+            let found = /^[0-9]{3,12}$/.test(q) ? Object.keys(usersData).filter((id) => String((usersData[id] || {}).studentNumber || '') === q) : [];
+            if (!found.length) found = Object.keys(usersData).filter((id) => { const u = usersData[id] || {}; return String(u.fullName || '').toLowerCase().includes(ql) || String(u.studentNumber || '').includes(q); }).slice(0, 10);
+            box.innerHTML = found.length ? found.map((id) => { const u = usersData[id] || {}, isM = !!modsData[id]; return `<div class="vf-row"><div class="vf-n"><b>${escapeHtml(u.fullName || 'بدون اسم')}</b><small>${escapeHtml([u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || ''].filter(Boolean).join(' • '))}</small></div>${isM ? '<span style="font-size:12px;font-weight:700;color:#16a34a">مشرف أصلاً</span>' : `<button class="vf-on" type="button" onclick="modAdd(${jsArg(id)})">ارفعه مشرف</button>`}</div>`; }).join('') : '<p class="list-empty">ما لكيت طالب بهذا الرقم أو الاسم</p>';
+        }
+        window.modAdd = async (uid) => {
+            const u = usersData[uid]; if (!u || modsData[uid]) return;
+            if (!(await ask({ icon: 'shield-plus', title: 'ترفع ' + (u.fullName || 'هذا الطالب') + ' مشرف؟', text: 'تنفتح له كل الصلاحيات الثلاث (نشر الأخبار، حذف الأخبار، حذف الفضفضة والتعليقات). تكدر تغيّرها من بعد.', ok: 'ارفعه' }))) return;
+            try {
+                await set(ref(db, 'mods/' + uid), { on: true, p: { pubNews: true, delNews: true, delVent: true }, at: Date.now(), by: 'panel' });
+                await modLog('modAdd', uid);
+                el('md_res').innerHTML = ''; el('md_q').value = ''; toast('انرفع مشرف');
+            } catch (e) { toast('تعذر الرفع: ' + (e.message || e), false); }
+        };
+        window.modPerm = async (uid, perm, v) => { try { await set(ref(db, 'mods/' + uid + '/p/' + perm), !!v); await modLog('modPerm', uid, { perm, v: !!v }); } catch (e) { toast('تعذر الحفظ', false); drawMods(); } };
+        window.modOn = async (uid, v) => { try { await set(ref(db, 'mods/' + uid + '/on'), !!v); await modLog('modOn', uid, { v: !!v }); } catch (e) { toast('تعذر الحفظ', false); drawMods(); } };
+        window.modDel = async (uid) => {
+            const u = usersData[uid] || {};
+            if (!(await ask({ icon: 'shield-off', tone: 'warn', title: 'تشيل الإشراف عن ' + (u.fullName || 'هذا الطالب') + '؟', text: 'تروح منه الشارة وكل الصلاحيات فوراً، ويرجع طالب عادي.', ok: 'شيل الإشراف' }))) return;
+            try { await remove(ref(db, 'mods/' + uid)); await modLog('modDel', uid); toast('انشال الإشراف'); } catch (e) { toast('تعذر الحذف', false); }
+        };
+        function drawMods() {
+            const box = el('md_list'); if (!box) return;
+            const ids = Object.keys(modsData).sort((a, b) => (modsData[b].at || 0) - (modsData[a].at || 0));
+            el('md_n').textContent = ids.length ? '(' + ids.length + ')' : '';
+            box.innerHTML = ids.length ? ids.map((id) => {
+                const m = modsData[id] || {}, u = usersData[id] || {}, on = m.on === true, p = m.p || {};
+                return `<div class="row-item" style="display:block;padding:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><b style="font-size:15px">${escapeHtml(u.fullName || 'حساب محذوف')}</b><div style="font-size:12px;opacity:.7">${escapeHtml([u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || '', 'انرفع ' + new Date(m.at || 0).toLocaleDateString('ar-IQ')].filter(Boolean).join(' • '))}</div></div>
+                    <label class="switch" title="تشغيل / كفّ المشرف"><input type="checkbox" ${on ? 'checked' : ''} onchange="modOn(${jsArg(id)}, this.checked)" aria-label="تشغيل المشرف"><span class="track"></span></label><span style="font-size:12px;font-weight:700;color:${on ? '#16a34a' : '#dc2626'}">${on ? 'شغّال' : 'مكفوف'}</span></div>
+                    <div style="margin-top:8px;${on ? '' : 'opacity:.5'}">${MOD_PERMS.map(([k, t]) => `<div class="sw-row"><div class="sw-text"><strong>${t}</strong></div><label class="switch"><input type="checkbox" ${p[k] === true ? 'checked' : ''} onchange="modPerm(${jsArg(id)}, '${k}', this.checked)" aria-label="${t}"><span class="track"></span></label></div>`).join('')}</div>
+                    <div style="margin-top:8px"><button class="btn-sm" type="button" onclick="modDel(${jsArg(id)})" style="color:#dc2626">شيل الإشراف</button></div></div>`;
+            }).join('') : '<p class="list-empty">ما كو مشرفين. ارفع أول واحد من فوق.</p>';
         }
         const stWho = (r) => (r.by && r.by.t === 'mod' ? 'مشرف: ' + (r.by.n || r.by.u || '') : 'لوحة التحكم');
         function stLogText(r) {
             const who = (r.name || 'طالب') + (r.num ? ' (رقم ' + r.num + ')' : '');
             const gv = (x) => x === 'scientific' ? 'علمي' : x === 'literary' ? 'أدبي' : (x == null ? '' : x);
             if (r.k === 'userEdit') return 'عدّلت حساب ' + who + ': ' + Object.keys(r.ch || {}).map((f) => (ST_LABEL[f] || f) + ' من "' + gv((r.ch[f] || [])[0]) + '" إلى "' + gv((r.ch[f] || [])[1]) + '"').join('، ');
+            const t = r.title ? ' "' + r.title + '"' : '';
+            if (r.k === 'newsDel') return 'حذف الخبر' + t + ' من كل المستخدمين';
+            if (r.k === 'newsPub') return 'نشر الخبر' + t;
+            if (r.k === 'ventDel') return 'حذف فضفضة وكل ردودها';
+            if (r.k === 'replyDel') return 'حذف رد على فضفضة';
+            if (r.k === 'modAdd') return 'رفع ' + who + ' مشرف';
+            if (r.k === 'modDel') return 'شال الإشراف عن ' + who;
+            if (r.k === 'modOn') return (r.v ? 'شغّل' : 'كفّ') + ' المشرف ' + who;
+            if (r.k === 'modPerm') return (r.v ? 'فتح' : 'سكّر') + ' صلاحية "' + (MOD_PERMS.find((x) => x[0] === r.perm) || [0, r.perm])[1] + '" للمشرف ' + who;
             return (r.k || '') + ' ' + (r.t || '');
         }
         function stSearch() {

@@ -169,7 +169,7 @@
             const v = this._vt, md = MOODS[p.m], c = v.count[p.id] || {}, mine = v.mine.includes(p.id), my = v.reacted[p.id];
             return `<article class="vt-card" style="--a:${md[2]};--b:${md[3]};--i:${Math.min(i, 12)}">
                 <div class="vt-card-h"><span class="vt-mood"><i data-lucide="${md[1]}"></i>${md[0]}</span><small>${ago(p.at)}</small>${mine ? '<em>فضفضتك</em>' : ''}
-                    <button class="vt-more" onclick="app.vtMore(${jsArg(p.id)})" aria-label="خيارات"><i data-lucide="${mine ? 'trash-2' : 'flag'}"></i></button></div>
+                    <button class="vt-more" onclick="app.vtMore(${jsArg(p.id)})" aria-label="خيارات"><i data-lucide="${mine || (this.modCan && this.modCan('delVent')) ? 'trash-2' : 'flag'}"></i></button></div>
                 <p class="vt-tx" dir="auto">${esc(p.tx)}</p>
                 <div class="vt-acts">${Object.keys(REACTS).map((k) => `<button class="${my === k ? 'on' : ''}" onclick="app.vtReact(${jsArg(p.id)}, '${k}', this)" ${my ? 'disabled' : ''}><i data-lucide="${REACTS[k][1]}"></i><span>${c[k] || ''}</span>${REACTS[k][0]}</button>`).join('')}
                     <button class="vt-rep" onclick="app.vtOpen2(${jsArg(p.id)})"><i data-lucide="message-circle-heart"></i>${c.rc ? c.rc + ' ' + (c.rc === 1 ? 'رد' : 'ردود') : 'ادعمه برد'}</button></div>
@@ -246,12 +246,30 @@
             catch (e) { /* already reacted from another phone */ }
         },
 
+        async vtModDelReply(pid, rid) {
+            if (!this.modCan('delVent') || !confirm('تحذف هذا الرد من الكل؟')) return;
+            const { ref, update } = window.firebaseDbHelpers;
+            try {
+                const lg = await this._modLog('replyDel', { pid, rid });
+                await update(ref(window.firebaseDb), { ['ventReplies/' + pid + '/' + rid]: null, [lg.path]: lg.val });
+                this.showToast('انحذف الرد');
+            } catch (e) { this.showToast('ما انحذف، صلاحيتك مطفية أو انقطع النت'); }
+        },
+
         async vtMore(pid) {
             const v = this._vt;
             const { ref, update } = window.firebaseDbHelpers;
             if (v.mine.includes(pid)) {
                 if (!confirm('تحذف فضفضتك؟')) return;
                 try { await update(ref(window.firebaseDb), { ['vent/' + pid]: null, ['ventOwners/' + pid]: null }); v.mine = v.mine.filter((x) => x !== pid); this._vtSave('mine', v.mine); this.showToast('انحذفت'); } catch (e) { this.showToast('ما انحذفت'); }
+                return;
+            }
+            if (this.modCan && this.modCan('delVent') && confirm('أنت مشرف. تحذف هاي الفضفضة وكل ردودها من الكل؟\n\n(إذا تريد تبلّغ بدل الحذف اضغط إلغاء)')) {
+                try {
+                    const lg = await this._modLog('ventDel', { pid });
+                    await update(ref(window.firebaseDb), { ['vent/' + pid]: null, ['ventReplies/' + pid]: null, [lg.path]: lg.val });
+                    this.showToast('انحذفت الفضفضة');
+                } catch (e) { this.showToast('ما انحذفت، صلاحيتك مطفية أو انقطع النت'); }
                 return;
             }
             if (!confirm('تبلّغ عن هاي الفضفضة؟ إذا وصلها 3 تبليغات تختفي، والإدارة تراجعها.')) return;
@@ -309,7 +327,7 @@
                         const pr = preset(k);
                         return `<div class="vt-bub" style="--c:${pr.g[2]};--i:${i}"><i data-lucide="${pr.g[1]}"></i><span>${esc(pr.t)}</span>${groups[k] > 1 ? `<b>×${groups[k]}</b>` : ''}</div>`;
                     }).join('')}</div>` : ''}
-                    ${written.length ? `<div class="vt-written">${written.map((r, i) => `<div class="vt-w" style="--i:${Math.min(i, 10)}"><i data-lucide="quote"></i><p dir="auto">${esc(r.tx)}</p><small>${ago(r.at)}</small></div>`).join('')}</div>` : ''}
+                    ${written.length ? `<div class="vt-written">${written.map((r, i) => `<div class="vt-w" style="--i:${Math.min(i, 10)}"><i data-lucide="quote"></i><p dir="auto">${esc(r.tx)}</p><small>${ago(r.at)}</small>${this.modCan && this.modCan('delVent') ? `<button class="vt-mdel" onclick="app.vtModDelReply('${esc(p.id)}','${esc(r.id)}')" aria-label="حذف الرد (مشرف)"><i data-lucide="trash-2"></i></button>` : ''}</div>`).join('')}</div>` : ''}
                     ${!R.loaded ? '<div class="vt-load small"><i></i></div>' : ''}
                     ${mine ? '<p class="vt-mine-note">هاي فضفضتك. الردود توصلك هنا، ومحد يعرف منو انت.</p>' : v.banned ? '' : `
                     <h3>اختار كلمة تدعمه بيها</h3>
