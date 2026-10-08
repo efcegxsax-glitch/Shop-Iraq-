@@ -196,6 +196,10 @@ YR_MEMBER_NEW = "newData.parent().parent().child('members/' + auth.uid).exists()
 RM_HOST = "(auth != null && root.child('rmRooms/' + $rid + '/meta/host').val() == auth.uid)"
 RM_MEMBER = "root.child('rmRooms/' + $rid + '/members/' + auth.uid).exists()"
 signed_admin = {".read": SIGNED, ".write": ADMIN}
+# a moderator (mods/{uid}, set by the admin panel): switched on, and holding this one permission
+def MODP(perm):
+    return f"(auth != null && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/{perm}').val() === true)"
+MOD_ON = "(auth != null && root.child('mods/' + auth.uid + '/on').val() === true)"
 
 rules = {
     ".read": ADMIN,
@@ -207,9 +211,49 @@ rules = {
     },
 
     # ----- content published from the admin panel -----
-    **{k: public_admin for k in ["news", "resources", "notifications", "ticker", "siteConfig", "settings",
+    **{k: public_admin for k in ["resources", "ticker", "siteConfig", "settings",
                                   "carousel", "holidays", "examSchedule", "dayStatus", "verified",
                                   "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels", "tgChannels", "motivPlans", "motivTemplates", "exams"]},
+    # news: the admin does everything; a moderator may publish (own, plain, now-dated) or delete if that permission is on
+    "news": {
+        ".read": True, ".write": ADMIN,
+        "$id": {
+            ".write": ors(ADMIN,
+                          ands(MODP('pubNews'), "!data.exists()", "newData.child('id').isNumber()",
+                               "newData.child('id').val() > now - 600000", "newData.child('id').val() < now + 600000",
+                               "newData.child('isPinned').val() !== true", "newData.child('isUrgent').val() !== true",
+                               "!newData.child('publishAt').exists()", "!newData.child('auto').exists()"),
+                          ands(MODP('delNews'), "data.exists()", "!newData.exists()")),
+            ".validate": "!newData.exists() || newData.hasChildren(['id', 'title'])",
+        },
+    },
+    # notifications: the admin writes; a moderator may only remove one together with deleting its news
+    "notifications": {
+        ".read": True, ".write": ADMIN,
+        "$id": {".write": ors(ADMIN, ands(MODP('delNews'), "data.exists()", "!newData.exists()"))},
+    },
+    # a deleted news id stays here, so phones that saved older news drop it too
+    "newsGone": {
+        ".read": True, ".write": ADMIN,
+        "$id": {".write": ors(ADMIN, ands(MODP('delNews'), "!data.exists()", "newData.val() === true")),
+                ".validate": "newData.val() === true"},
+    },
+    # moderators: the admin panel promotes, switches permissions on and off, removes. Signed-in students read it (for the badge).
+    "mods": {
+        ".read": SIGNED, ".write": ADMIN,
+        "$uid": {".validate": "!newData.exists() || newData.hasChildren(['on', 'p', 'at'])",
+                 "on": {".validate": "newData.isBoolean()"},
+                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|delNews|delVent)$/)"}},
+                 "at": {".validate": "newData.isNumber()"},
+                 "by": {".validate": "newData.isString() && newData.val().length < 120"},
+                 "$other": {".validate": False}},
+    },
+    # who changed / deleted / published what: the admin panel and moderators write, only the admin reads
+    "auditLog": {
+        ".read": ADMIN, ".write": ADMIN,
+        "$id": {".write": ors(ADMIN, ands(MOD_ON, "!data.exists()", "newData.child('by/u').val() == auth.uid", "newData.child('at').val() == now",
+                                         "newData.child('k').isString() && newData.child('k').val().matches(/^(newsPub|newsDel|ventDel|replyDel)$/)"))},
+    },
     # big files (PDFs) live apart from the lists so opening the app never downloads them
     "resourceFiles": {
         ".read": True, ".write": ADMIN,
@@ -876,7 +920,8 @@ rules = {
                       ands(SIGNED, "!data.exists()", VENT_OK_USER,
                            "newData.parent().parent().child('ventOwners/' + $id).val() == auth.uid",
                            "newData.parent().parent().child('ventLast/' + auth.uid).val() == now"),
-                      ands(SIGNED, "!newData.exists()", "root.child('ventOwners/' + $id).val() == auth.uid")),
+                      ands(SIGNED, "!newData.exists()", "root.child('ventOwners/' + $id).val() == auth.uid"),
+                      ands(MODP('delVent'), "data.exists()", "!newData.exists()")),
         ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['tx', 'm', 'at'])", "newData.child('at').val() == now") + ")",
         "tx": {".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 400 && !newData.val().matches(" + VENT_BAD + ")"},
         "m": {".validate": "newData.isString() && newData.val().matches(/^(sad|worry|tired|upset|hope|lost)$/)"},
@@ -886,8 +931,8 @@ rules = {
     "ventOwners": {"$id": {".read": ADMIN, ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.val() == auth.uid"),
                                                           ands(SIGNED, "!newData.exists()", "data.val() == auth.uid"))}},
     "ventLast": {"$uid": {".read": ors(OWNER, ADMIN), ".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 300000)"}},
-    "ventReplies": {".read": SIGNED, "$pid": {".write": ADMIN, "$rid": {
-        ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", VENT_OK_USER, "root.child('vent/' + $pid).exists()",
+    "ventReplies": {".read": SIGNED, "$pid": {".write": ors(ADMIN, ands(MODP('delVent'), "!newData.exists()")), "$rid": {
+        ".write": ors(ADMIN, ands(MODP('delVent'), "data.exists()", "!newData.exists()"), ands(SIGNED, "!data.exists()", VENT_OK_USER, "root.child('vent/' + $pid).exists()",
                                   "newData.parent().parent().parent().child('ventReplyOwners/' + $pid + '/' + $rid).val() == auth.uid",
                                   "newData.parent().parent().parent().child('ventLastR/' + auth.uid).val() == now")),
         ".validate": "!newData.exists() || (" + ands("newData.child('at').val() == now",
