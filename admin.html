@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="402763076b">
+    <meta name="admin-build" content="dcdf64cdb3">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -893,6 +893,7 @@
                         <div><h3>غرفة المشرفين الصوتية</h3><p>غرفة دردشة صوتية وكتابية للمشرفين بس. لما تطفيها تختفي من عند كل المشرفين وينطردون منها. كل مشرف يدخل بس إذا فاتح له صلاحية "دخول غرفة المشرفين الصوتية" من فوق.</p></div>
                     </div>
                     <div class="sw-row"><div class="sw-text"><strong>تشغيل الغرفة</strong></div><label class="switch"><input type="checkbox" id="md_room_on" aria-label="تشغيل الغرفة"><span class="track"></span></label></div>
+                    <div class="sw-row"><div class="sw-text"><strong>قفل الغرفة</strong><small style="display:block;opacity:.7">محد جديد يدخل (إلا مدير الغرفة). اللي داخل يبقى</small></div><label class="switch"><input type="checkbox" id="md_room_lock" aria-label="قفل الغرفة"><span class="track"></span></label></div>
                     <div id="md_room_in" style="margin-top:10px"></div>
                     <div class="flex gap-2" style="margin-top:8px;flex-wrap:wrap"><button class="btn-sm" type="button" id="md_room_clear">امسح دردشة الغرفة</button></div>
                 </div>
@@ -4787,13 +4788,13 @@
         let auditRows = [];
         const auditRowHtml = (r) => `<div class="row-item" style="display:block;padding:10px 12px"><div style="font-size:12px;opacity:.7">${escapeHtml(new Date(r.at || 0).toLocaleString('ar-IQ'))} . ${escapeHtml(stWho(r))}</div><div style="font-size:13.5px;margin-top:2px">${escapeHtml(stLogText(r))}</div></div>`;
         function drawAuditLogs() {
-            const st = auditRows.slice(0, 60), md = auditRows.filter((r) => (r.by && r.by.t === 'mod') || /^mod/.test(r.k || '')).slice(0, 60);
+            const st = auditRows.slice(0, 60), md = auditRows.filter((r) => (r.by && r.by.t === 'mod') || /^(mod|room|seat)/.test(r.k || '')).slice(0, 60);
             if (el('st_log')) el('st_log').innerHTML = st.length ? st.map(auditRowHtml).join('') : '<p class="list-empty">ما كو تعديلات بعد</p>';
             if (el('md_log')) el('md_log').innerHTML = md.length ? md.map(auditRowHtml).join('') : '<p class="list-empty">ما كو عمليات مشرفين بعد</p>';
         }
         // ---------- المشرفون ----------
         // mods/{uid} = {on, p:{pubNews, delNews, delVent}, at, by}. The database rules (not the app) decide what a moderator may do, so a switched-off permission really is off.
-        const MOD_PERMS = [['pubNews', 'نشر الأخبار'], ['pushNews', 'إرسال إشعار للكل مع الخبر'], ['room', 'دخول غرفة المشرفين الصوتية'], ['delNews', 'حذف الأخبار'], ['delVent', 'حذف الفضفضة والتعليقات']];
+        const MOD_PERMS = [['pubNews', 'نشر الأخبار'], ['pushNews', 'إرسال إشعار للكل مع الخبر'], ['room', 'دخول غرفة المشرفين الصوتية'], ['roomAdmin', 'مدير الغرفة: يقفل الغرفة والمقاعد، يكتم ويسكّت ويطرد'], ['delNews', 'حذف الأخبار'], ['delVent', 'حذف الفضفضة والتعليقات']];
         let modsData = {};
         const modLog = (k, uid, extra) => {
             const u = usersData[uid] || {};
@@ -4810,6 +4811,7 @@
             const n = (roomMem[uid] || {}).n || 'المشرف';
             if (!(await ask({ icon: 'user-x', title: 'تطرد ' + n + ' من الغرفة؟', text: 'ينطرد هسه، ويكدر يرجع إذا صلاحيته مفتوحة. لو تريد تمنعه، سكّر له صلاحية الغرفة من فوق.', ok: 'اطرده' }))) return;
             await roomKick(uid);
+            await set(ref(db, 'modRoom/kicked/' + uid), serverTimestamp()).catch(() => {});
             const nm = { name: n };
             set(ref(db, 'auditLog/' + Date.now() + '_rk'), { at: serverTimestamp(), by: { t: 'panel', e: (auth.currentUser && auth.currentUser.email) || '' }, k: 'roomKick', uid, ...nm }).catch(() => {});
             toast('انطرد');
@@ -4828,10 +4830,17 @@
                 try {
                     await set(ref(db, 'modRoom/cfg'), { on });
                     // switching off sends everybody out: what was left inside is wiped
-                    if (!on) await update(ref(db), { 'modRoom/members': null, 'modRoom/seats': null, 'modRoom/chat': null, 'modRoom/sig': null });
+                    if (!on) await update(ref(db), { 'modRoom/members': null, 'modRoom/seats': null, 'modRoom/chat': null, 'modRoom/sig': null, 'modRoom/state': null, 'modRoom/lockSeat': null, 'modRoom/muted': null, 'modRoom/silenced': null, 'modRoom/kicked': null });
                     set(ref(db, 'auditLog/' + Date.now() + '_rs'), { at: serverTimestamp(), by: { t: 'panel', e: (auth.currentUser && auth.currentUser.email) || '' }, k: 'roomSwitch', v: on }).catch(() => {});
                     toast(on ? 'اشتغلت غرفة المشرفين' : 'انطفت غرفة المشرفين وطلعوا منها');
                 } catch (e) { toast('تعذر الحفظ', false); sw.checked = !on; }
+            });
+            const lk = el('md_room_lock');
+            onValue(ref(db, 'modRoom/state/locked'), (s) => { lk.checked = s.val() === true; });
+            lk.addEventListener('change', async () => {
+                const on = lk.checked;
+                try { await set(ref(db, 'modRoom/state/locked'), on); set(ref(db, 'auditLog/' + Date.now() + '_rl'), { at: serverTimestamp(), by: { t: 'panel', e: (auth.currentUser && auth.currentUser.email) || '' }, k: 'roomLock', v: on }).catch(() => {}); toast(on ? 'انقفلت الغرفة' : 'انفتحت الغرفة'); }
+                catch (e) { toast('تعذر الحفظ', false); lk.checked = !on; }
             });
             onValue(ref(db, 'modRoom/members'), (s) => { roomMem = s.val() || {}; drawRoomAdmin(); });
             onValue(ref(db, 'modRoom/seats'), (s) => { roomSeat = s.val() || {}; drawRoomAdmin(); });
@@ -4856,9 +4865,9 @@
         }
         window.modAdd = async (uid) => {
             const u = usersData[uid]; if (!u || modsData[uid]) return;
-            if (!(await ask({ icon: 'shield-plus', title: 'ترفع ' + (u.fullName || 'هذا الطالب') + ' مشرف؟', text: 'تنفتح له نشر الأخبار وحذف الأخبار وحذف الفضفضة والتعليقات. صلاحيتا "إرسال إشعار للكل" و"دخول الغرفة الصوتية" تبقون مسكّرتين لحد ما تفتحونهن انت. تكدر تغيّر أي وحدة من بعد.', ok: 'ارفعه' }))) return;
+            if (!(await ask({ icon: 'shield-plus', title: 'ترفع ' + (u.fullName || 'هذا الطالب') + ' مشرف؟', text: 'تنفتح له نشر الأخبار وحذف الأخبار وحذف الفضفضة والتعليقات. صلاحيات "إرسال إشعار للكل" و"دخول الغرفة الصوتية" و"مدير الغرفة" تبقى مسكّرة لحد ما تفتحونهن انت. تكدر تغيّر أي وحدة من بعد.', ok: 'ارفعه' }))) return;
             try {
-                await set(ref(db, 'mods/' + uid), { on: true, p: { pubNews: true, pushNews: false, room: false, delNews: true, delVent: true }, at: Date.now(), by: 'panel' });
+                await set(ref(db, 'mods/' + uid), { on: true, p: { pubNews: true, pushNews: false, room: false, roomAdmin: false, delNews: true, delVent: true }, at: Date.now(), by: 'panel' });
                 await modLog('modAdd', uid);
                 el('md_res').innerHTML = ''; el('md_q').value = ''; toast('انرفع مشرف');
             } catch (e) { toast('تعذر الرفع: ' + (e.message || e), false); }
@@ -4891,6 +4900,10 @@
             if (r.k === 'newsDel') return 'حذف الخبر' + t + ' من كل المستخدمين';
             if (r.k === 'newsPub') return 'نشر الخبر' + t;
             if (r.k === 'newsPush') return 'أرسل إشعار لكل التلفونات عن الخبر' + t;
+            if (r.k === 'roomLock') return (r.v ? 'قفل' : 'فتح') + ' غرفة المشرفين' + (r.by && r.by.t === 'mod' ? '' : '');
+            if (r.k === 'seatLock') return (r.v ? 'قفل' : 'فتح') + ' مقعد ' + r.seat + ' بغرفة المشرفين';
+            if (r.k === 'roomMute') return (r.v ? 'كتم' : 'فك الكتم عن') + ' ' + (r.name || 'مشرف') + ' بغرفة المشرفين';
+            if (r.k === 'roomSilence') return (r.v ? 'سكّت' : 'فك الإسكات عن') + ' ' + (r.name || 'مشرف') + ' بغرفة المشرفين';
             if (r.k === 'roomSwitch') return (r.v ? 'شغّل' : 'طفّى') + ' غرفة المشرفين الصوتية';
             if (r.k === 'roomKick') return 'طرد ' + (r.name || 'مشرف') + ' من غرفة المشرفين';
             if (r.k === 'roomClear') return 'مسح دردشة غرفة المشرفين';

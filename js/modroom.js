@@ -35,7 +35,7 @@
             if (ST) { this._mdrPaint(); return; }
             document.body.classList.add('mdr-on');
             const me = this.currentUser || {};
-            ST = { uid: this.authUid, name: String(me.fullName || 'مشرف').slice(0, 40), sid: Date.now(), seat: null, muted: false, deaf: false, members: {}, seats: {}, chat: [], pcs: {}, offs: [], seen: new Set(), timers: [], stream: null, ice: null, an: {}, ctx: null, tab: 'all' };
+            ST = { uid: this.authUid, name: String(me.fullName || 'مشرف').slice(0, 40), sid: Date.now(), seat: null, muted: false, deaf: false, members: {}, seats: {}, chat: [], pcs: {}, offs: [], seen: new Set(), timers: [], stream: null, ice: null, an: {}, ctx: null, tab: 'all', ctl: { state: {}, lockSeat: {}, muted: {}, silenced: {}, kicked: {} } };
             this._mdrShell();
             try {
                 const [ice] = await Promise.all([this._mdrIce(), this._mdrEnter()]);
@@ -43,16 +43,19 @@
                 ST.ice = ice;
                 this._mdrListen();
             } catch (e) {
-                const full = e && e.message === 'full';
-                this.showToast(full ? 'الغرفة ممتلئة' : 'ما كدرت أدخل الغرفة، تأكد من النت');
+                const why = e && e.message;
+                this.showToast(why === 'full' ? 'الغرفة ممتلئة' : why === 'locked' ? 'الغرفة مقفولة من مشرف الغرفة' : why === 'kicked' ? 'انطردت من الغرفة، انتظر 5 دقايق وارجع' : 'ما كدرت أدخل الغرفة، تأكد من النت');
                 this.mdrLeave();
             }
         },
         async _mdrIce() { try { await this._need('calls'); return await this._clIce(); } catch (e) { return [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }]; } },
         async _mdrEnter() {
             const { get, set, remove, onDisconnect, serverTimestamp } = H();
-            const snap = await get(R('modRoom/members'));
+            const [snap, stS, kS] = await Promise.all([get(R('modRoom/members')), get(R('modRoom/state')), get(R('modRoom/kicked/' + ST.uid))]);
             const val = snap.val() || {}, now = Date.now();
+            const stv = stS.val() || {}, kk = kS.val();
+            if (kk && now - kk < 300000) throw new Error('kicked');
+            if (stv.locked === true && !val[ST.uid] && !this.modCan('roomAdmin')) throw new Error('locked');
             const fresh = Object.keys(val).filter((u) => u !== ST.uid && now - (val[u].at || 0) < STALE);
             if (fresh.length >= MAXM - 1) throw new Error('full');
             // nobody else is here: whatever was left from before goes (old messages, ghost seats and members)
@@ -94,6 +97,7 @@
                 this._mdrPaintChat();
             }, () => {}));
             off(onValue(R('modRoom/sig/' + ST.uid), (s) => this._mdrSignals(s.val() || {}), () => {}));
+            ['state', 'lockSeat', 'muted', 'silenced', 'kicked'].forEach((k) => off(onValue(R('modRoom/' + k), (s) => { if (!ST) return; ST.ctl[k] = s.val() || {}; this._mdrCtl(); }, () => {})));
             off(onValue(R('modRoom/cfg/on'), (s) => { if (ST && s.val() !== true) { this.showToast('الإدارة سكّرت الغرفة'); this.mdrLeave(); } }, () => {}));
             ST.timers.push(setInterval(() => this._mdrTalk(), 160));
         },
@@ -115,27 +119,38 @@
                 if (s.seat !== null) up['modRoom/seats/' + s.seat] = null;
                 update(R(''), up).catch(() => {});
                 (s.disc || []).forEach((d) => { try { d.cancel(); } catch (e) {} });
-                // the last one out clears the chat
-                const others = Object.keys(s.members || {}).filter((u) => u !== s.uid && Date.now() - ((s.members[u] || {}).at || 0) < STALE);
-                if (!others.length) remove(R('modRoom/chat')).catch(() => {});
+                // the last one out clears the chat (asked from the database, not from what this phone had heard so far)
+                H().get(R('modRoom/members')).then((m) => {
+                    const v = m.val() || {};
+                    if (!Object.keys(v).some((u) => u !== s.uid && Date.now() - (v[u].at || 0) < STALE)) remove(R('modRoom/chat')).catch(() => {});
+                }).catch(() => {});
             }
             this._mdrExitView();
         },
         _mdrExitView() { document.body.classList.remove('mdr-on'); const r = $('mdrView'); if (r && ST === null) r.innerHTML = ''; },
 
         // ---------- microphone and seats ----------
+        _mdrMuted(u) { u = u || ST.uid; return !!(ST.ctl.muted[u] || (u === ST.uid && ST.muted)); },
+        _mdrAdm() { return this.modCan('roomAdmin'); },
+        // takes a mic seat (or moves to another one) and starts the microphone
         async mdrSit(n) {
-            if (!ST || ST.seat !== null) { if (ST && ST.seat === n) this.mdrStand(); return; }
+            if (!ST || ST.seat === n) return;
+            if (ST.ctl.silenced[ST.uid]) { this.showToast('مشرف الغرفة سكّتك'); return; }
+            if (ST.ctl.lockSeat[n]) { this.showToast('هذا المقعد مقفول'); return; }
             if (ST.seats[n] && ST.seats[n].u !== ST.uid) { this.showToast('المقعد محجوز'); return; }
-            const stream = await this._mdrMic();
+            const stream = ST.stream || await this._mdrMic();
             if (!stream || !ST) return;
-            const { set, serverTimestamp, onDisconnect } = H();
-            try { await set(R('modRoom/seats/' + n), { u: ST.uid, n: ST.name, at: serverTimestamp(), m: false }); }
-            catch (e) { stream.getTracks().forEach((t) => t.stop()); this.showToast('المقعد انحجز قبلك'); return; }
-            ST.seat = n; ST.muted = false; ST.stream = stream;
+            const { update, serverTimestamp, onDisconnect } = H();
+            const old = ST.seat;
+            const up = { ['modRoom/seats/' + n]: { u: ST.uid, n: ST.name, at: serverTimestamp(), m: ST.muted } };
+            if (old !== null) up['modRoom/seats/' + old] = null;
+            try { await update(R(''), up); }
+            catch (e) { if (!ST.stream) stream.getTracks().forEach((t) => t.stop()); this.showToast('ما كدرت أجلس، المقعد انحجز أو انقفل'); return; }
+            try { ST.seatDisc && ST.seatDisc.cancel(); } catch (e) {}
+            ST.seat = n; ST.stream = stream;
             try { ST.seatDisc = onDisconnect(R('modRoom/seats/' + n)); ST.seatDisc.remove(); } catch (e) {}
             this._mdrAttachMic();
-            this._mdrWatch(ST.uid, stream);
+            if (!ST.an[ST.uid]) this._mdrWatch(ST.uid, stream);
             this._mdrPaint();
         },
         async mdrStand() {
@@ -143,7 +158,7 @@
             const n = ST.seat; ST.seat = null;
             this._mdrStopMic();
             try { ST.seatDisc && ST.seatDisc.cancel(); } catch (e) {}
-            H().set(R('modRoom/seats/' + n), null).catch(() => {});
+            if (ST.seats[n] && ST.seats[n].u === ST.uid) H().set(R('modRoom/seats/' + n), null).catch(() => {});   // already taken off by the manager: nothing to clear
             this._mdrPaint();
         },
         async _mdrMic() {
@@ -157,7 +172,7 @@
         _mdrAttachMic() {
             if (!ST || !ST.stream) return;
             const tr = ST.stream.getAudioTracks()[0] || null;
-            if (tr) tr.enabled = !ST.muted;
+            if (tr) tr.enabled = !this._mdrMuted();
             Object.keys(ST.pcs).forEach((u) => { const p = ST.pcs[u]; if (p.sender) p.sender.replaceTrack(tr).catch(() => {}); });
         },
         _mdrStopMic() {
@@ -173,16 +188,16 @@
                 if (free === undefined) { this.showToast('كل المقاعد ممتلية'); return; }
                 this.mdrSit(free); return;
             }
+            if (ST.ctl.muted[ST.uid]) { this.showToast('مشرف الغرفة كتم مايكك'); return; }
             ST.muted = !ST.muted;
-            const tr = ST.stream && ST.stream.getAudioTracks()[0]; if (tr) tr.enabled = !ST.muted;
+            const tr = ST.stream && ST.stream.getAudioTracks()[0]; if (tr) tr.enabled = !this._mdrMuted();
             H().set(R('modRoom/seats/' + ST.seat + '/m'), ST.muted).catch(() => {});
             this._mdrPaint();
         },
         mdrDeaf() {
             if (!ST) return;
             ST.deaf = !ST.deaf;
-            Object.keys(ST.pcs).forEach((u) => { if (ST.pcs[u].audio) ST.pcs[u].audio.muted = ST.deaf; });
-            this._mdrPaint();
+            this._mdrCtl();
         },
 
         // ---------- the voice connections ----------
@@ -205,7 +220,7 @@
         },
         _mdrConnect(u, theirSid) {
             const pc = new RTCPeerConnection({ iceServers: ST.ice, bundlePolicy: 'max-bundle' });
-            const audio = document.createElement('audio'); audio.autoplay = true; audio.setAttribute('playsinline', ''); audio.muted = ST.deaf; audio.style.display = 'none';
+            const audio = document.createElement('audio'); audio.autoplay = true; audio.setAttribute('playsinline', ''); audio.muted = ST.deaf || !!ST.ctl.muted[u] || !!ST.ctl.silenced[u]; audio.style.display = 'none';
             document.body.appendChild(audio);
             const p = { pc, audio, sender: null, theirSid, queue: [], haveRemote: false, tries: 0 };
             ST.pcs[u] = p;
@@ -291,7 +306,7 @@
             Object.keys(ST.an).forEach((u) => {
                 const a = ST.an[u]; a.an.getByteTimeDomainData(a.buf);
                 let sum = 0; for (let i = 0; i < a.buf.length; i++) { const v = (a.buf[i] - 128) / 128; sum += v * v; }
-                const on = Math.sqrt(sum / a.buf.length) > 0.03 && !(u === ST.uid && ST.muted);
+                const on = Math.sqrt(sum / a.buf.length) > 0.03 && !this._mdrMuted(u) && !ST.ctl.silenced[u];
                 document.querySelectorAll('.mdr-seat[data-u="' + u + '"]').forEach((el) => el.classList.toggle('talk', on));
             });
         },
@@ -305,6 +320,91 @@
             catch (e) { inp.value = tx; this.showToast('ما انرسلت الرسالة'); }
         },
 
+        // ---------- the room's manager (permission "roomAdmin"): lock, mute, silence, kick ----------
+        // what the manager set changes this phone at once: a forced mute keeps the mic shut, a silence takes me off my seat, a muted/silenced person is not played here
+        _mdrCtl() {
+            if (!ST) return;
+            const c = ST.ctl;
+            if (c.silenced[ST.uid] && ST.seat !== null) { this._mdrStopMic(); ST.seat = null; try { ST.seatDisc && ST.seatDisc.cancel(); } catch (e) {} this.showToast('مشرف الغرفة سكّتك'); }   // the manager took the seat off in the same write
+            const tr = ST.stream && ST.stream.getAudioTracks()[0]; if (tr) tr.enabled = !this._mdrMuted();
+            Object.keys(ST.pcs).forEach((u) => { if (ST.pcs[u].audio) ST.pcs[u].audio.muted = ST.deaf || !!c.muted[u] || !!c.silenced[u]; });
+            this._mdrPaint();
+        },
+        async _mdrLog(k, extra) { try { const lg = await this._modLog(k, extra); await H().set(R(lg.path), lg.val); } catch (e) {} },
+        async mdrAct(kind, uid, n) {
+            if (!ST || !this._mdrAdm()) return;
+            const { update, serverTimestamp } = H();
+            const nm = (u) => String(((ST.members[u] || {}).n) || ((Object.values(ST.seats).find((x) => x && x.u === u) || {}).n) || '').slice(0, 40);
+            const seatOf = (u) => Object.keys(ST.seats).find((k) => ST.seats[k] && ST.seats[k].u === u);
+            document.getElementById('mdrSheet')?.remove();
+            try {
+                if (kind === 'mute') {
+                    const on = !ST.ctl.muted[uid];
+                    await update(R(''), { ['modRoom/muted/' + uid]: on ? true : null });
+                    this._mdrLog('roomMute', { uid, name: nm(uid), v: on });
+                } else if (kind === 'silence') {
+                    const on = !ST.ctl.silenced[uid], k = seatOf(uid);
+                    const up = { ['modRoom/silenced/' + uid]: on ? true : null };
+                    if (on && k !== undefined) up['modRoom/seats/' + k] = null;
+                    await update(R(''), up);
+                    this._mdrLog('roomSilence', { uid, name: nm(uid), v: on });
+                } else if (kind === 'stand') {
+                    const k = seatOf(uid); if (k !== undefined) await update(R(''), { ['modRoom/seats/' + k]: null });
+                } else if (kind === 'kick') {
+                    const k = seatOf(uid), up = { ['modRoom/members/' + uid]: null, ['modRoom/kicked/' + uid]: serverTimestamp() };
+                    if (k !== undefined) up['modRoom/seats/' + k] = null;
+                    await update(R(''), up);
+                    this._mdrLog('roomKick', { uid, name: nm(uid) });
+                } else if (kind === 'lockseat') {
+                    const on = !ST.ctl.lockSeat[n];
+                    await update(R(''), { ['modRoom/lockSeat/' + n]: on ? true : null });
+                    this._mdrLog('seatLock', { seat: n + 1, v: on });
+                } else if (kind === 'lockroom') {
+                    const on = ST.ctl.state.locked !== true;
+                    await update(R(''), { 'modRoom/state/locked': on });
+                    this._mdrLog('roomLock', { v: on });
+                    this.showToast(on ? 'انقفلت الغرفة، محد جديد يدخل' : 'انفتحت الغرفة');
+                }
+            } catch (e) { this.showToast('ما تنفذ الأمر، صلاحيتك مطفية أو انقطع النت'); }
+        },
+        mdrLock() { this.mdrAct('lockroom'); },
+        _mdrSheet(html) {
+            document.getElementById('mdrSheet')?.remove();
+            const el = document.createElement('div'); el.id = 'mdrSheet'; el.className = 'mdr-sheet';
+            el.innerHTML = '<div class="mdr-sp">' + html + '<button class="mdr-x" onclick="document.getElementById(\'mdrSheet\').remove()">إلغاء</button></div>';
+            el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
+            document.body.appendChild(el);
+            try { lucide.createIcons(); } catch (e) {}
+        },
+        // a tap on a seat opens a choice (what the person may do depends on who sits there and on the manager's powers)
+        mdrSeatTap(n) {
+            if (!ST) return;
+            const s = ST.seats[n], live = s && Date.now() - (s.at || 0) < STALE * 2, c = ST.ctl, adm = this._mdrAdm();
+            const btn = (ic, t, js, cls) => `<button class="mdr-opt ${cls || ''}" onclick="${js}"><i data-lucide="${ic}"></i>${t}</button>`;
+            const close = "document.getElementById('mdrSheet').remove();";
+            let h = '';
+            if (!s || !live) {
+                h = `<b>المقعد ${n + 1}</b>`;
+                if (c.lockSeat[n]) h += '<p class="mdr-p">هذا المقعد مقفول من مشرف الغرفة.</p>';
+                else if (c.silenced[ST.uid]) h += '<p class="mdr-p">مشرف الغرفة سكّتك، ما تكدر تتكلم هسه.</p>';
+                else h += btn('mic', ST.seat !== null ? 'انتقل لهذا المقعد وتكلم' : 'اجلس هنا وتكلم', close + 'app.mdrSit(' + n + ')', 'go');
+                if (adm) h += btn(c.lockSeat[n] ? 'lock-open' : 'lock', c.lockSeat[n] ? 'افتح المقعد' : 'اقفل المقعد', "app.mdrAct('lockseat',null," + n + ')');
+            } else if (s.u === ST.uid) {
+                h = `<b>مقعدك (${n + 1})</b>`;
+                if (c.muted[ST.uid]) h += '<p class="mdr-p">مشرف الغرفة كتم مايكك.</p>';
+                else h += btn(ST.muted ? 'mic' : 'mic-off', ST.muted ? 'شغّل المايك' : 'اكتم المايك', close + 'app.mdrMute()');
+                h += btn('log-out', 'انزل من المقعد (أسمع بس)', close + 'app.mdrStand()');
+            } else {
+                h = `<b>${esc(s.n)}</b><p class="mdr-p">على المقعد ${n + 1}${(s.m || c.muted[s.u]) ? ' • مكتوم' : ''}</p>`;
+                if (adm) {
+                    h += btn(c.muted[s.u] ? 'mic' : 'mic-off', c.muted[s.u] ? 'فك الكتم عنه' : 'اكتم مايكه', "app.mdrAct('mute'," + JSON.stringify(s.u).replace(/"/g, '&quot;') + ')');
+                    h += btn('volume-x', 'سكّته (ينزل من المقعد وما يتكلم ولا يكتب)', "app.mdrAct('silence'," + JSON.stringify(s.u).replace(/"/g, '&quot;') + ')', 'warn');
+                    h += btn('arrow-down-from-line', 'نزّله من المقعد', "app.mdrAct('stand'," + JSON.stringify(s.u).replace(/"/g, '&quot;') + ')');
+                    h += btn('user-x', 'اطرده من الغرفة', "app.mdrAct('kick'," + JSON.stringify(s.u).replace(/"/g, '&quot;') + ')', 'bad');
+                } else h += '<p class="mdr-p">المقعد محجوز.</p>';
+            }
+            this._mdrSheet(h);
+        },
         // ---------- drawing ----------
         _mdrShell() {
             const root = $('mdrView'); if (!root) return;
@@ -313,6 +413,7 @@
                 <div class="mdr-top">
                     <button class="mdr-ic" onclick="app.mdrBack()" aria-label="خروج"><i data-lucide="chevron-right"></i></button>
                     <div class="mdr-title"><b><i data-lucide="shield-check"></i>غرفة المشرفين</b><small id="mdrSub"></small></div>
+                    <button class="mdr-ic hidden" id="mdrLockBtn" onclick="app.mdrLock()" aria-label="قفل الغرفة"><i data-lucide="lock-open"></i></button>
                     <button class="mdr-ic" onclick="app.mdrMembers()" aria-label="المتواجدون"><i data-lucide="users"></i><span id="mdrCount">0</span></button>
                 </div>
                 <div class="mdr-seats" id="mdrSeats"></div>
@@ -334,22 +435,24 @@
             const now = Date.now();
             const fresh = Object.keys(ST.members).filter((u) => now - (ST.members[u].at || 0) < STALE);
             const cnt = $('mdrCount'); if (cnt) cnt.textContent = fresh.length;
+            const lk = $('mdrLockBtn'); if (lk) { const on = ST.ctl.state.locked === true; lk.classList.toggle('hidden', !this._mdrAdm()); lk.classList.toggle('on', on); lk.innerHTML = `<i data-lucide="${on ? 'lock' : 'lock-open'}"></i>`; lk.setAttribute('aria-label', on ? 'افتح الغرفة' : 'اقفل الغرفة'); }
+            const inp = $('mdrIn'); if (inp) { const sl = !!ST.ctl.silenced[ST.uid]; inp.disabled = sl; inp.placeholder = sl ? 'مشرف الغرفة سكّتك' : 'اكتب رسالة...'; }
             const sub = $('mdrSub'); if (sub) {
                 const talking = Object.keys(ST.seats).filter((k) => ST.seats[k] && now - (ST.seats[k].at || 0) < STALE).length;
                 const live = Object.keys(ST.pcs).filter((u) => ST.pcs[u].pc.connectionState === 'connected').length;
-                sub.textContent = fresh.length + ' داخل الغرفة • ' + talking + ' على المايك' + (fresh.length > 1 ? ' • اتصال ' + live + '/' + (fresh.length - 1) : '');
+                sub.textContent = (ST.ctl.state.locked === true ? 'مقفولة • ' : '') + fresh.length + ' داخل الغرفة • ' + talking + ' على المايك' + (fresh.length > 1 ? ' • اتصال ' + live + '/' + (fresh.length - 1) : '');
             }
             box.innerHTML = [...Array(MAXS).keys()].map((n) => {
                 const s = ST.seats[n], live = s && now - (s.at || 0) < STALE * 2;
-                if (!s || !live) return `<button class="mdr-seat" onclick="app.mdrSit(${n})" aria-label="مقعد ${n + 1}"><span class="mdr-av empty"><i data-lucide="mic"></i></span><em>${n + 1}</em></button>`;
-                const me = s.u === ST.uid, muted = me ? ST.muted : s.m === true;
-                return `<button class="mdr-seat on${me ? ' me' : ''}${muted ? ' muted' : ''}" data-u="${esc(s.u)}" onclick="app.mdrSit(${n})" aria-label="مقعد ${n + 1}"><span class="mdr-av" style="--c:${colorOf(s.u)}">${ini(s.n)}${muted ? '<b class="mdr-off"><i data-lucide="mic-off"></i></b>' : ''}</span><em>${esc(me ? 'أنت' : s.n)}</em></button>`;
+                if (!s || !live) return `<button class="mdr-seat" onclick="app.mdrSeatTap(${n})" aria-label="مقعد ${n + 1}"><span class="mdr-av empty${ST.ctl.lockSeat[n] ? ' locked' : ''}"><i data-lucide="${ST.ctl.lockSeat[n] ? 'lock' : 'mic'}"></i></span><em>${n + 1}</em></button>`;
+                const me = s.u === ST.uid, muted = me ? this._mdrMuted() : (s.m === true || !!ST.ctl.muted[s.u]);
+                return `<button class="mdr-seat on${me ? ' me' : ''}${muted ? ' muted' : ''}" data-u="${esc(s.u)}" onclick="app.mdrSeatTap(${n})" aria-label="مقعد ${n + 1}"><span class="mdr-av" style="--c:${colorOf(s.u)}">${ini(s.n)}${muted ? '<b class="mdr-off"><i data-lucide="mic-off"></i></b>' : ''}</span><em>${esc(me ? 'أنت' : s.n)}</em></button>`;
             }).join('');
             const mic = $('mdrMic'); if (mic) {
                 const seated = ST.seat !== null;
-                mic.className = 'mdr-b' + (seated ? (ST.muted ? ' off' : ' live') : '');
-                mic.innerHTML = `<i data-lucide="${seated && ST.muted ? 'mic-off' : 'mic'}"></i>`;
-                mic.setAttribute('aria-label', seated ? (ST.muted ? 'شغّل المايك' : 'اكتم المايك') : 'اجلس وتكلم');
+                mic.className = 'mdr-b' + (seated ? (this._mdrMuted() ? ' off' : ' live') : '');
+                mic.innerHTML = `<i data-lucide="${seated && this._mdrMuted() ? 'mic-off' : 'mic'}"></i>`;
+                mic.setAttribute('aria-label', seated ? (this._mdrMuted() ? 'شغّل المايك' : 'اكتم المايك') : 'اجلس وتكلم');
             }
             const spk = $('mdrSpk'); if (spk) { spk.className = 'mdr-b' + (ST.deaf ? ' off' : ''); spk.innerHTML = `<i data-lucide="${ST.deaf ? 'volume-x' : 'volume-2'}"></i>`; }
             try { lucide.createIcons(); } catch (e) {}
@@ -362,14 +465,15 @@
         },
         mdrMembers() {
             if (!ST) return;
-            const now = Date.now();
+            const now = Date.now(), adm = this._mdrAdm(), c = ST.ctl;
             const list = Object.keys(ST.members).filter((u) => now - (ST.members[u].at || 0) < STALE);
-            document.getElementById('mdrSheet')?.remove();
-            const el = document.createElement('div'); el.id = 'mdrSheet'; el.className = 'mdr-sheet';
-            el.innerHTML = `<div class="mdr-sp"><b>المتواجدون (${list.length})</b>${list.map((u) => `<div class="mdr-mem"><span class="mdr-av sm" style="--c:${colorOf(u)}">${ini(ST.members[u].n)}</span><span>${esc(u === ST.uid ? 'أنت' : ST.members[u].n)}</span>${Object.values(ST.seats).some((s) => s && s.u === u) ? '<i data-lucide="mic"></i>' : ''}</div>`).join('')}<button class="mdr-x" onclick="document.getElementById('mdrSheet').remove()">سد</button></div>`;
-            el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
-            document.body.appendChild(el);
-            try { lucide.createIcons(); } catch (e) {}
+            const q = (u) => JSON.stringify(u).replace(/"/g, '&quot;');
+            const row = (u) => {
+                const seated = Object.values(ST.seats).some((x) => x && x.u === u);
+                const acts = adm && u !== ST.uid ? `<span class="mdr-acts"><button onclick="app.mdrAct('mute',${q(u)})" aria-label="كتم"><i data-lucide="${c.muted[u] ? 'mic' : 'mic-off'}"></i></button><button onclick="app.mdrAct('silence',${q(u)})" aria-label="إسكات"><i data-lucide="${c.silenced[u] ? 'volume-2' : 'volume-x'}"></i></button><button class="bad" onclick="app.mdrAct('kick',${q(u)})" aria-label="طرد"><i data-lucide="user-x"></i></button></span>` : '';
+                return `<div class="mdr-mem"><span class="mdr-av sm" style="--c:${colorOf(u)}">${ini(ST.members[u].n)}</span><span>${esc(u === ST.uid ? 'أنت' : ST.members[u].n)}${c.silenced[u] ? ' <small>(مسكّت)</small>' : c.muted[u] ? ' <small>(مكتوم)</small>' : ''}</span>${seated ? '<i data-lucide="mic" class="mdr-onmic"></i>' : ''}${acts}</div>`;
+            };
+            this._mdrSheet(`<b>المتواجدون (${list.length})</b>${list.map(row).join('')}`);
         },
     });
 })();

@@ -201,6 +201,10 @@ def MODP(perm):
     return f"(auth != null && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/{perm}').val() === true)"
 # the moderators' voice room: the admin's room switch is on, and this moderator is on with the "room" permission
 MODROOM = "(auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true)"
+# the room's manager (a moderator who also holds "roomAdmin"): locks the room and seats, mutes, silences and kicks others
+ROOMADM = ands(MODROOM, "root.child('mods/' + auth.uid + '/p/roomAdmin').val() === true")
+NOT_KICKED = "(!root.child('modRoom/kicked/' + auth.uid).exists() || now - root.child('modRoom/kicked/' + auth.uid).val() > 300000)"
+NOT_SILENT = "!root.child('modRoom/silenced/' + auth.uid).exists()"
 MOD_ON = "(auth != null && root.child('mods/' + auth.uid + '/on').val() === true)"
 
 rules = {
@@ -245,7 +249,7 @@ rules = {
         ".read": SIGNED, ".write": ADMIN,
         "$uid": {".validate": "!newData.exists() || newData.hasChildren(['on', 'p', 'at'])",
                  "on": {".validate": "newData.isBoolean()"},
-                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent|room)$/)"}},
+                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent|room|roomAdmin)$/)"}},
                  "at": {".validate": "newData.isNumber()"},
                  "by": {".validate": "newData.isString() && newData.val().length < 120"},
                  "$other": {".validate": False}},
@@ -259,8 +263,10 @@ rules = {
             ".read": MODROOM,
             "$n": {
                 ".write": ors(ADMIN,
-                              ands(MODROOM, "$n.matches(/^[0-7]$/)", "!data.exists()", "newData.child('u').val() == auth.uid"),
+                              ands(MODROOM, "$n.matches(/^[0-7]$/)", "!data.exists()", "newData.child('u').val() == auth.uid", "root.child('modRoom/members/' + auth.uid).exists()",
+                                   "!root.child('modRoom/lockSeat/' + $n).exists()", NOT_SILENT),
                               ands(MODROOM, "data.exists()", "data.child('u').val() == auth.uid", "(!newData.exists() || newData.child('u').val() == auth.uid)"),
+                              ands(ROOMADM, "data.exists()", "!newData.exists()"),
                               ands(MODROOM, "data.exists()", "!newData.exists()", "now - data.child('at').val() > 90000")),
                 ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['u', 'n', 'at'])", "newData.child('u').isString()", "newData.child('n').isString() && newData.child('n').val().length <= 40", "newData.child('at').isNumber()") + ")",
                 "u": {".validate": "newData.isString()"}, "n": {".validate": "newData.isString()"}, "at": {".validate": "newData.isNumber()"}, "m": {".validate": "newData.isBoolean()"},
@@ -270,17 +276,26 @@ rules = {
         "members": {
             ".read": MODROOM,
             "$uid": {
-                ".write": ors(ADMIN, ands(MODROOM, "$uid == auth.uid"), ands(MODROOM, "!newData.exists()", "now - data.child('at').val() > 90000")),
+                ".write": ors(ADMIN,
+                              ands(MODROOM, "$uid == auth.uid", ors("!newData.exists()", ands(NOT_KICKED, "(data.exists() || root.child('modRoom/state/locked').val() !== true || root.child('mods/' + auth.uid + '/p/roomAdmin').val() === true)"))),
+                              ands(ROOMADM, "!newData.exists()"),
+                              ands(MODROOM, "!newData.exists()", "now - data.child('at').val() > 90000")),
                 ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'at'])", "newData.child('n').isString() && newData.child('n').val().length <= 40", "newData.child('at').isNumber()") + ")",
                 "n": {".validate": "newData.isString()"}, "at": {".validate": "newData.isNumber()"}, "s": {".validate": "newData.isNumber()"},
                 "$other": {".validate": False},
             },
         },
+        # locked room / locked seats / forced mute / silence / kicked-for-5-minutes: set by the room's manager or the admin
+        "state": {".read": MODROOM, ".write": ors(ADMIN, ROOMADM), "locked": {".validate": "newData.isBoolean()"}, "$other": {".validate": False}},
+        "lockSeat": {".read": MODROOM, "$n": {".write": ors(ADMIN, ROOMADM), ".validate": "$n.matches(/^[0-7]$/) && newData.val() === true"}},
+        "muted": {".read": MODROOM, "$uid": {".write": ors(ADMIN, ROOMADM), ".validate": "newData.val() === true"}},
+        "silenced": {".read": MODROOM, "$uid": {".write": ors(ADMIN, ROOMADM), ".validate": "newData.val() === true"}},
+        "kicked": {".read": MODROOM, "$uid": {".write": ors(ADMIN, ROOMADM), ".validate": "newData.isNumber() && newData.val() == now"}},
         "chat": {
             ".read": MODROOM,
             ".write": ors(ADMIN, ands(MODROOM, "!newData.exists()")),
             "$id": {
-                ".write": ors(ADMIN, ands(MODROOM, "!data.exists()", "newData.child('u').val() == auth.uid", "newData.child('at').val() == now")),
+                ".write": ors(ADMIN, ands(MODROOM, "!data.exists()", "newData.child('u').val() == auth.uid", "newData.child('at').val() == now", NOT_SILENT)),
                 ".validate": "newData.hasChildren(['u', 'n', 'tx', 'at'])",
                 "u": {".validate": "newData.isString()"},
                 "n": {".validate": "newData.isString() && newData.val().length <= 40"},
@@ -302,7 +317,7 @@ rules = {
     "auditLog": {
         ".read": ADMIN, ".write": ADMIN,
         "$id": {".write": ors(ADMIN, ands(MOD_ON, "!data.exists()", "newData.child('by/u').val() == auth.uid", "newData.child('at').val() == now",
-                                         "newData.child('k').isString() && newData.child('k').val().matches(/^(newsPub|newsDel|ventDel|replyDel)$/)"))},
+                                         "newData.child('k').isString() && newData.child('k').val().matches(/^(newsPub|newsDel|ventDel|replyDel|roomLock|seatLock|roomMute|roomSilence|roomKick)$/)"))},
     },
     # big files (PDFs) live apart from the lists so opening the app never downloads them
     "resourceFiles": {
