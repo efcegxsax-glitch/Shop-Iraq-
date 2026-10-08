@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="b007e19199">
+    <meta name="admin-build" content="29c8dbb9e6">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -445,6 +445,7 @@
 
             <div class="nav-group-label">الإحصائيات</div>
             <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
+            <button class="tab" data-tab="student"><span class="tab-ic"><i data-lucide="user-search"></i></span><span>ملف الطالب</span></button>
 
             <div class="nav-group-label">المحتوى</div>
             <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
@@ -871,6 +872,33 @@
             </div>
 
             <!-- Users / Analytics -->
+            <!-- ملف الطالب: find a student by number, see every detail of the account, edit it; every change is logged (auditLog) -->
+            <div id="sec-student" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="user-search"></i></div>
+                        <div>
+                            <h3>ملف الطالب</h3>
+                            <p>اكتب رقم الطالب، تطلع لك كل تفاصيل حسابه وتكدر تعدّلها (ماعدا الإيميل وكلمة السر). كل تعديل ينسجل: مين عدّل وشنو وقتها.</p>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label for="st_q">رقم الطالب</label>
+                        <input id="st_q" inputmode="search" placeholder="مثال: 482915  (أو الاسم أو الهاتف)" dir="auto" autocomplete="off">
+                        <div class="flex gap-2" style="margin-top:8px"><button class="btn" type="button" id="st_go">ابحث</button></div>
+                    </div>
+                    <div id="st_res" style="margin-top:10px"></div>
+                </div>
+                <div class="card hidden" id="st_card"></div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="history"></i></div>
+                        <div><h3>سجل التعديلات</h3><p>آخر 60 عملية على الحسابات (مين، شنو، وقت)</p></div>
+                    </div>
+                    <div id="st_log"></div>
+                </div>
+            </div>
+
             <div id="sec-users" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -2213,7 +2241,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['site', 'users', 'student', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -2251,7 +2279,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-        import { getDatabase, ref, set, get, remove, update, onValue, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
+        import { getDatabase, ref, set, get, remove, update, onValue, query, limitToLast, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBTb8xXZka320h1vS9Przl4ygzHXwesUWI",
@@ -2291,7 +2319,7 @@
                 bg.innerHTML = `<div class="ax ${o.tone || 'danger'}" role="alertdialog" aria-modal="true">
                     <span class="ax-ic"><i data-lucide="${escapeHtml(o.icon || 'alert-triangle')}"></i></span>
                     <b class="ax-t">${escapeHtml(o.title || '')}</b>
-                    ${o.text ? `<p class="ax-p">${escapeHtml(o.text)}</p>` : ''}
+                    ${o.text ? `<p class="ax-p" style="white-space:pre-line">${escapeHtml(o.text)}</p>` : ''}
                     ${o.input !== undefined ? `<input type="text" class="ax-in" maxlength="200" placeholder="${escapeHtml(o.input)}">` : ''}
                     <div class="ax-btns"><button class="ax-ok">${escapeHtml(o.ok || 'تأكيد')}</button><button class="ax-no">${escapeHtml(o.cancel || 'إلغاء')}</button></div>
                 </div>`;
@@ -4695,6 +4723,123 @@
                 .catch(() => toast('فشل', false));
         };
 
+
+        // ---------- ملف الطالب ----------
+        // Every field a student has can be edited here except the e-mail and the password (those belong to the sign-in system). The copies of a name / number /
+        // phone / governorate that other places keep (pub, leaderboard, numIndex, phoneIndex) are changed in the same write, so nothing is left behind.
+        const ST_FIELDS = [
+            ['fullName', 'الاسم', 'text'], ['phone', 'الهاتف', 'phone'], ['governorate', 'المحافظة', 'gov'], ['grade', 'الفرع', 'grade'],
+            ['studentNumber', 'رقم الطالب', 'num'], ['points', 'النقاط', 'int', 0, 1000000000], ['balance', 'الرصيد', 'int', 0, 100000], ['loginStreak', 'أيام الدخول المتتالية', 'int', 0, 100000],
+        ];
+        const ST_LABEL = Object.fromEntries(ST_FIELDS.map((f) => [f[0], f[1]]));
+        const stDigits = (s) => String(s == null ? '' : s).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6F0)).trim();
+        const stPhoneKey = (p) => { const d = stDigits(p).replace(/[^0-9]/g, ''); return d.length >= 7 && d.length <= 20 ? d : ''; };
+        const stImg = (s) => (/^(https:\/\/[^\s"'<>]+|data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+\/=]+)$/.test(String(s || '')) ? s : '');
+        let stCur = null;
+        function loadStudentAdmin() {
+            el('st_go').addEventListener('click', stSearch);
+            el('st_q').addEventListener('keydown', (e) => { if (e.key === 'Enter') stSearch(); });
+            onValue(query(ref(db, 'auditLog'), limitToLast(60)), (s) => {
+                const v = s.val() || {}, rows = Object.keys(v).map((k) => ({ k, ...v[k] })).sort((a, b) => (b.at || 0) - (a.at || 0));
+                el('st_log').innerHTML = rows.length ? rows.map((r) => `<div class="row-item" style="display:block;padding:10px 12px"><div style="font-size:12px;opacity:.7">${escapeHtml(new Date(r.at || 0).toLocaleString('ar-IQ'))} . ${escapeHtml(stWho(r))}</div><div style="font-size:13.5px;margin-top:2px">${escapeHtml(stLogText(r))}</div></div>`).join('') : '<p class="list-empty">ما كو تعديلات بعد</p>';
+            });
+        }
+        const stWho = (r) => (r.by && r.by.t === 'mod' ? 'مشرف: ' + (r.by.n || r.by.u || '') : 'لوحة التحكم');
+        function stLogText(r) {
+            const who = (r.name || 'طالب') + (r.num ? ' (رقم ' + r.num + ')' : '');
+            const gv = (x) => x === 'scientific' ? 'علمي' : x === 'literary' ? 'أدبي' : (x == null ? '' : x);
+            if (r.k === 'userEdit') return 'عدّلت حساب ' + who + ': ' + Object.keys(r.ch || {}).map((f) => (ST_LABEL[f] || f) + ' من "' + gv((r.ch[f] || [])[0]) + '" إلى "' + gv((r.ch[f] || [])[1]) + '"').join('، ');
+            return (r.k || '') + ' ' + (r.t || '');
+        }
+        function stSearch() {
+            const q = stDigits(val('st_q')), box = el('st_res'); if (!q) { toast('اكتب رقم الطالب', false); return; }
+            const uids = Object.keys(usersData), ql = q.toLowerCase();
+            let found = /^[0-9]{3,12}$/.test(q) ? uids.filter((id) => String((usersData[id] || {}).studentNumber || '') === q) : [];
+            if (!found.length) found = uids.filter((id) => { const u = usersData[id] || {}; return String(u.fullName || '').toLowerCase().includes(ql) || String(u.studentNumber || '').includes(q) || stPhoneKey(u.phone) === stPhoneKey(q) && stPhoneKey(q) !== '' || id === q; }).slice(0, 15);
+            if (found.length === 1) { box.innerHTML = ''; stOpen(found[0]); return; }
+            el('st_card').classList.add('hidden');
+            box.innerHTML = found.length ? '<div style="font-size:12.5px;opacity:.75;margin-bottom:6px">' + (found.length > 1 ? 'أكثر من حساب، اختر:' : '') + '</div>' + found.map((id) => { const u = usersData[id] || {}; return `<div class="vf-row"><div class="vf-n"><b>${escapeHtml(u.fullName || 'بدون اسم')}</b><small>${escapeHtml([u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || '', u.phone || ''].filter(Boolean).join(' • '))}</small></div><button class="vf-on" type="button" onclick="stOpen(${jsArg(id)})">افتح</button></div>`; }).join('') : '<p class="list-empty">ما لكيت طالب بهذا الرقم أو الاسم</p>';
+        }
+        window.stOpen = (uid) => { stCur = uid; el('st_res').innerHTML = ''; stRender(); el('st_card').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+        function stRender() {
+            const uid = stCur, u = usersData[uid], card = el('st_card'); if (!card) return;
+            if (!u) { card.classList.add('hidden'); return; }
+            card.classList.remove('hidden');
+            const name = u.fullName || 'بدون اسم', ver = verifiedData && verifiedData[uid], banned = !!(bannedUsersData && bannedUsersData[uid]), devs = Object.keys(u.dev || {}).length;
+            const av = stImg(u.avatar) || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=0F766E&color=fff');
+            const chip = (t, v) => `<span style="display:inline-block;background:var(--panel-2);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:12px;margin:2px">${escapeHtml(t)}: <b>${escapeHtml(v)}</b></span>`;
+            const input = ([f, lab, type]) => {
+                const cur = u[f] == null ? '' : u[f], id = 'stf_' + f;
+                let ctl;
+                if (type === 'gov') ctl = `<select id="${id}"><option value="">—</option>${[...new Set([...Object.keys(GOV_CODES), cur].filter(Boolean))].map((g) => `<option ${g === cur ? 'selected' : ''}>${escapeHtml(g)}</option>`).join('')}</select>`;
+                else if (type === 'grade') ctl = `<select id="${id}"><option value="scientific" ${cur !== 'literary' ? 'selected' : ''}>سادس علمي</option><option value="literary" ${cur === 'literary' ? 'selected' : ''}>سادس أدبي</option></select>`;
+                else ctl = `<input id="${id}" value="${escapeHtml(String(cur))}" ${type === 'int' || type === 'num' || type === 'phone' ? 'inputmode="numeric" dir="ltr"' : 'maxlength="80"'} autocomplete="off">`;
+                return `<div class="field" style="margin:0"><label for="${id}">${lab}</label>${ctl}</div>`;
+            };
+            const tech = JSON.stringify(u, (k, v) => (typeof v === 'string' && v.length > 160 ? '[' + v.length + ' حرف]' : v), 2);
+            card.innerHTML = `<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><img src="${escapeHtml(av)}" alt="" style="width:64px;height:64px;border-radius:50%;object-fit:cover"><div style="flex:1;min-width:160px"><div style="font-weight:800;font-size:17px">${escapeHtml(name)}${ver ? VB : ''}${banned ? ' <span style="color:#F87171;font-size:13px">(محظور)</span>' : ''}</div><div style="font-size:12.5px;opacity:.75">${escapeHtml([u.studentNumber ? 'رقم ' + u.studentNumber : '', u.governorate || '', u.email || ''].filter(Boolean).join(' • '))}</div></div></div>
+                <div style="margin:10px 0 4px">${chip('النقاط', u.points == null ? 0 : u.points)}${chip('الرصيد', u.balance == null ? 0 : u.balance)}${chip('آخر دخول', u.lastLoginDate || '—')}${chip('الأجهزة', devs)}${chip('التوثيق', ver ? 'موثّق' : 'لا')}</div>
+                <div class="card-head" style="margin-top:12px"><div><h3 style="font-size:15px">تعديل المعلومات</h3></div></div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">${ST_FIELDS.map(input).join('')}</div>
+                <div class="field" style="margin-top:10px"><label>الإيميل (للقراءة فقط، من نظام الدخول)</label><input value="${escapeHtml(u.email || '')}" readonly dir="ltr" style="opacity:.7"></div>
+                <div class="flex gap-2" style="flex-wrap:wrap;margin-top:6px"><button class="btn" type="button" id="st_save">حفظ التعديلات</button><button class="btn-sm" type="button" id="st_reset">رجّع القيم</button></div>
+                <details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">كل تفاصيل الحساب (للقراءة)</summary><pre dir="ltr" style="white-space:pre-wrap;word-break:break-all;font-size:11.5px;opacity:.85;margin-top:8px">${escapeHtml(tech)}</pre></details>`;
+            el('st_save').addEventListener('click', stSave);
+            el('st_reset').addEventListener('click', stRender);
+            try { lucide.createIcons(); } catch (e) {}
+        }
+        async function stSave() {
+            const uid = stCur, u = usersData[uid]; if (!u) return;
+            const ch = {}, bad = (m) => { toast(m, false); return null; };
+            for (const [f, lab, type, lo, hi] of ST_FIELDS) {
+                const inp = el('stf_' + f); if (!inp) continue;
+                let v = inp.value.trim(), old = u[f] == null ? '' : u[f];
+                if (type === 'int') { v = stDigits(v); if (!/^[0-9]{1,12}$/.test(v) || Number(v) < lo || Number(v) > hi) return bad(lab + ': رقم صحيح من ' + lo + ' إلى ' + hi); v = Number(v); old = Number(old) || 0; }
+                else if (type === 'num') { v = stDigits(v); if (!/^[0-9]{3,12}$/.test(v)) return bad('رقم الطالب: أرقام فقط، من 3 إلى 12 رقم'); old = String(old); }
+                else if (type === 'phone') { v = stDigits(v); if (v && !stPhoneKey(v)) return bad('الهاتف: من 7 إلى 20 رقم'); old = String(old); }
+                else if (type === 'text') { if (v.length < 2 || v.length > 80) return bad('الاسم: من حرفين إلى 80 حرف'); old = String(old); }
+                else if (type === 'grade') { if (v !== 'scientific' && v !== 'literary') return bad('الفرع غير صحيح'); old = old || 'scientific'; }
+                else old = String(old);
+                if (v !== old) ch[f] = [old, v];
+            }
+            const keys = Object.keys(ch);
+            if (!keys.length) { toast('ما تغيّر شي'); return; }
+            const fmt = (f, x) => (f === 'grade' ? (x === 'literary' ? 'أدبي' : 'علمي') : x === '' ? '(فارغ)' : x);
+            if (!(await ask({ icon: 'user-cog', tone: 'warn', title: 'تحفظ هذي التعديلات؟', text: (u.fullName || 'الطالب') + '\n' + keys.map((f) => '• ' + ST_LABEL[f] + ': ' + fmt(f, ch[f][0]) + '  ←  ' + fmt(f, ch[f][1])).join('\n') + '\nالتعديل ينسجل بسجل التعديلات.', ok: 'احفظ' }))) return;
+            const btn = el('st_save'); btn.disabled = true;
+            try {
+                const up = {}, nameNew = ch.fullName ? ch.fullName[1] : (u.fullName || ''), numNew = ch.studentNumber ? ch.studentNumber[1] : String(u.studentNumber || '');
+                // a number and a phone belong to one account
+                if (ch.studentNumber) {
+                    const n = ch.studentNumber[1], idx = (await get(ref(db, 'numIndex/' + n))).val();
+                    if ((idx && idx !== uid) || Object.keys(usersData).some((id) => id !== uid && String((usersData[id] || {}).studentNumber || '') === n)) throw new Error('رقم الطالب ' + n + ' مستخدم لحساب ثاني');
+                }
+                const oldPk = stPhoneKey(u.phone), newPk = ch.phone ? stPhoneKey(ch.phone[1]) : oldPk;
+                if (ch.phone && newPk) { const ex = (await get(ref(db, 'phoneIndex/' + newPk))).val(); if (ex && ex.u && ex.u !== uid) throw new Error('هذا الهاتف مسجّل لحساب ثاني'); }
+                const [pubS, lbS] = await Promise.all([get(ref(db, 'pub/' + uid)), get(ref(db, 'leaderboard/' + uid))]), pub = pubS.val(), lb = lbS.val();
+                keys.forEach((f) => { up['users/' + uid + '/' + f] = ch[f][1]; });
+                if (ch.fullName) { if (pub) up['pub/' + uid + '/n'] = nameNew; if (lb && lb.name !== undefined) up['leaderboard/' + uid + '/name'] = nameNew; }
+                if (ch.governorate && pub) up['pub/' + uid + '/g'] = ch.governorate[1];
+                if (ch.grade && lb) up['leaderboard/' + uid + '/grade'] = ch.grade[1];
+                if (ch.points && lb) up['leaderboard/' + uid + '/points'] = ch.points[1];
+                if (ch.studentNumber) {
+                    if (pub) up['pub/' + uid + '/s'] = numNew;
+                    up['numIndex/' + numNew] = uid;
+                    const o = String(ch.studentNumber[0] || ''); if (/^[0-9]{3,12}$/.test(o) && o !== numNew && (await get(ref(db, 'numIndex/' + o))).val() === uid) up['numIndex/' + o] = null;
+                }
+                if (ch.phone) {
+                    if (oldPk && oldPk !== newPk && ((await get(ref(db, 'phoneIndex/' + oldPk))).val() || {}).u === uid) up['phoneIndex/' + oldPk] = null;
+                    if (newPk && u.email) up['phoneIndex/' + newPk] = { e: String(u.email).slice(0, 120), u: uid };
+                }
+                const lid = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+                up['auditLog/' + lid] = { at: Date.now(), by: { t: 'panel', e: String((auth.currentUser && auth.currentUser.email) || '').slice(0, 60) }, k: 'userEdit', uid, num: numNew, name: String(nameNew).slice(0, 80), ch };
+                await update(ref(db), up);
+                toast('انحفظت التعديلات وانسجلت');
+                setTimeout(stRender, 400);
+            } catch (e) { toast('ما انحفظ: ' + (e.message || e), false); }
+            btn.disabled = false;
+        }
+
         // ---------- Forest companions ----------
         let botsCfg = null;
         function loadForestWeather() {
@@ -5747,6 +5892,7 @@
             loadComplaintsAdmin();
             loadChanReqAdmin();
             loadNewsBotAdmin();
+            loadStudentAdmin();
             loadMotivAdmin();
             loadVoiceAdmin();
             loadForestWeather();
