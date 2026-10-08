@@ -243,7 +243,7 @@ rules = {
         ".read": SIGNED, ".write": ADMIN,
         "$uid": {".validate": "!newData.exists() || newData.hasChildren(['on', 'p', 'at'])",
                  "on": {".validate": "newData.isBoolean()"},
-                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|delNews|delVent)$/)"}},
+                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent)$/)"}},
                  "at": {".validate": "newData.isNumber()"},
                  "by": {".validate": "newData.isString() && newData.val().length < 120"},
                  "$other": {".validate": False}},

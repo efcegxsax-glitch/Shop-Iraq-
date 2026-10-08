@@ -687,6 +687,11 @@ await no('moderator log entry with a fake time', set(ref(db('m1'), 'auditLog/a5'
 await no('moderator log entry of a made-up kind', set(ref(db('m1'), 'auditLog/a6'), { at: now, k: 'userEdit', by: { t: 'mod', u: 'm1' } }));
 await no('moderator cannot read the log', get(ref(db('m1'), 'auditLog')));
 await no('moderator cannot rewrite a log entry', set(ref(db('m1'), 'auditLog/a1'), { at: now, k: 'newsDel', by: { t: 'mod', u: 'm1' } }));
+await ok('admin gives a moderator the push permission', set(ref(db('adm'), 'mods/m6'), { on: true, p: { pubNews: true, pushNews: true, delNews: false, delVent: false }, at: now }));
+await no('a moderator cannot write the push gap (Worker only)', set(ref(db('m1'), 'modPushLast/m1'), now));
+await no('a student cannot write the push gap', set(ref(db('ed1'), 'modPushLast/ed1'), now));
+await no('a moderator cannot read push gaps', get(ref(db('m1'), 'modPushLast/m1')));
+await no('a moderator cannot mark a news as pushed', set(ref(db('m1'), 'news/902/pushedAt'), now));
 await ok('admin writes a tombstone', set(ref(db('adm'), 'newsGone/777'), true));
 
 // news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*

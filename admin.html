@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="ee0cb51668">
+    <meta name="admin-build" content="f4d8c7467c">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -4784,7 +4784,7 @@
         }
         // ---------- المشرفون ----------
         // mods/{uid} = {on, p:{pubNews, delNews, delVent}, at, by}. The database rules (not the app) decide what a moderator may do, so a switched-off permission really is off.
-        const MOD_PERMS = [['pubNews', 'نشر الأخبار'], ['delNews', 'حذف الأخبار'], ['delVent', 'حذف الفضفضة والتعليقات']];
+        const MOD_PERMS = [['pubNews', 'نشر الأخبار'], ['pushNews', 'إرسال إشعار للكل مع الخبر'], ['delNews', 'حذف الأخبار'], ['delVent', 'حذف الفضفضة والتعليقات']];
         let modsData = {};
         const modLog = (k, uid, extra) => {
             const u = usersData[uid] || {};
@@ -4804,9 +4804,9 @@
         }
         window.modAdd = async (uid) => {
             const u = usersData[uid]; if (!u || modsData[uid]) return;
-            if (!(await ask({ icon: 'shield-plus', title: 'ترفع ' + (u.fullName || 'هذا الطالب') + ' مشرف؟', text: 'تنفتح له كل الصلاحيات الثلاث (نشر الأخبار، حذف الأخبار، حذف الفضفضة والتعليقات). تكدر تغيّرها من بعد.', ok: 'ارفعه' }))) return;
+            if (!(await ask({ icon: 'shield-plus', title: 'ترفع ' + (u.fullName || 'هذا الطالب') + ' مشرف؟', text: 'تنفتح له نشر الأخبار وحذف الأخبار وحذف الفضفضة والتعليقات. صلاحية "إرسال إشعار للكل" تبقى مسكّرة لحد ما تفتحها انت. تكدر تغيّر أي وحدة من بعد.', ok: 'ارفعه' }))) return;
             try {
-                await set(ref(db, 'mods/' + uid), { on: true, p: { pubNews: true, delNews: true, delVent: true }, at: Date.now(), by: 'panel' });
+                await set(ref(db, 'mods/' + uid), { on: true, p: { pubNews: true, pushNews: false, delNews: true, delVent: true }, at: Date.now(), by: 'panel' });
                 await modLog('modAdd', uid);
                 el('md_res').innerHTML = ''; el('md_q').value = ''; toast('انرفع مشرف');
             } catch (e) { toast('تعذر الرفع: ' + (e.message || e), false); }
@@ -4838,6 +4838,7 @@
             const t = r.title ? ' "' + r.title + '"' : '';
             if (r.k === 'newsDel') return 'حذف الخبر' + t + ' من كل المستخدمين';
             if (r.k === 'newsPub') return 'نشر الخبر' + t;
+            if (r.k === 'newsPush') return 'أرسل إشعار لكل التلفونات عن الخبر' + t;
             if (r.k === 'ventDel') return 'حذف فضفضة وكل ردودها';
             if (r.k === 'replyDel') return 'حذف رد على فضفضة';
             if (r.k === 'modAdd') return 'رفع ' + who + ' مشرف';

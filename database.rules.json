@@ -121,7 +121,7 @@
         },
         "p": {
           "$k": {
-            ".validate": "newData.isBoolean() && $k.matches(/^(pubNews|delNews|delVent)$/)"
+            ".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent)$/)"
           }
         },
         "at": {
