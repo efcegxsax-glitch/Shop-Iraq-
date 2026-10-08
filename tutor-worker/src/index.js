@@ -28,6 +28,7 @@ import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, is
 import { motivDue } from './motiv.js';
 import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } from './tg.js';
 import { makeDb } from './fbadmin.js';
+import { modPush } from './modpush.js';
 import { routeCron, cronPeriod } from './cron.js';
 import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
@@ -1073,6 +1074,26 @@ export default {
                 let bin = ''; for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode(...buf.subarray(i, i + 8192));
                 return json(200, { type, data: btoa(bin) }, headers);
             } catch { return json(502, { error: 'image' }, headers); }
+        }
+
+        // a moderator's push for the news he just published (all phones; the text is the news's own title, read from the database)
+        if (body.mode === 'modpush') {
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+            const tok = /^Bearer (.+)$/.exec(req.headers.get('Authorization') || '');
+            const r = await modPush(uid, body, Date.now(), {
+                get: (path) => dbGet(env, path, tok ? tok[1] : ''),
+                db: makeDb(env),
+                send: async ({ title, text, id }) => {
+                    const { targets } = pushTargets([], 'announcement');
+                    const g = goData('news', id);
+                    const res = await Promise.all(targets.map((target) => fetch('https://api.onesignal.com/notifications?c=push', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
+                        body: JSON.stringify({ app_id: env.ONESIGNAL_APP_ID, target_channel: 'push', ...target, headings: { en: title, ar: title }, contents: { en: text, ar: text }, ...PUSH_LOOK(env), data: { cat: 'announcement', ...g }, web_url: goUrl(env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/', g) }),
+                    }).then(async (x) => ({ ok: x.ok, j: await x.json().catch(() => ({})) }))));
+                    return { ok: res.every((x) => x.ok && x.j.id), recipients: res.reduce((n, x) => n + (Number(x.j.recipients) || 0), 0) };
+                },
+            });
+            return json(r.status, r.body, headers);
         }
 
         if (body.mode === 'notify') {

@@ -13431,10 +13431,24 @@
                     <textarea id="mpX" rows="6" maxlength="3000" placeholder="نص الخبر" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px"></textarea>
                     <select id="mpC" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:8px">${cats.map((c) => `<option value="${c.id}">${escapeHtml(c.label)}</option>`).join('')}</select>
                     <input id="mpS" maxlength="60" placeholder="المصدر (اختياري)" style="width:100%;padding:11px;border-radius:12px;border:1px solid var(--border);background:var(--bg);color:var(--text);margin-bottom:10px">
+                    ${this.modCan('pushNews') ? '<label style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px"><input type="checkbox" id="mpP" style="width:18px;height:18px"> أرسل إشعار لكل التلفونات (مرة كل نص ساعة)</label>' : ''}
                     <button type="button" id="mpGo" onclick="app.modPublish()" class="btn-press" style="width:100%;padding:12px;border-radius:12px;background:#16a34a;color:#fff;font-weight:700">نشر للكل</button>
                 </div>`;
                 el.addEventListener('click', (e) => { if (e.target === el) el.remove(); });
                 document.body.appendChild(el);
+            },
+            // asks the Worker to push the news just published (it checks the permission, the news and the half-hour gap itself)
+            async _modPush(id) {
+                try {
+                    const user = window.firebaseAuth && window.firebaseAuth.currentUser; if (!user) return;
+                    const cu = String((this.siteConfig && this.siteConfig.tutorUrl) || '').trim().replace(/\/+$/, '');
+                    const base = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev';
+                    const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await user.getIdToken()) }, body: JSON.stringify({ mode: 'modpush', id: String(id) }) });
+                    const j = await r.json().catch(() => ({}));
+                    if (r.ok) this.showToast('انرسل الإشعار لكل التلفونات');
+                    else if (r.status === 429) this.showToast('الخبر اننشر، بس الإشعار ما انرسل: انتظر ' + (j.minutes || 30) + ' دقيقة بين إشعار وإشعار');
+                    else this.showToast('الخبر اننشر، بس الإشعار ما انرسل');
+                } catch (e) { this.showToast('الخبر اننشر، بس الإشعار ما انرسل'); }
             },
             async modPublish() {
                 if (!this.modCan('pubNews')) return;
@@ -13450,8 +13464,10 @@
                 try {
                     const lg = await this._modLog('newsPub', { id, title: title.slice(0, 100) });
                     await update(ref(window.firebaseDb), { ['news/' + id]: rec, [lg.path]: lg.val });
+                    const wantPush = !!(document.getElementById('mpP') || {}).checked && this.modCan('pushNews');
                     document.getElementById('modPubSheet')?.remove();
                     this.showToast('اننشر الخبر');
+                    if (wantPush) this._modPush(id);
                 } catch (e) { this.showToast('ما اننشر، صلاحيتك مطفية أو انقطع النت'); if (btn) { btn.disabled = false; btn.textContent = 'نشر للكل'; } }
             },
             _refreshVerifiedViews() {
