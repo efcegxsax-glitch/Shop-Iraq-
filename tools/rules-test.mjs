@@ -692,6 +692,57 @@ await no('a moderator cannot write the push gap (Worker only)', set(ref(db('m1')
 await no('a student cannot write the push gap', set(ref(db('ed1'), 'modPushLast/ed1'), now));
 await no('a moderator cannot read push gaps', get(ref(db('m1'), 'modPushLast/m1')));
 await no('a moderator cannot mark a news as pushed', set(ref(db('m1'), 'news/902/pushedAt'), now));
+
+// the moderators' room
+await seed('mods/r1', { on: true, p: { room: true }, at: now }); await seed('mods/r2', { on: true, p: { room: true }, at: now }); await seed('mods/r3', { on: true, p: { room: false, pubNews: true }, at: now }); await seed('mods/r4', { on: false, p: { room: true }, at: now });
+await no('room: nobody enters while the admin switch is not set', set(ref(db('r1'), 'modRoom/members/r1'), { n: 'علي', at: now }));
+await no('room: a moderator cannot flip the switch', set(ref(db('r1'), 'modRoom/cfg/on'), true));
+await no('room: a student cannot flip the switch', set(ref(db('ed1'), 'modRoom/cfg/on'), true));
+await ok('room: the admin switches the room on', set(ref(db('adm'), 'modRoom/cfg'), { on: true }));
+await ok('room: any signed-in reads the switch', get(ref(db('ed1'), 'modRoom/cfg')));
+await ok('room: a moderator with the permission joins', set(ref(db('r1'), 'modRoom/members/r1'), { n: 'علي', at: now }));
+await no('room: joining as someone else', set(ref(db('r1'), 'modRoom/members/r2'), { n: 'x', at: now }));
+await no('room: a moderator without the room permission cannot join', set(ref(db('r3'), 'modRoom/members/r3'), { n: 'x', at: now }));
+await no('room: a switched-off moderator cannot join', set(ref(db('r4'), 'modRoom/members/r4'), { n: 'x', at: now }));
+await no('room: a student cannot join', set(ref(db('ed1'), 'modRoom/members/ed1'), { n: 'x', at: now }));
+await no('room: a student cannot read who is inside', get(ref(db('ed1'), 'modRoom/members')));
+await no('room: a moderator without the permission cannot read it', get(ref(db('r3'), 'modRoom/members')));
+await ok('room: a moderator inside reads who is inside', get(ref(db('r1'), 'modRoom/members')));
+await no('room: a name that is too long', set(ref(db('r2'), 'modRoom/members/r2'), { n: 'x'.repeat(41), at: now }));
+await ok('room: take mic seat 3', set(ref(db('r1'), 'modRoom/seats/3'), { u: 'r1', n: 'علي', at: now, m: false }));
+await no('room: take a seat that is already taken', set(ref(db('r2'), 'modRoom/seats/3'), { u: 'r2', n: 'سارة', at: now }));
+await no('room: sit for someone else', set(ref(db('r2'), 'modRoom/seats/4'), { u: 'r1', n: 'x', at: now }));
+await no('room: a seat number out of range', set(ref(db('r2'), 'modRoom/seats/8'), { u: 'r2', n: 'x', at: now }));
+await ok('room: the one sitting mutes himself', set(ref(db('r1'), 'modRoom/seats/3/m'), true));
+await no('room: someone else changes my seat', set(ref(db('r2'), 'modRoom/seats/3/m'), false));
+await no('room: giving my seat to someone else', set(ref(db('r1'), 'modRoom/seats/3'), { u: 'r2', n: 'x', at: now }));
+await no('room: removing someone else\'s fresh seat', set(ref(db('r2'), 'modRoom/seats/3'), null));
+await seed('modRoom/seats/5', { u: 'ghost', n: 'شبح', at: now - 200000 });
+await ok('room: clearing a ghost seat (no heartbeat for 90 s)', set(ref(db('r2'), 'modRoom/seats/5'), null));
+await ok('room: leaving my seat', set(ref(db('r1'), 'modRoom/seats/3'), null));
+await ok('room: a message', set(ref(db('r1'), 'modRoom/chat/c1'), { u: 'r1', n: 'علي', tx: 'مرحبا', at: TS }));
+await no('room: a message as someone else', set(ref(db('r2'), 'modRoom/chat/c2'), { u: 'r1', n: 'علي', tx: 'مزور', at: TS }));
+await no('room: a message with a fake time', set(ref(db('r1'), 'modRoom/chat/c3'), { u: 'r1', n: 'علي', tx: 'x', at: now - 5000 }));
+await no('room: a message that is too long', set(ref(db('r1'), 'modRoom/chat/c4'), { u: 'r1', n: 'علي', tx: 'x'.repeat(301), at: TS }));
+await no('room: an empty message', set(ref(db('r1'), 'modRoom/chat/c5'), { u: 'r1', n: 'علي', tx: '', at: TS }));
+await no('room: editing a message', set(ref(db('r1'), 'modRoom/chat/c1/tx'), 'تعديل'));
+await no('room: a student cannot read the chat', get(ref(db('ed1'), 'modRoom/chat')));
+await no('room: a student cannot write in the chat', set(ref(db('ed1'), 'modRoom/chat/c6'), { u: 'ed1', n: 'x', tx: 'x', at: TS }));
+await ok('room: a moderator reads the chat', get(ref(db('r2'), 'modRoom/chat')));
+await ok('room: signal an offer to another moderator', set(ref(db('r1'), 'modRoom/sig/r2/r1/k1'), { t: 'offer', d: 'v=0...', at: now }));
+await no('room: signal as someone else', set(ref(db('r2'), 'modRoom/sig/r1/r1/k2'), { t: 'offer', d: 'v=0', at: now }));
+await no('room: a bad signal type', set(ref(db('r1'), 'modRoom/sig/r2/r1/k3'), { t: 'hack', d: 'x', at: now }));
+await no('room: a signal that is too big', set(ref(db('r1'), 'modRoom/sig/r2/r1/k4'), { t: 'ice', d: 'x'.repeat(8001), at: now }));
+await ok('room: the receiver reads his signals', get(ref(db('r2'), 'modRoom/sig/r2')));
+await no('room: a third moderator cannot read them', get(ref(db('r3'), 'modRoom/sig/r2')));
+await no('room: the sender cannot read the receiver\'s box', get(ref(db('r1'), 'modRoom/sig/r2')));
+await ok('room: the receiver clears a signal he has used', set(ref(db('r2'), 'modRoom/sig/r2/r1/k1'), null));
+await ok('room: a moderator clears the chat when the room is empty', set(ref(db('r1'), 'modRoom/chat'), null));
+await no('room: a student cannot clear the chat', set(ref(db('ed1'), 'modRoom/chat'), null));
+await ok('room: the admin kicks someone off a seat', set(ref(db('adm'), 'modRoom/seats/6'), null));
+await ok('room: the admin switches the room off', set(ref(db('adm'), 'modRoom/cfg/on'), false));
+await no('room: with the switch off a moderator is shut out', get(ref(db('r1'), 'modRoom/members')));
+await ok('room: the admin gives the room permission to a moderator', set(ref(db('adm'), 'mods/r5'), { on: true, p: { room: true }, at: now }));
 await ok('admin writes a tombstone', set(ref(db('adm'), 'newsGone/777'), true));
 
 // news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*

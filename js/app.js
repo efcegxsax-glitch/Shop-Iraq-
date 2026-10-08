@@ -3461,8 +3461,8 @@
 
                 // Pages the panel can switch off for everyone (siteConfig/features/<name> = false)
                 this._MORE_ALL = this._MORE_ALL || this.MORE_ITEMS;
-                this.MORE_ITEMS = this._MORE_ALL.filter((x) => !x.feat || on('features', x.feat));
-                if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
+                this._moreFeat = (x) => !x.feat || on('features', x.feat);
+                this._moreRefilter();
                 this.renderPollCard(); this.renderInviteBanner(); this._promoSoon();
                 if (this.currentView === 'authView') this.setAuthMode(this.authMode || 'login');
                 if (this.currentView === 'dhikrView' && !on('features', 'dhikr')) this.setTab('home');
@@ -4608,6 +4608,7 @@
                 }
             },
             _nutNotify(kind, meal, inMin, cups, goal) {
+                if (document.body.classList.contains('mdr-on')) return;   // not on top of the moderators' room
                 const M = this.NUT_MEALS[meal] || [];
                 const title = kind === 'water' ? 'وكت الماي' : 'قرب موعد ' + M[0];
                 const body = kind === 'water'
@@ -8885,6 +8886,7 @@
                 { id: 'focus', fn: 'goToFocus', t: 'وضع التركيز', d: 'لا تلمس الهاتف واكسب نقاط', ic: 'smartphone', c: '#0EA5E9', g: 'study' },
                 { id: 'timer', fn: 'goToStudyTimer', t: 'مؤقت المذاكرة', d: 'جلسات مذاكرة بنقاط', ic: 'timer', c: '#14B8A6', g: 'study' },
                 { id: 'ideas', fn: 'goToIdeas', t: 'صندوق الأفكار', d: 'اقترح إضافات وصوّت عليها', ic: 'lightbulb', c: '#F59E0B', g: 'people' },
+                { id: 'modroom', fn: 'goToModRoom', t: 'غرفة المشرفين', d: 'دردشة صوتية وكتابية للمشرفين بس', ic: 'shield-check', c: '#16a34a', g: 'people', mod: true },
                 { id: 'vent', fn: 'goToVent', t: 'فضفضة', d: 'قول اللي بقلبك بدون اسم', ic: 'feather', c: '#8B5CF6', g: 'people' },
                 { id: 'spots', fn: 'goToSpots', t: 'أماكن الدراسة', d: 'مكتبات ومقاهي هادئة بمحافظتك', ic: 'library-big', c: '#2563EB', g: 'people' },
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
@@ -13182,6 +13184,7 @@
                 if (this.currentView === 'chatThreadView' && viewId !== 'chatThreadView' && this.chatClose) this.chatClose();
                 if (viewId === 'homeView' && this.currentView !== 'homeView') this._promoSoon();
                 if (this.currentView === 'rmView' && viewId !== 'rmView' && this.rmClose) this.rmClose();
+                if (this.currentView === 'mdrView' && viewId !== 'mdrView' && this._mdrTeardown) this._mdrTeardown();
                 if (this.currentView === 'forumThreadView' && viewId !== 'forumThreadView' && this.fmThreadClose) this.fmThreadClose();
                 if (this._gwar && viewId !== 'govWarView') this.failGovWar('طلعت من صفحة الحرب', true);
                 if (this.currentView === 'govWarView' && viewId !== 'govWarView') document.body.classList.remove('gw-running');
@@ -13374,6 +13377,23 @@
             vb(uid, size) { return this.modBadge(uid) + (this.isVerified(uid) ? `<span class="vbadge${size ? ' ' + size : ''}" title="حساب موثّق" role="img" aria-label="حساب موثّق">${VERIFIED_SVG}</span>` : ''); },
 
             // ===== Moderators =====
+            // the list of pages in "more": the panel's page switches, and the moderators' room only for a moderator who may enter it
+            _moreRefilter() {
+                if (!this._MORE_ALL) return;
+                const f = this._moreFeat || (() => true);
+                this.MORE_ITEMS = this._MORE_ALL.filter((x) => f(x) && (!x.mod || this.modRoomOk()));
+                if (this.currentView === 'moreView' && this.renderMore) this.renderMore();
+            },
+            // the room: the admin's switch is on, and I am a moderator who is on with the room permission
+            modRoomOk() { return !!(this._modRoomOn === true && this.modCan('room')); },
+            goToModRoom() {
+                if (!this.isLoggedIn || !this.currentUser) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+                if (!this.modRoomOk()) { this.showToast('الغرفة مو متاحة لك هسه'); return; }
+                this.switchView('mdrView');
+                if (typeof this.mdrOpen === 'function') { this.mdrOpen(); return; }
+                this._need('modroom').then(() => { if (this.currentView === 'mdrView') this.mdrOpen(); })
+                    .catch(() => this.showToast('ما انحملت الصفحة، تأكد من النت وحاول مرة ثانية'));
+            },
             // mods/{uid} = {on, p:{pubNews, delNews, delVent}} is set from the admin panel; the rules decide what a moderator may really do.
             listenForMods() {
                 if (this._modListening || !window.firebaseDb || !this.authUid) return; // mods/ is for signed-in students; called again after sign-in
@@ -13381,12 +13401,17 @@
                 const { ref, onValue } = window.firebaseDbHelpers;
                 onValue(ref(window.firebaseDb, 'mods'), (snap) => { this._mods = snap.val() || {}; this._refreshVerifiedViews(); this._modUiRefresh(); }, () => { this._modListening = false; });
                 onValue(ref(window.firebaseDb, 'newsGone'), (snap) => { this._newsGone = snap.val() || {}; this._applyNewsGone(); }, () => {});
+                onValue(ref(window.firebaseDb, 'modRoom/cfg/on'), (snap) => { this._modRoomOn = snap.val() === true; this._moreRefilter(); this._modRoomCheck(); }, () => {});
             },
             isMod(uid) { const m = uid && this._mods && this._mods[uid]; return !!(m && m.on === true); },
             modCan(perm) { const m = this._mods && this.authUid && this._mods[this.authUid]; return !!(m && m.on === true && m.p && m.p[perm] === true); },
             modBadge(uid) { return this.isMod(uid) ? '<span class="modbadge" title="مشرف" role="img" aria-label="مشرف"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5l8 3v6c0 4.9-3.3 8.9-8 10-4.7-1.1-8-5.1-8-10v-6l8-3z" fill="#16a34a"/><path d="M8.2 12.2l2.6 2.6 5-5.4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><b>مشرف</b></span>' : ''; },
+            _modRoomCheck() {
+                if (this.currentView === 'mdrView' && !this.modRoomOk()) { this.showToast('الغرفة مو متاحة لك هسه'); if (this._mdrTeardown) this._mdrTeardown(); this.goBack(); }
+            },
             _modUiRefresh() {
                 try {
+                    this._moreRefilter(); this._modRoomCheck();
                     const b = document.getElementById('modPubBtn'); if (b) b.classList.toggle('hidden', !this.modCan('pubNews'));
                     if (this.currentView === 'detailsView' && this.currentNewsId) this.openNews(this.currentNewsId);
                     if (this.currentView === 'ventView' && this._vtRender) this._vtRender();

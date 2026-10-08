@@ -199,6 +199,8 @@ signed_admin = {".read": SIGNED, ".write": ADMIN}
 # a moderator (mods/{uid}, set by the admin panel): switched on, and holding this one permission
 def MODP(perm):
     return f"(auth != null && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/{perm}').val() === true)"
+# the moderators' voice room: the admin's room switch is on, and this moderator is on with the "room" permission
+MODROOM = "(auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true)"
 MOD_ON = "(auth != null && root.child('mods/' + auth.uid + '/on').val() === true)"
 
 rules = {
@@ -243,10 +245,58 @@ rules = {
         ".read": SIGNED, ".write": ADMIN,
         "$uid": {".validate": "!newData.exists() || newData.hasChildren(['on', 'p', 'at'])",
                  "on": {".validate": "newData.isBoolean()"},
-                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent)$/)"}},
+                 "p": {"$k": {".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent|room)$/)"}},
                  "at": {".validate": "newData.isNumber()"},
                  "by": {".validate": "newData.isString() && newData.val().length < 120"},
                  "$other": {".validate": False}},
+    },
+    # غرفة المشرفين: one voice + text room, only for moderators who hold the "room" permission while the admin's switch is on.
+    # seats/0..7 {u, n, at, m}: who sits on which mic (at = heartbeat; an old one may be cleared by anyone inside);
+    # members/{uid} {n, at}: who is inside; chat/{id} {u, n, tx, at}; sig/{to}/{from}/{k} {t, d, at}: the voice connection messages (read by the receiver only).
+    "modRoom": {
+        "cfg": {".read": SIGNED, ".write": ADMIN, ".validate": "newData.hasChild('on') && newData.child('on').isBoolean()", "on": {".validate": "newData.isBoolean()"}, "$other": {".validate": False}},
+        "seats": {
+            ".read": MODROOM,
+            "$n": {
+                ".write": ors(ADMIN,
+                              ands(MODROOM, "$n.matches(/^[0-7]$/)", "!data.exists()", "newData.child('u').val() == auth.uid"),
+                              ands(MODROOM, "data.exists()", "data.child('u').val() == auth.uid", "(!newData.exists() || newData.child('u').val() == auth.uid)"),
+                              ands(MODROOM, "data.exists()", "!newData.exists()", "now - data.child('at').val() > 90000")),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['u', 'n', 'at'])", "newData.child('u').isString()", "newData.child('n').isString() && newData.child('n').val().length <= 40", "newData.child('at').isNumber()") + ")",
+                "u": {".validate": "newData.isString()"}, "n": {".validate": "newData.isString()"}, "at": {".validate": "newData.isNumber()"}, "m": {".validate": "newData.isBoolean()"},
+                "$other": {".validate": False},
+            },
+        },
+        "members": {
+            ".read": MODROOM,
+            "$uid": {
+                ".write": ors(ADMIN, ands(MODROOM, "$uid == auth.uid"), ands(MODROOM, "!newData.exists()", "now - data.child('at').val() > 90000")),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'at'])", "newData.child('n').isString() && newData.child('n').val().length <= 40", "newData.child('at').isNumber()") + ")",
+                "n": {".validate": "newData.isString()"}, "at": {".validate": "newData.isNumber()"}, "s": {".validate": "newData.isNumber()"},
+                "$other": {".validate": False},
+            },
+        },
+        "chat": {
+            ".read": MODROOM,
+            ".write": ors(ADMIN, ands(MODROOM, "!newData.exists()")),
+            "$id": {
+                ".write": ors(ADMIN, ands(MODROOM, "!data.exists()", "newData.child('u').val() == auth.uid", "newData.child('at').val() == now")),
+                ".validate": "newData.hasChildren(['u', 'n', 'tx', 'at'])",
+                "u": {".validate": "newData.isString()"},
+                "n": {".validate": "newData.isString() && newData.val().length <= 40"},
+                "tx": {".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"},
+                "at": {".validate": "newData.isNumber()"},
+                "$other": {".validate": False},
+            },
+        },
+        "sig": {"$to": {
+            ".read": ands(MODROOM, "$to == auth.uid"),
+            "$from": {"$k": {
+                ".write": ors(ADMIN, ands(MODROOM, "$from == auth.uid", "!data.exists()"), ands(MODROOM, "$to == auth.uid", "!newData.exists()")),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['t', 'd', 'at'])", "newData.child('t').isString() && newData.child('t').val().matches(/^(offer|answer|ice|bye)$/)", "newData.child('d').isString() && newData.child('d').val().length <= 8000", "newData.child('at').isNumber()") + ")",
+                "$other": {".validate": "$other == 't' || $other == 'd' || $other == 'at' || $other == 's'"},
+            }},
+        }},
     },
     # who changed / deleted / published what: the admin panel and moderators write, only the admin reads
     "auditLog": {

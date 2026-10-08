@@ -11349,3 +11349,54 @@ body.kd-reviewing #navFade, body.gw-running #navFade, body.b3-on #navFade, body.
 .vt-w { position: relative; }
 .vt-mdel { position: absolute; top: 6px; left: 6px; width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: rgba(220,38,38,.12); color: #dc2626; }
 .vt-mdel svg { width: 15px; height: 15px; }
+
+/* ===== غرفة المشرفين: a voice room like a voice-chat app (dark green, round mic seats), moderators only ===== */
+#mdrView { position: fixed; inset: 0; z-index: 40; background: #07302b; overscroll-behavior: contain; }
+body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
+.mdr { position: relative; height: 100%; display: flex; flex-direction: column; color: #fff; overflow: hidden; background: linear-gradient(170deg, #0c4a40 0%, #073a35 45%, #052622 100%); }
+.mdr-bg { position: absolute; inset: 0; pointer-events: none; }
+.mdr-bg i { position: absolute; border-radius: 50%; border: 1.5px solid rgba(214,185,98,.35); background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%); }
+.mdr-bg i:nth-child(1) { width: 150vw; height: 150vw; right: -35vw; top: 18vh; }
+.mdr-bg i:nth-child(2) { width: 110vw; height: 110vw; left: -50vw; top: 48vh; border-color: rgba(255,255,255,.12); }
+.mdr-top { position: relative; display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 12px) 14px 8px; }
+.mdr-title { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mdr-title b { display: flex; align-items: center; gap: 6px; font-size: 17px; font-weight: 800; }
+.mdr-title b svg { width: 18px; height: 18px; color: #4ade80; }
+.mdr-title small { font-size: 11.5px; opacity: .75; margin-top: 2px; }
+.mdr-ic { position: relative; min-width: 42px; height: 42px; padding: 0 10px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: rgba(255,255,255,.12); color: #fff; font-size: 13px; font-weight: 700; }
+.mdr-ic svg { width: 20px; height: 20px; }
+.mdr-seats { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; padding: 14px 10px 6px; direction: rtl; }
+.mdr-seat { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #fff; min-width: 0; }
+.mdr-seat em { font-style: normal; font-size: 12px; opacity: .85; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mdr-av { position: relative; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; font-weight: 800; background: var(--c, rgba(255,255,255,.14)); color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.18); transition: box-shadow .15s; }
+.mdr-av.empty { background: rgba(255,255,255,.12); box-shadow: none; }
+.mdr-av.empty svg { width: 26px; height: 26px; opacity: .9; }
+.mdr-av.sm { width: 36px; height: 36px; font-size: 15px; box-shadow: none; }
+.mdr-seat.on .mdr-av { box-shadow: 0 0 0 3px #60a5fa; }
+.mdr-seat.on.me .mdr-av { box-shadow: 0 0 0 3px #4ade80; }
+.mdr-seat.talk .mdr-av { box-shadow: 0 0 0 3px #4ade80, 0 0 0 9px rgba(74,222,128,.28); animation: mdrTalk .7s ease-in-out infinite alternate; }
+@keyframes mdrTalk { from { transform: scale(1); } to { transform: scale(1.06); } }
+.mdr-off { position: absolute; right: -2px; bottom: -2px; width: 24px; height: 24px; border-radius: 50%; background: #ef4444; display: grid; place-items: center; }
+.mdr-off svg { width: 13px; height: 13px; }
+.mdr-note { position: relative; margin: 8px 14px 0; padding: 9px 12px; border-radius: 12px; background: rgba(0,0,0,.22); font-size: 12px; line-height: 1.6; display: flex; gap: 8px; align-items: flex-start; }
+.mdr-note svg { width: 14px; height: 14px; flex: none; margin-top: 3px; color: #d6b962; }
+.mdr-chat { position: relative; flex: 1; min-height: 0; overflow-y: auto; padding: 10px 14px; display: flex; flex-direction: column; gap: 6px; }
+.mdr-m { align-self: flex-start; max-width: 86%; background: rgba(0,0,0,.28); border-radius: 14px; padding: 7px 11px; font-size: 14px; line-height: 1.5; }
+.mdr-m b { display: block; font-size: 11.5px; color: #86efac; margin-bottom: 1px; }
+.mdr-m.me { align-self: flex-end; background: rgba(34,197,94,.3); }
+.mdr-m.me b { color: #bbf7d0; }
+.mdr-empty { margin: auto; opacity: .6; font-size: 13px; }
+.mdr-bar { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 10px); }
+.mdr-bar input { flex: 1; min-width: 0; height: 44px; border-radius: 22px; border: 0; padding: 0 16px; background: rgba(255,255,255,.14); color: #fff; font-size: 15px; outline: none; }
+.mdr-bar input::placeholder { color: rgba(255,255,255,.55); }
+.mdr-b { width: 44px; height: 44px; flex: none; border-radius: 50%; display: grid; place-items: center; background: rgba(255,255,255,.14); color: #fff; }
+.mdr-b svg { width: 21px; height: 21px; }
+.mdr-b.live { background: #16a34a; }
+.mdr-b.off { background: #ef4444; }
+.mdr-b.send { background: #2563eb; }
+.mdr-sheet { position: fixed; inset: 0; z-index: 9000; background: rgba(0,0,0,.5); display: flex; align-items: flex-end; justify-content: center; }
+.mdr-sp { width: 100%; max-width: 520px; max-height: 70vh; overflow: auto; background: #0a3a34; color: #fff; border-radius: 20px 20px 0 0; padding: 16px; display: flex; flex-direction: column; gap: 8px; direction: rtl; }
+.mdr-sp > b { font-size: 16px; margin-bottom: 4px; }
+.mdr-mem { display: flex; align-items: center; gap: 10px; padding: 6px 4px; font-size: 14px; }
+.mdr-mem svg { width: 16px; height: 16px; margin-inline-start: auto; color: #4ade80; }
+.mdr-x { margin-top: 6px; padding: 11px; border-radius: 12px; background: rgba(255,255,255,.12); color: #fff; font-weight: 700; }

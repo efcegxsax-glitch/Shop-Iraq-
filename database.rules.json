@@ -121,7 +121,7 @@
         },
         "p": {
           "$k": {
-            ".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent)$/)"
+            ".validate": "newData.isBoolean() && $k.matches(/^(pubNews|pushNews|delNews|delVent|room)$/)"
           }
         },
         "at": {
@@ -132,6 +132,97 @@
         },
         "$other": {
           ".validate": false
+        }
+      }
+    },
+    "modRoom": {
+      "cfg": {
+        ".read": "auth != null",
+        ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+        ".validate": "newData.hasChild('on') && newData.child('on').isBoolean()",
+        "on": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      },
+      "seats": {
+        ".read": "(auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true)",
+        "$n": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && $n.matches(/^[0-7]$/) && !data.exists() && newData.child('u').val() == auth.uid) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && data.exists() && data.child('u').val() == auth.uid && (!newData.exists() || newData.child('u').val() == auth.uid)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && data.exists() && !newData.exists() && now - data.child('at').val() > 90000))",
+          ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'n', 'at']) && newData.child('u').isString() && newData.child('n').isString() && newData.child('n').val().length <= 40 && newData.child('at').isNumber()))",
+          "u": {
+            ".validate": "newData.isString()"
+          },
+          "n": {
+            ".validate": "newData.isString()"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "m": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "members": {
+        ".read": "(auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true)",
+        "$uid": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && $uid == auth.uid) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && !newData.exists() && now - data.child('at').val() > 90000))",
+          ".validate": "!newData.exists() || ((newData.hasChildren(['n', 'at']) && newData.child('n').isString() && newData.child('n').val().length <= 40 && newData.child('at').isNumber()))",
+          "n": {
+            ".validate": "newData.isString()"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "s": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "chat": {
+        ".read": "(auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true)",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && !newData.exists()))",
+        "$id": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && !data.exists() && newData.child('u').val() == auth.uid && newData.child('at').val() == now))",
+          ".validate": "newData.hasChildren(['u', 'n', 'tx', 'at'])",
+          "u": {
+            ".validate": "newData.isString()"
+          },
+          "n": {
+            ".validate": "newData.isString() && newData.val().length <= 40"
+          },
+          "tx": {
+            ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 300"
+          },
+          "at": {
+            ".validate": "newData.isNumber()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      },
+      "sig": {
+        "$to": {
+          ".read": "((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && $to == auth.uid)",
+          "$from": {
+            "$k": {
+              ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && $from == auth.uid && !data.exists()) || ((auth != null && root.child('modRoom/cfg/on').val() === true && root.child('mods/' + auth.uid + '/on').val() === true && root.child('mods/' + auth.uid + '/p/room').val() === true) && $to == auth.uid && !newData.exists()))",
+              ".validate": "!newData.exists() || ((newData.hasChildren(['t', 'd', 'at']) && newData.child('t').isString() && newData.child('t').val().matches(/^(offer|answer|ice|bye)$/) && newData.child('d').isString() && newData.child('d').val().length <= 8000 && newData.child('at').isNumber()))",
+              "$other": {
+                ".validate": "$other == 't' || $other == 'd' || $other == 'at' || $other == 's'"
+              }
+            }
+          }
         }
       }
     },
