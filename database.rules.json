@@ -519,6 +519,33 @@
         }
       }
     },
+    "npref": {
+      "$uid": {
+        ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        ".validate": "newData.hasChild('at')",
+        "p": {
+          "$k": {
+            ".validate": "$k.matches(/^(urgent|motiv|holiday|announcement|tgnews|weather|res|tube|tg|general|lec|msg|call)$/) && newData.val() === false"
+          }
+        },
+        "tm": {
+          ".validate": "newData.isString() && newData.val().length <= 1500"
+        },
+        "th": {
+          ".validate": "newData.isString() && newData.val().length <= 3000"
+        },
+        "ts": {
+          ".validate": "newData.val() === true"
+        },
+        "at": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "studyRoom": {
       ".read": true,
       "$uid": {

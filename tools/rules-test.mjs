@@ -785,6 +785,19 @@ await ok('manager: the admin kicks', set(ref(db('adm'), 'modRoom/kicked/r1'), TS
 await ok('room: the admin switches the room off', set(ref(db('adm'), 'modRoom/cfg/on'), false));
 await no('room: with the switch off a moderator is shut out', get(ref(db('r1'), 'modRoom/members')));
 await ok('room: the admin gives the room permission to a moderator', set(ref(db('adm'), 'mods/r5'), { on: true, p: { room: true }, at: now }));
+// notification switches of the account
+await ok('npref: the owner saves the switches', set(ref(db('np1'), 'npref/np1'), { p: { tube: false, tg: false }, at: now, tm: 'math,physics', th: 'chem', ts: true }));
+await ok('npref: the owner reads them', get(ref(db('np1'), 'npref/np1')));
+await no('npref: someone else cannot read them', get(ref(db('np2'), 'npref/np1')));
+await no('npref: someone else cannot write them', set(ref(db('np2'), 'npref/np1'), { p: {}, at: now }));
+await no('npref: a guest cannot read them', get(ref(db(null), 'npref/np1')));
+await no('npref: an unknown kind', set(ref(db('np1'), 'npref/np1'), { p: { hack: false }, at: now }));
+await no('npref: a switch can only be "off" (true is not stored)', set(ref(db('np1'), 'npref/np1'), { p: { tube: true }, at: now }));
+await no('npref: no time', set(ref(db('np1'), 'npref/np1'), { p: { tube: false } }));
+await ok('npref: everything on (empty p) is stored as just the time', set(ref(db('np1'), 'npref/np1'), { p: {}, at: now }));
+await no('npref: an extra field', set(ref(db('np1'), 'npref/np1'), { p: {}, at: now, x: 1 }));
+await no('npref: a mute list that is too long', set(ref(db('np1'), 'npref/np1'), { p: {}, at: now, tm: 'a'.repeat(1501) }));
+await ok('npref: nothing off is just an empty p', set(ref(db('np1'), 'npref/np1'), { p: { msg: false }, at: now }));
 await ok('admin writes a tombstone', set(ref(db('adm'), 'newsGone/777'), true));
 
 // news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*

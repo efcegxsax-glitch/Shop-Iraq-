@@ -451,6 +451,17 @@ rules = {
     "chatNow": {"$uid": {".read": "auth != null && (auth.uid == $uid || data.child('c').val() == auth.uid)", ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (newData.hasChildren(['c', 'at']) && " + s_max("newData.child('c')", 40) + " && newData.child('at').isNumber())"}},
     # which phone notifications a student switched off (msg / call): the server reads it before it pushes a message or a call
     "pushPrefs": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN), "$k": {".validate": "($k == 'msg' || $k == 'call') && newData.isBoolean()"}}},
+    # the notification switches of the account (so every phone / the website agree): only the owner
+    "npref": {"$uid": {
+        ".read": OWNER, ".write": ors(OWNER, ADMIN),
+        ".validate": "newData.hasChild('at')",
+        "p": {"$k": {".validate": "$k.matches(/^(urgent|motiv|holiday|announcement|tgnews|weather|res|tube|tg|general|lec|msg|call)$/) && newData.val() === false"}},
+        "tm": {".validate": "newData.isString() && newData.val().length <= 1500"},
+        "th": {".validate": "newData.isString() && newData.val().length <= 3000"},
+        "ts": {".validate": "newData.val() === true"},
+        "at": {".validate": "newData.isNumber()"},
+        "$other": {".validate": False},
+    }},
     # listened to from the start, before signing in
     "studyRoom": {".read": True, "$uid": {".write": ors(OWNER, ADMIN)}},
     "focusLive": {".read": True, "$uid": {".read": True, ".write": ors(OWNER, ADMIN)}},

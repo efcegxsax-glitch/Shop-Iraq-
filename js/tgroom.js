@@ -16,6 +16,8 @@
     const $ = (id) => document.getElementById(id);
     const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
     const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+    // the channel switches belong to the account too: stamp them and send them (app._npPush)
+    const touchPrefs = () => { try { localStorage.setItem('iraqiStudentNotifPrefsAt', String(Date.now())); } catch (e) {} app._npPush && app._npPush(); };
     const views = (n) => (n >= 1e6 ? (n / 1e6).toFixed(1) + ' مليون' : n >= 1000 ? Math.round(n / 1000) + ' ألف' : String(n || 0));
     const ini = (c) => esc(String((c && c.n) || 'أ').trim().charAt(0));
     let CH = [], POSTS = [], FRESH = {}, MORE = {}, S = { subj: 'all', ch: '', shown: PAGE }, err = '', netBusy = false, un = null, OPEN = new Set(), failed = [];
@@ -255,11 +257,11 @@
         },
         tgPickFilter() { pickList(); },
         tgPickToggle(k, btn) {
-            const h = hidden(); if (h.has(k)) h.delete(k); else h.add(k); save(K_HIDE, Array.from(h));
+            const h = hidden(); if (h.has(k)) h.delete(k); else h.add(k); save(K_HIDE, Array.from(h)); touchPrefs();
             btn && btn.classList.toggle('on', !h.has(k));
             paint();
         },
-        tgPickAll(on) { save(K_HIDE, on ? [] : CH.map((c) => lc(c.u))); pickList(); paint(); },
+        tgPickAll(on) { save(K_HIDE, on ? [] : CH.map((c) => lc(c.u))); touchPrefs(); pickList(); paint(); },
         tgPickClose() {
             closeSheet('tgPick'); S.shown = PAGE;
             if (S.ch && !shownCh().some((c) => String(c.u).toLowerCase() === S.ch.toLowerCase())) S.ch = '';
@@ -276,7 +278,7 @@
         },
         tgPushOne(k, btn) {
             const m = muted(); if (m.has(k)) m.delete(k); else m.add(k);
-            save(K_MUTE, Array.from(m));
+            save(K_MUTE, Array.from(m)); touchPrefs();
             btn && btn.classList.toggle('on', !m.has(k) && app.notifPrefs.tg !== false);
             app._tgTagSync && app._tgTagSync(CH.map((c) => String(c.u).toLowerCase()));
             paint();

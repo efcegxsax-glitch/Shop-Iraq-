@@ -1191,7 +1191,7 @@
                 } else {
                     this.showToast('تم إنشاء الحساب، لكن تعذر حفظ بياناتك في قاعدة البيانات — تحقق من صلاحيات (Rules) قاعدة بيانات Firebase');
                 }
-                this.listenForOwnUserRecord(); this.listenForMods();
+                this.listenForOwnUserRecord(); this.listenForMods(); this._npPull();
                 this.checkDailyStreak();
                 this._ttNudgeSoon();
                 this._smPing();
@@ -2847,7 +2847,7 @@
                         console.warn('User news state load failed:', stateErr);
                     }
                     this.updateProfileView();
-                    this.listenForOwnUserRecord(); this.listenForMods();
+                    this.listenForOwnUserRecord(); this.listenForMods(); this._npPull();
                     this.initPushNotifications();
                     this.syncNativePush();
                     this.checkDailyStreak();
@@ -11865,12 +11865,65 @@
                 }
             },
 
-            saveNotifPrefs() {
+            saveNotifPrefs(fromServer) {
                 try {
                     localStorage.setItem('iraqiStudentNotifPrefs', JSON.stringify(this.notifPrefs));
+                    if (!fromServer) localStorage.setItem('iraqiStudentNotifPrefsAt', String(Date.now()));
                 } catch (e) {
                     console.warn('Save notif prefs failed:', e);
                 }
+                if (!fromServer) this._npPush();
+            },
+            // ----- the notification switches follow the ACCOUNT (npref/{uid}), not the phone -----
+            // They used to live only on the phone, so a second phone / the website / a reinstall started with everything on and wrote "on" over the
+            // switches (the push tags are kept per account on the push service). Now the newest choice wins everywhere.
+            _NP_KINDS: ['urgent', 'motiv', 'holiday', 'announcement', 'tgnews', 'weather', 'res', 'tube', 'tg', 'general', 'lec', 'msg', 'call'],
+            _npLocalAt() { try { return Number(localStorage.getItem('iraqiStudentNotifPrefsAt')) || 0; } catch (e) { return 0; } },
+            _npCollect() {
+                const p = {}; this._NP_KINDS.forEach((k) => { if (this.notifPrefs[k] === false) p[k] = false; });
+                const rd = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+                const arr = (k) => { try { const a = JSON.parse(rd(k) || 'null'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string' && /^[A-Za-z0-9_]{2,40}$/.test(x)).map((x) => x.toLowerCase()) : null; } catch (e) { return null; } };
+                const out = { p, at: this._npLocalAt() || Date.now() };
+                const tm = arr('isp_tg_mute'), th = arr('isp_tg_hide');
+                if (tm && tm.length) out.tm = tm.join(',').slice(0, 1400);
+                if (th) out.th = th.join(',').slice(0, 2900);
+                if (rd('isp_tg_sel') === '1') out.ts = true;
+                return out;
+            },
+            _npPush() {
+                if (!this.isLoggedIn || !this.authUid || !window.firebaseDb) return;
+                clearTimeout(this._npT);
+                this._npT = setTimeout(() => {
+                    const { ref, set } = window.firebaseDbHelpers;
+                    set(ref(window.firebaseDb, 'npref/' + this.authUid), this._npCollect()).catch(() => {});
+                }, 1500);
+            },
+            async _npPull() {
+                const uid = this.authUid;
+                if (!this.isLoggedIn || !uid || !window.firebaseDb || this._npUid === uid) return;
+                this._npUid = uid; this._npDone = false;
+                const finish = () => { this._npDone = true; try { this._pnSync(); } catch (e) {} };
+                const guard = setTimeout(() => { if (!this._npDone) finish(); }, 8000);   // offline: carry on with this phone's own choices
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const r = (await get(ref(window.firebaseDb, 'npref/' + uid))).val(), mine = this._npLocalAt();
+                    if (r && typeof r === 'object' && Number(r.at) > mine) {
+                        const np = { ...this.notifPrefs }; this._NP_KINDS.forEach((k) => { np[k] = !(r.p && r.p[k] === false); });
+                        this.notifPrefs = np;
+                        try {
+                            localStorage.setItem('iraqiStudentNotifPrefs', JSON.stringify(np)); localStorage.setItem('iraqiStudentNotifPrefsAt', String(Number(r.at)));
+                            localStorage.setItem('isp_tg_mute', JSON.stringify(r.tm ? String(r.tm).split(',').filter(Boolean) : []));
+                            if (typeof r.th === 'string') localStorage.setItem('isp_tg_hide', JSON.stringify(r.th.split(',').filter(Boolean))); else localStorage.removeItem('isp_tg_hide');
+                            if (r.ts === true) localStorage.setItem('isp_tg_sel', '1'); else localStorage.removeItem('isp_tg_sel');
+                            localStorage.setItem('isp_tg_dirty', '1');
+                        } catch (e) {}
+                        this.updateNotifBadges && this.updateNotifBadges();
+                    } else if (mine > 0 && (!r || mine > Number(r.at || 0))) {
+                        set_(this, uid);
+                    }
+                } catch (e) { /* offline: the phone's own choices stay */ }
+                clearTimeout(guard); finish();
+                function set_(app, u) { const { ref, set } = window.firebaseDbHelpers; set(ref(window.firebaseDb, 'npref/' + u), app._npCollect()).catch(() => {}); }
             },
 
             // Every kind of notification the student can switch off. "push" ones are also read by the server before it
@@ -11914,6 +11967,10 @@
             },
             // pushes the student's choices to the places that decide what reaches the phone
             _pnSync() {
+                if (this.isLoggedIn && this.authUid && this._npDone !== true) {   // the account's own choices are not read yet: read them first (it comes back here)
+                    if (this._npUid !== this.authUid) this._npPull();
+                    return;
+                }
                 const t = {};
                 if (this._fcmPath && window.firebaseDb) { const { ref, update } = window.firebaseDbHelpers; update(ref(window.firebaseDb, this._fcmPath), { off: this._pnOff() }).catch(() => {}); }
                 // the broadcast kinds the server filters on: the tag off_<kind> exists only while the kind is switched off
