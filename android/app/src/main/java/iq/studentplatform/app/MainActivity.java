@@ -16,7 +16,10 @@ import androidx.credentials.GetCredentialResponse;
 import androidx.credentials.exceptions.GetCredentialException;
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption;
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import androidx.webkit.WebViewCompat;
+import androidx.webkit.WebViewFeature;
 import android.Manifest;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
@@ -72,7 +75,8 @@ public class MainActivity extends BridgeActivity {
             return WindowInsetsCompat.CONSUMED;
         });
         final WebView web = getBridge().getWebView();
-        web.addJavascriptInterface(new Object() {
+        // the native functions the page may call (the annotations only matter in the fallback below)
+        class Native implements NativeApi {
             // "top,bottom" in CSS pixels, read by the page when it starts
             @JavascriptInterface
             public String insets() { return top + "," + bottom; }
@@ -240,8 +244,71 @@ public class MainActivity extends BridgeActivity {
                     }
                 });
             }
-        }, "IspNative");
+        }
+        final NativeApi nat = new Native();
+        installBridge(web, nat);
         ViewCompat.requestApplyInsets(content);
+    }
+
+    // The functions above reach the microphone, the call audio, the Google account picker and the phone's settings, so a frame
+    // from another site (the results page, an embedded video) must not be able to call them. addJavascriptInterface puts an object
+    // in EVERY frame, so instead one gate object takes a secret key that is written only into the script injected into this
+    // app's own pages (addDocumentStartJavaScript, limited to the app's origin). That script builds window.IspNative for the page,
+    // and a foreign frame has the gate but not the key. A web view too old for document-start scripts keeps the old open object.
+    private void installBridge(final WebView web, final NativeApi nat) {
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            web.addJavascriptInterface(nat, "IspNative");
+            return;
+        }
+        final String key = java.util.UUID.randomUUID().toString().replace("-", "");
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface
+            public String call(String k, String m, String a) {
+                if (k == null || !key.equals(k) || m == null) return "";
+                try {
+                    JSONArray v = new JSONArray(a == null ? "[]" : a);
+                    return dispatch(nat, m, v);
+                } catch (Throwable t) { return ""; }
+            }
+        }, "IspNativeGate");
+        String js = "(function(){var G=window.IspNativeGate,K='" + key + "';if(!G)return;"
+            + "function c(m,a){return G.call(K,m,JSON.stringify(a||[]));}"
+            + "window.IspNative={insets:function(){return c('insets');},bars:function(l){c('bars',[!!l]);},"
+            + "recStart:function(){return c('recStart');},recStop:function(k){c('recStop',[!!k]);},"
+            + "callAudio:function(o){c('callAudio',[!!o]);},speaker:function(o){c('speaker',[!!o]);},"
+            + "notifOn:function(){return c('notifOn')==='true';},notifSettings:function(){c('notifSettings');},"
+            + "bg:function(h){c('bg',[String(h)]);},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
+        WebViewCompat.addDocumentStartJavaScript(web, js, getBridge().getAllowedOriginRules());
+    }
+
+    // what the page can call; one method per function, so the gate can name them
+    private interface NativeApi {
+        String insets();
+        void bars(boolean light);
+        String recStart();
+        void recStop(boolean keep);
+        void callAudio(boolean on);
+        void speaker(boolean on);
+        boolean notifOn();
+        void notifSettings();
+        void bg(String hex);
+        void googleSignIn(String clientId);
+    }
+
+    private static String dispatch(NativeApi n, String m, JSONArray v) {
+        switch (m) {
+            case "insets": return n.insets();
+            case "bars": n.bars(v.optBoolean(0)); return "";
+            case "recStart": return n.recStart();
+            case "recStop": n.recStop(v.optBoolean(0)); return "";
+            case "callAudio": n.callAudio(v.optBoolean(0)); return "";
+            case "speaker": n.speaker(v.optBoolean(0)); return "";
+            case "notifOn": return String.valueOf(n.notifOn());
+            case "notifSettings": n.notifSettings(); return "";
+            case "bg": n.bg(v.optString(0)); return "";
+            case "googleSignIn": n.googleSignIn(v.optString(0)); return "";
+            default: return "";
+        }
     }
 
     // loud speaker, or the ear speaker, or a headset / Bluetooth that is connected
