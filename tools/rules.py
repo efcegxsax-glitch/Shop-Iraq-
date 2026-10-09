@@ -639,7 +639,7 @@ rules = {
         },
     },
     "sentFriendRequests": {
-        "$uid": {".read": OWNER, "$other": {".write": ors(OWNER, ADMIN, "auth != null && auth.uid == $other && !newData.exists()")}},
+        "$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$other": {".write": ors(OWNER, ADMIN, "auth != null && auth.uid == $other && !newData.exists()")}},
     },
     "friends": {
         "$uid": {
@@ -1079,7 +1079,7 @@ rules = {
     # ----- شكاوي ومشاكل: a student reports a bug, a problem or a complaint (text, an optional small photo, an optional phone).
     # complaints/{uid}/{id}: the student creates their own (once, one every 5 minutes) and reads them back with the admin's
     # answer; only the admin reads all of them and changes the status / reply. -----
-    "complaints": {".read": ADMIN, "$uid": {".read": OWNER, "$id": {
+    "complaints": {".read": ADMIN, "$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$id": {
         ".write": ors(ADMIN, ands(OWNER, "!data.exists()", "newData.child('at').val() == now",
                                   "newData.parent().parent().parent().child('complaintLast/' + auth.uid).val() == now"),
                       ands(OWNER, "!newData.exists()")),
@@ -1104,7 +1104,7 @@ rules = {
 
     # ----- طلب إضافة قناة (تلكرام أو يوتيوب): a student sends the channel's link, the admin approves or refuses it from the panel.
     # chanReq/{uid}/{id}: the student creates their own (one every 2 minutes) and reads the answer back; only the admin reads all of them. -----
-    "chanReq": {".read": ADMIN, "$uid": {".read": OWNER, "$id": {
+    "chanReq": {".read": ADMIN, "$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$id": {
         ".write": ors(ADMIN, ands(OWNER, "!data.exists()", "newData.child('at').val() == now",
                                   "newData.parent().parent().parent().child('chanReqLast/' + auth.uid).val() == now"),
                       ands(OWNER, "!newData.exists()")),
@@ -1121,7 +1121,7 @@ rules = {
         "$other": {".validate": False},
     }}},
     # ----- نسخة سحابية لدفتر الملاحظات: noteBackup/{uid}/{noteId} = the notebook packed into one string (gzip + base64), private to its owner -----
-    "noteBackup": {"$uid": {".read": OWNER, "$id": {
+    "noteBackup": {"$uid": {".read": OWNER, ".write": ands(OWNER, "!newData.exists()"), "$id": {
         ".write": OWNER,
         ".validate": "!newData.exists() || (newData.hasChildren(['t', 'ts', 'd']) && $id.length <= 24)",
         "t": {".validate": "newData.isString() && newData.val().length <= 60"},

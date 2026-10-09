@@ -798,6 +798,22 @@ await ok('npref: everything on (empty p) is stored as just the time', set(ref(db
 await no('npref: an extra field', set(ref(db('np1'), 'npref/np1'), { p: {}, at: now, x: 1 }));
 await no('npref: a mute list that is too long', set(ref(db('np1'), 'npref/np1'), { p: {}, at: now, tm: 'a'.repeat(1501) }));
 await ok('npref: nothing off is just an empty p', set(ref(db('np1'), 'npref/np1'), { p: { msg: false }, at: now }));
+// account deletion: the owner can remove their whole node (found by the release audit)
+await seed('noteBackup/dl1/n1', { t: 'x', ts: 1, d: 'abc' }); await seed('noteBackup/dl1/n2', { t: 'y', ts: 2, d: 'abc' });
+await no('delete: another student cannot wipe my notes backup', set(ref(db('dl2'), 'noteBackup/dl1'), null));
+await ok('delete: the owner wipes the whole notes backup in one write', set(ref(db('dl1'), 'noteBackup/dl1'), null));
+await seed('chanReq/dl1/r1', { uid: 'dl1', k: 'tg', l: 'https://t.me/x', st: 'new', at: 1 });
+await no('delete: another student cannot wipe my channel requests', set(ref(db('dl2'), 'chanReq/dl1'), null));
+await ok('delete: the owner wipes all his channel requests', set(ref(db('dl1'), 'chanReq/dl1'), null));
+await seed('sentFriendRequests/dl1/dl2', true);
+await no('delete: another student cannot wipe my sent requests', set(ref(db('dl3'), 'sentFriendRequests/dl1'), null));
+await ok('delete: the owner wipes the sent requests', set(ref(db('dl1'), 'sentFriendRequests/dl1'), null));
+await seed('complaints/dl1/c1', { uid: 'dl1', t: 'شكوى', at: 1, st: 'new' });
+await no('delete: another student cannot wipe my complaints', set(ref(db('dl2'), 'complaints/dl1'), null));
+await ok('delete: the owner wipes all his complaints (the privacy page promises it)', set(ref(db('dl1'), 'complaints/dl1'), null));
+await no('delete: writing a new note as someone else is still refused', set(ref(db('dl2'), 'noteBackup/dl1/n9'), { t: 'z', ts: 1, d: 'abc' }));
+await ok('delete: the owner can still write a note', set(ref(db('dl1'), 'noteBackup/dl1/n9'), { t: 'z', ts: 1, d: 'abc' }));
+await no('delete: the parent rule does not let the owner write a bad note (validation still applies)', set(ref(db('dl1'), 'noteBackup/dl1/n10'), { t: 'z', ts: 1, d: 'x'.repeat(1500001) }));
 await ok('admin writes a tombstone', set(ref(db('adm'), 'newsGone/777'), true));
 
 // news bot (أخبار تلكرام): only the admin (and the Worker, which is not stopped by rules) touches newsBot/*

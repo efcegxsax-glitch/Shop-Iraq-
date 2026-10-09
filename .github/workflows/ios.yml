@@ -4,6 +4,8 @@
 # and the app already created in App Store Connect with the bundle id iq.studentplatform.app.
 name: Build iPhone app
 on: workflow_dispatch
+permissions:
+  contents: read
 jobs:
   ios:
     runs-on: macos-latest

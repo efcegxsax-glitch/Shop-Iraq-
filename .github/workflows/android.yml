@@ -12,6 +12,8 @@ on:
         description: 'Make the signed file for Google Play (AAB)'
         type: boolean
         default: false
+permissions:
+  contents: read
 jobs:
   android:
     runs-on: ubuntu-latest

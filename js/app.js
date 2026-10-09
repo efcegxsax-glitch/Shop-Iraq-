@@ -1528,7 +1528,9 @@
                     const u = this.currentUser || {};
                     const pk = this._phoneKey ? this._phoneKey(u.phone || '') : '';
                     const paths = ['pub/', 'leaderboard/', 'presence/', 'studyRoom/', 'focusLive/', 'studentMap/', 'userNewsState/', 'userTasks/', 'userActivity/', 'tokens/',
-                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/', 'complaints/', 'complaintLast/', 'ideaLast/', 'userMoney/', 'pushPrefs/', 'userNewsReact/']
+                        'walletTransactions/', 'chatClearedAt/', 'userCards/', 'blockedUsers/', 'friends/', 'userChats/', 'ideaMine/', 'shopMine/', 'twinOf/', 'stores/', 'complaints/', 'complaintLast/', 'ideaLast/', 'userMoney/', 'pushPrefs/', 'userNewsReact/',
+                        // added after the first release audit: everything else the account owns (see tools/rules.py; prizeClaims, bannedUsers and ventBan stay: they are the admin's records)
+                        'hall/', 'chatNow/', 'npref/', 'sentFriendRequests/', 'duelMatch/', 'rmMe/', 'ventLast/', 'ventLastR/', 'chanReq/', 'chanReqLast/', 'noteBackup/']
                         .map((p) => p + uid);
                     if (/^[0-9]{3,12}$/.test(String(u.studentNumber || ''))) paths.push('numIndex/' + u.studentNumber);
                     if (pk) paths.push('phoneIndex/' + pk);

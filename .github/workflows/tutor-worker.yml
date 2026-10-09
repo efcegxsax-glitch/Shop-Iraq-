@@ -11,6 +11,8 @@ on:
     branches: [main]
     paths: ['tutor-worker/**', '.github/workflows/tutor-worker.yml']
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   deploy:
     runs-on: ubuntu-latest
