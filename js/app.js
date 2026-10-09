@@ -5114,6 +5114,8 @@
                     if (!res.ok) {
                         let code = '';
                         try { code = (await res.json()).error || ''; } catch (e) {}
+                        // a call or message that is already over (declined, answered or taken back before the request arrived) is normal, not an error
+                        if (res.status === 409 && (code === 'no_call' || code === 'no_msg')) return;
                         // shows in the panel's error page, so a push that does not go out is not a silent failure
                         this._reportError({ msg: 'push ' + kind + ' refused: ' + res.status + ' ' + code, src: 'notify', line: 0 });
                     }

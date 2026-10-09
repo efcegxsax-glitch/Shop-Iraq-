@@ -414,6 +414,9 @@
             window.addEventListener('pagehide', c.onHide);
             c.onOnline = () => { if (this._cl === c && c.role === 'caller' && c.st === 'reconnect') this._clRestart(c); };
             window.addEventListener('online', c.onOnline);
+            c.onNetEv = () => { if (this._cl === c) this._clNetPaint(c); };
+            window.addEventListener('offline', c.onNetEv);
+            window.addEventListener('online', c.onNetEv);
         },
 
         // Speech gets the network's first place, and a steady bitrate.
@@ -588,7 +591,7 @@
         // (the other side's audio isn't routed through Web Audio, so echo cancellation keeps working).
         async _clStats(c) {
             if (this._cl !== c || !c.pc) return;
-            let lvl = 0, my = 0, loss = 0, rtt = 0, jit = 0;
+            let lvl = 0, my = 0, loss = 0, rtt = 0, jit = 0, out = 0;
             try {
                 const st = await c.pc.getStats();
                 st.forEach((r) => {
@@ -599,6 +602,7 @@
                         loss = dl + dr > 0 ? dl / (dl + dr) : 0;
                         c.lastLost = lost; c.lastRec = rec;
                     }
+                    if (r.type === 'remote-inbound-rtp' && r.kind === 'audio') out = r.fractionLost || 0;
                     if (r.type === 'media-source' && r.kind === 'audio') my = r.audioLevel || 0;
                     if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') rtt = r.currentRoundTripTime || 0;
                     if (r.type === 'candidate-pair' && r.selected) rtt = r.currentRoundTripTime || rtt;
@@ -615,12 +619,48 @@
             }
             const me = document.getElementById('clMeLv');
             if (me) me.style.setProperty('--lv', Math.min(1, Math.sqrt(my) * 1.6).toFixed(3));
+            c.outA = (c.outA || 0) * 0.7 + out * 0.3;
+            c.m = { inLoss: loss, outLoss: c.outA, rtt, jit };
             if (q !== c.q) {
                 c.q = q;
                 const bars = document.getElementById('clBars');
                 if (bars) { bars.dataset.q = q; bars.title = q === 1 ? 'الشبكة ضعيفة' : ''; }
-                const w = document.getElementById('clWeak'); if (w) w.classList.toggle('show', q === 1);
             }
+            this._clNetPaint(c);
+        },
+
+        // Whose internet is the problem. Returns null when all is well, else { lvl: 'weak' | 'lost', text }.
+        //  - this phone offline: "نتّك مقطوع"
+        //  - the call lost its connection while this phone is online: most likely the other one's internet
+        //  - packets lost on the way back to this phone (the other one's upload) and on the way out (this phone's upload, as the other side reports it)
+        _clNetNow(c, m) {
+            if (!c || (c.st !== 'on' && c.st !== 'reconnect')) return null;
+            const first = String((c.other && c.other.name) || '').trim().split(/\s+/)[0] || 'الطرف الثاني';
+            if (typeof navigator !== 'undefined' && navigator.onLine === false) return { lvl: 'lost', text: 'نتّك مقطوع' };
+            if (c.st === 'reconnect') return { lvl: 'lost', text: 'انقطع الاتصال، يمكن نت ' + first + ' مقطوع' };
+            m = m || {};
+            const mine = (m.outLoss || 0) > 0.08;
+            const theirs = (m.inLoss || 0) > 0.08 || (m.jit || 0) > 0.08;
+            if (mine && theirs) return { lvl: 'weak', text: 'النت ضعيف عندك وعند ' + first };
+            if (mine) return { lvl: 'weak', text: 'نتّك ضعيف' };
+            if (theirs) return { lvl: 'weak', text: 'نت ' + first + ' ضعيف' };
+            if ((m.rtt || 0) > 0.8) return { lvl: 'weak', text: 'الاتصال ضعيف (بطيء)' };
+            return null;
+        },
+
+        // Shows it on the call screen; a weak reading must hold for two looks (a blip does not flash), a clear one for three.
+        _clNetPaint(c) {
+            if (this._cl !== c) return;
+            const n = this._clNetNow(c, c.m);
+            if (n && n.lvl === 'lost') { c.netN = 3; c.netClear = 0; c.net = n; }
+            else if (n) { c.netN = (c.netN || 0) + 1; c.netClear = 0; if (c.netN >= 2) c.net = n; }
+            else { c.netN = 0; c.netClear = (c.netClear || 0) + 1; if (c.netClear >= 3) c.net = null; }
+            const w = document.getElementById('clWeak'), t = document.getElementById('clWeakT');
+            if (!w || !t) return;
+            const shown = !!c.net && (c.st === 'on' || c.st === 'reconnect');
+            if (shown && t.textContent !== c.net.text) t.textContent = c.net.text;
+            w.dataset.lvl = shown ? c.net.lvl : '';
+            w.classList.toggle('show', shown);
         },
 
         // Ends the call for this side. remote: the other side ended it (so nothing is written back).
@@ -636,6 +676,7 @@
             [c.tickT, c.statT].forEach((t) => t && clearInterval(t));
             c.offs.forEach((off) => { try { off(); } catch (e) {} });
             if (c.onOnline) window.removeEventListener('online', c.onOnline);
+            if (c.onNetEv) { window.removeEventListener('offline', c.onNetEv); window.removeEventListener('online', c.onNetEv); }
             if (c.note) try { c.note.close(); } catch (e) {}
             if (c.pc) try { c.pc.close(); } catch (e) {}
             if (c.stream) c.stream.getTracks().forEach((t) => t.stop());
@@ -731,7 +772,7 @@
                     <div class="cl-name">${esc(c.other.name)}</div>
                     <div class="cl-status ${c.st === 'reconnect' ? 'warn' : ''}" id="clTime" dir="${c.st === 'on' ? 'ltr' : 'rtl'}">${status}</div>
                     ${c.otherMuted && c.st === 'on' ? '<div class="cl-chip"><i data-lucide="mic-off" class="w-3.5 h-3.5"></i> كاتم الصوت</div>' : ''}
-                    <div class="cl-chip cl-weak ${c.q === 1 && c.st === 'on' ? 'show' : ''}" id="clWeak"><i data-lucide="wifi-low" class="w-3.5 h-3.5"></i> الشبكة ضعيفة</div>
+                    <div class="cl-chip cl-weak ${c.net && (c.st === 'on' || c.st === 'reconnect') ? 'show' : ''}" id="clWeak" data-lvl="${c.net ? c.net.lvl : ''}"><i data-lucide="wifi-low" class="w-3.5 h-3.5"></i> <span id="clWeakT">${esc(c.net ? c.net.text : 'الشبكة ضعيفة')}</span></div>
                 </div>
                 ${c.st === 'on' || c.st === 'reconnect' ? `
                 <div class="cl-pts">

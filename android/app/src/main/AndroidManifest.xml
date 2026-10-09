@@ -31,6 +31,8 @@
             android:turnScreenOn="true"
             android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
         <receiver android:name=".CallActionReceiver" android:exported="false" />
+        <!-- keeps a call's microphone and network alive while the student is in another app -->
+        <service android:name=".CallService" android:exported="false" android:foregroundServiceType="microphone" />
 
         <!-- OneSignal hands each push to this class first: a call push while the app is closed becomes the call screen -->
         <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="iq.studentplatform.app.CallNotificationExtension" />
@@ -55,6 +57,10 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- the incoming call screen over the lock screen -->
     <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- a call keeps working in the background (foreground service of the microphone type) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- voice calls and the voice note recorder -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
