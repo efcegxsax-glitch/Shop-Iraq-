@@ -1,7 +1,15 @@
 // أخبار تلكرام: turns a post of a public Telegram news channel into a clean news item of the app (tested in tools/newsbot-test.mjs).
 // Pure functions only: cleaning the text, splitting it into a title and a body, spotting adverts and repeated news.
 export const BRAND = 'أكـادمي السادس';
-export const DEFAULT_IMG = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';
+export const DEFAULT_IMG = 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop';   // the old stock photo (older news still carry it; the app swaps it for the pictures below)
+// news that come without a picture get one of these (hosted with the site): the ministry building, a red "عاجل" card, or the parliament building
+const IMG_BASE = 'https://efcegxsax-glitch.github.io/Shop-Iraq-/assets/news/';
+export const IMG_MINISTRY = IMG_BASE + 'ministry.jpg', IMG_URGENT = IMG_BASE + 'urgent.jpg', IMG_PARLIAMENT = IMG_BASE + 'parliament.jpg';
+const PARL_RE = /(مجلس النواب|البرلمان|برلمان|النيابيه)/;
+export function defaultImage(it) {
+    if (it && it.urgent) return IMG_URGENT;
+    return PARL_RE.test(norm((it && it.title || '') + ' ' + (it && it.excerpt || ''))) ? IMG_PARLIAMENT : IMG_MINISTRY;
+}
 
 const BIDI = /[​-‏‪-‮⁦-⁩﻿]/g;
 const PICTO = /[\p{Extended_Pictographic}︎️⃣\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}]/gu;
@@ -76,15 +84,33 @@ const CATS = [
 export function pickCategory(text) { const n = norm(text); for (const [c, re] of CATS) if (re.test(n)) return c; return 'other'; }
 
 // ---- adverts ----
-const BAD_WORDS = ['للبيع', 'اسعار', 'سعر', 'خصم', 'خصومات', 'تخفيضات', 'عرض خاص', 'عروض خاصه', 'توصيل', 'اطلب', 'واتساب', 'وتساب', 'whatsapp', 'للحجز', 'كوبون', 'ارباح', 'استثمار'];
+// Anything that sells, advertises or promotes is never published. Three levels:
+//  - BAD_WORDS: dropped for good (the news list shows it as "ignored" with the word)
+//  - FLAG_WORDS and contact details: held for the admin's review (not published by itself)
+//  - the admin's own extra words (cfg.words) are blocked like BAD_WORDS
+const BAD_WORDS = ['للبيع', 'اسعار', 'سعر', 'خصم', 'خصومات', 'تخفيضات', 'عرض خاص', 'عروض خاصه', 'عرض محدود', 'توصيل', 'اطلب', 'واتساب', 'وتساب', 'whatsapp', 'للحجز', 'كوبون', 'ارباح', 'استثمار',
+    'اربح', 'اكسب', 'تداول', 'عملات رقميه', 'كريبتو', 'بيتكوين', 'مراهنات', 'رهان', 'كازينو', 'قمار', 'يانصيب', 'سحب على', 'جوائز نقديه', 'هديه مجانيه', 'هدايا مجانيه', 'رصيد مجاني', 'بطاقات شحن', 'شحن رصيد', 'انترنت مجاني',
+    'للاعلان', 'اعلان ممول', 'ممول', 'برعايه', 'sponsored', 'ادفع', 'دفع عند الاستلام', 'تسوق', 'متجر', 'دورات خصوصيه', 'تدريس خصوصي', 'ملازم للبيع', 'مجانا لفتره محدوده', 'لفتره محدوده', 'تخفيض', 'بسعر', 'بالسعر', 'مقابل مبلغ', 'مبلغ شهري', 'الربح من', 'ربح المال'];
+const FLAG_WORDS = ['للتواصل', 'للاستفسار', 'راسلنا', 'كلمنا', 'على الخاص', 'عبر الخاص', 'رساله خاصه', 'سجل الان', 'سجلوا الان', 'للتسجيل', 'رابط التسجيل', 'حمل التطبيق', 'حمل تطبيق', 'نزل التطبيق', 'تحميل التطبيق', 'ادخل الرابط', 'الرابط في', 'الرابط بالتعليق', 'فرصه عمل', 'للتقديم عبر', 'اشترك', 'اشتراك', 'انضم', 'تابعونا', 'مجانا', 'تيك توك', 'انستغرام', 'سناب'];
+BAD_WORDS.forEach((w, i) => { BAD_WORDS[i] = norm(w); }); FLAG_WORDS.forEach((w, i) => { FLAG_WORDS[i] = norm(w); });
 const PHONE = /(?<!\d)(?:\+?964[\s-]?7|07)\d{2}[\s-]?\d{3}[\s-]?\d{4}(?!\d)/;
+const HANDLE = /(?:^|[^\w@])@[A-Za-z][A-Za-z0-9_]{3,31}\b/;       // @someone: a contact / another channel
 export const wordList = (s) => String(s || '').split(/[\n,،]+/).map((w) => norm(w).trim()).filter(Boolean).slice(0, 200);
-// -> { block: 'the word' } | { flag: 'phone' | 'link' } | {}
+// a word matches a whole word of the text (also with Arabic one-letter / "ال" prefixes: بالسعر، والعرض), so short words do not hit unrelated longer ones
+const PRE = /^(?:وال|بال|لل|ول|ال|و|ب|ل|ف|ك)(?=.{2})/;
+const hasWord = (n, w) => {
+    if (/[a-z]/.test(w) || w.includes(' ')) return n.includes(w);
+    for (const t of n.split(/[^\p{L}\p{N}@]+/u)) if (t === w || t.replace(PRE, '') === w) return true;
+    return false;
+};
+// -> { block: 'the word' } | { flag: 'phone' | 'link' | 'promo' | 'contact' } | {}
 export function adCheck(text, extra, links) {
     const n = norm(text);
-    for (const w of BAD_WORDS.concat(wordList(extra))) if (n.includes(w)) return { block: w };
+    for (const w of BAD_WORDS.concat(wordList(extra))) if (hasWord(n, w) || (w.length >= 5 && n.includes(w))) return { block: w };
     if (PHONE.test(n)) return { flag: 'phone' };
     if ((links || []).some((l) => AD_LINK.test(l))) return { flag: 'link' };
+    if (HANDLE.test(String(text || ''))) return { flag: 'contact' };
+    for (const w of FLAG_WORDS) if (hasWord(n, w)) return { flag: 'promo', w };
     return {};
 }
 
@@ -118,7 +144,7 @@ export const itemTokens = (title, excerpt) => ({ k: tokens(title + ' ' + (excerp
 const baghdadDate = (ts) => new Date(ts + 3 * 3600000).toISOString().slice(0, 10);
 export function newsDoc(it, now) {
     return {
-        id: it.id, title: it.title, excerpt: it.excerpt || '', image: it.image || DEFAULT_IMG, category: it.category || 'other',
+        id: it.id, title: it.title, excerpt: it.excerpt || '', image: it.image || defaultImage(it), category: it.category || 'other',
         date: baghdadDate(now), time: 'الآن', source: BRAND, ...(it.link ? { link: it.link } : {}),
         isUrgent: !!it.urgent, isPinned: false, notifHandled: !!it.notify, isRead: false, isBookmarked: false, views: 0,
         publishedAt: { '.sv': 'timestamp' }, auto: 1,
