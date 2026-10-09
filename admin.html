@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="dcdf64cdb3">
+    <meta name="admin-build" content="895e879ad5">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -440,6 +440,8 @@
     <div class="shell">
         <!-- Side / top navigation -->
         <nav class="sidenav" id="panel">
+            <div class="nav-group-label">التنبيهات</div>
+            <button class="tab" data-tab="notices"><span class="tab-ic"><i data-lucide="siren"></i></span><span>الإشعارات</span><b class="tab-badge hidden" id="ntBadge"></b></button>
             <div class="nav-group-label">الموقع</div>
             <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span><b class="tab-badge hidden" id="siteBadge"></b></button>
 
@@ -487,6 +489,33 @@
         <main class="content">
 
             <!-- Site control -->
+            <div id="sec-notices" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="siren"></i></div>
+                        <div><h3>مركز الإشعارات</h3><p>كل شي يحتاج انتباهك يطلع هنا مع صوت إنذار: خطأ بالتطبيق، طلب إضافة قناة، شكوى أو بلاغ، طلب بالمتجر، وتوقف مراقب الأخبار. لازم تبقى صفحة اللوحة مفتوحة حتى يشتغل الصوت.</p></div>
+                    </div>
+                    <div class="sw-row"><div class="sw-text"><strong>صوت الإنذار</strong></div><label class="switch"><input type="checkbox" id="nt_on" aria-label="صوت الإنذار"><span class="track"></span></label></div>
+                    <div class="field" style="margin-top:8px"><label for="nt_style">نوع الصوت</label>
+                        <select id="nt_style">
+                            <option value="over">إنذار السرعة الزائدة (Overspeed) — طقطقة سريعة</option>
+                            <option value="stall">إنذار السقوط (Stall) — زقزقة حادة</option>
+                            <option value="pull">إنذار الارتفاع (Pull Up) — صفارة صاعدة</option>
+                            <option value="soft">نغمة هادية</option>
+                        </select></div>
+                    <div class="field"><label for="nt_vol">قوة الصوت</label><input type="range" id="nt_vol" min="0.2" max="1" step="0.05" style="width:100%"></div>
+                    <div class="sw-row"><div class="sw-text"><strong>الإنذار القوي لكل شي</strong><small style="display:block;opacity:.7">إذا طفيته: الإنذار القوي بس للمهم (أخطاء وتوقف المراقب)، والباقي نغمة هادية</small></div><label class="switch"><input type="checkbox" id="nt_all" aria-label="الإنذار القوي لكل شي"><span class="track"></span></label></div>
+                    <div class="sw-row"><div class="sw-text"><strong>كرّر الصوت لحد ما أفتح الإشعارات</strong><small style="display:block;opacity:.7">يتكرر كل 8 ثواني</small></div><label class="switch"><input type="checkbox" id="nt_rep" aria-label="كرر الصوت"><span class="track"></span></label></div>
+                    <div class="flex gap-2" style="margin-top:10px;flex-wrap:wrap"><button class="btn" type="button" id="nt_test">اختبر الصوت</button><button class="btn-sm" type="button" id="nt_clear">امسح السجل</button></div>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="list"></i></div>
+                        <div><h3>آخر الإشعارات</h3><p>الأحدث فوق. الجديد عليه نقطة حمراء</p></div>
+                    </div>
+                    <div id="nt_list"></div>
+                </div>
+            </div>
             <div id="sec-site" class="hidden">
                 <div class="live-note"><b></b><span>كل تغيير هنا يظهر فوراً عند جميع الطلاب بدون تحديث الصفحة.</span></div>
 
@@ -2280,7 +2309,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['notices', 'site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3596,7 +3625,7 @@
             const v = snap.exists() ? snap.val() : {}, rows = [];
             Object.keys(v).forEach((uid) => Object.keys(v[uid] || {}).forEach((id) => rows.push({ uid, id, ...v[uid][id] })));
             rows.sort((a, b) => (a.st === 'new' ? 0 : 1) - (b.st === 'new' ? 0 : 1) || (b.at || 0) - (a.at || 0));
-            chanReqBadge(rows);
+            chanReqBadge(rows); ntFromReq(rows);
             const L = el('rq_list');
             L.innerHTML = rows.length ? rows.slice(0, 100).map((r) => `<div style="${YT_STYLE};flex-wrap:wrap"><span style="font-size:11px;padding:2px 8px;border-radius:99px;background:${r.k === 'tg' ? '#0284c7' : '#dc2626'};color:#fff">${r.k === 'tg' ? 'تلكرام' : 'يوتيوب'}</span><div style="flex:1;min-width:160px"><div dir="ltr" style="font-size:13px;word-break:break-all">${escapeHtml(r.l)}</div><div style="font-size:11px;opacity:.7">${escapeHtml(r.n || '')} ${r.s ? '. رقم ' + escapeHtml(r.s) : ''} . ${new Date(r.at || 0).toLocaleDateString('ar-IQ')} . ${r.st === 'new' ? 'جديد' : r.st === 'ok' ? 'مقبول' : 'مرفوض'}</div></div>${r.st === 'new' ? `<button class="btn" type="button" data-rqopen="${escapeHtml(r.uid + '/' + r.id)}">افتحها بالأداة</button><button class="btn" type="button" style="background:#16a34a" data-rqok="${escapeHtml(r.uid + '/' + r.id)}">تمت الإضافة</button><button class="btn" type="button" style="background:#b45309" data-rqno="${escapeHtml(r.uid + '/' + r.id)}">رفض</button>` : ''}<button class="btn" type="button" style="background:#64748b" data-rqdel="${escapeHtml(r.uid + '/' + r.id)}">حذف</button></div>`).join('') : '<div style="opacity:.7;font-size:13px">ما كو طلبات</div>';
             const find = (k) => rows.find((r) => r.uid + '/' + r.id === k);
@@ -3746,6 +3775,95 @@
         }
 
 
+        // ---------- مركز الإشعارات: one page for everything that needs the admin, with an alarm sound ----------
+        // The feed is kept in this browser (adm_nt_feed, the last 150). New things come from: app errors (errors/), channel requests (chanReq/),
+        // and every other section's badge growing (reports, complaints, orders, ... see alertScan). The sound is made with the Web Audio API.
+        const NT = { feed: [], set: { on: true, style: 'over', vol: 0.8, all: true, rep: false }, ready: false, last: 0, errN: null, reqSeen: null, rep: null };
+        try { NT.feed = JSON.parse(localStorage.getItem('adm_nt_feed') || '[]') || []; Object.assign(NT.set, JSON.parse(localStorage.getItem('adm_nt_set') || '{}')); } catch (e) {}
+        const ntSave = () => { try { localStorage.setItem('adm_nt_feed', JSON.stringify(NT.feed.slice(0, 150))); localStorage.setItem('adm_nt_set', JSON.stringify(NT.set)); } catch (e) {} };
+        // plays an alarm on any Web Audio context (also an OfflineAudioContext, which is how it is tested); returns how long it lasts, in seconds
+        function ntAlarm(a, style, t0, vol) {
+            const out = a.createGain(); out.gain.value = Math.max(0.05, Math.min(1, vol)) * 0.9; out.connect(a.destination);
+            const tone = (type, f0, f1, t, dur, peak, q) => {
+                const o = a.createOscillator(), g = a.createGain();
+                o.type = type; o.frequency.setValueAtTime(f0, t); if (f1 !== f0) o.frequency.linearRampToValueAtTime(f1, t + dur);
+                g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + Math.min(0.012, dur / 4)); g.gain.setValueAtTime(peak, t + dur * 0.7); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+                if (q) { const f = a.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = q; f.Q.value = 1.2; o.connect(f); f.connect(g); } else o.connect(g);
+                g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+            };
+            if (style === 'over') {
+                // overspeed clacker: hard mechanical clacks, about 9 a second, the odd one a little lower
+                for (let i = 0; i < 24; i++) { const t = t0 + i * 0.108, lo = i % 2; tone('square', lo ? 1150 : 1500, lo ? 700 : 900, t, 0.055, 0.9, lo ? 1100 : 1500); tone('sawtooth', 220, 180, t, 0.05, 0.45); }
+                return 2.7;
+            }
+            if (style === 'stall') {
+                // stall "cricket": fast high chirps in bursts of five
+                for (let b = 0; b < 4; b++) for (let i = 0; i < 5; i++) tone('sine', 2500, 3100, t0 + b * 0.78 + i * 0.075, 0.045, 0.75);
+                return 3.1;
+            }
+            if (style === 'pull') {
+                // rising siren, repeated
+                for (let i = 0; i < 5; i++) { tone('triangle', 520, 1250, t0 + i * 0.55, 0.5, 0.8); tone('square', 260, 625, t0 + i * 0.55, 0.5, 0.18); }
+                return 2.8;
+            }
+            tone('sine', 880, 880, t0, 0.12, 0.55); tone('sine', 1175, 1175, t0 + 0.12, 0.2, 0.55);
+            return 0.5;
+        }
+        window.ntAlarm = ntAlarm;   // for the tests (they render the sounds offline)
+        function ntPlay(style) {
+            try {
+                const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
+                const a = NT.ctx = NT.ctx || new C(); if (a.state === 'suspended') a.resume();
+                ntAlarm(a, style || NT.set.style, a.currentTime + 0.02, NT.set.vol);
+            } catch (e) {}
+        }
+        function ntSound(sev) { if (!NT.set.on) return; ntPlay(NT.set.all || sev === 'high' ? NT.set.style : 'soft'); }
+        const NT_KIND = { error: ['bug', '#ef4444'], req: ['radio-tower', '#0284c7'], down: ['alert-triangle', '#ef4444'], new: ['bell', '#f59e0b'] };
+        function ntAdd(ev) {
+            if (NT.feed.some((x) => x.id === ev.id)) return;
+            NT.feed.unshift({ at: Date.now(), unread: true, sev: 'normal', kind: 'new', ...ev });
+            NT.feed = NT.feed.slice(0, 150); ntSave(); ntPaint();
+            toast((ev.sev === 'high' ? 'مهم: ' : 'جديد: ') + ev.title);
+            if (Date.now() - NT.last > 1500) { NT.last = Date.now(); ntSound(ev.sev); const b = el('alertBtn'); if (b) { b.classList.remove('on'); void b.offsetWidth; b.classList.add('on'); } }
+            ntRepeat();
+        }
+        const ntUnread = () => NT.feed.filter((x) => x.unread).length;
+        function ntRepeat() {
+            clearInterval(NT.rep); NT.rep = null;
+            if (!NT.set.rep || !NT.set.on || !ntUnread() || !el('sec-notices').classList.contains('hidden')) return;
+            NT.rep = setInterval(() => { if (!ntUnread() || !el('sec-notices').classList.contains('hidden')) { clearInterval(NT.rep); NT.rep = null; return; } ntSound(NT.feed.some((x) => x.unread && x.sev === 'high') ? 'high' : 'normal'); }, 8000);
+        }
+        function ntPaint() {
+            const n = ntUnread(); setBadge('ntBadge', n);
+            const box = el('nt_list'); if (!box) return;
+            box.innerHTML = NT.feed.length ? NT.feed.slice(0, 100).map((x, i) => { const k = NT_KIND[x.kind] || NT_KIND.new; return `<div class="row-item" style="display:flex;gap:10px;align-items:flex-start;padding:10px 12px"><span style="width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:${k[1]}22;color:${k[1]};flex:none"><i data-lucide="${k[0]}"></i></span><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${x.unread ? '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;margin-inline-end:6px"></span>' : ''}${escapeHtml(x.title)}</div>${x.text ? `<div style="font-size:12.5px;opacity:.8;margin-top:2px;word-break:break-word">${escapeHtml(x.text)}</div>` : ''}<div style="font-size:11.5px;opacity:.55;margin-top:3px">${escapeHtml(timeAgoAr(x.at))}</div></div>${x.tab ? `<button class="btn-sm" type="button" data-ntgo="${escapeHtml(x.tab)}">افتح</button>` : ''}</div>`; }).join('') : '<p class="list-empty">ما كو إشعارات بعد</p>';
+            box.querySelectorAll('[data-ntgo]').forEach((b) => b.addEventListener('click', () => document.querySelector('.tab[data-tab="' + b.dataset.ntgo + '"]')?.click()));
+            try { lucide.createIcons(); } catch (e) {}
+        }
+        // errors: a new kind of error, or one that happened again
+        function ntFromErrors(d) {
+            const now = {}; Object.keys(d).forEach((k) => { if (d[k] && d[k].msg) now[k] = Number(d[k].n) || 1; });
+            if (NT.errN) Object.keys(now).forEach((k) => { if (now[k] > (NT.errN[k] || 0)) ntAdd({ id: 'err:' + k + ':' + now[k], sev: 'high', kind: 'error', title: NT.errN[k] ? 'خطأ تكرر بالتطبيق' : 'خطأ جديد بالتطبيق', text: String(d[k].msg).slice(0, 160) + (d[k].view ? ' (' + (VIEW_NAMES[d[k].view] || d[k].view) + ')' : ''), tab: 'errors' }); });
+            NT.errN = now;
+        }
+        // channel requests from students
+        function ntFromReq(rows) {
+            const ids = rows.filter((r) => r.st === 'new').map((r) => r.uid + '/' + r.id);
+            if (NT.reqSeen) rows.filter((r) => r.st === 'new' && !NT.reqSeen.has(r.uid + '/' + r.id)).forEach((r) => ntAdd({ id: 'req:' + r.uid + '/' + r.id, kind: 'req', title: 'طلب إضافة قناة ' + (r.k === 'tg' ? 'تلكرام' : 'يوتيوب'), text: String(r.l || '').slice(0, 140), tab: 'site' }));
+            NT.reqSeen = new Set(ids);
+        }
+        function loadNoticesAdmin() {
+            const on = el('nt_on'), st = el('nt_style'), vol = el('nt_vol'), all = el('nt_all'), rep = el('nt_rep');
+            on.checked = !!NT.set.on; st.value = NT.set.style; vol.value = NT.set.vol; all.checked = !!NT.set.all; rep.checked = !!NT.set.rep;
+            const save = () => { NT.set = { on: on.checked, style: st.value, vol: Number(vol.value), all: all.checked, rep: rep.checked }; ntSave(); ntRepeat(); };
+            [on, st, vol, all, rep].forEach((c) => c.addEventListener('change', save));
+            st.addEventListener('change', () => ntPlay(st.value));
+            el('nt_test').addEventListener('click', () => { save(); ntPlay(st.value); });
+            el('nt_clear').addEventListener('click', () => { NT.feed = []; ntSave(); ntPaint(); });
+            document.querySelector('.tab[data-tab="notices"]')?.addEventListener('click', () => { setTimeout(() => { NT.feed.forEach((x) => { x.unread = false; }); ntSave(); ntPaint(); clearInterval(NT.rep); NT.rep = null; }, 1500); });
+            ntPaint();
+            setTimeout(() => { NT.ready = true; }, 6000);
+        }
         // ---------- alerts: every section's badge is watched; a new arrival rings the bell, beeps and shows a toast ----------
         const ALERT = { prev: {}, ready: false, last: 0 };
         function alertScan() {
@@ -3758,16 +3876,15 @@
             if (cnt) { cnt.textContent = total > 99 ? '99+' : total; cnt.classList.toggle('hidden', !total); }
             document.title = (total ? '(' + total + ') ' : '') + 'لوحة التحكم - أكـادمي السادس';
             // what is new since the last scan (not during the first load of the lists)
-            const fresh = rows.filter((r) => r.n > (ALERT.prev[r.tab] || 0));
+            const fresh = rows.filter((r) => r.n > (ALERT.prev[r.tab] || 0) && r.tab !== 'notices');
             ALERT.prev = Object.fromEntries(rows.map((r) => [r.tab, r.n]));
             const menu = el('alertMenu');
             if (menu && !menu.classList.contains('hidden')) alertMenuPaint(rows);
             ALERT.rows = rows;
             if (!ALERT.ready || !fresh.length || Date.now() - ALERT.last < 1500) return;
             ALERT.last = Date.now();
-            const btn = el('alertBtn'); if (btn) { btn.classList.remove('on'); void btn.offsetWidth; btn.classList.add('on'); }
-            toast('جديد: ' + fresh.map((r) => r.label + ' (' + r.n + ')').join('، '));
-            alertBeep();
+            // errors and channel requests are announced with their details by ntFromErrors / ntFromReq; the rest come from their badges
+            fresh.filter((r) => r.tab !== 'errors' && r.tab !== 'site' && r.tab !== 'notices').forEach((r) => ntAdd({ id: 'tab:' + r.tab + ':' + r.n + ':' + Math.floor(Date.now() / 60000), sev: r.tab === 'newsbot' ? 'high' : 'normal', kind: r.tab === 'newsbot' ? 'down' : 'new', title: r.tab === 'newsbot' ? 'مراقب أخبار تلكرام متوقف' : r.label + ': ' + r.n + ' جديد', text: '', tab: r.tab }));
         }
         function alertBeep() {
             try {
@@ -4700,7 +4817,7 @@
                 if (!(await ask({ icon: 'trash-2', title: 'تمسح كل الأخطاء؟', text: 'ينحذف سجل الأخطاء كله. الأخطاء الجديدة ترجع توصل عادي.', ok: 'امسح' }))) return;
                 set(ref(db, 'errors'), null).then(() => toast('انمسح سجل الأخطاء')).catch(() => toast('فشل', false));
             });
-            onValue(ref(db, 'errors'), (snap) => { errorsData = snap.val() || {}; renderErrors(); });
+            onValue(ref(db, 'errors'), (snap) => { errorsData = snap.val() || {}; renderErrors(); ntFromErrors(errorsData); });
         }
         function renderErrors() {
             const box = el('errList');
@@ -6057,6 +6174,7 @@
             loadChanReqAdmin();
             loadNewsBotAdmin();
             loadStudentAdmin();
+            loadNoticesAdmin();
             loadMotivAdmin();
             loadVoiceAdmin();
             loadForestWeather();
