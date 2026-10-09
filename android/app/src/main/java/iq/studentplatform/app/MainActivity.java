@@ -184,12 +184,14 @@ public class MainActivity extends BridgeActivity {
                     try {
                         AudioManager am = (AudioManager) getSystemService(AUDIO_SERVICE);
                         if (on) {
+                            CallService.start(MainActivity.this);
                             am.setMode(AudioManager.MODE_IN_COMMUNICATION);
                             setVolumeControlStream(AudioManager.STREAM_VOICE_CALL);
                             int max = am.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL);
                             if (am.getStreamVolume(AudioManager.STREAM_VOICE_CALL) < Math.round(max * 0.6f)) am.setStreamVolume(AudioManager.STREAM_VOICE_CALL, Math.round(max * 0.6f), 0);
                             routeCall(am, false);
                         } else {
+                            CallService.stop(MainActivity.this);
                             if (android.os.Build.VERSION.SDK_INT >= 31) { try { am.clearCommunicationDevice(); } catch (Throwable ignored) {} }
                             am.setSpeakerphoneOn(false);
                             am.setMode(AudioManager.MODE_NORMAL);
