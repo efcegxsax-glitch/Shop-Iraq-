@@ -53,6 +53,22 @@
             return isSafeImageUrl(value) ? value : FALLBACK_IMAGE;
         }
 
+        // A news without a usable picture shows one of three pictures of the site: a red "عاجل" card (urgent), the parliament building (about the
+        // parliament) or the ministry building (everything else). The same goes for the old stock photo that earlier news were saved with and for a
+        // picture that does not load (a dead link): see newsImg / app.newsImgFb. They sit in assets/news/ with the app.
+        const NEWS_DEFAULT = { urgent: 'assets/news/urgent.jpg', parl: 'assets/news/parliament.jpg', gen: 'assets/news/ministry.jpg' };
+        const OLD_STOCK = /photo-1562774053-701939374585/;
+        function newsDefault(n) {
+            if (n && n.isUrgent) return NEWS_DEFAULT.urgent;
+            const t = String((n && n.title) || '') + ' ' + String((n && n.excerpt) || '');
+            return /(مجلس\s*النواب|البرلمان|برلمان|النيابي[ةه])/.test(t) ? NEWS_DEFAULT.parl : NEWS_DEFAULT.gen;
+        }
+        function newsImg(n) {
+            const v = n && n.image;
+            if (!v || OLD_STOCK.test(String(v)) || !isSafeImageUrl(v)) return newsDefault(n);
+            return v;
+        }
+
         function isSafeVideoUrl(value) {
             try {
                 const str = String(value);
@@ -2083,7 +2099,7 @@
                         </div>
                         <article class="nw-card${!isRead ? ' is-unread' : ''}" onclick="app.openNews(${id})" ontouchstart="app.swipeStart(event, 'news-${id}')" ontouchmove="app.swipeMove(event, 'news-${id}')" ontouchend="app.swipeEnd(event, 'news-${id}')" data-swipe-card data-tx="0">
                             <div class="nw-img">
-                                <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}" loading="lazy">
+                                <img src="${escapeHtml(newsImg(news))}" alt="${escapeHtml(news.title)}" loading="lazy" onerror="app.newsImgFb(this, ${jsNum(news.id)})">
                                 ${news.isUrgent ? '<span class="nw-flag nw-urgent">عاجل</span>' : (cat ? `<span class="nw-flag">${escapeHtml(cat)}</span>` : '')}
                             </div>
                             <div class="nw-body">
@@ -2152,10 +2168,18 @@
                 });
             },
 
+            // a news picture that does not load (a dead link, a broken file): swap it for the default one, once
+            newsImgFb(img, id) {
+                if (!img || img.dataset.fb) return;
+                img.dataset.fb = '1';
+                const n = newsData.find((x) => x.id === Number(id)) || null;
+                img.src = newsDefault(n);
+            },
+
             // full-screen photo viewer: tap the news photo, pinch or double-tap to zoom, tap outside or the X to close
             openImageViewer(id) {
                 const news = (id && typeof id === 'object') ? null : newsData.find(n => n.id === id);
-                const src = (id && typeof id === 'object') ? String(id.src || '') : (news ? safeImage(news.image) : '');
+                const src = (id && typeof id === 'object') ? String(id.src || '') : (news ? newsImg(news) : '');
                 if (!src) return;
                 this.closeImageViewer();
                 const v = document.createElement('div');
@@ -2227,7 +2251,7 @@
                 content.innerHTML = `
                     <article class="nd">
                         <div class="nd-hero" onclick="app.openImageViewer(${jsNum(news.id)})" role="button" aria-label="فتح الصورة">
-                            <img src="${safeImage(news.image)}" alt="${escapeHtml(news.title)}">
+                            <img src="${escapeHtml(newsImg(news))}" alt="${escapeHtml(news.title)}" onerror="app.newsImgFb(this, ${jsNum(news.id)})">
                             <span class="nd-zoom" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></span>
                             <div class="nd-hero-shade"></div>
                             <div class="nd-tags">
@@ -2239,7 +2263,7 @@
                         <div class="nd-body">
                             <h1 class="nd-title">${escapeHtml(news.title)}</h1>
                             <div class="nd-src">
-                                <span class="nd-flag" aria-hidden="true"><svg viewBox="0 0 36 36"><rect width="36" height="12" fill="#CE1126"/><rect y="12" width="36" height="12" fill="#fff"/><rect y="24" width="36" height="12" fill="#111"/><path d="M11 18h14" stroke="#007A3D" stroke-width="3" stroke-linecap="round"/></svg></span>
+                                <img class="nd-flag" src="assets/news/iraq-flag.png" alt="" width="38" height="38" decoding="async">
                                 <div>
                                     <b>${escapeHtml(news.source || 'وزارة التربية العراقية')}</b>
                                     <span>${dateLabel}</span><span><span data-timeago="${jsNum(news.id)}">${timeAgo(news.id)}</span> · ${readMin} د قراءة</span>
@@ -8678,7 +8702,7 @@
                     id: id,
                     title: item.title,
                     excerpt: item.excerpt || '',
-                    image: item.image || 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop',
+                    image: item.image || "",
                     category: item.category || 'other',
                     date: now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate()),
                     time: 'الآن',
@@ -13637,7 +13661,7 @@
                 const { ref, update, serverTimestamp } = window.firebaseDbHelpers;
                 const id = Date.now();
                 const d = new Date(id), pad = (x) => String(x).padStart(2, '0');
-                const rec = { id, title, excerpt, image: 'https://images.unsplash.com/photo-1562774053-701939374585?w=600&h=400&fit=crop', category: g('mpC') || 'other', date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), time: 'الآن', source: g('mpS') || 'إدارة المنصة', isUrgent: false, isPinned: false, notifHandled: false, isRead: false, isBookmarked: false, views: 0, publishedAt: serverTimestamp(), byMod: this.authUid };
+                const rec = { id, title, excerpt, image: '', category: g('mpC') || 'other', date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()), time: 'الآن', source: g('mpS') || 'إدارة المنصة', isUrgent: false, isPinned: false, notifHandled: false, isRead: false, isBookmarked: false, views: 0, publishedAt: serverTimestamp(), byMod: this.authUid };
                 try {
                     const lg = await this._modLog('newsPub', { id, title: title.slice(0, 100) });
                     await update(ref(window.firebaseDb), { ['news/' + id]: rec, [lg.path]: lg.val });

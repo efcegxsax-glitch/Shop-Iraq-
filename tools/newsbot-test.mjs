@@ -1,7 +1,7 @@
 // Tests of the Telegram news bot: text cleaning, titles, adverts, repeated news, the service-account sign-in, and a whole round with a fake database.
 //   node tools/newsbot-test.mjs
 import { generateKeyPairSync, createVerify } from 'node:crypto';
-import { cleanPost, splitNews, adCheck, findDup, itemTokens, pickCategory, newsDoc, notifDoc, BRAND } from '../tutor-worker/src/newsbot.js';
+import { cleanPost, splitNews, adCheck, findDup, itemTokens, pickCategory, newsDoc, notifDoc, defaultImage, IMG_MINISTRY, IMG_URGENT, IMG_PARLIAMENT, BRAND } from '../tutor-worker/src/newsbot.js';
 import { makeDb, parseSA } from '../tutor-worker/src/fbadmin.js';
 import { newsRun, newsAct } from '../tutor-worker/src/newsrun.js';
 
@@ -37,6 +37,32 @@ t('body is at most 500', splitNews('عنوان\n' + 'نص '.repeat(400)).excerpt
 t('empty text', splitNews('').title === '');
 
 // ---------- adverts ----------
+// ---- a news without a picture gets one ----
+t('no picture: the ministry building', defaultImage({ title: 'التربية تعلن موعد الامتحانات', excerpt: '' }) === IMG_MINISTRY);
+t('no picture, urgent: the red "عاجل" card', defaultImage({ title: 'التربية تعلن موعد الامتحانات', excerpt: '', urgent: true }) === IMG_URGENT);
+t('no picture, about the parliament: the parliament building', defaultImage({ title: 'مجلس النواب يعقد جلسته غداً', excerpt: '' }) === IMG_PARLIAMENT);
+t('the parliament in the body or as "البرلمان" / a parliamentary committee', defaultImage({ title: 'قرار جديد', excerpt: 'وذلك بعد موافقة البرلمان' }) === IMG_PARLIAMENT && defaultImage({ title: 'لجنة التربية النيابية تستضيف الوزير', excerpt: '' }) === IMG_PARLIAMENT);
+t('urgent wins over parliament', defaultImage({ title: 'مجلس النواب يصوت الآن', excerpt: '', urgent: true }) === IMG_URGENT);
+t('deputies of a university president are not the parliament', defaultImage({ title: 'تعيين نواب رئيس الجامعة', excerpt: '' }) === IMG_MINISTRY);
+t('a prime minister\'s council is not the parliament', defaultImage({ title: 'اجتماع مجلس الوزراء', excerpt: '' }) === IMG_MINISTRY);
+t('the default pictures are absolute links to the site (older apps can open them)', [IMG_MINISTRY, IMG_URGENT, IMG_PARLIAMENT].every((u) => /^https:\/\/efcegxsax-glitch\.github\.io\/Shop-Iraq-\/assets\/news\/[a-z]+\.jpg$/.test(u)));
+t('newsDoc without a picture takes the default by kind', newsDoc({ id: 9, title: 'مجلس النواب يعقد جلسة', excerpt: '', image: '', category: 'other', urgent: false }, Date.UTC(2026, 9, 7)).image === IMG_PARLIAMENT && newsDoc({ id: 9, title: 'x', excerpt: '', image: '', category: 'other', urgent: true }, Date.UTC(2026, 9, 7)).image === IMG_URGENT);
+t('newsDoc with its own picture keeps it', newsDoc({ id: 9, title: 'x', excerpt: '', image: 'data:image/jpeg;base64,AAAA', category: 'other' }, Date.UTC(2026, 9, 7)).image === 'data:image/jpeg;base64,AAAA');
+// ---- promotion: nothing that sells or advertises is published ----
+const LEGIT = ['التربية: تحديد موعد امتحانات الدور الثاني للسادس الاعدادي', 'وزير التعليم العالي يوجه بتمديد التقديم للدراسات المسائية حتى نهاية الشهر', 'مجلس النواب يصوت على قانون الخدمة الاتحادي',
+  'ملاحظة: يرجى مراجعة الموقع الرسمي للوزارة للاطلاع على التفاصيل', 'التربية تعلن نتائج الثالث المتوسط وتؤكد عدم وجود اي تأخير', 'تنويه: الاجازة الدورية للمدارس يوم الخميس المقبل', 'تعطيل الدوام الرسمي بمناسبة المولد النبوي',
+  'الوزير يستقبل سفير اليابان لبحث التعاون بمجال التعليم', 'اعلان نتائج القبول المركزي للجامعات الحكومية', 'تعليمات جديدة بشأن الامتحانات الوزارية للسادس الاعدادي', 'وزارة التربية تطلق منصة للتعليم الالكتروني للطلبة'];
+LEGIT.forEach((x) => t('legit news is not touched: ' + x.slice(0, 30), Object.keys(adCheck(x, '', [])).length === 0, adCheck(x, '', [])));
+const BLOCKED = ['اشترك بقناتنا واربح جوائز نقدية', 'دورة تقوية للسادس الاعدادي للتسجيل تواصل واتساب', 'معهد النور: دورات خصوصية للسادس بسعر مخفض', 'اعلان ممول: افضل محاضرات الفيزياء', 'مجانا لفترة محدودة فقط',
+  'تعلم الربح من الانترنت بدون راس مال', 'ملازم السادس للبيع بالجملة', 'خصم 50% على الاشتراك السنوي', 'تداول العملات الرقمية وحقق ثروة', 'شحن رصيد مجاني لكل المشتركين', 'سحب على جوائز قيمة للمتابعين', 'اطلب الان واستلم بالتوصيل',
+  'العرض بالسعر المخفض لهذا الاسبوع', 'برعاية شركة الامل للاتصالات', 'تسوق الان من متجرنا'];
+BLOCKED.forEach((x) => t('promotion is blocked: ' + x.slice(0, 30), adCheck(x, '', []).block !== undefined, adCheck(x, '', [])));
+const FLAGGED = [['للتواصل مع الاستاذ @teacher_ali', 'contact'], ['حمل التطبيق الان واستمتع', 'promo'], ['فرصة عمل في شركة خاصة', 'promo'], ['تابعونا على انستغرام', 'promo'], ['للاستفسار راسلنا على الخاص', 'promo'], ['اتصل 07801234567 للتفاصيل', 'phone']];
+FLAGGED.forEach(([x, why]) => t('held for review (' + why + '): ' + x.slice(0, 28), adCheck(x, '', []).flag === why, adCheck(x, '', [])));
+t('a short word does not hit a longer unrelated word', adCheck('الاسعد حظا هو من درس', '', []).block === undefined);
+t('with Arabic prefixes the word is still seen (بالسعر)', adCheck('تباع بالسعر الرسمي', '', []).block !== undefined);
+t('the channel\'s own @name in a clean line is a contact', adCheck('التربية تعلن @iraqedu_news', '', []).flag === 'contact');
+t('"follow us" lines are cut out of a post, the news itself stays', (() => { const c = cleanPost('عاجل: التربية تعلن موعد الامتحانات\nتابعونا على قناتنا\nشارك الخبر مع اصدقائك'); return c.urgent && /موعد الامتحانات/.test(c.text) && !/تابعونا|شارك/.test(c.text); })());
 t('clean ministry news passes', Object.keys(adCheck(A.text, '', [])).length === 0);
 t('a shop post is blocked by a word', adCheck('عرض خاص على الملازم للبيع بسعر مخفض', '', []).block !== undefined);
 t('your own words are used', adCheck('كورس تقوية مدفوع', 'مدفوع\nكورس', []).block !== undefined);

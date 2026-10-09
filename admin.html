@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="ebff98e609">
+    <meta name="admin-build" content="2dc9193093">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -3647,7 +3647,7 @@
         }); }
 
         // ---------- أخبار تلكرام: the news bot (newsBot/*, worked by the Worker; see tutor-worker/src/newsrun.js) ----------
-        const NB_WHY = { review: 'قناة بوضع المراجعة', phone: 'فيه رقم هاتف', link: 'فيه رابط ترويجي', dup: 'خبر مكرر', ad: 'كلمة ممنوعة', fwd: 'معاد توجيهه من قناة ثانية' };
+        const NB_WHY = { review: 'قناة بوضع المراجعة', phone: 'فيه رقم هاتف', link: 'فيه رابط ترويجي', promo: 'فيه كلام ترويجي أو دعوة للاشتراك', contact: 'فيه حساب أو معرّف للتواصل', dup: 'خبر مكرر', ad: 'كلمة ممنوعة', fwd: 'معاد توجيهه من قناة ثانية' };
         function loadNewsBotAdmin() {
             let chans = {}, cfg = {};
             let lastBeat = null;

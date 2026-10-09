@@ -679,15 +679,15 @@ function newsDeps(env, ctx) {
         // the picture goes into the news record itself (like the pictures the admin uploads); a big one stays a link to Telegram's copy
         img: async (url) => {
             try {
-                if (!/^https:\/\//.test(url)) return url;
+                if (!/^https:\/\//.test(url)) return '';          // not a usable picture: the news gets a default one (see defaultImage in newsbot.js)
                 const r = await fetch(url, { headers: ytHeaders });
                 const type = (r.headers.get('content-type') || '').split(';')[0];
-                if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type)) return url;
+                if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type)) return '';   // a dead link would show as a broken picture
                 const buf = new Uint8Array(await r.arrayBuffer());
                 if (buf.length > 220000) return url;
                 let s = ''; for (let i = 0; i < buf.length; i += 0x8000) s += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
                 return 'data:' + type + ';base64,' + btoa(s);
-            } catch { return url; }
+            } catch { return ''; }
         },
         push: async (x) => {
             if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return false;
