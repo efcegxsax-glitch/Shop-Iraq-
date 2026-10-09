@@ -241,6 +241,10 @@ public class MainActivity extends BridgeActivity {
             @JavascriptInterface
             public String takeAccept() { String f = acceptFrom; acceptFrom = ""; return (f == null || System.currentTimeMillis() - acceptAt > 60000) ? "" : f; }
 
+            // the signed-in student's refresh token, for the call screen (it can decline a call and see a hang-up while the app is closed); empty values clear it
+            @JavascriptInterface
+            public void setAuth(String uid, String refresh, String key, String db) { CallApi.save(MainActivity.this, uid, refresh, key, db); }
+
             @JavascriptInterface
             public void bg(final String hex) {
                 try { getSharedPreferences("isp", MODE_PRIVATE).edit().putInt("bg", android.graphics.Color.parseColor(hex)).apply(); } catch (Throwable ignored) {}
@@ -305,7 +309,7 @@ public class MainActivity extends BridgeActivity {
             + "recStart:function(){return c('recStart');},recStop:function(k){c('recStop',[!!k]);},"
             + "callAudio:function(o){c('callAudio',[!!o]);},speaker:function(o){c('speaker',[!!o]);},"
             + "notifOn:function(){return c('notifOn')==='true';},notifSettings:function(){c('notifSettings');},"
-            + "bg:function(h){c('bg',[String(h)]);},takeAccept:function(){return c('takeAccept');},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
+            + "bg:function(h){c('bg',[String(h)]);},takeAccept:function(){return c('takeAccept');},setAuth:function(u,r,k,d){c('setAuth',[String(u),String(r),String(k),String(d)]);},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
         WebViewCompat.addDocumentStartJavaScript(web, js, getBridge().getAllowedOriginRules());
     }
 
@@ -321,6 +325,7 @@ public class MainActivity extends BridgeActivity {
         void notifSettings();
         void bg(String hex);
         String takeAccept();
+        void setAuth(String uid, String refresh, String key, String db);
         void googleSignIn(String clientId);
     }
 
@@ -336,6 +341,7 @@ public class MainActivity extends BridgeActivity {
             case "notifSettings": n.notifSettings(); return "";
             case "bg": n.bg(v.optString(0)); return "";
             case "takeAccept": return n.takeAccept();
+            case "setAuth": n.setAuth(v.optString(0), v.optString(1), v.optString(2), v.optString(3)); return "";
             case "googleSignIn": n.googleSignIn(v.optString(0)); return "";
             default: return "";
         }

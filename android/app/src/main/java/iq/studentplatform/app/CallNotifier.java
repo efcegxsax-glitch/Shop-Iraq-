@@ -60,6 +60,7 @@ final class CallNotifier {
         PendingIntent acceptPi = PendingIntent.getActivity(ctx, 2, acceptIntent(ctx, from), flags());
         Intent dec = new Intent(ctx, CallActionReceiver.class);
         dec.setAction("iq.studentplatform.app.CALL_DECLINE");
+        dec.putExtra(EXTRA_FROM, from);
         PendingIntent decPi = PendingIntent.getBroadcast(ctx, 3, dec, flags());
         NotificationCompat.Builder b = new NotificationCompat.Builder(ctx, CHANNEL)
             .setSmallIcon(R.drawable.ic_stat_onesignal_default)

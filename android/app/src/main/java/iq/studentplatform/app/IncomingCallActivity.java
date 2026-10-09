@@ -101,6 +101,7 @@ public class IncomingCallActivity extends Activity {
 
         setContentView(root);
         h.postDelayed(this::end, CallNotifier.RING_MS);
+        watch();
     }
 
     private View button(int icon, int color, String label, final boolean accept) {
@@ -124,7 +125,7 @@ public class IncomingCallActivity extends Activity {
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         tp.topMargin = dp(8);
         box.addView(t, tp);
-        box.setOnClickListener((v) -> { if (accept) accept(); else end(); });
+        box.setOnClickListener((v) -> { if (accept) accept(); else decline(); });
         return box;
     }
 
@@ -144,6 +145,30 @@ public class IncomingCallActivity extends Activity {
         finish();
     }
 
+    // "رفض": the caller is told (from a thread), then the screen closes
+    private void decline() {
+        final Context app = getApplicationContext();
+        final String f = from;
+        new Thread(() -> { try { CallApi a = CallApi.open(app); if (a != null) a.decline(f); } catch (Throwable ignored) {} }).start();
+        end();
+    }
+
+    // while the screen is up, watch the call: when the caller hangs up (or it is answered elsewhere) the screen closes by itself
+    private volatile boolean watching = true;
+    private void watch() {
+        final Context app = getApplicationContext();
+        final String f = from;
+        new Thread(() -> {
+            CallApi a = CallApi.open(app);
+            if (a == null) return;
+            while (watching) {
+                try { Thread.sleep(2500); } catch (InterruptedException e) { return; }
+                String st = a.state(f);
+                if (st != null && !"ring".equals(st)) { h.post(this::end); return; }
+            }
+        }).start();
+    }
+
     private void end() {
         CallNotifier.cancel(this);
         finish();
@@ -151,6 +176,7 @@ public class IncomingCallActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        watching = false;
         h.removeCallbacksAndMessages(null);
         super.onDestroy();
     }
