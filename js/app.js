@@ -1001,6 +1001,7 @@
                 if (!window.firebaseAuth || !window.firebaseAuthHelpers) return;
                 const { onAuthStateChanged } = window.firebaseAuthHelpers;
                 onAuthStateChanged(window.firebaseAuth, (user) => {
+                    this._nativeAuth(user);
                     if (user) {
                         this.authUid = user.uid;
                         // FIX: Firebase fires this observer *before* the promise returned by
@@ -2844,6 +2845,19 @@
                 const v = snap && snap.exists() ? snap.val() : null;
                 return v && typeof v.e === 'string' ? v.e : null;
             },
+            // Android only: gives the phone app's call screen what it needs to decline a call or see a hang-up while the app is closed
+            // (the signed-in student's refresh token, kept in the app's private storage; empty values on sign-out clear it)
+            _nativeAuth(user) {
+                try {
+                    const N = window.IspNative;
+                    if (!N || !N.setAuth) return;
+                    if (!user) { N.setAuth('', '', '', ''); return; }
+                    const o = (window.firebaseAuth && window.firebaseAuth.app && window.firebaseAuth.app.options) || {};
+                    const db = o.databaseURL || (o.projectId ? 'https://' + o.projectId + '-default-rtdb.firebaseio.com' : '');
+                    N.setAuth(user.uid, user.refreshToken || '', o.apiKey || '', db);
+                } catch (e) {}
+            },
+
             _phoneKey(p) {
                 const d = String(p || '').replace(/[^0-9]/g, '');
                 return d.length >= 7 && d.length <= 20 ? d : '';
