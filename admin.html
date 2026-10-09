@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="190c452dd7">
+    <meta name="admin-build" content="76a3a94202">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -74,6 +74,14 @@
         .sidenav { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px; }
         .sidenav::-webkit-scrollbar { display: none; }
         .nav-group-label { display: none; }
+        .nav-group { display: contents; }   /* the groups only hold the buttons: the strip / column / grid layouts below are unchanged */
+        .nav-search { flex: 0 0 150px; }
+        .nav-search input { width: 100%; height: 100%; min-height: 38px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); color: var(--text); font: inherit; font-size: 13px; }
+        .nav-search input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+        .ns-off { display: none !important; }
+        .site-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .site-tab { padding: 8px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--text2); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .site-tab.on { background: var(--primary); border-color: var(--primary); color: #fff; }
 
         .tab { display: flex; align-items: center; gap: 9px; padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--panel); border: 1px solid var(--border); color: var(--text2); white-space: nowrap; transition: .15s ease; flex-shrink: 0; }
         .tab:hover { color: var(--text); border-color: #475569; }
@@ -86,7 +94,16 @@
             .shell { flex-direction: row; align-items: flex-start; gap: 22px; padding: 18px 20px 60px; }
             .sidenav { flex-direction: column; width: 230px; flex-shrink: 0; position: sticky; top: 92px; overflow-x: visible; padding-bottom: 0; }
             .nav-group-label { display: block; font-size: 10.5px; font-weight: 800; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin: 16px 4px 7px; }
-            .nav-group-label:first-child { margin-top: 2px; }
+            .nav-search { flex: none; }
+            .nav-search + .nav-group > .nav-group-label { margin-top: 12px; }
+            .nav-group-label { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+            .nav-group-label .ng-t { flex: 1; }
+            .nav-group-label .ng-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: #DC2626; color: #fff; font-size: 10.5px; font-weight: 800; display: grid; place-items: center; text-transform: none; letter-spacing: 0; }
+            .nav-group-label .ng-n.hidden { display: none; }
+            .nav-group-label .ng-chev::before { content: "\25BE"; font-size: 12px; display: inline-block; transition: transform .2s; }
+            .nav-group.closed > .nav-group-label .ng-chev::before { transform: rotate(90deg); }
+            .nav-group.closed > .tab { display: none; }
+            .sidenav.ns-q .nav-group.closed > .tab { display: flex; }
             .tab { width: 100%; }
         }
 
@@ -121,7 +138,8 @@
             /* the 27 sections as a compact two-column grid so (almost) all of them are in view at once */
             .sidenav { width: 304px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; align-content: start; }
             .sidenav .nav-group-label { grid-column: 1 / -1; margin: 10px 4px 2px; }
-            .sidenav .nav-group-label:first-child { margin-top: 0; }
+            .sidenav .nav-search { grid-column: 1 / -1; }
+            .sidenav .nav-search + .nav-group > .nav-group-label { margin-top: 8px; }
             .sidenav .tab { padding: 7px 9px; gap: 7px; font-size: 12px; line-height: 1.25; min-height: 36px; border-radius: 10px; min-width: 0; }
             .sidenav .tab > span:not(.tab-ic) { min-width: 0; overflow-wrap: anywhere; }
             .sidenav .tab .tab-ic svg { width: 15px; height: 15px; }
@@ -439,50 +457,63 @@
     <div class="shell">
         <!-- Side / top navigation -->
         <nav class="sidenav" id="panel">
-            <div class="nav-group-label">التنبيهات</div>
-            <button class="tab" data-tab="notices"><span class="tab-ic"><i data-lucide="siren"></i></span><span>الإشعارات</span><b class="tab-badge hidden" id="ntBadge"></b></button>
-            <div class="nav-group-label">الموقع</div>
-            <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span><b class="tab-badge hidden" id="siteBadge"></b></button>
-
-            <div class="nav-group-label">الإحصائيات</div>
-            <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
-            <button class="tab" data-tab="student"><span class="tab-ic"><i data-lucide="user-search"></i></span><span>ملف الطالب</span></button>
-            <button class="tab" data-tab="mods"><span class="tab-ic"><i data-lucide="shield-check"></i></span><span>المشرفون</span></button>
-
-            <div class="nav-group-label">المحتوى</div>
-            <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
-            <button class="tab" data-tab="newsbot"><span class="tab-ic"><i data-lucide="radio-tower"></i></span><span>أخبار تلكرام</span><b class="tab-badge hidden" id="nbBadge"></b></button>
-            <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
-            <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
-            <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
-            <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
-            <button class="tab" data-tab="tests"><span class="tab-ic"><i data-lucide="file-check-2"></i></span><span>الاختبارات</span></button>
-            <button class="tab" data-tab="prizes"><span class="tab-ic"><i data-lucide="trophy"></i></span><span>جوائز الأسبوع</span></button>
-            <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
-            <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
-            <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
-            <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
-            <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
-            <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
-            <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>شكاوي وأفكار</span><b class="tab-badge hidden" id="idBadge"></b></button>
-            <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
-            <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
-            <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span><b class="tab-badge hidden" id="drBadge"></b></button>
-
-            <div class="nav-group-label">التواصل والوسائط</div>
-            <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إشعارات</span></button>
-            <button class="tab" data-tab="motiv"><span class="tab-ic"><i data-lucide="flame"></i></span><span>تحفيز</span></button>
-            <button class="tab" data-tab="imgs"><span class="tab-ic"><i data-lucide="image"></i></span><span>صور الموقع</span></button>
-
-            <div class="nav-group-label">المالية والمتجر</div>
-            <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
-            <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
-            <button class="tab" data-tab="orders"><span class="tab-ic"><i data-lucide="package-check"></i></span><span>طلبات المتجر</span><b class="tab-badge hidden" id="ordBadge"></b></button>
-            <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
-
-            <div class="nav-group-label">الإدارة</div>
-            <button class="tab" data-tab="reports"><span class="tab-ic"><i data-lucide="flag"></i></span><span>البلاغات</span><b class="tab-badge hidden" id="rpBadge"></b></button>
-            <button class="tab" data-tab="ban"><span class="tab-ic"><i data-lucide="ban"></i></span><span>حظر طالب</span></button>
+            <div class="nav-search"><input type="search" id="navSearch" placeholder="ابحث عن قسم..." autocomplete="off" aria-label="بحث بالأقسام"></div>
+            <div class="nav-group" data-g="inbox">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">يحتاج متابعة</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="notices"><span class="tab-ic"><i data-lucide="siren"></i></span><span>مركز التنبيهات</span><b class="tab-badge hidden" id="ntBadge"></b></button>
+                <button class="tab" data-tab="reports"><span class="tab-ic"><i data-lucide="flag"></i></span><span>البلاغات</span><b class="tab-badge hidden" id="rpBadge"></b></button>
+                <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>شكاوي وأفكار</span><b class="tab-badge hidden" id="idBadge"></b></button>
+                <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
+                <button class="tab" data-tab="orders"><span class="tab-ic"><i data-lucide="package-check"></i></span><span>طلبات المتجر</span><b class="tab-badge hidden" id="ordBadge"></b></button>
+                <button class="tab" data-tab="spots"><span class="tab-ic"><i data-lucide="library-big"></i></span><span>أماكن الدراسة</span><b class="tab-badge hidden" id="spBadge"></b></button>
+                <button class="tab" data-tab="dreams"><span class="tab-ic"><i data-lucide="sparkles"></i></span><span>الأحلام</span><b class="tab-badge hidden" id="drBadge"></b></button>
+            </div>
+            <div class="nav-group" data-g="students">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">الطلاب والمشرفون</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="users"><span class="tab-ic"><i data-lucide="chart-column"></i></span><span>الإحصائيات والمستخدمون</span></button>
+                <button class="tab" data-tab="student"><span class="tab-ic"><i data-lucide="user-search"></i></span><span>ملف الطالب</span></button>
+                <button class="tab" data-tab="mods"><span class="tab-ic"><i data-lucide="shield-check"></i></span><span>المشرفون</span></button>
+                <button class="tab" data-tab="ban"><span class="tab-ic"><i data-lucide="ban"></i></span><span>حظر طالب</span></button>
+            </div>
+            <div class="nav-group" data-g="news">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">الأخبار والإعلانات</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab active" data-tab="news"><span class="tab-ic"><i data-lucide="newspaper"></i></span><span>نشر خبر</span></button>
+                <button class="tab" data-tab="newsbot"><span class="tab-ic"><i data-lucide="radio-tower"></i></span><span>أخبار تلكرام</span><b class="tab-badge hidden" id="nbBadge"></b></button>
+                <button class="tab" data-tab="ticker"><span class="tab-ic"><i data-lucide="megaphone"></i></span><span>الشريط الإخباري</span></button>
+                <button class="tab" data-tab="holidays"><span class="tab-ic"><i data-lucide="party-popper"></i></span><span>العطل الرسمية</span></button>
+                <button class="tab" data-tab="polls"><span class="tab-ic"><i data-lucide="vote"></i></span><span>الاستطلاعات</span></button>
+            </div>
+            <div class="nav-group" data-g="study">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">الدراسة</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="res"><span class="tab-ic"><i data-lucide="book-open"></i></span><span>ملازم PDF</span></button>
+                <button class="tab" data-tab="exams"><span class="tab-ic"><i data-lucide="calendar-days"></i></span><span>جدول الامتحانات</span></button>
+                <button class="tab" data-tab="tests"><span class="tab-ic"><i data-lucide="file-check-2"></i></span><span>الاختبارات</span></button>
+                <button class="tab" data-tab="uni"><span class="tab-ic"><i data-lucide="school"></i></span><span>حاسبة القبول</span></button>
+                <button class="tab" data-tab="voice"><span class="tab-ic"><i data-lucide="mic"></i></span><span>بصمة صوتية</span></button>
+            </div>
+            <div class="nav-group" data-g="games">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">الألعاب والمسابقات</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="forest"><span class="tab-ic"><i data-lucide="trees"></i></span><span>غابة العراق</span></button>
+                <button class="tab" data-tab="war"><span class="tab-ic"><i data-lucide="swords"></i></span><span>حرب المحافظات</span></button>
+                <button class="tab" data-tab="prizes"><span class="tab-ic"><i data-lucide="trophy"></i></span><span>جوائز الأسبوع</span></button>
+            </div>
+            <div class="nav-group" data-g="send">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">إرسال للطلاب</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="notif"><span class="tab-ic"><i data-lucide="bell"></i></span><span>إرسال إشعار</span></button>
+                <button class="tab" data-tab="motiv"><span class="tab-ic"><i data-lucide="flame"></i></span><span>تحفيز</span></button>
+            </div>
+            <div class="nav-group" data-g="money">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">المالية والمتجر</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
+                <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
+                <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
+            </div>
+            <div class="nav-group" data-g="system">
+                <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">النظام</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
+                <button class="tab" data-tab="site"><span class="tab-ic"><i data-lucide="sliders-horizontal"></i></span><span>التحكم بالموقع</span><b class="tab-badge hidden" id="siteBadge"></b></button>
+                <button class="tab" data-tab="imgs"><span class="tab-ic"><i data-lucide="image"></i></span><span>صور الموقع</span></button>
+                <button class="tab" data-tab="errors"><span class="tab-ic"><i data-lucide="bug"></i></span><span>الأخطاء</span><b class="tab-badge hidden" id="errBadge"></b></button>
+            </div>
         </nav>
 
         <main class="content">
@@ -2316,6 +2347,92 @@
                     ['notices', 'site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
+
+            // ---------- Sidebar: collapsible groups (remembered), a number on each group, search ----------
+            (() => {
+                const nav = document.getElementById('panel');
+                if (!nav) return;
+                const KEY = 'adm_ng_closed';
+                let closed = [];
+                try { closed = JSON.parse(localStorage.getItem(KEY) || '[]'); if (!Array.isArray(closed)) closed = []; } catch (e) { closed = []; }
+                const groups = Array.from(nav.querySelectorAll('.nav-group'));
+                const save = () => { try { localStorage.setItem(KEY, JSON.stringify(groups.filter((g) => g.classList.contains('closed')).map((g) => g.dataset.g))); } catch (e) {} };
+                groups.forEach((g) => {
+                    const lab = g.querySelector('.nav-group-label');
+                    if (closed.includes(g.dataset.g)) { g.classList.add('closed'); lab.setAttribute('aria-expanded', 'false'); }
+                    const flip = () => { const c = g.classList.toggle('closed'); lab.setAttribute('aria-expanded', c ? 'false' : 'true'); save(); };
+                    lab.addEventListener('click', flip);
+                    lab.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(); } });
+                });
+                // opening a section from somewhere else (the bell, a link) shows its group
+                nav.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+                    const g = t.closest('.nav-group');
+                    if (g && g.classList.contains('closed')) { g.classList.remove('closed'); g.querySelector('.nav-group-label').setAttribute('aria-expanded', 'true'); }
+                }));
+                // the sum of the red numbers of a group's sections, on the group's title
+                const sums = () => groups.forEach((g) => {
+                    let n = 0;
+                    g.querySelectorAll('.tab-badge').forEach((b) => { if (!b.classList.contains('hidden')) n += parseInt(b.textContent, 10) || 0; });
+                    const el = g.querySelector('.ng-n');
+                    const t = n > 99 ? '99+' : String(n);
+                    // only when it changed: writing the same text again would fire the observer again, forever
+                    if (el.textContent !== t) el.textContent = t;
+                    el.classList.toggle('hidden', !n);
+                });
+                sums();
+                let pend = 0;
+                new MutationObserver(() => { if (!pend) pend = setTimeout(() => { pend = 0; sums(); }, 50); }).observe(nav, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class'] });
+                // search: Arabic spelling differences do not matter; while there is a word, every group is open
+                const norm = (x) => String(x || '').replace(/[\u064B-\u065F\u0640]/g, '').replace(/[أإآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').toLowerCase().trim();
+                const box = document.getElementById('navSearch');
+                if (box) {
+                    const run = () => {
+                        const q = norm(box.value);
+                        nav.classList.toggle('ns-q', !!q);
+                        nav.querySelectorAll('.tab').forEach((t) => t.classList.toggle('ns-off', !!q && !norm(t.textContent).includes(q)));
+                        groups.forEach((g) => g.querySelector('.nav-group-label').classList.toggle('ns-off', !!q));
+                    };
+                    box.addEventListener('input', run);
+                    box.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { const f = nav.querySelector('.tab:not(.ns-off)'); if (f) { f.click(); box.blur(); } }
+                        if (e.key === 'Escape') { box.value = ''; run(); }
+                    });
+                }
+            })();
+
+            // ---------- Site control: its cards in four small tabs (cards are only shown or hidden, nothing moves) ----------
+            (() => {
+                const sec = document.getElementById('sec-site');
+                if (!sec) return;
+                const cards = Array.from(sec.children).filter((c) => c.classList && c.classList.contains('card'));
+                if (cards.length < 6) return;
+                const TABS = [
+                    ['gen', 'عام', ['اسم المنصة', 'الدخول بحساب', 'وضع الصيانة', 'تخفيف حمل']],
+                    ['ui', 'الواجهة', ['أقسام الواجهة', 'صفحات اختيارية', 'شريط التنقل', 'إعلان أعلى', 'نافذة ترويج']],
+                    ['ch', 'المدرسون والقنوات', ['تيوب المدرسين', 'تلكرام المدرسين', 'طلبات إضافة', 'بحث يوتيوب']],
+                    ['svc', 'الخدمات والمفاتيح', ['المعلم الذكي', 'مفتاح خرائط']],
+                ];
+                const titleOf = (c) => { const h = c.querySelector('h2, h3, summary, .card-title, b'); return ((h && h.textContent) || c.textContent || '').trim(); };
+                const tab = new Map();
+                cards.forEach((c) => {
+                    const t = titleOf(c);
+                    const hit = TABS.find((x) => x[2].some((k) => t.includes(k)));
+                    tab.set(c, hit ? hit[0] : 'gen');   // a card added later with another title lands in "عام"
+                });
+                const bar = document.createElement('div');
+                bar.className = 'site-tabs';
+                bar.innerHTML = TABS.map((x) => '<button type="button" class="site-tab" data-st="' + x[0] + '">' + x[1] + '</button>').join('');
+                sec.insertBefore(bar, cards[0]);
+                const KEY = 'adm_site_tab';
+                const show = (id) => {
+                    cards.forEach((c) => c.classList.toggle('ns-off', tab.get(c) !== id));
+                    bar.querySelectorAll('.site-tab').forEach((b) => b.classList.toggle('on', b.dataset.st === id));
+                    try { localStorage.setItem(KEY, id); } catch (e) {}
+                };
+                bar.addEventListener('click', (e) => { const b = e.target.closest('.site-tab'); if (b) show(b.dataset.st); });
+                let first = 'gen'; try { first = localStorage.getItem(KEY) || 'gen'; } catch (e) {}
+                show(TABS.some((x) => x[0] === first) ? first : 'gen');
+            })();
 
             // ---------- Subjects per stage ----------
             function fillSubjects() {
