@@ -215,8 +215,12 @@
             this._clRender();
             this._clAvatar(c);
             this._clIce();
-            tone.start('in');
+            // answered on the phone's full-screen call screen (Android): answer here without another tap
+            let auto = false;
+            try { auto = !!(window.IspNative && window.IspNative.takeAccept && window.IspNative.takeAccept() === from); } catch (e) {}
+            if (!auto) tone.start('in');
             c.offs.push(H().onValue(ref(db(), 'calls/' + chat), (snap) => this._clSignal(c, snap.val())));
+            if (auto) setTimeout(() => { if (this._cl === c && c.st === 'in') this.clAccept(); }, 300);
             c.ringT = setTimeout(() => { if (this._cl === c && c.st === 'in') this._clEnd('miss', true); }, RING_MS + 5000);
             try {
                 if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {

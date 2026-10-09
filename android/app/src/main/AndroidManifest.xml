@@ -20,6 +20,21 @@
             </intent-filter>
         </activity>
 
+        <!-- the full-screen incoming call (over the lock screen), opened by the call notification's full-screen intent -->
+        <activity
+            android:name=".IncomingCallActivity"
+            android:exported="false"
+            android:launchMode="singleInstance"
+            android:taskAffinity=""
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+        <receiver android:name=".CallActionReceiver" android:exported="false" />
+
+        <!-- OneSignal hands each push to this class first: a call push while the app is closed becomes the call screen -->
+        <meta-data android:name="com.onesignal.NotificationServiceExtension" android:value="iq.studentplatform.app.CallNotificationExtension" />
+
         <!-- notification: the app's green behind the small white icon -->
         <meta-data android:name="com.onesignal.NotificationAccentColor.DEFAULT" android:value="FF0F766E" />
 
@@ -38,6 +53,8 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- the incoming call screen over the lock screen -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- voice calls and the voice note recorder -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
