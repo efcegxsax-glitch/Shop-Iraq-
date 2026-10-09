@@ -22,7 +22,7 @@ import { GoogleGenAI, ApiError as GeminiError } from '@google/genai';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { z } from 'zod';
 import { cleanExam, uuidOf } from './exam.js';
-import { pushTargets, sendAfter, goData, goUrl } from './push.js';
+import { pushTargets, sendAfter, goData, goUrl, optInFilters, diagTrim } from './push.js';
 import { PLAN_SYSTEM, PLAN_JSON_SCHEMA, cleanDays, planPrompt, cleanPlan } from './plan.js';
 import { parseFeed, parseChannelPage, parseSearch, plan as ytPlan, ytHeaders, isChannelId , initialData, parseUploads, uploadsUrl } from './yt.js';
 import { motivDue } from './motiv.js';
@@ -592,7 +592,7 @@ async function ytNotify(env, ctx, when) {
                 method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
                 body: JSON.stringify({
                     app_id: env.ONESIGNAL_APP_ID, target_channel: 'push',
-                    filters: [{ field: 'tag', key: 'tube', relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: 'tube', relation: '=', value: 'on' }],
+                    filters: optInFilters('tube'),
                     headings: { en: str(c.n, 40) || 'محاضرة جديدة', ar: str(c.n, 40) || 'محاضرة جديدة' }, contents: { en: v.t, ar: v.t },
                     ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tube=' + v.v + '&ch=' + c.id,
                     data: { tube: v.v, ch: c.id }, web_push_topic: 'isp-tube-' + v.v.slice(0, 20), ttl: 12 * 3600,
@@ -657,7 +657,7 @@ async function tgNotify(env, ctx, when) {
                 method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY },
                 body: JSON.stringify({
                     app_id: env.ONESIGNAL_APP_ID, target_channel: 'push',
-                    filters: [{ field: 'tag', key: tag, relation: 'not_exists' }, { operator: 'OR' }, { field: 'tag', key: tag, relation: '=', value: 'on' }],
+                    filters: optInFilters(tag),
                     headings: { en: str(c.n, 40) || 'قناة مدرس', ar: str(c.n, 40) || 'قناة مدرس' }, contents: { en: tgPushText(x), ar: tgPushText(x) },
                     ...PUSH_LOOK(env), web_url: (env.APP_URL || 'https://efcegxsax-glitch.github.io/Shop-Iraq-/') + '?tg=' + c.u,
                     data: { tg: c.u, post: x.i }, web_push_topic: ('isp-tg-' + nm).slice(0, 30), ttl: 12 * 3600,
@@ -879,6 +879,18 @@ export default {
             const got = sends.filter((x) => x.j.id);
             const recipients = sends.reduce((n, x) => n + (Number(x.j.recipients) || 0), 0);
             return json(200, { id: got.map((x) => x.j.id).join(',') || '', ids: got.map((x) => x.j.id), sent: got.length, of: sends.length, recipients: got.length ? recipients : 0, errors: sends.map((x) => x.j.errors).filter(Boolean)[0] || null }, headers);
+        }
+
+        // admin only: what the push service knows about one account (its switches and its phones), to find out why a push arrived or not
+        if (body.mode === 'admindiag') {
+            if (!env.ADMIN_EMAIL || who.email !== String(env.ADMIN_EMAIL).toLowerCase()) return json(403, { error: 'admin' }, headers);
+            if (!env.ONESIGNAL_REST_API_KEY || !env.ONESIGNAL_APP_ID) return json(503, { error: 'no_key' }, headers);
+            const target = String(body.uid || '');
+            if (!UID_RE.test(target)) return json(400, { error: 'bad' }, headers);
+            const r = await fetch('https://api.onesignal.com/apps/' + encodeURIComponent(env.ONESIGNAL_APP_ID) + '/users/by/external_id/' + encodeURIComponent(target), { headers: { Authorization: 'Key ' + env.ONESIGNAL_REST_API_KEY } });
+            if (r.status === 404) return json(200, { found: false }, headers);
+            if (!r.ok) return json(502, { error: 'onesignal', status: r.status }, headers);
+            return json(200, { found: true, ...diagTrim(await r.json().catch(() => ({}))) }, headers);
         }
 
         // admin only: cancel pushes that were scheduled for later (their OneSignal ids)

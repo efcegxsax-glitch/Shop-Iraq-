@@ -33,3 +33,19 @@ export function sendAfter(at, now) {
     const d = new Date(at), p = (n) => String(n).padStart(2, '0');
     return d.getUTCFullYear() + '-' + p(d.getUTCMonth() + 1) + '-' + p(d.getUTCDate()) + ' ' + p(d.getUTCHours()) + ':' + p(d.getUTCMinutes()) + ':00 GMT+0000';
 }
+
+// Pushes about one teacher's channel (a YouTube video, a Telegram post) go ONLY to phones that said "on" (positive opt-in) and belong to a signed-in
+// student (tag member = 1). Before, "tag does not exist OR tag = on" also reached a phone that never synced its switch, and a web visitor with
+// the default "on". Two plain AND filters: nothing depends on how OneSignal ranks OR against AND.
+export const optInFilters = (tag) => [{ field: 'tag', key: tag, relation: '=', value: 'on' }, { field: 'tag', key: 'member', relation: '=', value: '1' }];
+
+// What the panel's "فحص إشعارات الطالب" shows from OneSignal's answer for one account: the switches (tags) and the phones (subscriptions), without tokens
+export function diagTrim(u) {
+    const tags = (u && u.properties && u.properties.tags) || {}, keep = {};
+    for (const k of Object.keys(tags)) if (/^(tube|tg_[a-z0-9_]{2,40}|off_[a-z]+|coach|member|gov)$/.test(k)) keep[k] = String(tags[k]).slice(0, 20);
+    const subs = ((u && u.subscriptions) || []).slice(0, 10).map((x) => ({
+        type: String(x.type || '').slice(0, 20), on: x.enabled !== false && Number(x.notification_types) !== -2 && Number(x.notification_types) !== 0 ? 1 : 0,
+        os: String(x.device_os || '').slice(0, 20), model: String(x.device_model || '').slice(0, 40), app: String(x.app_version || '').slice(0, 20), sdk: String(x.sdk || '').slice(0, 20),
+    }));
+    return { tags: keep, subs, last: Number(u && u.properties && u.properties.last_active) || 0 };
+}
