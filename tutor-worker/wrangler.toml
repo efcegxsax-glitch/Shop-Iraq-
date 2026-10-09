@@ -35,6 +35,12 @@ name = "PER_NOTIFY"
 namespace_id = "1003"
 simple = { limit = 12, period = 60 }
 
+# signing in with a phone number: at most 5 lookups a minute per caller
+[[ratelimits]]
+name = "PER_PHONE"
+namespace_id = "1004"
+simple = { limit = 5, period = 60 }
+
 # students' small photos for push notifications. The deploy workflow creates this store (free) and puts its id
 # here; if the Cloudflare token cannot manage KV, the workflow removes this block and everything else still deploys.
 [[kv_namespaces]]

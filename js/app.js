@@ -1363,10 +1363,8 @@
                         return;
                     }
                     try {
-                        const { ref, get } = window.firebaseDbHelpers;
                         const pk = this._phoneKey(identifier);
-                        const snap = pk ? await get(ref(window.firebaseDb, 'phoneIndex/' + pk)) : null;
-                        const foundEmail = snap && snap.exists() && snap.val() && typeof snap.val().e === 'string' ? snap.val().e : null;
+                        const foundEmail = pk ? await this._phoneToEmail(pk) : null;
                         if (!foundEmail) {
                             this.showToast('لا يوجد حساب مرتبط برقم الهاتف هذا، جرّب البريد الإلكتروني');
                             return;
@@ -2829,6 +2827,23 @@
                 } catch (e) { /* the photo copy is an optimisation: initials show instead */ }
             },
 
+            // phone number -> the account's email, for signing in with a phone. It goes through the Worker (one number per
+            // request, rate limited) so the database no longer has to be readable by everyone. If the Worker cannot be
+            // reached or is not ready, the old direct read is tried (it works until the database rules close it).
+            async _phoneToEmail(pk) {
+                const url = this._tutorUrl();
+                if (url) {
+                    try {
+                        const r = await fetch(url + '/', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'phonelogin', pk }) });
+                        if (r.ok) { const j = await r.json(); return typeof j.e === 'string' ? j.e : null; }
+                        if (r.status === 429) throw new Error('slow_down');
+                    } catch (e) { if (e && e.message === 'slow_down') throw e; }
+                }
+                const { ref, get } = window.firebaseDbHelpers;
+                const snap = await get(ref(window.firebaseDb, 'phoneIndex/' + pk));
+                const v = snap && snap.exists() ? snap.val() : null;
+                return v && typeof v.e === 'string' ? v.e : null;
+            },
             _phoneKey(p) {
                 const d = String(p || '').replace(/[^0-9]/g, '');
                 return d.length >= 7 && d.length <= 20 ? d : '';

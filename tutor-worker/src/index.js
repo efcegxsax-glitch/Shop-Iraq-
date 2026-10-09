@@ -30,6 +30,7 @@ import { isTgName, tgNameOf, parseTgInfo, parseTgPosts, tgOldest, tgPushText } f
 import { makeDb } from './fbadmin.js';
 import { modPush } from './modpush.js';
 import { routeCron, cronPeriod } from './cron.js';
+import { phoneEmail } from './phone.js';
 import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -831,6 +832,19 @@ export default {
             return new Response(bytes, { headers: { 'Content-Type': 'image/jpeg', 'Cache-Control': 'public, max-age=86400', 'Access-Control-Allow-Origin': '*' } });
         }
         if (req.method !== 'POST') return json(405, { error: 'method' }, headers);
+        // sign in with a phone number: the person is not signed in yet, so this one runs before the sign-in check.
+        // One number per request, limited per caller; a number with no account gets the same answer shape as one with.
+        const early = await req.clone().json().catch(() => null);
+        if (early && early.mode === 'phonelogin') {
+            if (env.PER_PHONE) {
+                const { success } = await env.PER_PHONE.limit({ key: 'ph' + (req.headers.get('CF-Connecting-IP') || 'x') });
+                if (!success) return json(429, { error: 'slow_down' }, headers);
+            }
+            const db = makeDb(env);
+            if (!db.ok) return json(503, { error: 'no_db' }, headers);
+            try { return json(200, { e: (await phoneEmail(db, early.pk)) || null }, headers); }
+            catch { return json(503, { error: 'db' }, headers); }
+        }
         const who = {};
         const uid = await verifyStudent(req, env, who);
         if (!uid) return json(401, { error: 'signin' }, headers);
