@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="44ab2b7992">
+    <meta name="admin-build" content="190c452dd7">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -32,8 +32,7 @@
         window.addEventListener('resize', function () { try { if (localStorage.getItem('adm_zoom') || innerWidth < 1100) { if (innerWidth < 1100) document.documentElement.style.setProperty('--z', 1); return; } var h = innerHeight, z = h <= 640 ? 0.7 : h <= 780 ? 0.8 : h <= 900 ? 0.9 : 1; document.documentElement.style.setProperty('--z', z); admZoomLabel(); } catch (e) {} });
     </script>
     <title>لوحة التحكم - أكـادمي السادس</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="js/vendor/lucide.min.js"></script>
     <script>window.lucide = window.lucide || { createIcons: function () {} };</script>
     <style>
         :root {

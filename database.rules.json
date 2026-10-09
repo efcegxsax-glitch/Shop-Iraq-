@@ -771,6 +771,7 @@
     "sentFriendRequests": {
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "$other": {
           ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || auth != null && auth.uid == $other && !newData.exists())"
         }
@@ -1577,6 +1578,7 @@
       ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "$id": {
           ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists() && newData.child('at').val() == now && newData.parent().parent().parent().child('complaintLast/' + auth.uid).val() == now) || ((auth != null && auth.uid == $uid) && !newData.exists()))",
           ".validate": "!newData.exists() || data.exists() || ((newData.hasChildren(['uid', 'k', 't', 'st', 'at']) && newData.child('uid').val() == $uid && newData.child('st').val() == 'new'))",
@@ -1636,6 +1638,7 @@
       ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "$id": {
           ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists() && newData.child('at').val() == now && newData.parent().parent().parent().child('chanReqLast/' + auth.uid).val() == now) || ((auth != null && auth.uid == $uid) && !newData.exists()))",
           ".validate": "!newData.exists() || data.exists() || ((newData.hasChildren(['uid', 'k', 'l', 'st', 'at']) && newData.child('uid').val() == $uid && newData.child('st').val() == 'new'))",
@@ -1672,6 +1675,7 @@
     "noteBackup": {
       "$uid": {
         ".read": "(auth != null && auth.uid == $uid)",
+        ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "$id": {
           ".write": "(auth != null && auth.uid == $uid)",
           ".validate": "!newData.exists() || (newData.hasChildren(['t', 'ts', 'd']) && $id.length <= 24)",

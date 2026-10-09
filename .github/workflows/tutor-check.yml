@@ -4,6 +4,8 @@
 name: Check AI tutor
 on:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   check:
     runs-on: ubuntu-latest
