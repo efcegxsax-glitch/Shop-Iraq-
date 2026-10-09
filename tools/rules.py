@@ -413,9 +413,10 @@ rules = {
             "sm": {"$k": {".validate": ors(ADMIN, "$k.matches(/^[0-9]{4}-[0-9]{2}$/) && newData.isNumber() && newData.val() >= 0 && newData.val() <= 25000 && newData.val() <= (data.exists() ? data.val() : 0) + 300")}},
         },
     },
+    # phone -> email is looked up by the Worker (service account); the record is readable only by its owner and the admin
     "phoneIndex": {
         "$p": {
-            ".read": True,
+            ".read": ors(ands(SIGNED, "data.child('u').val() == auth.uid"), ADMIN),
             ".write": ors(ands(SIGNED, "(!data.exists() || data.child('u').val() == auth.uid)", "(!newData.exists() || newData.child('u').val() == auth.uid)"), ADMIN),
             ".validate": "newData.hasChildren(['e', 'u']) && newData.child('e').isString() && newData.child('e').val().length <= 120",
         },
