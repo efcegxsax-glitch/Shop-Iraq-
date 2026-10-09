@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="76a3a94202">
+    <meta name="admin-build" content="0e1ce15981">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -528,6 +528,7 @@
                     <div class="sw-row"><div class="sw-text"><strong>صوت الإنذار</strong></div><label class="switch"><input type="checkbox" id="nt_on" aria-label="صوت الإنذار"><span class="track"></span></label></div>
                     <div class="field" style="margin-top:8px"><label for="nt_style">نوع الصوت</label>
                         <select id="nt_style">
+                            <option value="plane">إنذار طيارة حقيقي (تسجيل من الكابينة)</option>
                             <option value="over">إنذار السرعة الزائدة (Overspeed) — طقطقة سريعة</option>
                             <option value="stall">إنذار السقوط (Stall) — زقزقة حادة</option>
                             <option value="pull">إنذار الارتفاع (Pull Up) — صفارة صاعدة</option>
@@ -3900,7 +3901,7 @@
         // ---------- مركز الإشعارات: one page for everything that needs the admin, with an alarm sound ----------
         // The feed is kept in this browser (adm_nt_feed, the last 150). New things come from: app errors (errors/), channel requests (chanReq/),
         // and every other section's badge growing (reports, complaints, orders, ... see alertScan). The sound is made with the Web Audio API.
-        const NT = { feed: [], set: { on: true, style: 'over', vol: 0.8, all: true, rep: false }, ready: false, last: 0, errN: null, reqSeen: null, rep: null };
+        const NT = { feed: [], set: { on: true, style: 'plane', vol: 0.8, all: true, rep: false }, ready: false, last: 0, errN: null, reqSeen: null, rep: null };
         try { NT.feed = JSON.parse(localStorage.getItem('adm_nt_feed') || '[]') || []; Object.assign(NT.set, JSON.parse(localStorage.getItem('adm_nt_set') || '{}')); } catch (e) {}
         const ntSave = () => { try { localStorage.setItem('adm_nt_feed', JSON.stringify(NT.feed.slice(0, 150))); localStorage.setItem('adm_nt_set', JSON.stringify(NT.set)); } catch (e) {} };
         // plays an alarm on any Web Audio context (also an OfflineAudioContext, which is how it is tested); returns how long it lasts, in seconds
@@ -3932,7 +3933,18 @@
             return 0.5;
         }
         window.ntAlarm = ntAlarm;   // for the tests (they render the sounds offline)
+        // the real recording of a cockpit alarm (sounds/plane-alarm.mp3); if the browser will not play it, the made-up overspeed clacker plays instead
+        function ntFile(vol) {
+            try {
+                const a = NT.audio = NT.audio || new Audio('sounds/plane-alarm.mp3');
+                a.volume = Math.max(0.05, Math.min(1, vol)); a.currentTime = 0;
+                const p = a.play();
+                if (p && p.catch) p.catch(() => ntPlay('over'));
+                return true;
+            } catch (e) { return false; }
+        }
         function ntPlay(style) {
+            if ((style || NT.set.style) === 'plane') { if (ntFile(NT.set.vol)) return; style = 'over'; }
             try {
                 const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
                 const a = NT.ctx = NT.ctx || new C(); if (a.state === 'suspended') a.resume();
