@@ -4772,9 +4772,9 @@
                 try {
                     const all = this.notifPrefs.tg === false; let mu = []; try { mu = JSON.parse(localStorage.getItem('isp_tg_mute') || '[]'); } catch (e) {}
                     if (!names) {
-                        if (!all && !mu.length && localStorage.getItem('isp_tg_sel') !== '1' && (localStorage.getItem('isp_tg_hide') || '[]') === '[]' && localStorage.getItem('isp_tg_dirty') !== '1') return;
+                        // every channel gets its tag, "on" or "off": the server now sends a teacher's post only to phones that said "on" (positive opt-in)
                         if (this._tgNames && Date.now() - (this._tgNamesAt || 0) < 3600000) names = this._tgNames;
-                        else { const { ref, get } = window.firebaseDbHelpers, s = await get(ref(window.firebaseDb, 'tgChannels')); names = s.exists() ? Object.keys(s.val()) : []; }
+                        else { const { ref, get } = window.firebaseDbHelpers, s = await get(ref(window.firebaseDb, 'tgChannels')); const v = s.exists() ? s.val() : {}; names = Object.keys(v).map((k) => (v[k] && v[k].u) || k); }   // the tag is made from the channel's user name, like the server does
                     }
                     this._tgNames = names; this._tgNamesAt = Date.now();
                     const set = new Set(mu), t = {}; let anyOff = false;
@@ -4782,7 +4782,8 @@
                     const lcn = (x) => String(x).toLowerCase(); let hide = null;
                     try { const r = localStorage.getItem('isp_tg_hide'); if (r != null) hide = new Set(JSON.parse(r).map(lcn)); else if (localStorage.getItem('isp_tg_sel') === '1') { const m = new Set(JSON.parse(localStorage.getItem('isp_tg_mine') || '[]').map(lcn)); hide = new Set(names.map(lcn).filter((n) => !m.has(n))); } } catch (e) {}
                     names.forEach((n) => { const off = all || set.has(lcn(n)) || (hide && hide.has(lcn(n))); if (off) anyOff = true; t['tg_' + lcn(n)] = off ? 'off' : 'on'; });
-                    if (Object.keys(t).length) this._pnTags(t);
+                    const sig = JSON.stringify(t);
+                    if (Object.keys(t).length && sig !== this._tgSig && this._pnTags(t) !== false) this._tgSig = sig;
                     try { localStorage.setItem('isp_tg_dirty', anyOff ? '1' : '0'); } catch (e) {}
                 } catch (e) {}
             },
@@ -12077,12 +12078,13 @@
                     if (U) {
                         if (Object.keys(t).length) U.addTags(t);
                         if (rm.length) { if (U.removeTags) U.removeTags(rm); else U.addTags(Object.fromEntries(rm.map((k) => [k, '']))); }
-                        return;
+                        return true;
                     }
                     const w = this._wtn && this._wtn(), all = Object.assign({}, t, Object.fromEntries(rm.map((k) => [k, ''])));
-                    if (w && w.os === 'android' && typeof w.a.setUserTags === 'function') w.a.setUserTags(JSON.stringify(all));
-                    else if (w && w.i) w.i.postMessage({ action: 'setUserTags', tags: all });
-                } catch (e) { console.warn('push tags failed', e); }
+                    if (w && w.os === 'android' && typeof w.a.setUserTags === 'function') { w.a.setUserTags(JSON.stringify(all)); return true; }
+                    else if (w && w.i) { w.i.postMessage({ action: 'setUserTags', tags: all }); return true; }
+                    return false;   // the push service is not ready yet: the caller may try again
+                } catch (e) { console.warn('push tags failed', e); return false; }
             },
             // pushes the student's choices to the places that decide what reaches the phone
             _pnSync() {
