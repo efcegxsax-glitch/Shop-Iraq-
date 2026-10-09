@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="895e879ad5">
+    <meta name="admin-build" content="ebff98e609">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -897,7 +897,12 @@
                         <label for="cfg_mt_msg">نص الرسالة</label>
                         <textarea id="cfg_mt_msg" rows="2" placeholder="نعمل على تحسين المنصة، ونرجع لكم قريباً."></textarea>
                     </div>
-                    <button class="btn mt-2" id="cfg_save_mt">حفظ رسالة الصيانة</button>
+                    <div class="field">
+                        <label for="cfg_mt_until">وقت الرجوع المتوقع (اختياري)</label>
+                        <input type="datetime-local" id="cfg_mt_until" dir="ltr">
+                        <small style="opacity:.7">إذا حطيته، يطلع للطلاب عدّاد تنازلي. اتركه فاضي إذا ما تعرف</small>
+                    </div>
+                    <div class="flex gap-2" style="flex-wrap:wrap;margin-top:8px"><button class="btn" id="cfg_save_mt">حفظ رسالة الصيانة</button><button class="btn-sm" type="button" id="cfg_mt_prev">شوف شكلها (معاينة)</button></div>
                 </div>
             </div>
 
@@ -3418,6 +3423,7 @@
             document.querySelectorAll('input[name="cfg_ann_tone"]').forEach(r => { r.checked = r.value === tone; });
             setFieldIfIdle('cfg_mt_title', cfgGet('maintenance.title'));
             setFieldIfIdle('cfg_mt_msg', cfgGet('maintenance.message'));
+            { const u = Number(cfgGet('maintenance.until')) || 0, d = u ? new Date(u - new Date(u).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : ''; setFieldIfIdle('cfg_mt_until', d); }
             setFieldIfIdle('cfg_tk_label', cfgGet('ticker.label'));
             setFieldIfIdle('cfg_tk_duration', String(cfgGet('ticker.duration') || 0));
             setFieldIfIdle('cfg_google_cid', cfgGet('google.webClientId'));
@@ -4154,8 +4160,10 @@
         });
 
         el('cfg_save_mt').addEventListener('click', () => cfgWrite({
-            'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg')
+            'maintenance/title': val('cfg_mt_title'), 'maintenance/message': val('cfg_mt_msg'),
+            'maintenance/until': (() => { const v = val('cfg_mt_until'); const t = v ? new Date(v).getTime() : 0; return t > 0 ? t : null; })()
         }, 'تم حفظ رسالة الصيانة'));
+        el('cfg_mt_prev').addEventListener('click', () => window.open('./?mtpreview=1', '_blank', 'noopener'));
 
         el('cfg_save_tk').addEventListener('click', () => cfgWrite({
             'ticker/label': val('cfg_tk_label'), 'ticker/duration': Number(val('cfg_tk_duration')) || 0

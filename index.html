@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '400424603d';
+        window.APP_VER = '5e49959666';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=190d2209f1">
+    <link rel="stylesheet" href="css/app.css?v=7347c61e06">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -2001,12 +2001,19 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=5f885fdc3d"></script>
+    <script src="js/app.js?v=9e51ffccf7"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
+        <canvas id="mtFx" aria-hidden="true"></canvas>
+        <div class="mt-stars" aria-hidden="true"></div>
+        <div class="mt-scene" id="mtScene" aria-hidden="true"></div>
         <div class="mt-box">
-            <div class="mt-mark" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+            <span class="mt-sorry"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z"/></svg>نعتذر منكم من القلب</span>
             <h2 id="mtTitle">المنصة تحت الصيانة</h2>
-            <p id="mtMsg">نعمل على تحسين المنصة، ونرجع لكم قريباً.</p>
+            <p id="mtMsg" aria-live="polite">نعمل على تحسين المنصة، ونرجع لكم قريباً.</p>
+            <div class="mt-eta hidden" id="mtEta"><span id="mtEtaLbl">نرجع لكم بعد</span><b id="mtClock" dir="ltr">00:00:00</b></div>
+            <div class="mt-bar" aria-hidden="true"><i></i></div>
+            <div class="mt-hint" id="mtHint">المس الدواليب وساعدنا نخلّص أسرع</div>
+            <button type="button" class="mt-retry" id="mtRetry" onclick="app.mtRetry()">رجّع المحاولة</button>
         </div>
     </div>
 </body>

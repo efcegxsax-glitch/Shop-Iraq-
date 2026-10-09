@@ -3497,19 +3497,114 @@
                 }
 
                 // Maintenance mode
-                const m = cfg.maintenance || {};
-                const mt = $('maintenanceOverlay');
-                if (mt) {
-                    mt.classList.toggle('hidden', !m.enabled);
-                    if ($('mtTitle')) $('mtTitle').textContent = (m.title || '').trim() || 'المنصة تحت الصيانة';
-                    if ($('mtMsg')) $('mtMsg').textContent = (m.message || '').trim() || 'نعمل على تحسين المنصة، ونرجع لكم قريباً.';
-                }
+                this._mtApply(cfg.maintenance || {});
 
                 // Ticker settings
                 const t = cfg.ticker || {};
                 if ($('tkLabel')) $('tkLabel').textContent = (t.label || '').trim() || 'عاجل';
                 if (this._tk) this._tk.key = ''; // force the marquee to pick up new speed/label settings
                 this.renderNewsTicker();
+            },
+
+            // ===== Maintenance screen (the admin's switch: siteConfig/maintenance = {enabled, title, message, until}) =====
+            // An apology with gears that turn, a wrench that swings and stars that drift. Touching it makes sparks and speeds the gears up for a moment;
+            // an optional "back at" time shows a live countdown. ?mtpreview=1 shows it without the switch (the panel's preview button).
+            _mtApply(m) {
+                const mt = document.getElementById('maintenanceOverlay'); if (!mt) return;
+                const preview = /[?&]mtpreview=1\b/.test(location.search);
+                const on = !!m.enabled || preview;
+                const was = !mt.classList.contains('hidden');
+                mt.classList.toggle('hidden', !on);
+                const t = document.getElementById('mtTitle'), g = document.getElementById('mtMsg');
+                if (t) t.textContent = (m.title || '').trim() || 'المنصة تحت الصيانة';
+                if (g) g.textContent = (m.message || '').trim() || 'نعمل على تحسين المنصة، ونرجع لكم قريباً. نعتذر عن أي إزعاج، ونشكر صبركم.';
+                this._mtUntil = Number(m.until) > Date.now() - 86400000 ? Number(m.until) : 0;
+                if (on && !was) this._mtStart(); else if (!on && was) this._mtStop();
+                if (on) this._mtClock();
+            },
+            _mtStart() {
+                const mt = document.getElementById('maintenanceOverlay'); if (!mt) return;
+                if (!this._mtBuilt) this._mtBuild();
+                this._mtTaps = 0; this._mtSpd = 1; mt.style.setProperty('--spd', 1);
+                const hint = document.getElementById('mtHint'); if (hint) hint.textContent = 'المس الدواليب وساعدنا نخلّص أسرع';
+                this._mtStopped = false;
+                const cv = document.getElementById('mtFx');
+                this._mtParts = []; this._mtFit();
+                const calm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+                const loop = (ts) => {
+                    if (this._mtStopped) return;
+                    this._mtRaf = requestAnimationFrame(loop);
+                    if (document.hidden || !cv) return;
+                    const c = cv.getContext('2d'), w = cv.width, h = cv.height; c.clearRect(0, 0, w, h);
+                    const P = this._mtParts;
+                    for (let i = P.length - 1; i >= 0; i--) {
+                        const p = P[i]; p.life -= 1; p.x += p.vx; p.y += p.vy; p.vy += p.g;
+                        if (p.life <= 0) { P.splice(i, 1); continue; }
+                        c.globalAlpha = Math.max(0, p.life / p.max); c.fillStyle = p.c;
+                        c.beginPath(); c.arc(p.x, p.y, p.r * (0.4 + 0.6 * p.life / p.max), 0, 6.283); c.fill();
+                    }
+                    c.globalAlpha = 1;
+                    // calm the gears down again after a touch
+                    if (this._mtSpd > 1) { this._mtSpd = Math.max(1, this._mtSpd - 0.012); mt.style.setProperty('--spd', this._mtSpd.toFixed(2)); }
+                };
+                if (!calm) this._mtRaf = requestAnimationFrame(loop);
+                this._mtOnResize = () => this._mtFit(); window.addEventListener('resize', this._mtOnResize);
+                this._mtTick = setInterval(() => this._mtClock(), 1000);
+                // touching anywhere: sparks; touching a gear: the gears speed up
+                this._mtDown = (e) => {
+                    if (e.target.closest && e.target.closest('.mt-retry')) return;
+                    const r = cv.getBoundingClientRect(), k = cv.width / r.width;
+                    this._mtBurst((e.clientX - r.left) * k, (e.clientY - r.top) * k, e.target.closest && e.target.closest('.mt-gear') ? 22 : 8);
+                    if (e.target.closest && e.target.closest('.mt-gear')) this._mtTurbo();
+                };
+                this._mtMove = (e) => { mt.style.setProperty('--px', ((e.clientX / innerWidth) - 0.5).toFixed(3)); mt.style.setProperty('--py', ((e.clientY / innerHeight) - 0.5).toFixed(3)); };
+                mt.addEventListener('pointerdown', this._mtDown); mt.addEventListener('pointermove', this._mtMove);
+            },
+            _mtStop() {
+                this._mtStopped = true; cancelAnimationFrame(this._mtRaf); clearInterval(this._mtTick);
+                const mt = document.getElementById('maintenanceOverlay');
+                if (mt) { mt.removeEventListener('pointerdown', this._mtDown); mt.removeEventListener('pointermove', this._mtMove); }
+                window.removeEventListener('resize', this._mtOnResize);
+            },
+            _mtFit() { const cv = document.getElementById('mtFx'); if (!cv) return; const d = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d); this._mtD = d; },
+            _mtBurst(x, y, n) {
+                const cols = ['#fde68a', '#34d399', '#fb7185', '#60a5fa', '#fff'], d = this._mtD || 1, P = this._mtParts || (this._mtParts = []);
+                for (let i = 0; i < n && P.length < 220; i++) { const a = Math.random() * 6.283, v = (1 + Math.random() * 3.6) * d; P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 1.2 * d, g: 0.09 * d, r: (1.6 + Math.random() * 2.6) * d, c: cols[(Math.random() * cols.length) | 0], life: 38 + (Math.random() * 30 | 0), max: 68 }); }
+            },
+            _mtTurbo() {
+                this._mtTaps = (this._mtTaps || 0) + 1; this._mtSpd = Math.min(7, (this._mtSpd || 1) + 1.1);
+                try { navigator.vibrate && navigator.vibrate(12); } catch (e) {}
+                const hint = document.getElementById('mtHint'); if (!hint) return;
+                const n = this._mtTaps;
+                hint.textContent = n >= 30 ? 'صرت مهندس صيانة فخري عندنا' : n >= 15 ? 'ما شاء الله، شغلك أسرع من الفريق كله' : n >= 6 ? 'كمل! الدواليب تدور أسرع بسببك' : 'شكراً، ساعدتنا نخلّص أسرع';
+            },
+            _mtClock() {
+                const box = document.getElementById('mtEta'), clk = document.getElementById('mtClock'), retry = document.getElementById('mtRetry'); if (!box || !clk) return;
+                const left = (this._mtUntil || 0) - Date.now();
+                if (!this._mtUntil) { box.classList.add('hidden'); if (retry) retry.classList.remove('glow'); return; }
+                box.classList.remove('hidden');
+                const lbl = document.getElementById('mtEtaLbl');
+                if (left > 0) {
+                    const s = Math.floor(left / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60, p = (n) => String(n).padStart(2, '0');
+                    clk.textContent = p(h) + ':' + p(m) + ':' + p(x); if (lbl) lbl.textContent = 'نرجع لكم بعد';
+                    if (retry) retry.classList.remove('glow');
+                } else { clk.textContent = 'قريباً'; if (lbl) lbl.textContent = 'اقتربنا من الانتهاء'; if (retry) retry.classList.add('glow'); }
+            },
+            mtRetry() { const b = document.getElementById('mtRetry'); if (b) { b.disabled = true; b.textContent = 'جاري التحقق...'; } setTimeout(() => location.reload(), 500); },
+            // the scene: three meshing gears, a wrench and a few sparkles (built once)
+            _mtBuild() {
+                this._mtBuilt = true;
+                const sc = document.getElementById('mtScene'), st = document.querySelector('#maintenanceOverlay .mt-stars'); if (!sc) return;
+                const gear = (cx, cy, n, ro, ri, hole, fill, rev, t, id) => {
+                    let d = ''; const step = 6.283185 / n;
+                    for (let i = 0; i < n; i++) { const a = i * step, f = (x) => x.toFixed(1); const p = (r, o) => [f(cx + r * Math.cos(a + o * step)), f(cy + r * Math.sin(a + o * step))]; const pts = [p(ri, 0), p(ro, 0.18), p(ro, 0.42), p(ri, 0.6)]; d += (i ? 'L' : 'M') + pts[0].join(' ') + 'L' + pts[1].join(' ') + 'L' + pts[2].join(' ') + 'L' + pts[3].join(' '); }
+                    return `<g class="mt-gear${rev ? ' rev' : ''}" style="--t:${t}s" id="${id}"><path d="${d}Z" fill="${fill}" stroke="rgba(255,255,255,.35)" stroke-width="2" stroke-linejoin="round"/><circle cx="${cx}" cy="${cy}" r="${hole}" fill="#061d22" stroke="rgba(255,255,255,.4)" stroke-width="2"/><circle cx="${cx}" cy="${cy}" r="${hole * 0.4}" fill="rgba(255,255,255,.55)"/></g>`;
+                };
+                sc.innerHTML = `<svg viewBox="0 0 300 210" role="img" aria-label="دواليب صيانة تدور"><defs><linearGradient id="mtg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#0d9488"/></linearGradient><linearGradient id="mtg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fde68a"/><stop offset="1" stop-color="#f59e0b"/></linearGradient><linearGradient id="mtg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#93c5fd"/><stop offset="1" stop-color="#3b82f6"/></linearGradient></defs>
+                    ${gear(110, 105, 12, 62, 50, 16, 'url(#mtg1)', false, 9, 'mtG1')}${gear(196, 70, 9, 42, 33, 11, 'url(#mtg2)', true, 6.75, 'mtG2')}${gear(188, 152, 8, 36, 28, 10, 'url(#mtg3)', true, 6, 'mtG3')}
+                    <g class="mt-wrench"><path d="M240 196 L262 174 a22 22 0 0 0 -3 -30 l-13 13 -9 -3 -3 -9 13 -13 a22 22 0 0 0 -30 3 22 22 0 0 0 5 25 l-24 24 a8 8 0 0 0 11 11 l24 -24 a22 22 0 0 0 24 -2" transform="translate(-14 -6) scale(.8)" fill="#e2e8f0" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></g>
+                    <g fill="#fde68a"><path class="mt-spark" style="animation-delay:.2s" d="M60 30 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path class="mt-spark" style="animation-delay:.9s" d="M248 24 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/><path class="mt-spark" style="animation-delay:1.3s" d="M26 160 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g></svg>`;
+                if (st) { let h = ''; for (let i = 0; i < 26; i++) h += `<i style="left:${(Math.random() * 100).toFixed(1)}%;top:${(Math.random() * 100).toFixed(1)}%;animation-delay:${(Math.random() * 4).toFixed(2)}s;animation-duration:${(3 + Math.random() * 3).toFixed(1)}s;transform:scale(${(0.6 + Math.random()).toFixed(2)})"></i>`; st.innerHTML = h; }
             },
 
             // ===== Voice note from the admin (بصمة صوتية), shown under the news ticker =====
