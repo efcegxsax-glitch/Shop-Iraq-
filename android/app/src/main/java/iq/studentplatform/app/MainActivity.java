@@ -47,10 +47,34 @@ public class MainActivity extends BridgeActivity {
     private float top = 0, bottom = 0;
     private MediaRecorder voiceRec;
     private File voiceFile;
+    // true while the app is on screen (the call push is then left to the page); the caller whose call was answered on the call screen
+    static volatile boolean foreground = false;
+    private static volatile String acceptFrom = "";
+    private static volatile long acceptAt = 0;
+
+    private void takeIntent(android.content.Intent i) {
+        try {
+            String f = i == null ? null : i.getStringExtra(CallNotifier.ACCEPT_FROM);
+            if (f != null && !f.isEmpty()) { acceptFrom = f; acceptAt = System.currentTimeMillis(); CallNotifier.cancel(this); i.removeExtra(CallNotifier.ACCEPT_FROM); }
+        } catch (Throwable ignored) {}
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        takeIntent(intent);
+    }
+
+    @Override
+    public void onResume() { super.onResume(); foreground = true; }
+
+    @Override
+    public void onPause() { foreground = false; super.onPause(); }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        takeIntent(getIntent());
         // the page's background colour from the last run (light, dark, black or pink), so nothing flashes white before the page draws
         try {
             int bgc = getSharedPreferences("isp", MODE_PRIVATE).getInt("bg", 0xFFF1F5F3);
@@ -213,6 +237,10 @@ public class MainActivity extends BridgeActivity {
                 });
             }
 
+            // the caller whose call was answered on the call screen (once): the page then answers by itself
+            @JavascriptInterface
+            public String takeAccept() { String f = acceptFrom; acceptFrom = ""; return (f == null || System.currentTimeMillis() - acceptAt > 60000) ? "" : f; }
+
             @JavascriptInterface
             public void bg(final String hex) {
                 try { getSharedPreferences("isp", MODE_PRIVATE).edit().putInt("bg", android.graphics.Color.parseColor(hex)).apply(); } catch (Throwable ignored) {}
@@ -277,7 +305,7 @@ public class MainActivity extends BridgeActivity {
             + "recStart:function(){return c('recStart');},recStop:function(k){c('recStop',[!!k]);},"
             + "callAudio:function(o){c('callAudio',[!!o]);},speaker:function(o){c('speaker',[!!o]);},"
             + "notifOn:function(){return c('notifOn')==='true';},notifSettings:function(){c('notifSettings');},"
-            + "bg:function(h){c('bg',[String(h)]);},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
+            + "bg:function(h){c('bg',[String(h)]);},takeAccept:function(){return c('takeAccept');},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
         WebViewCompat.addDocumentStartJavaScript(web, js, getBridge().getAllowedOriginRules());
     }
 
@@ -292,6 +320,7 @@ public class MainActivity extends BridgeActivity {
         boolean notifOn();
         void notifSettings();
         void bg(String hex);
+        String takeAccept();
         void googleSignIn(String clientId);
     }
 
@@ -306,6 +335,7 @@ public class MainActivity extends BridgeActivity {
             case "notifOn": return String.valueOf(n.notifOn());
             case "notifSettings": n.notifSettings(); return "";
             case "bg": n.bg(v.optString(0)); return "";
+            case "takeAccept": return n.takeAccept();
             case "googleSignIn": n.googleSignIn(v.optString(0)); return "";
             default: return "";
         }
