@@ -400,7 +400,10 @@ await no('other reads list', get(ref(db('u2'), 'refJoin/u1')));
 // phone index
 await ok('phone claim', set(ref(db('u1'), 'phoneIndex/0770'), { e: 'a@b.c', u: 'u1' }));
 await no('phone steal', set(ref(db('u2'), 'phoneIndex/0770'), { e: 'x@b.c', u: 'u2' }));
-await ok('guest phone lookup', get(ref(db(null), 'phoneIndex/0770')));
+await no('guest cannot read a phone record (the email is not public)', get(ref(db(null), 'phoneIndex/0770')));
+await no('another student cannot read it', get(ref(db('u2'), 'phoneIndex/0770')));
+await ok('the owner reads their own', get(ref(db('u1'), 'phoneIndex/0770')));
+await ok('the admin reads it', get(ref(db('adm'), 'phoneIndex/0770')));
 await no('guest lists phones', get(ref(db(null), 'phoneIndex')));
 
 // review cards

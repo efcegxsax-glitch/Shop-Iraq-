@@ -425,7 +425,7 @@
     },
     "phoneIndex": {
       "$p": {
-        ".read": true,
+        ".read": "((auth != null && data.child('u').val() == auth.uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         ".write": "((auth != null && (!data.exists() || data.child('u').val() == auth.uid) && (!newData.exists() || newData.child('u').val() == auth.uid)) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         ".validate": "newData.hasChildren(['e', 'u']) && newData.child('e').isString() && newData.child('e').val().length <= 120"
       }
