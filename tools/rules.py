@@ -791,6 +791,26 @@ rules = {
                               ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
                 ".validate": "!newData.exists() || (" + s_max("newData.child('m')", 200) + " && newData.child('at').isNumber())",
             }},
+            # saved marks and notes: صعب / مهم / فهمت / ما فهمت هنا / ملاحظة, each at a second of a video (k = the room's video key, v = the video id).
+            # A member writes his own; he (or the host) deletes it.
+            "notes": {"$id": {
+                ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", YR_MEMBER),
+                              ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
+                ".validate": "!newData.exists() || (" + ands(
+                    "newData.hasChildren(['u', 'n', 'k', 's', 'c', 'at'])",
+                    "newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note)$/)",
+                    "newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 100000",
+                    "newData.child('at').isNumber()") + ")",
+                "u": {".validate": "newData.isString() && newData.val().length <= 40"},
+                "n": {".validate": s_max("newData", 60)},
+                "k": {".validate": s_max("newData", 20)},
+                "v": {".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{11}$/)"},
+                "s": {".validate": "newData.isNumber()"},
+                "c": {".validate": "newData.isString()"},
+                "x": {".validate": s_max("newData", 300)},
+                "at": {".validate": "newData.isNumber()"},
+                "$other": {".validate": False},
+            }},
         },
     },
     # ----- غرفتنا: the shared 3D study room; the host runs the room, each student writes only their own rows -----
