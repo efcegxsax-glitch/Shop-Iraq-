@@ -1028,6 +1028,9 @@ await no('huge stack', set(ref(db(null), 'errors/e3'), { msg: 'x', n: 1, stack: 
 
 // chats: only your own messages
 await ok('send a message', set(ref(db('c1'), 'privateChats/c1_c2/messages/1'), { id: 1, from: 'c1', to: 'c2', text: 'هلو', createdAt: 1 }));
+await ok('send a room invite message', set(ref(db('c1'), 'privateChats/c1_c2/messages/7'), { id: 7, from: 'c1', to: 'c2', createdAt: 7, type: 'room', text: 'دعاك لغرفة دراسة: x', rid: 'abc12345', rt: 'x' }));
+await no('an unknown message type', set(ref(db('c1'), 'privateChats/c1_c2/messages/8'), { id: 8, from: 'c1', to: 'c2', createdAt: 8, type: 'zzz', text: 'x' }));
+await ok('remove the invite message', set(ref(db('c1'), 'privateChats/c1_c2/messages/7'), null));
 await no('message in the other one\'s name', set(ref(db('c1'), 'privateChats/c1_c2/messages/2'), { id: 2, from: 'c2', to: 'c1', text: 'x', createdAt: 2 }));
 await no('edit the other one\'s message', set(ref(db('c2'), 'privateChats/c1_c2/messages/1/text'), 'x'));
 await no('delete the other one\'s message', set(ref(db('c2'), 'privateChats/c1_c2/messages/1'), null));

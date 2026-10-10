@@ -674,7 +674,7 @@ rules = {
                     ".validate": "!newData.exists() || (" + ands(
                         "(newData.child('from').val() == auth.uid || " + ADMIN + ")",
                         "(!newData.child('text').exists() || " + s_max("newData.child('text')", 4000) + ")",
-                        "(!newData.child('type').exists() || newData.child('type').val().matches(/^(text|image|voice|file|call)$/))",
+                        "(!newData.child('type').exists() || newData.child('type').val().matches(/^(text|image|voice|file|call|room)$/))",
                         # a reply keeps the id of the message it answers, who wrote it, its kind and a short snippet
                         "(!newData.child('rep').exists() || (newData.child('rep').hasChildren(['i', 'f']) && newData.child('rep').child('i').isNumber() && "
                         "newData.child('rep').child('f').isString() && (!newData.child('rep').child('x').exists() || " + s_max("newData.child('rep').child('x')", 160) + ")"

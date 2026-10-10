@@ -25,7 +25,7 @@
     const TICK2 = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 7 7 18l-5-5"/><path d="m22 7-11 11"/></svg>';
     const CLOCK = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
     const WARN = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>';
-    const ICON = { text: '', image: 'صورة', voice: 'رسالة صوتية', file: 'ملف', call: 'مكالمة صوتية' };
+    const ICON = { text: '', image: 'صورة', voice: 'رسالة صوتية', file: 'ملف', call: 'مكالمة صوتية', room: 'دعوة لغرفة دراسة' };
 
     let T = null;          // the open conversation
     let svOff = 0, svUn = null;
@@ -285,6 +285,9 @@
             const lbl = ok ? 'مكالمة صوتية' : iCalled ? ({ no: 'رفض المكالمة', busy: 'كان مشغول', cancel: 'مكالمة ملغية' }[m.st] || 'ما رد') : 'مكالمة فائتة';
             const sub = ok ? (d >= 3600 ? Math.floor(d / 3600) + ':' + String(Math.floor(d / 60) % 60).padStart(2, '0') : Math.floor(d / 60)) + ':' + String(d % 60).padStart(2, '0') : 'اضغط حتى ترجع تتصل';
             return `<div class="chat-call ${ok ? '' : 'missed'}" onclick="event.stopPropagation(); app.goCall()"><span class="chat-call-ic"><i data-lucide="${ok ? (iCalled ? 'phone-outgoing' : 'phone-incoming') : 'phone-missed'}" class="w-4 h-4"></i></span><span class="min-w-0"><span class="block text-xs font-bold">${lbl}</span><span class="block text-[10px] opacity-75" dir="${ok ? 'ltr' : 'rtl'}">${sub}</span></span></div>`;
+        }
+        if (m.type === 'room') {
+            return `<div class="chat-call" onclick="event.stopPropagation(); app.goToYtRooms(${jsArg(m.rid)})"><span class="chat-call-ic"><i data-lucide="tv" class="w-4 h-4"></i></span><span class="min-w-0"><span class="block text-xs font-bold">دعوة لغرفة دراسة</span><span class="block text-[10px] opacity-75">${esc(m.rt || 'غرفة دراسة')} . اضغط للدخول</span></span></div>`;
         }
         if (m.type === 'file') {
             return `<a href="${esc(safeFileUrl(m.fileUrl) || '#')}" download="${esc(m.fileName || 'file.pdf')}" target="_blank" rel="noopener" onclick="event.stopPropagation()" class="flex items-center gap-2" style="color: inherit; text-decoration: none;"><div class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style="background: rgba(127,127,127,0.15);"><i data-lucide="file-text" class="w-5 h-5"></i></div><div class="min-w-0"><div class="text-xs font-bold truncate">${esc(m.fileName || 'ملف')}</div><div class="text-[10px] opacity-70">${(numOr0(m.fileSize) / 1024 / 1024).toFixed(1)} MB</div></div></a>`;
