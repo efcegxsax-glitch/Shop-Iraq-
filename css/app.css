@@ -11567,3 +11567,11 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
 .yr-tp-h b { flex: 1; min-width: 0; }
 .yr-tp-h button { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); }
 .yr-tp-more { margin: 6px 0 12px; }
+
+/* wallet card: balance and points side by side, with their value in dinar */
+.wl-split { display: flex; gap: 8px; margin-top: 12px; }
+.wl-split > div { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 12px; background: rgba(255,255,255,.12); }
+.wl-split small { display: block; font-size: 10px; color: rgba(255,255,255,.65); }
+.wl-split b { display: block; font-size: 13.5px; font-weight: 900; color: #fff; }
+.wl-split em { display: block; font-style: normal; font-size: 11px; color: #FCD34D; }
+.wl-split .tot { background: rgba(255,255,255,.22); }

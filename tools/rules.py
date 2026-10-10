@@ -103,7 +103,7 @@ PAT = ors(ADMIN, "newData.isNumber() && newData.val() <= now + 10000 && (!data.e
 # users/{uid}/balance may: start at 0, go down, or go up by
 # - a top-up code marked used by this account in the same write (bt names the code),
 # - an incoming transfer marked claimed in the same write (bi names it),
-# - points paid in the same write (10 points = 1 IQD, 1325 IQD = $1; ps names the spend).
+# - points paid in the same write (shop/rate points = 1 IQD, default 10; 1325 IQD = $1; ps names the spend).
 BT = "newData.parent().child('bt').val()"
 BI = "newData.parent().child('bi').val()"
 BAL_TOPUP = ands(
@@ -120,13 +120,15 @@ BAL_IN = ands(
     f"{NEW}.child('incoming/' + $uid + '/' + {BI} + '/claimed').val() == true",
     f"newData.val() - data.val() <= root.child('incoming/' + $uid + '/' + {BI} + '/amount').val() + 0.001",
 )
+# points per dinar: the admin sets shop/rate (default 10, so 10,000 points = 1,000 IQD)
+PTS_RATE = "(root.child('shop/rate').isNumber() ? root.child('shop/rate').val() : 10)"
 P_OLD, P_NEW = "data.parent().child('points').val()", "newData.parent().child('points').val()"
 BAL_REDEEM = ands(
     "data.exists()", "data.parent().child('points').isNumber()", "newData.parent().child('points').isNumber()",
     "newData.parent().child('ps').isString()", "newData.parent().child('ps').val().beginsWith('r:')",
     "newData.parent().child('ps').val() != data.parent().child('ps').val()",
     f"{P_OLD} - {P_NEW} >= 1000",
-    f"(newData.val() - data.val()) * 13250 <= ({P_OLD} - {P_NEW}) * 1.02",
+    f"(newData.val() - data.val()) * 1325 * {PTS_RATE} <= ({P_OLD} - {P_NEW}) * 1.02",
 )
 BALANCE = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 100000",
