@@ -1149,6 +1149,77 @@
             }
         },
 
+        // ---------- the teachers' videos (the same channels as the teachers page): pick a teacher, search his videos, add one, no link needed ----------
+        async _yrChans() {
+            const y = this._yr;
+            if (!y || y.chans || y.chansBusy) return;
+            y.chansBusy = true;
+            try {
+                const snap = await H().get(R('ytChannels')), v = snap.exists() ? snap.val() : {};
+                let hide = []; try { hide = JSON.parse(localStorage.getItem('isp_tube_hide') || '[]') || []; } catch (e) { /* none hidden */ }
+                y.chans = Object.keys(v).map((k) => Object.assign({ k }, v[k])).filter((c) => c && /^UC[A-Za-z0-9_-]{22}$/.test(String(c.id || '')) && hide.indexOf(c.id) < 0).sort((a, b) => (Number(a.o) || 0) - (Number(b.o) || 0));
+            } catch (e) { y.chans = []; }
+            y.chansBusy = false;
+            if (this._yr === y) this._yrPaint();
+        },
+        yrTeacher(id) {
+            const y = this._yr;
+            if (!y) return;
+            if (!id) { y.tp = null; this._yrPaint(); return; }
+            y.tp = { id, list: [], next: '', busy: false, fail: false, done: false, pages: 0 };
+            try { localStorage.setItem('isp:yr:teacher', id); } catch (e) { /* not remembered */ }
+            this._yrTpLoad();
+        },
+        async _yrTpLoad() {
+            const y = this._yr, tp = y && y.tp;
+            if (!tp || tp.busy || tp.done) return;
+            tp.busy = true; tp.fail = false;
+            this._yrPaint();
+            try {
+                const cu = String((this.siteConfig && this.siteConfig.tutorUrl) || '').trim().replace(/\/+$/, '');
+                const base = /^https:\/\/[^\s]+$/.test(cu) ? cu : 'https://isp-tutor.efceg-xsax.workers.dev', user = window.firebaseAuth && window.firebaseAuth.currentUser;
+                if (!user) throw new Error('signin');
+                const r = await fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (await user.getIdToken()) }, body: JSON.stringify({ mode: 'ytchan', id: tp.id, cont: tp.pages ? tp.next : '' }) });
+                if (!r.ok) throw new Error('http ' + r.status);
+                const j = await r.json(), seen = new Set(tp.list.map((x) => x.v));
+                (j.videos || []).forEach((x) => { if (x && /^[A-Za-z0-9_-]{11}$/.test(x.v) && !seen.has(x.v)) tp.list.push({ v: x.v, t: String(x.t || '').slice(0, 100), a: x.a || '' }); });
+                tp.next = j.next || ''; tp.pages++;
+                if (!tp.next) tp.done = true;
+            } catch (e) { tp.fail = true; }
+            tp.busy = false;
+            if (this._yr !== y || y.tp !== tp) return;
+            this._yrPaint();
+            // searching: keep reading older pages until something matches (a few pages at most)
+            const q = String((document.getElementById('yrTpQ') || {}).value || '').trim();
+            if (q && tp.next && tp.pages < 8 && !tp.fail && !this._yrTpShown().length) this._yrTpLoad();
+        },
+        yrTpMore() { this._yrTpLoad(); },
+        yrTpFilter() { this._yrPaint(); const q = String((document.getElementById('yrTpQ') || {}).value || '').trim(), y = this._yr; if (q && y && y.tp && y.tp.next && !y.tp.busy && !this._yrTpShown().length) this._yrTpLoad(); },
+        _yrTpShown() {
+            const y = this._yr, tp = y && y.tp;
+            if (!tp) return [];
+            const q = String((document.getElementById('yrTpQ') || {}).value || '').trim();
+            return q ? tp.list.filter((x) => x.t.indexOf(q) >= 0) : tp.list;
+        },
+        _yrTeachersHtml() {
+            const y = this._yr;
+            if (!y.chans && !y.chansBusy) this._yrChans();
+            const ch = y.chans || [];
+            if (!ch.length) return '';
+            const av = (c) => c.a && isSafeImageUrl(c.a) ? `<img src="${esc(c.a)}" alt="">` : `<span>${esc(String(c.n || 'أ').trim().charAt(0))}</span>`;
+            const tp = y.tp, cur = tp && ch.find((c) => c.id === tp.id);
+            let body = '';
+            if (cur) {
+                const list = this._yrTpShown();
+                body = `<div class="yr-tp-h"><span class="yr-av">${av(cur)}</span><b>${esc(cur.n || 'مدرس')}</b><button onclick="app.yrTeacher('')" aria-label="سد"><i data-lucide="x"></i></button></div>
+                    <div class="yr-find"><i data-lucide="search"></i><input id="yrTpQ" type="search" placeholder="دوّر بفيديوهات ${esc(cur.n || 'المدرس')}" oninput="app.yrTpFilter()"></div>
+                    ${list.length ? list.slice(0, 40).map((x) => this._yrResult({ v: x.v, t: x.t, c: x.a || '' })).join('') : tp.busy ? '' : tp.fail ? '<p class="yr-muted">ما كدرت أجيب فيديوهات المدرس، تأكد من النت</p>' : '<p class="yr-muted">ما لكيت فيديو بهذا الاسم</p>'}
+                    ${tp.busy ? '<div class="kd-loading"><span></span><span></span><span></span></div>' : tp.next || tp.fail ? '<button class="yr-btn wide yr-tp-more" onclick="app.yrTpMore()">فيديوهات أقدم</button>' : ''}`;
+            }
+            return `<div class="yr-h"><i data-lucide="graduation-cap"></i>فيديوهات المدرسين (بدون رابط)</div>
+                <div class="yr-tch">${ch.map((c) => `<button class="${tp && tp.id === c.id ? 'on' : ''}" onclick="app.yrTeacher('${c.id}')"><span class="yr-av">${av(c)}</span>${esc(c.n || 'مدرس')}</button>`).join('')}</div>${body}`;
+        },
+
         yrClearRes() { const y = this._yr; if (!y) return; y.res = null; const i = document.getElementById('yrQ'); if (i) i.value = ''; this._yrPaint(); },
 
         // any member adds a video to the room's list; only the host plays one for everyone
@@ -1364,6 +1435,7 @@
                             : y.res.err ? `<p class="yr-muted">${esc(y.res.err)}</p>`
                             : y.res.items && y.res.items.length ? y.res.items.map((x) => this._yrResult(x)).join('') : '<p class="yr-muted">ما لكيت فيديوهات، جرّب كلمات ثانية</p>'}
                     </div>` : ''}
+                    ${this._yrTeachersHtml()}
                     <div class="yr-h">${host ? '<i data-lucide="list-video"></i>قائمة الغرفة' : '<i data-lucide="list-video"></i>قائمة الغرفة (تضيف فيديوهات، والمضيف يختار شنو ينشغل للكل)'}</div>
                     ${keys.length ? keys.map((k, i) => {
                         const q = y.queue[k], all = mids.length, dn = mids.filter((u) => (y.done[u] || {})[k]).length;
