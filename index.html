@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '7a025a718f';
+        window.APP_VER = '3c146cac3c';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=9463bd2ac2">
+    <link rel="stylesheet" href="css/app.css?v=0836b42a20">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -1287,6 +1287,11 @@
                     <div class="wl-label">الرصيد المتاح</div>
                     <div id="walletBalanceValue" class="wl-balance" dir="ltr">$ 0.00</div>
                     <div id="walletBalanceIqd" class="wl-iqd">≈ 0 د.ع</div>
+                    <div class="wl-split">
+                        <div><small>رصيد</small><b id="walletSplitBal" dir="rtl">0 د.ع</b></div>
+                        <div><small>نقاط</small><b id="walletSplitPts" dir="rtl">0 نقطة</b><em id="walletSplitPtsIqd" dir="rtl">≈ 0 د.ع</em></div>
+                        <div class="tot"><small>المجموع</small><b id="walletSplitTotal" dir="rtl">0 د.ع</b></div>
+                    </div>
                     <div class="wl-card-foot">
                         <div><small>صاحب الحساب</small><b id="walletCardName">الطالب</b></div>
                         <div class="wl-num"><small>رقم الطالب</small><b id="walletCardNumber" dir="ltr">—</b></div>
@@ -2001,7 +2006,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=7d145ce36a"></script>
+    <script src="js/app.js?v=31c6d58ebd"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <canvas id="mtFx" aria-hidden="true"></canvas>
         <div class="mt-stars" aria-hidden="true"></div>

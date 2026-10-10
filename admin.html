@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="d8a275bc88">
+    <meta name="admin-build" content="e3e5327111">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -1855,7 +1855,7 @@
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="star"></i></div>
-                        <div><h3>السعر بالنقاط</h3><p>كل منتج يتسعّر بالنقاط وحده من سعره بالدينار. تغيّر الرقم هنا وتتغير أسعار كل المنتجات</p></div>
+                        <div><h3>قيمة النقاط</h3><p>هذا الرقم يحدد قيمة النقاط بكل التطبيق: بطاقة المحفظة، استبدال النقاط، وأسعار المتجر بالنقاط. الافتراضي 10 (يعني كل 10,000 نقطة = 1,000 دينار). غيّره هنا وكلشي يتغير بنفس اللحظة</p></div>
                     </div>
                     <div class="field" style="display:flex;gap:8px;align-items:center;">
                         <span style="white-space:nowrap;font-weight:700;">كل 1 دينار =</span>
@@ -5481,13 +5481,13 @@
                 const r = Number(snap.val());
                 shopRate = r > 0 ? r : 10;
                 if (document.activeElement !== el('shr_rate')) el('shr_rate').value = shopRate;
-                el('shr_ex').textContent = 'يعني منتج سعره 10,000 دينار = ' + fmtN(10000 * shopRate) + ' نقطة';
+                el('shr_ex').textContent = 'يعني: كل 10,000 نقطة = ' + fmtN(Math.round(10000 / shopRate)) + ' دينار، ومنتج سعره 10,000 دينار = ' + fmtN(10000 * shopRate) + ' نقطة';
                 showPts(); renderShopItems();
             });
             el('shr_save').addEventListener('click', async () => {
                 const r = Number(String(el('shr_rate').value).replace(',', '.'));
                 if (!(r > 0 && r <= 1000)) { toast('اكتب رقم بين 0.01 و 1000', false); return; }
-                try { await set(ref(db, 'shop/rate'), r); toast('انحفظ، الأسعار بالنقاط تغيرت'); } catch (e) { toast('فشل الحفظ', false); }
+                try { await set(ref(db, 'shop/rate'), r); toast('انحفظت قيمة النقاط'); } catch (e) { toast('فشل الحفظ', false); }
             });
             loadShopOrders();
         }

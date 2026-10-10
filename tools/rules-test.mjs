@@ -243,6 +243,16 @@ await no('redeem too much money', U('u3', { 'users/u3/points': 1000, 'users/u3/b
 await no('free cents', U('u3', { 'users/u3/points': 6000, 'users/u3/balance': 0.01, 'users/u3/ps': 'r:2' }));
 await ok('redeem 5000', U('u3', { 'users/u3/points': 1000, 'leaderboard/u3/points': 1000, 'users/u3/balance': 0.38, 'users/u3/ps': 'r:3' }));
 
+// the points value is the admin's shop/rate (points per dinar); the redeem rule follows it
+await seed('users/r1', { points: 6000, balance: 0 });
+await seed('users/r2', { points: 6000, balance: 0 });
+await seed('shop/rate', 20);
+await no('rate 20: 5000 points are only 250 IQD, not 500', U('r1', { 'users/r1/points': 1000, 'leaderboard/r1/points': 1000, 'users/r1/balance': 0.38, 'users/r1/ps': 'r:1' }));
+await ok('rate 20: 5000 points for 250 IQD', U('r1', { 'users/r1/points': 1000, 'leaderboard/r1/points': 1000, 'users/r1/balance': 0.19, 'users/r1/ps': 'r:2' }));
+await seed('shop/rate', 5);
+await ok('rate 5: 5000 points are 1000 IQD', U('r2', { 'users/r2/points': 1000, 'leaderboard/r2/points': 1000, 'users/r2/balance': 0.75, 'users/r2/ps': 'r:3' }));
+await seed('shop/rate', null);
+
 // auction
 await seed('auction/current', { id: 'A1', endsAt: now + 3600000, title: 'x' });
 await seed('users/b1', { points: 1000, balance: 0 });

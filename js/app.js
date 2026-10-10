@@ -978,6 +978,7 @@
             listenForOwnUserRecord() {
                 if (!window.firebaseDb || !this.authUid || this._ownUserListener) return;
                 this._twinAttach();
+                this._listenPtsRate();
                 this.listenForIncoming();
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._ownUserListener = onValue(ref(window.firebaseDb, 'users/' + this.authUid), (snap) => {
@@ -9603,7 +9604,22 @@
             // ==================== WALLET ====================
             walletBalanceVisible: true,
 
+            // points value: the admin sets shop/rate = points per 1 dinar (default 10, so 10,000 points = 1,000 د.ع)
+            ptsRate() { const r = Number(this._ptsRate); return r > 0 ? r : 10; },
+            ptsToIqd(p) { return Math.round(numOr0(p) / this.ptsRate()); },
+            _listenPtsRate() {
+                if (this._ptsRateOn || !window.firebaseDb) return;
+                this._ptsRateOn = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, 'shop/rate'), (snap) => {
+                    this._ptsRate = Number(snap.val()) || 10;
+                    if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
+                    if (this.currentView === 'pointsStoreView') this.renderPointsStore();
+                }, () => { this._ptsRateOn = false; });
+            },
+
             goToWallet() {
+                this._listenPtsRate();
                 this.loadWallet();
                 this.switchView('walletView');
             },
@@ -9663,7 +9679,7 @@
                 if (!pointsEl || !iqdEl) return;
                 const points = (this.isLoggedIn && this.currentUser && typeof this.currentUser.points === 'number') ? this.currentUser.points : 0;
                 pointsEl.textContent = points.toLocaleString('en-US') + ' نقطة';
-                iqdEl.textContent = '≈ ' + Math.round(points / 10).toLocaleString('en-US') + ' د.ع · كل 10,000 نقطة = 1,000 د.ع';
+                iqdEl.textContent = '≈ ' + this.ptsToIqd(points).toLocaleString('en-US') + ' د.ع · كل 10,000 نقطة = ' + this.ptsToIqd(10000).toLocaleString('en-US') + ' د.ع';
                 // progress toward the next points-store offer
                 const goalBar = document.getElementById('walletGoalBar');
                 const goalText = document.getElementById('walletGoalText');
@@ -9671,7 +9687,7 @@
                     const next = pointsStoreOffers.find(o => o.points > points);
                     if (next) {
                         goalBar.style.setProperty('--w', Math.max(3, Math.min(100, (points / next.points) * 100)).toFixed(1) + '%');
-                        goalText.textContent = 'باقي ' + (next.points - points).toLocaleString('en-US') + ' نقطة وتقدر تستبدلها بـ ' + next.iqd.toLocaleString('en-US') + ' د.ع';
+                        goalText.textContent = 'باقي ' + (next.points - points).toLocaleString('en-US') + ' نقطة وتقدر تستبدلها بـ ' + this.ptsToIqd(next.points).toLocaleString('en-US') + ' د.ع';
                     } else {
                         goalBar.style.setProperty('--w', '100%');
                         goalText.textContent = 'نقاطك تكفي لأكبر عرض بمتجر النقاط — استبدلها الآن';
@@ -9725,12 +9741,22 @@
                 const numEl = document.getElementById('walletCardNumber');
                 if (numEl) numEl.textContent = (this.isLoggedIn && this.currentUser && this.currentUser.studentNumber) ? '#' + this.currentUser.studentNumber : '—';
                 const balance = (this.isLoggedIn && this.currentUser && typeof this.currentUser.balance === 'number') ? this.currentUser.balance : 0;
+                // the card shows the two parts: cash balance and points (with their value in dinar), and the total
+                const pts = (this.isLoggedIn && this.currentUser) ? numOr0(this.currentUser.points) : 0, balIqd = Math.round(balance * 1325), ptsIqd = this.ptsToIqd(pts);
+                const sb = document.getElementById('walletSplitBal'), sp = document.getElementById('walletSplitPts'), spi = document.getElementById('walletSplitPtsIqd'), st = document.getElementById('walletSplitTotal');
+                const n = (v) => v.toLocaleString('en-US');
                 if (this.walletBalanceVisible) {
                     balanceEl.textContent = '$ ' + balance.toFixed(2);
-                    iqdEl.textContent = '≈ ' + Math.round(balance * 1325).toLocaleString('en-US') + ' د.ع';
+                    iqdEl.textContent = '≈ ' + n(balIqd) + ' د.ع';
+                    if (sb) sb.textContent = n(balIqd) + ' د.ع';
+                    if (sp) sp.textContent = n(pts) + ' نقطة';
+                    if (spi) spi.textContent = '≈ ' + n(ptsIqd) + ' د.ع';
+                    if (st) st.textContent = n(balIqd + ptsIqd) + ' د.ع';
                 } else {
                     balanceEl.textContent = '$ ****';
                     iqdEl.textContent = '≈ **** د.ع';
+                    [sb, spi, st].forEach((e) => { if (e) e.textContent = '****'; });
+                    if (sp) sp.textContent = '**** نقطة';
                 }
             },
 
@@ -11557,6 +11583,7 @@
 
             // ==================== POINTS STORE ====================
             goToPointsStore() {
+                this._listenPtsRate();
                 if (!this.isLoggedIn || !this.currentUser) {
                     this.showToast('يجب تسجيل الدخول لاستخدام هذه الميزة');
                     this.goToAuth('login');
@@ -11573,7 +11600,7 @@
                 if (!balanceEl || !container) return;
                 const points = numOr0(this.currentUser && this.currentUser.points);
                 balanceEl.textContent = points.toLocaleString('en-US') + ' نقطة';
-                container.innerHTML = pointsStoreOffers.map(offer => {
+                container.innerHTML = pointsStoreOffers.map(o => ({ points: o.points, iqd: this.ptsToIqd(o.points) })).filter(o => o.iqd > 0).map(offer => {
                     const canRedeem = points >= offer.points;
                     return `
                         <div class="rounded-2xl border p-4 flex items-center justify-between theme-transition" style="background-color: var(--surface); border-color: var(--border); ${canRedeem ? '' : 'opacity: 0.5;'}">
@@ -11600,7 +11627,12 @@
                 }
                 if (!window.firebaseDb || !this.authUid) return;
                 // Points out and balance in, in one write, so the rules can see the points paid.
-                const uid = this.authUid, usdAmount = iqd / 1325;
+                // the money is worked out here from the current rate (the rules check it against shop/rate): rounded to cents, but never more than the points are worth
+                const uid = this.authUid, rate = this.ptsRate();
+                iqd = this.ptsToIqd(points);
+                let usdAmount = Math.round(iqd / 1325 * 100) / 100;
+                if (usdAmount * 1325 * rate > points * 1.02) usdAmount = Math.floor(iqd / 1325 * 100) / 100;
+                if (!(usdAmount > 0)) { this.showToast('النقاط قليلة لهذا العرض'); return; }
                 this._walletQueue(() => this._walletWrite((cur) => {
                     if (cur.points < points) return null;
                     const np = cur.points - points, nb = Math.round((cur.balance + usdAmount) * 100) / 100;
