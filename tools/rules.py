@@ -798,7 +798,7 @@ rules = {
                               ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
                 ".validate": "!newData.exists() || (" + ands(
                     "newData.hasChildren(['u', 'n', 'k', 's', 'c', 'at'])",
-                    "newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note)$/)",
+                    "newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note|ask|ans)$/)",
                     "newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 100000",
                     "newData.child('at').isNumber()") + ")",
                 "u": {".validate": "newData.isString() && newData.val().length <= 40"},
@@ -808,11 +808,45 @@ rules = {
                 "s": {".validate": "newData.isNumber()"},
                 "c": {".validate": "newData.isString()"},
                 "x": {".validate": s_max("newData", 300)},
+                "p": {".validate": s_max("newData", 20)},
                 "at": {".validate": "newData.isNumber()"},
+                "$other": {".validate": False},
+            }},
+            # shared review checklist: a member adds an item, any member ticks it (only d/dn change), the author or host deletes it
+            "todo": {"$id": {
+                ".write": ors(ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", YR_MEMBER),
+                              ands(SIGNED, YR_MEMBER, "data.exists()", "newData.exists()", "newData.child('x').val() == data.child('x').val()", "newData.child('u').val() == data.child('u').val()"),
+                              ands(SIGNED, "!newData.exists()", ors("data.child('u').val() == auth.uid", YR_HOST))),
+                ".validate": "!newData.exists() || (" + ands(
+                    "newData.hasChildren(['x', 'u', 'n', 'at'])",
+                    "newData.child('x').isString() && newData.child('x').val().length >= 1 && newData.child('x').val().length <= 100",
+                    "newData.child('at').isNumber()") + ")",
+                "u": {".validate": "newData.isString() && newData.val().length <= 40"},
+                "n": {".validate": s_max("newData", 60)},
+                "d": {".validate": "newData.isBoolean()"},
+                "dn": {".validate": s_max("newData", 60)},
+                "at": {".validate": "newData.isNumber()"},
+                "$other": {".validate": "$other == 'x'"},
+            }},
+            # who is on the room's voice line: only my own row
+            "voice": {"$uid": {
+                ".write": ors(ands(OWNER, YR_MEMBER_NEW), ands(OWNER, "!newData.exists()"), ands(YR_HOST, "!newData.exists()")),
+                ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['n', 'at'])", s_max("newData.child('n')", 60), "newData.child('at').isNumber()") + ")",
+                "n": {".validate": "newData.isString()"}, "s": {".validate": s_max("newData", 30)}, "m": {".validate": "newData.isBoolean()"}, "at": {".validate": "newData.isNumber()"},
                 "$other": {".validate": False},
             }},
         },
     },
+    # the room voice line's connection messages (read by the receiver only, like the moderators' room)
+    "ytSig": {"$rid": {"$to": {
+        ".read": "auth != null && $to == auth.uid",
+        "$from": {"$k": {
+            ".write": ors(ands(SIGNED, "$from == auth.uid", "!data.exists()", "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()", "root.child('ytRooms/' + $rid + '/members/' + $to).exists()"),
+                          ands(SIGNED, "$to == auth.uid", "!newData.exists()")),
+            ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['t', 'd', 'at'])", "newData.child('t').isString() && newData.child('t').val().matches(/^(offer|answer|ice|bye)$/)", "newData.child('d').isString() && newData.child('d').val().length <= 8000", "newData.child('at').isNumber()") + ")",
+            "$other": {".validate": "$other == 't' || $other == 'd' || $other == 'at' || $other == 's'"},
+        }},
+    }}},
     # ----- غرفتنا: the shared 3D study room; the host runs the room, each student writes only their own rows -----
     "rmRooms": {
         "$rid": {

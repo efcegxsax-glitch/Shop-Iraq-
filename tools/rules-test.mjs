@@ -466,6 +466,34 @@ await ok('a member deletes his own note', set(ref(db('m1'), 'ytRooms/r1/notes/n1
 await ok('the host deletes a member note', set(ref(db('h1'), 'ytRooms/r1/notes/n2'), null));
 await ok('a signed-in student reads the room notes', get(ref(db('m1'), 'ytRooms/r1/notes')));
 await no('a guest reads the room notes', get(ref(db(null), 'ytRooms/r1/notes')));
+// questions and answers on a moment (kinds ask / ans, ans points at its question)
+await ok('member asks a question', set(ref(db('m1'), 'ytRooms/r1/notes/a1'), { ...nt, c: 'ask', x: 'ليش طلع هذا الناتج؟' }));
+await ok('host answers it', set(ref(db('h1'), 'ytRooms/r1/notes/a2'), { ...nt, u: 'h1', n: 'H', c: 'ans', x: 'لأن...', p: 'a1' }));
+await no('a parent id over 20 characters', set(ref(db('m1'), 'ytRooms/r1/notes/a3'), { ...nt, c: 'ans', p: 'x'.repeat(21) }));
+// shared checklist
+const td = { x: 'احفظ القانون الثاني', u: 'm1', n: 'M', at: now };
+await ok('member adds a checklist item', set(ref(db('m1'), 'ytRooms/r1/todo/t1'), td));
+await no('item in someone else name', set(ref(db('m1'), 'ytRooms/r1/todo/t2'), { ...td, u: 'h1' }));
+await no('outsider adds an item', set(ref(db('o1'), 'ytRooms/r1/todo/t3'), { ...td, u: 'o1' }));
+await no('empty item', set(ref(db('m1'), 'ytRooms/r1/todo/t4'), { ...td, x: '' }));
+await no('item over 100 characters', set(ref(db('m1'), 'ytRooms/r1/todo/t5'), { ...td, x: 'ا'.repeat(101) }));
+await ok('the host ticks a member item', update(ref(db('h1'), 'ytRooms/r1/todo/t1'), { d: true, dn: 'H' }));
+await no('the host rewrites a member item text', update(ref(db('h1'), 'ytRooms/r1/todo/t1'), { x: 'شي ثاني' }));
+await no('an outsider ticks', update(ref(db('o1'), 'ytRooms/r1/todo/t1'), { d: false }));
+await ok('the member unticks', update(ref(db('m1'), 'ytRooms/r1/todo/t1'), { d: false, dn: null }));
+await ok('the host deletes a member item', set(ref(db('h1'), 'ytRooms/r1/todo/t1'), null));
+// voice line presence and its connection messages
+await ok('member joins the voice line', set(ref(db('m1'), 'ytRooms/r1/voice/m1'), { n: 'M', s: 'abc', m: false, at: now }));
+await no('presence for someone else', set(ref(db('m1'), 'ytRooms/r1/voice/h1'), { n: 'H', at: now }));
+await no('outsider joins the voice line', set(ref(db('o1'), 'ytRooms/r1/voice/o1'), { n: 'O', at: now }));
+await ok('member leaves the voice line', set(ref(db('m1'), 'ytRooms/r1/voice/m1'), null));
+await ok('member signals another member', set(ref(db('m1'), 'ytSig/r1/h1/m1/k1'), { t: 'offer', d: 'sdp', at: now, s: 'abc' }));
+await no('signal in someone else name', set(ref(db('m1'), 'ytSig/r1/h1/x9/k2'), { t: 'offer', d: 'sdp', at: now }));
+await no('outsider signals a member', set(ref(db('o1'), 'ytSig/r1/h1/o1/k3'), { t: 'offer', d: 'sdp', at: now }));
+await no('bad signal type', set(ref(db('m1'), 'ytSig/r1/h1/m1/k4'), { t: 'zzz', d: 'x', at: now }));
+await no('the sender reads the receiver box', get(ref(db('m1'), 'ytSig/r1/h1')));
+await ok('the receiver reads its box', get(ref(db('h1'), 'ytSig/r1/h1')));
+await ok('the receiver clears a message', set(ref(db('h1'), 'ytSig/r1/h1/m1/k1'), null));
 await ok('member chats', set(ref(db('m1'), 'ytRooms/r1/chat/c1'), { u: 'm1', n: 'M', m: 'ما فهمت هنا', at: now, k: 'q1', s: 30 }));
 await ok('member reacts', set(ref(db('m1'), 'ytRooms/r1/react/m1'), { r: 'ok', at: now }));
 await no('outsider reacts', set(ref(db('o1'), 'ytRooms/r1/react/o1'), { r: 'ok', at: now }));

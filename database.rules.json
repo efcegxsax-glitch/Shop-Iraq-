@@ -992,7 +992,7 @@
         "notes": {
           "$id": {
             ".write": "((auth != null && !data.exists() && newData.child('u').val() == auth.uid && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || (auth != null && !newData.exists() && (data.child('u').val() == auth.uid || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid))))",
-            ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'n', 'k', 's', 'c', 'at']) && newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note)$/) && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 100000 && newData.child('at').isNumber()))",
+            ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'n', 'k', 's', 'c', 'at']) && newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note|ask|ans)$/) && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 100000 && newData.child('at').isNumber()))",
             "u": {
               ".validate": "newData.isString() && newData.val().length <= 40"
             },
@@ -1014,11 +1014,75 @@
             "x": {
               ".validate": "newData.isString() && newData.val().length <= 300"
             },
+            "p": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
             "at": {
               ".validate": "newData.isNumber()"
             },
             "$other": {
               ".validate": false
+            }
+          }
+        },
+        "todo": {
+          "$id": {
+            ".write": "((auth != null && !data.exists() && newData.child('u').val() == auth.uid && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || (auth != null && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists() && data.exists() && newData.exists() && newData.child('x').val() == data.child('x').val() && newData.child('u').val() == data.child('u').val()) || (auth != null && !newData.exists() && (data.child('u').val() == auth.uid || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid))))",
+            ".validate": "!newData.exists() || ((newData.hasChildren(['x', 'u', 'n', 'at']) && newData.child('x').isString() && newData.child('x').val().length >= 1 && newData.child('x').val().length <= 100 && newData.child('at').isNumber()))",
+            "u": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "n": {
+              ".validate": "newData.isString() && newData.val().length <= 60"
+            },
+            "d": {
+              ".validate": "newData.isBoolean()"
+            },
+            "dn": {
+              ".validate": "newData.isString() && newData.val().length <= 60"
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": "$other == 'x'"
+            }
+          }
+        },
+        "voice": {
+          "$uid": {
+            ".write": "(((auth != null && auth.uid == $uid) && newData.parent().parent().child('members/' + auth.uid).exists()) || ((auth != null && auth.uid == $uid) && !newData.exists()) || ((auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid) && !newData.exists()))",
+            ".validate": "!newData.exists() || ((newData.hasChildren(['n', 'at']) && newData.child('n').isString() && newData.child('n').val().length <= 60 && newData.child('at').isNumber()))",
+            "n": {
+              ".validate": "newData.isString()"
+            },
+            "s": {
+              ".validate": "newData.isString() && newData.val().length <= 30"
+            },
+            "m": {
+              ".validate": "newData.isBoolean()"
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "ytSig": {
+      "$rid": {
+        "$to": {
+          ".read": "auth != null && $to == auth.uid",
+          "$from": {
+            "$k": {
+              ".write": "((auth != null && $from == auth.uid && !data.exists() && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists() && root.child('ytRooms/' + $rid + '/members/' + $to).exists()) || (auth != null && $to == auth.uid && !newData.exists()))",
+              ".validate": "!newData.exists() || ((newData.hasChildren(['t', 'd', 'at']) && newData.child('t').isString() && newData.child('t').val().matches(/^(offer|answer|ice|bye)$/) && newData.child('d').isString() && newData.child('d').val().length <= 8000 && newData.child('at').isNumber()))",
+              "$other": {
+                ".validate": "$other == 't' || $other == 'd' || $other == 'at' || $other == 's'"
+              }
             }
           }
         }
