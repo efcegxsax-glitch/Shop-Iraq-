@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <!-- The saved theme is applied before the first paint, so a dark theme never flashes white while the app starts -->
-    <script>(function () { try { var m = localStorage.getItem('iraqiStudentTheme'), c = document.documentElement.classList; if (m === 'dark' || m === 'blue') c.add('dark', 'theme-blue'); else if (m === 'black') c.add('dark'); else if (m === 'pink') c.add('theme-pink'); var bg = { black: '#000000', dark: '#0B1322', blue: '#0B1322', pink: '#FFF4F8' }[m] || '#F1F5F3'; document.documentElement.style.backgroundColor = bg; if (window.IspNative && IspNative.bg) IspNative.bg(bg); } catch (e) {} })();</script>
+    <script>(function () { try { var m = localStorage.getItem('iraqiStudentTheme'), T = {"colored":[[],"#F1F5F3"],"blue":[["dark","theme-blue"],"#0B1322"],"black":[["dark"],"#000000"],"pink":[["theme-pink"],"#FFF4F8"],"dark":[["dark","theme-blue"],"#0B1322"],"desert":[["theme-desert"],"#F7EEDC"],"mint":[["theme-mint"],"#EEF8F2"],"sky":[["theme-sky"],"#EEF6FD"],"lavender":[["theme-lavender"],"#F5F1FD"],"dune":[["dark","theme-dune"],"#16100A"],"sunset":[["dark","theme-sunset"],"#1C0F1F"],"forest":[["dark","theme-forest"],"#0A1712"],"ocean":[["dark","theme-ocean"],"#061A22"],"coffee":[["dark","theme-coffee"],"#1A120E"],"royal":[["dark","theme-royal"],"#120E26"]}, t = T[m], c = document.documentElement.classList; if (t) t[0].forEach(function (x) { c.add(x); }); var bg = t ? t[1] : '#F1F5F3'; document.documentElement.style.backgroundColor = bg; if (window.IspNative && IspNative.bg) IspNative.bg(bg); } catch (e) {} })();</script>
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '08d470a446';
+        window.APP_VER = 'c14753c56c';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=0836b42a20">
+    <link rel="stylesheet" href="css/app.css?v=fcae51b9d5">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -583,6 +583,7 @@
                                 <button onclick="app.setThemeMode('blue')" data-theme-swatch="blue" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #0F172A;" aria-label="المظهر الأزرق"></button>
                                 <button onclick="app.setThemeMode('black')" data-theme-swatch="black" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #000000;" aria-label="المظهر الأسود"></button>
                                 <button onclick="app.setThemeMode('pink')" data-theme-swatch="pink" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #F9A8D4;" aria-label="المظهر الوردي"></button>
+                                <button onclick="app.openAppearanceSettings()" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: conic-gradient(#B4541A, #E2A33B, #17784F, #1D6FC4, #6D3FC8, #D2436E, #B4541A);" aria-label="كل المظاهر"></button>
                             </div>
                         </div>
                     </div>
@@ -677,6 +678,7 @@
                                     <button onclick="event.stopPropagation(); app.setThemeMode('blue')" data-theme-swatch="blue" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #0F172A;" aria-label="المظهر الأزرق"></button>
                                     <button onclick="event.stopPropagation(); app.setThemeMode('black')" data-theme-swatch="black" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #000000;" aria-label="المظهر الأسود"></button>
                                     <button onclick="event.stopPropagation(); app.setThemeMode('pink')" data-theme-swatch="pink" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: #F9A8D4;" aria-label="المظهر الوردي"></button>
+                                    <button onclick="event.stopPropagation(); app.openAppearanceSettings()" class="theme-swatch-btn w-7 h-7 rounded-full" style="background: conic-gradient(#B4541A, #E2A33B, #17784F, #1D6FC4, #6D3FC8, #D2436E, #B4541A);" aria-label="كل المظاهر"></button>
                                 </span>
                             </div>
                             <button onclick="app.openAppearanceSettings()" class="pf-row">
@@ -2006,7 +2008,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=31c6d58ebd"></script>
+    <script src="js/app.js?v=f0d44509a8"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <canvas id="mtFx" aria-hidden="true"></canvas>
         <div class="mt-stars" aria-hidden="true"></div>

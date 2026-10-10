@@ -144,6 +144,24 @@
             return { r: (int >> 16) & 255, g: (int >> 8) & 255, b: int & 255 };
         }
 
+        // every appearance: name, whether it is a dark one (adds the .dark class so Tailwind's dark: utilities apply), its own class, the page colour, and the swatch
+        const APP_THEMES = {
+        colored: { n: 'لوني', dark: false, cls: [], bg: '#F1F5F3', sw: 'linear-gradient(135deg, #F1F5F3 50%, #0D7C6E 50%)' },
+        pink: { n: 'وردي فاتح', dark: false, cls: ["theme-pink"], bg: '#FFF4F8', sw: '#F9A8D4' },
+        blue: { n: 'أزرق', dark: true, cls: ["theme-blue"], bg: '#0B1322', sw: '#0F172A' },
+        black: { n: 'أسود', dark: true, cls: [], bg: '#000000', sw: '#000000' },
+        desert: { n: 'صحراوي', dark: false, cls: ['theme-desert'], bg: '#F7EEDC', sw: 'linear-gradient(135deg, #F7EEDC 50%, #AD5119 50%)' },
+        mint: { n: 'نعناع', dark: false, cls: ['theme-mint'], bg: '#EEF8F2', sw: 'linear-gradient(135deg, #EEF8F2 50%, #17784F 50%)' },
+        sky: { n: 'سماء', dark: false, cls: ['theme-sky'], bg: '#EEF6FD', sw: 'linear-gradient(135deg, #EEF6FD 50%, #1D6FC4 50%)' },
+        lavender: { n: 'لافندر', dark: false, cls: ['theme-lavender'], bg: '#F5F1FD', sw: 'linear-gradient(135deg, #F5F1FD 50%, #6D3FC8 50%)' },
+        dune: { n: 'ليل الصحراء', dark: true, cls: ['theme-dune'], bg: '#16100A', sw: 'linear-gradient(135deg, #16100A 50%, #B26110 50%)' },
+        sunset: { n: 'غروب', dark: true, cls: ['theme-sunset'], bg: '#1C0F1F', sw: 'linear-gradient(135deg, #1C0F1F 50%, #D13F6B 50%)' },
+        forest: { n: 'غابة', dark: true, cls: ['theme-forest'], bg: '#0A1712', sw: 'linear-gradient(135deg, #0A1712 50%, #1C8758 50%)' },
+        ocean: { n: 'محيط', dark: true, cls: ['theme-ocean'], bg: '#061A22', sw: 'linear-gradient(135deg, #061A22 50%, #0D8195 50%)' },
+        coffee: { n: 'قهوة', dark: true, cls: ['theme-coffee'], bg: '#1A120E', sw: 'linear-gradient(135deg, #1A120E 50%, #A66739 50%)' },
+        royal: { n: 'ملكي', dark: true, cls: ['theme-royal'], bg: '#120E26', sw: 'linear-gradient(135deg, #120E26 50%, #7C5CE0 50%)' },
+        };
+
         function applyCustomThemeColor(hex) {
             const rgb = hexToRgb(hex);
             if (!rgb) return;
@@ -849,7 +867,7 @@
             },
 
             setThemeMode(mode) {
-                if (!['colored', 'blue', 'black', 'pink'].includes(mode)) return;
+                if (!APP_THEMES[mode]) return;
                 this.themeMode = mode;
                 this.applyThemeMode(mode, true);
                 this.updateThemeIcon();
@@ -857,16 +875,18 @@
             },
 
             applyThemeMode(mode, persist) {
-                document.documentElement.classList.remove('dark', 'theme-pink', 'theme-blue');
-                if (mode === 'black') document.documentElement.classList.add('dark');
-                else if (mode === 'blue') document.documentElement.classList.add('dark', 'theme-blue');
-                else if (mode === 'pink') document.documentElement.classList.add('theme-pink');
+                if (!APP_THEMES[mode]) mode = 'colored';
+                const cl = document.documentElement.classList;
+                cl.remove('dark');
+                Object.keys(APP_THEMES).forEach((k) => APP_THEMES[k].cls.forEach((c) => cl.remove(c)));
+                if (APP_THEMES[mode].dark) cl.add('dark');
+                APP_THEMES[mode].cls.forEach((c) => cl.add(c));
                 if (persist) {
                     try { localStorage.setItem('iraqiStudentTheme', mode); } catch (e) {}
                 }
                 // the page's own colour, also kept by the Android code so the next start has no white flash before the page draws
                 try {
-                    const bg = { black: '#000000', blue: '#0B1322', pink: '#FFF4F8' }[mode] || '#F1F5F3';
+                    const bg = APP_THEMES[mode].bg;
                     document.documentElement.style.backgroundColor = bg;
                     if (window.IspNative && window.IspNative.bg) window.IspNative.bg(bg);
                 } catch (e) {}
@@ -8961,24 +8981,14 @@
                     <div class="flex flex-col gap-4">
                         <div>
                             <div class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">مظهر التطبيق</div>
-                            <div class="grid grid-cols-4 gap-2">
-                                <button onclick="app.setThemeMode('colored')" data-theme-swatch="colored" class="theme-swatch-btn flex flex-col items-center gap-1.5 p-2 rounded-xl" style="background-color: var(--input-bg);">
-                                    <span class="w-8 h-8 rounded-full" style="background: linear-gradient(135deg, #F1F5F3 50%, #0D7C6E 50%); box-shadow: inset 0 0 0 1px var(--border);"></span>
-                                    <span class="text-[11px] font-bold theme-transition" style="color: var(--text);">لوني</span>
-                                </button>
-                                <button onclick="app.setThemeMode('blue')" data-theme-swatch="blue" class="theme-swatch-btn flex flex-col items-center gap-1.5 p-2 rounded-xl" style="background-color: var(--input-bg);">
-                                    <span class="w-8 h-8 rounded-full" style="background: #0F172A; box-shadow: inset 0 0 0 1px var(--border);"></span>
-                                    <span class="text-[11px] font-bold theme-transition" style="color: var(--text);">أزرق</span>
-                                </button>
-                                <button onclick="app.setThemeMode('black')" data-theme-swatch="black" class="theme-swatch-btn flex flex-col items-center gap-1.5 p-2 rounded-xl" style="background-color: var(--input-bg);">
-                                    <span class="w-8 h-8 rounded-full" style="background: #000000; box-shadow: inset 0 0 0 1px var(--border);"></span>
-                                    <span class="text-[11px] font-bold theme-transition" style="color: var(--text);">أسود</span>
-                                </button>
-                                <button onclick="app.setThemeMode('pink')" data-theme-swatch="pink" class="theme-swatch-btn flex flex-col items-center gap-1.5 p-2 rounded-xl" style="background-color: var(--input-bg);">
-                                    <span class="w-8 h-8 rounded-full" style="background: #F9A8D4; box-shadow: inset 0 0 0 1px var(--border);"></span>
-                                    <span class="text-[11px] font-bold theme-transition" style="color: var(--text);">وردي فاتح</span>
-                                </button>
-                            </div>
+                            ${[['فاتحة', false], ['داكنة', true]].map(([t, d]) => `
+                            <div class="text-[11px] font-bold mb-1.5 mt-2 theme-transition" style="color: var(--text2);">${t}</div>
+                            <div class="grid grid-cols-4 gap-2">${Object.keys(APP_THEMES).filter((k) => APP_THEMES[k].dark === d).map((k) => `
+                                <button onclick="app.setThemeMode('${k}')" data-theme-swatch="${k}" class="theme-swatch-btn flex flex-col items-center gap-1.5 p-2 rounded-xl" style="background-color: var(--input-bg);">
+                                    <span class="w-8 h-8 rounded-full" style="background: ${APP_THEMES[k].sw}; box-shadow: inset 0 0 0 1px var(--border);"></span>
+                                    <span class="text-[11px] font-bold theme-transition" style="color: var(--text);">${APP_THEMES[k].n}</span>
+                                </button>`).join('')}
+                            </div>`).join('')}
                         </div>
                         <div>
                             <div class="text-sm font-bold mb-2 theme-transition" style="color: var(--text);">لون التطبيق الخاص فيك</div>
