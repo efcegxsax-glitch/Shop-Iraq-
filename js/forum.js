@@ -103,7 +103,7 @@
 
         _fmWho(o, big) {
             const g = o.authorGov ? ' - ' + esc(o.authorGov) : '';
-            return '<img class="fm-av' + (big ? ' big' : '') + '" src="' + personAvatarSrc(o.authorAvatar, o.authorName) + '" alt="">'
+            return '<img class="fm-av' + (big ? ' big' : '') + '" ' + app.avAttr(o.authorUid, o.authorAvatar, o.authorName) + ' alt="">'
                 + '<div class="fm-who"><b>' + esc(o.authorName || 'طالب') + this.vb(o.authorUid) + '</b><small>' + timeAgo(o.id) + g + '</small></div>';
         },
 
