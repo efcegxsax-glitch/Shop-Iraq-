@@ -13946,6 +13946,29 @@
             async _resFile(res) {
                 const f = String(res.fileUrl || '');
                 if (f.indexOf('data:') === 0) return f;
+                // a big handout is saved in pieces (resourceFiles/{id}/{0..n-1}, 1 MiB of Base64 each): fetched four at a time, joined in order
+                const n = Number(res.fileParts) || 0;
+                if (f.indexOf('db:') === 0 && n > 0 && window.firebaseDb) {
+                    const { ref, get } = window.firebaseDbHelpers, id = f.slice(3), out = new Array(n);
+                    let next = 0, done = 0, failed = false, shown = 0;
+                    const worker = async () => {
+                        while (!failed) {
+                            const i = next++;
+                            if (i >= n) return;
+                            let v = null;
+                            for (let t = 0; t < 3 && typeof v !== 'string'; t++) {
+                                try { v = (await get(ref(window.firebaseDb, 'resourceFiles/' + id + '/' + i))).val(); }
+                                catch (e) { await new Promise((r) => setTimeout(r, 500 * (t + 1))); }
+                            }
+                            if (typeof v !== 'string') { failed = true; return; }
+                            out[i] = v; done++;
+                            const pct = Math.floor(done * 100 / n / 25) * 25;
+                            if (pct > shown && pct < 100) { shown = pct; this.showToast('جاري تحميل الملزمة ' + pct + '%'); }
+                        }
+                    };
+                    await Promise.all([worker(), worker(), worker(), worker()]);
+                    return failed ? '' : 'data:application/pdf;base64,' + out.join('');
+                }
                 if (f.indexOf('db:') === 0 && window.firebaseDb) {
                     const { ref, get } = window.firebaseDbHelpers;
                     const v = (await get(ref(window.firebaseDb, 'resourceFiles/' + f.slice(3)))).val();

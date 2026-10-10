@@ -320,9 +320,13 @@ rules = {
                                          "newData.child('k').isString() && newData.child('k').val().matches(/^(newsPub|newsDel|ventDel|replyDel|roomLock|seatLock|roomMute|roomSilence|roomKick)$/)"))},
     },
     # big files (PDFs) live apart from the lists so opening the app never downloads them
+    # a handout is one Base64 string (up to ~7 MB) or, for a big one, pieces resourceFiles/{id}/{0..n-1} of 1 MiB of Base64 each, so there is no size limit
     "resourceFiles": {
         ".read": True, ".write": ADMIN,
-        "$id": {".validate": "newData.isString() && newData.val().length < 10000000"},
+        "$id": {
+            ".validate": "newData.isString() ? newData.val().length < 10000000 : newData.hasChildren()",
+            "$i": {".validate": "newData.isString() && newData.val().length < 1500000"},
+        },
     },
     # exam files (past-paper PDFs) in 1 MB pieces, so there is no size limit; the notes read out of a handout are admin-only
     "examFiles": {
