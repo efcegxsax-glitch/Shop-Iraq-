@@ -183,7 +183,7 @@
             const box = document.getElementById('yrContent');
             box.innerHTML = `
                 <div id="yrStage" class="yr-stage md">
-                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div><div id="yrFloat" class="yr-float"></div></div>
+                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div><div id="yrFloat" class="yr-float"></div><button id="yrRailTog" class="yr-rail-tog" onclick="app.yrRailShow()" aria-label="أزرار التحكم"><i data-lucide="sliders-horizontal"></i></button></div>
                     <div class="yr-rail">
                         <button onclick="app.yrSize('md')" aria-label="صغّر"><i data-lucide="minimize-2"></i></button>
                         <button class="yr-speed-b" onclick="app.yrSpeed()"><b class="yr-speed-t">1x</b></button>
@@ -286,6 +286,7 @@
             y.subs.forEach((u) => { try { u(); } catch (e) {} });
             clearInterval(y.tick);
             clearTimeout(y.checkTimer);
+            clearTimeout(y.railT);
             if (this._yrL) this._yrLedgerSave();
             window.removeEventListener('resize', y.onRot);
             document.removeEventListener('fullscreenchange', y.onRot);
@@ -541,6 +542,12 @@
                 const de = document.documentElement, req = de.requestFullscreen || de.webkitRequestFullscreen;
                 if (req && !document.fullscreenElement) Promise.resolve(req.call(de)).then(() => { try { return screen.orientation.lock('landscape'); } catch (e) {} }).catch(() => {}).then(() => this._yrRot());
             }
+            if (s === 'land' && !wasLand) {
+                const rail = stage.querySelector('.yr-rail');
+                if (rail && !rail._yrBound) { rail._yrBound = true; rail.addEventListener('pointerdown', () => this._yrRailTimer()); }
+                this.yrRailShow();
+            }
+            if (s !== 'land') { clearTimeout(y.railT); stage.classList.remove('rail-off'); }
             if (s !== 'land' && wasLand) {
                 if (document.fullscreenElement) try { document.exitFullscreen(); } catch (e) {}
                 try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
@@ -548,6 +555,20 @@
                 if (f) f.innerHTML = '';
             }
             this._yrRot();
+        },
+
+        // the side buttons hide by themselves a few seconds after the last touch (they covered the video and the phone's own gesture bar); the small handle brings them back
+        yrRailShow() {
+            const stage = document.getElementById('yrStage');
+            if (!stage) return;
+            stage.classList.remove('rail-off');
+            this._yrRailTimer();
+        },
+        _yrRailTimer() {
+            const y = this._yr;
+            if (!y) return;
+            clearTimeout(y.railT);
+            y.railT = setTimeout(() => { const st = document.getElementById('yrStage'); if (st && this._yr === y && y.size === 'land') st.classList.add('rail-off'); }, 3500);
         },
 
         // portrait phone in the landscape view: turn the stage with CSS
