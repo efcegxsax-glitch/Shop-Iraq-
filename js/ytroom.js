@@ -29,6 +29,7 @@
     const SPEEDS = [1, 1.25, 1.5, 2];
     // quick reactions everyone sees float over their own video
     const REACTS = { ok: ['thumbs-up', 'فهمت', '#16A34A'], imp: ['star', 'مهم', '#F59E0B'], hard: ['circle-help', 'صعب', '#E11D48'] };
+    const NOTE_KIND = { q: ['hand', 'ما فهمت هنا', '#F59E0B'], hard: ['circle-help', 'صعب', '#E11D48'], imp: ['star', 'مهم', '#F59E0B'], ok: ['thumbs-up', 'فهمت', '#16A34A'], note: ['pencil-line', 'ملاحظة', '#2563EB'] };
     const avatar = (a, n) => a && isSafeImageUrl(a) ? `<img src="${esc(a)}" alt="">` : `<span>${esc(String(n || 'ط').trim().charAt(0))}</span>`;
 
     // The YouTube player API, loaded once.
@@ -197,7 +198,7 @@
                 </div>
                 <div id="yrEarn" class="yr-earn"></div>
                 <div id="yrNow"></div>
-                <div class="yr-tabs">${[['people', 'users', 'الطلاب'], ['list', 'list-video', 'الفيديوهات'], ['chat', 'message-circle', 'الدردشة']].map(([k, ic, t]) => `<button data-t="${k}" class="${k === 'people' ? 'on' : ''}" onclick="app.yrTab('${k}')"><i data-lucide="${ic}"></i>${t}<em id="yrBadge_${k}"></em></button>`).join('')}</div>
+                <div class="yr-tabs">${[['people', 'users', 'الطلاب'], ['list', 'list-video', 'الفيديوهات'], ['notes', 'pencil-line', 'ملاحظاتنا'], ['chat', 'message-circle', 'الدردشة']].map(([k, ic, t]) => `<button data-t="${k}" class="${k === 'people' ? 'on' : ''}" onclick="app.yrTab('${k}')"><i data-lucide="${ic}"></i>${t}<em id="yrBadge_${k}"></em></button>`).join('')}</div>
                 <div id="yrPanel"></div>`;
             this._yrHeader('غرفة يوتيوب', '');
             lucide.createIcons();
@@ -221,6 +222,8 @@
                 if (y.meta && !y.members[this.authUid]) { this.showToast('طلعت من الغرفة'); this._yrRemember(rid, '', true); this.yrHome(); return; }
                 this._yrPaint();
             });
+            // the room's saved marks and notes (صعب / مهم / فهمت / ما فهمت هنا / ملاحظة, each at a moment of a video): they stay with the room
+            on('ytRooms/' + rid + '/notes', (v) => { y.notes = Object.keys(v || {}).map((id) => Object.assign({ id }, v[id])); this._yrPaint(); });
             on('ytRooms/' + rid + '/prog', (v) => { y.prog = v || {}; this._yrPaint(); });
             on('ytRooms/' + rid + '/done', (v) => { y.done = v || {}; this._yrPaint(); this._yrGroupBonus(); });
             const h = H();
@@ -558,6 +561,7 @@
             y.lastReact = now;
             this._yrFloatReact(r, 'أنت');
             H().set(R('ytRooms/' + y.rid + '/react/' + this.authUid), { r, at: now }).catch(() => {});
+            this._yrSave(r);
         },
 
         _yrFloatReact(r, name) {
@@ -614,8 +618,100 @@
         yrMark() {
             const y = this._yr, st = this._yrState();
             if (!y || !st || !y.key) { this.showToast('شغّل الفيديو أول'); return; }
-            this._yrPost('ما فهمت هنا', { k: y.key, s: Math.round(st.t) });
+            const at = Date.now();
+            this._yrPost('ما فهمت هنا', { k: y.key, s: Math.round(st.t), at });
+            this._yrSave('q', '', at);
             this.showToast('وصلت علامتك للكل عند ' + clock(st.t));
+        },
+
+        // ---------- saved marks and notes ----------
+        // ytRooms/{rid}/notes/{id} = { u, n, k (video key), v (video id), s (second), c (q | hard | imp | ok | note), x (text), at }
+        _yrSave(c, x, at, sec) {
+            const y = this._yr, st = this._yrState();
+            if (!y || !this.authUid || !y.key || !st || !NOTE_KIND[c]) return null;
+            const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null), u = this.currentUser || {};
+            const rec = { u: this.authUid, n: String(u.fullName || 'طالب').slice(0, 40), k: String(y.key).slice(0, 20), s: Math.max(0, Math.round(sec != null ? sec : st.t)), c, at: at || Date.now() };
+            if (item && /^[A-Za-z0-9_-]{11}$/.test(String(item.v || ''))) rec.v = item.v;
+            if (x) rec.x = String(x).slice(0, 300);
+            H().set(R('ytRooms/' + y.rid + '/notes/' + newId()), rec).catch(() => this.showToast('ما انحفظت العلامة، حاول مرة ثانية'));
+            return rec;
+        },
+
+        // every saved mark and note of the room, in one list (the old "ما فهمت هنا" chat marks are included once)
+        _yrMarks() {
+            const y = this._yr;
+            if (!y) return [];
+            const notes = y.notes || [], have = new Set(notes.map((n) => n.u + ':' + n.at));
+            const old = (y.chat || []).filter((c) => c.s != null && c.k && !have.has(c.u + ':' + c.at)).map((c) => ({ id: 'c' + c.id, u: c.u, n: c.n, k: c.k, s: c.s, c: 'q', at: c.at, legacy: true }));
+            return notes.concat(old);
+        },
+
+        // the box on the notes tab: the moment is taken when the student starts typing, so the note goes where he was
+        yrNoteFocus() {
+            const y = this._yr, st = this._yrState();
+            if (!y) return;
+            if (y.noteAt == null && st && y.key) y.noteAt = { s: Math.round(st.t), key: y.key };
+            const t = document.getElementById('yrNoteT');
+            if (t && y.noteAt) t.textContent = 'الملاحظة تنحفظ عند ' + clock(y.noteAt.s);
+        },
+
+        yrNoteSave() {
+            const y = this._yr, inp = document.getElementById('yrNote');
+            if (!y || !inp) return;
+            const x = filterBadWords(String(inp.value || '').trim()).clean.slice(0, 300);
+            if (!x) return;
+            if (!this._yrState() || !y.key) { this.showToast('شغّل الفيديو أول حتى تنحفظ الملاحظة عند وقتها'); return; }
+            // typed on a moment that is not the video's current one any more: back to that second for the save
+            const keep = y.noteAt && y.noteAt.key === y.key ? y.noteAt.s : null;
+            const rec = this._yrSave('note', x, null, keep);
+            if (!rec) return;
+            inp.value = '';
+            y.noteAt = null;
+            this.showToast('انحفظت الملاحظة عند ' + clock(rec.s));
+        },
+
+        yrNoteGo(id) {
+            const y = this._yr;
+            if (!y) return;
+            const n = this._yrMarks().find((m) => m.id === id);
+            if (!n) return;
+            if (n.k && (y.queue[n.k] || n.k === y.key)) { this.yrSeek(n.s, n.k); return; }
+            // the video left the room's list: open it by its id and go to the moment
+            if (n.v) { this.yrSolo(n.v, ''); setTimeout(() => this.yrSeek(n.s), 2000); return; }
+            this.showToast('هذا الفيديو انشال من الغرفة');
+        },
+
+        yrNoteDel(id) {
+            const y = this._yr;
+            if (!y || !this.authUid) return;
+            H().remove(R('ytRooms/' + y.rid + '/notes/' + id)).catch(() => this.showToast('ما انحذفت'));
+        },
+
+        yrNoteFilter(f) { const y = this._yr; if (!y) return; y.nf = f; this._yrPaint(); },
+
+        _yrNotesHtml() {
+            const y = this._yr, host = y.meta.host === this.authUid, f = y.nf || 'all';
+            const all = this._yrMarks().filter((m) => f === 'all' || m.c === f);
+            const order = Object.keys(y.queue).sort();
+            const byKey = {};
+            all.forEach((m) => { (byKey[m.k] = byKey[m.k] || []).push(m); });
+            const keys = order.filter((k) => byKey[k]).concat(Object.keys(byKey).filter((k) => order.indexOf(k) < 0));
+            const title = (k) => { const q = y.queue[k] || (y.adhoc && y.adhoc.k === k ? y.adhoc : null); return q && q.t ? q.t : (q ? 'فيديو يوتيوب' : 'فيديو انشال من الغرفة'); };
+            const ago = (t) => { const d = Math.floor((Date.now() - (t || 0)) / 60000); return d < 1 ? 'هسه' : d < 60 ? 'قبل ' + d + ' دقيقة' : d < 1440 ? 'قبل ' + Math.floor(d / 60) + ' ساعة' : 'قبل ' + Math.floor(d / 1440) + ' يوم'; };
+            const chips = [['all', 'الكل'], ['note', 'ملاحظات'], ['q', 'ما فهمت'], ['hard', 'صعب'], ['imp', 'مهم'], ['ok', 'فهمت']];
+            return `<div class="yr-nw">
+                    <div class="yr-nw-t" id="yrNoteT">اكتب ملاحظة، تنحفظ عند الدقيقة اللي دا تشوفها</div>
+                    <div class="yr-send"><input id="yrNote" maxlength="300" placeholder="اكتب ملاحظة عن هذي اللحظة..." onfocus="app.yrNoteFocus()" onkeydown="if(event.key==='Enter')app.yrNoteSave()"><button onclick="app.yrNoteSave()" aria-label="احفظ"><i data-lucide="save"></i></button></div>
+                </div>
+                <div class="yr-nf">${chips.map(([k, t]) => `<button class="${k === f ? 'on' : ''}" onclick="app.yrNoteFilter('${k}')">${t}</button>`).join('')}</div>
+                ${keys.length ? keys.map((k) => `<div class="yr-ng"><div class="yr-ng-h">${esc(title(k))}<small>${byKey[k].length}</small></div>${byKey[k].sort((a, b) => (a.s || 0) - (b.s || 0)).map((m) => {
+                    const d = NOTE_KIND[m.c] || NOTE_KIND.note, mine = m.u === this.authUid;
+                    return `<div class="yr-note" style="--c:${d[2]}">
+                        <button class="yr-note-go" onclick="app.yrNoteGo(${jsArg(m.id)})" aria-label="روح لهذي اللحظة"><i data-lucide="${d[0]}"></i><b>${clock(m.s)}</b></button>
+                        <div class="yr-note-b"><b>${d[1]}</b><em>${esc(m.n)}${mine ? ' (أنت)' : ''}</em>${m.x ? `<p>${esc(m.x)}</p>` : ''}<small>${ago(m.at)}</small></div>
+                        ${(mine || host) && !m.legacy ? `<button class="yr-x" onclick="app.yrNoteDel(${jsArg(m.id)})" aria-label="احذف"><i data-lucide="trash-2"></i></button>` : ''}
+                    </div>`;
+                }).join('')}</div>`).join('') : '<p class="yr-muted">ما كو علامات بعد. دوس "صعب" أو "مهم" أو "ما فهمت هنا" وانت تشوف، أو اكتب ملاحظة. تنحفظ بوقتها، وتجي لها بدوسة.</p>'}`;
         },
 
         yrSendChat() {
@@ -850,9 +946,9 @@
             const y = this._yr, panel = document.getElementById('yrPanel');
             if (!y || !y.meta || !panel) return;
             // others' progress repaints this every few seconds: keep what's being typed and the chat scroll
-            const ae = document.activeElement, typing = ae && (ae.id === 'yrMsg' || ae.id === 'yrQ') ? { id: ae.id, s: ae.selectionStart } : null;
+            const ae = document.activeElement, typing = ae && (ae.id === 'yrMsg' || ae.id === 'yrQ' || ae.id === 'yrNote') ? { id: ae.id, s: ae.selectionStart } : null;
             const kept = {};
-            ['yrMsg', 'yrQ'].forEach((id) => { const e = document.getElementById(id); if (e && e.value) kept[id] = e.value; });
+            ['yrMsg', 'yrQ', 'yrNote'].forEach((id) => { const e = document.getElementById(id); if (e && e.value) kept[id] = e.value; });
             const cl = document.getElementById('yrChatList'), clTop = cl ? cl.scrollTop : 0, atBottom = !cl || cl.scrollHeight - cl.scrollTop - cl.clientHeight < 40;
             const host = y.meta.host === this.authUid, cur = y.meta.cur, keys = Object.keys(y.queue).sort();
             const mids = Object.keys(y.members).sort((a, b) => (a === y.meta.host ? -1 : b === y.meta.host ? 1 : (y.members[a].j || 0) - (y.members[b].j || 0)));
@@ -861,7 +957,7 @@
             if (rn) rn.textContent = cur ? doneN + '/' + mids.length : '';
             const sub = document.getElementById('yrSubTx');
             if (sub) sub.textContent = mids.length + ' طلاب' + (keys.length ? ' . ' + keys.length + ' فيديو' : '');
-            ['list', 'chat', 'people'].forEach((t) => { const b = document.getElementById('yrBadge_' + t); if (b) b.textContent = t === 'chat' && y.unread ? y.unread : ''; });
+            ['list', 'notes', 'chat', 'people'].forEach((t) => { const b = document.getElementById('yrBadge_' + t); if (b) b.textContent = t === 'chat' && y.unread ? y.unread : ''; });
 
             // strip under the player: what's on, who finished, and the buttons that matter now
             const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null), now = document.getElementById('yrNow');
@@ -879,7 +975,7 @@
 
             // marks on the timeline of the video I'm watching
             const st = this._yrState(), marks = document.getElementById('yrMarks'), d = st && st.d;
-            if (marks) marks.innerHTML = d ? y.chat.filter((c) => c.k === y.key && c.s != null).map((c) => `<button style="left:${Math.min(100, c.s / d * 100)}%" title="${esc(c.n)} ${clock(c.s)}" onclick="app.yrSeek(${Number(c.s) || 0})"></button>`).join('') : '';
+            if (marks) marks.innerHTML = d ? this._yrMarks().filter((c) => c.k === y.key && c.s != null).map((c) => `<button style="left:${Math.min(100, c.s / d * 100)}%" title="${esc(c.n)} ${clock(c.s)}" onclick="app.yrSeek(${Number(c.s) || 0})"></button>`).join('') : '';
 
             if (y.tab === 'people') {
                 panel.innerHTML = `<div class="yr-people">${mids.map((u) => {
@@ -914,6 +1010,8 @@
                             ${host ? `<button class="yr-x" onclick="app.yrRemove(${jsArg(k)})" aria-label="شيل"><i data-lucide="trash-2"></i></button>` : ''}
                         </div>`;
                     }).join('') : `<p class="yr-muted">${host ? 'القائمة فارغة. دوّر على شرح وضيفه.' : 'القائمة فارغة.'}</p>`}`;
+            } else if (y.tab === 'notes') {
+                panel.innerHTML = this._yrNotesHtml();
             } else {
                 const list = y.chat.slice(-60);
                 panel.innerHTML = `<div id="yrChatList" class="yr-chat">${list.length ? list.map((c) => {

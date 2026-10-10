@@ -11461,3 +11461,23 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
   .mt-gear, .mt-wrench, .mt-spark, .mt-stars i, .mt-sorry svg, .mt-bar i, .mt-box, .mt-retry.glow { animation: none !important; }
   .mt-bar i { width: 60%; }
 }
+
+
+/* study rooms: saved marks and notes */
+.yr-nw { margin: 4px 0 10px; }
+.yr-nw-t { font-size: 12px; font-weight: 800; color: var(--text2); margin: 0 4px 6px; }
+.yr-nf { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 10px; }
+.yr-nf button { padding: 6px 12px; border-radius: 99px; font-size: 12px; font-weight: 900; color: var(--text2); background: var(--input-bg); }
+.yr-nf button.on { color: #fff; background: var(--primary, #0F766E); }
+.yr-ng { margin: 0 0 12px; }
+.yr-ng-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 900; color: var(--text); margin: 0 2px 6px; }
+.yr-ng-h small { flex: none; min-width: 22px; text-align: center; padding: 1px 7px; border-radius: 99px; font-size: 11px; color: var(--text2); background: var(--input-bg); }
+.yr-note { display: flex; align-items: flex-start; gap: 10px; padding: 9px 10px; margin-bottom: 6px; border-radius: 14px; background: color-mix(in srgb, var(--c) 9%, var(--surface)); border: 1px solid color-mix(in srgb, var(--c) 28%, transparent); }
+.yr-note-go { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px; padding: 7px 4px; border-radius: 12px; color: var(--c); background: color-mix(in srgb, var(--c) 18%, transparent); }
+.yr-note-go svg { width: 17px; height: 17px; }
+.yr-note-go b { font-size: 12px; font-weight: 900; direction: ltr; }
+.yr-note-b { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.yr-note-b b { font-size: 12px; font-weight: 900; color: var(--c); }
+.yr-note-b em { font-style: normal; font-size: 11px; color: var(--text2); }
+.yr-note-b p { margin: 2px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--text); word-break: break-word; }
+.yr-note-b small { font-size: 10.5px; color: var(--text2); }

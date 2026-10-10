@@ -988,6 +988,39 @@
             ".write": "((auth != null && !data.exists() && newData.child('u').val() == auth.uid && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || (auth != null && !newData.exists() && (data.child('u').val() == auth.uid || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid))))",
             ".validate": "!newData.exists() || (newData.child('m').isString() && newData.child('m').val().length <= 200 && newData.child('at').isNumber())"
           }
+        },
+        "notes": {
+          "$id": {
+            ".write": "((auth != null && !data.exists() && newData.child('u').val() == auth.uid && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()) || (auth != null && !newData.exists() && (data.child('u').val() == auth.uid || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid))))",
+            ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'n', 'k', 's', 'c', 'at']) && newData.child('c').isString() && newData.child('c').val().matches(/^(q|hard|imp|ok|note)$/) && newData.child('s').isNumber() && newData.child('s').val() >= 0 && newData.child('s').val() <= 100000 && newData.child('at').isNumber()))",
+            "u": {
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            },
+            "n": {
+              ".validate": "newData.isString() && newData.val().length <= 60"
+            },
+            "k": {
+              ".validate": "newData.isString() && newData.val().length <= 20"
+            },
+            "v": {
+              ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{11}$/)"
+            },
+            "s": {
+              ".validate": "newData.isNumber()"
+            },
+            "c": {
+              ".validate": "newData.isString()"
+            },
+            "x": {
+              ".validate": "newData.isString() && newData.val().length <= 300"
+            },
+            "at": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
         }
       }
     },

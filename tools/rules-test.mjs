@@ -448,6 +448,24 @@ await no('student adds another member', set(ref(db('m1'), 'ytRooms/r1/members/m9
 await ok('member progress', set(ref(db('m1'), 'ytRooms/r1/prog/m1'), { k: 'q1', t: 10, d: 100, p: 1, at: now }));
 await no('member writes someone else progress', set(ref(db('m1'), 'ytRooms/r1/prog/h1'), { k: 'q1', t: 10, d: 100, p: 1, at: now }));
 await ok('member done', set(ref(db('m1'), 'ytRooms/r1/done/m1/q1'), true));
+// saved marks and notes of the room
+const nt = { u: 'm1', n: 'M', k: 'q1', v: 'dQw4w9WgXcQ', s: 754, c: 'hard', at: now };
+await ok('member saves a mark at a moment', set(ref(db('m1'), 'ytRooms/r1/notes/n1'), nt));
+await ok('member saves a note with text', set(ref(db('m1'), 'ytRooms/r1/notes/n2'), { ...nt, c: 'note', x: 'ارجع لهذي الدقيقة قبل الامتحان' }));
+await ok('host saves one too', set(ref(db('h1'), 'ytRooms/r1/notes/n3'), { ...nt, u: 'h1', n: 'H', c: 'imp' }));
+await no('a note in someone else name', set(ref(db('m1'), 'ytRooms/r1/notes/n4'), { ...nt, u: 'h1' }));
+await no('an outsider saves a note', set(ref(db('o1'), 'ytRooms/r1/notes/n5'), { ...nt, u: 'o1' }));
+await no('an unknown kind', set(ref(db('m1'), 'ytRooms/r1/notes/n6'), { ...nt, c: 'zzz' }));
+await no('a negative second', set(ref(db('m1'), 'ytRooms/r1/notes/n7'), { ...nt, s: -1 }));
+await no('a note over 300 characters', set(ref(db('m1'), 'ytRooms/r1/notes/n8'), { ...nt, c: 'note', x: 'ا'.repeat(301) }));
+await no('a bad video id', set(ref(db('m1'), 'ytRooms/r1/notes/n9'), { ...nt, v: 'bad' }));
+await no('a stray field', set(ref(db('m1'), 'ytRooms/r1/notes/n10'), { ...nt, junk: 1 }));
+await no('missing second', set(ref(db('m1'), 'ytRooms/r1/notes/n11'), { u: 'm1', n: 'M', k: 'q1', c: 'ok', at: now }));
+await no('a member deletes the host note', set(ref(db('m1'), 'ytRooms/r1/notes/n3'), null));
+await ok('a member deletes his own note', set(ref(db('m1'), 'ytRooms/r1/notes/n1'), null));
+await ok('the host deletes a member note', set(ref(db('h1'), 'ytRooms/r1/notes/n2'), null));
+await ok('a signed-in student reads the room notes', get(ref(db('m1'), 'ytRooms/r1/notes')));
+await no('a guest reads the room notes', get(ref(db(null), 'ytRooms/r1/notes')));
 await ok('member chats', set(ref(db('m1'), 'ytRooms/r1/chat/c1'), { u: 'm1', n: 'M', m: 'ما فهمت هنا', at: now, k: 'q1', s: 30 }));
 await ok('member reacts', set(ref(db('m1'), 'ytRooms/r1/react/m1'), { r: 'ok', at: now }));
 await no('outsider reacts', set(ref(db('o1'), 'ytRooms/r1/react/o1'), { r: 'ok', at: now }));
