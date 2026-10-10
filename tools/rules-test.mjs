@@ -397,6 +397,17 @@ await no('guest join', set(ref(db(null), 'refJoin/u1/d_x'), 1));
 await ok('inviter reads list', get(ref(db('u1'), 'refJoin/u1')));
 await no('other reads list', get(ref(db('u2'), 'refJoin/u1')));
 
+// big handouts in pieces (resourceFiles/{id}/{i}) next to the old single string
+await ok('admin saves a handout as one string', set(ref(db('adm'), 'resourceFiles/h1'), 'data:application/pdf;base64,AAAA'));
+await ok('admin saves a handout piece (1 MiB of Base64)', set(ref(db('adm'), 'resourceFiles/h2/0'), 'A'.repeat(1048576)));
+await ok('and more pieces', set(ref(db('adm'), 'resourceFiles/h2/1'), 'B'.repeat(1048576)));
+await no('a piece over 1.5 million characters is refused', set(ref(db('adm'), 'resourceFiles/h2/2'), 'C'.repeat(1500001)));
+await no('a piece must be text', set(ref(db('adm'), 'resourceFiles/h2/3'), 12345));
+await no('a single string over 10 million characters is still refused', set(ref(db('adm'), 'resourceFiles/h3'), 'D'.repeat(10000001)));
+await no('a student cannot save handout pieces', set(ref(db('u1'), 'resourceFiles/h4/0'), 'A'));
+await ok('anyone reads a piece', get(ref(db(null), 'resourceFiles/h2/0')));
+await ok('the admin deletes a whole handout at once', set(ref(db('adm'), 'resourceFiles/h2'), null));
+
 // phone index
 await ok('phone claim', set(ref(db('u1'), 'phoneIndex/0770'), { e: 'a@b.c', u: 'u1' }));
 await no('phone steal', set(ref(db('u2'), 'phoneIndex/0770'), { e: 'x@b.c', u: 'u2' }));

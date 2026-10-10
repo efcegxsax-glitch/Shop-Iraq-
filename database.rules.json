@@ -275,7 +275,10 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
       "$id": {
-        ".validate": "newData.isString() && newData.val().length < 10000000"
+        ".validate": "newData.isString() ? newData.val().length < 10000000 : newData.hasChildren()",
+        "$i": {
+          ".validate": "newData.isString() && newData.val().length < 1500000"
+        }
       }
     },
     "examFiles": {
