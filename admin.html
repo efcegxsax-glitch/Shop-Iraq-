@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="0e1ce15981">
+    <meta name="admin-build" content="55d9eac4bc">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -347,6 +347,9 @@
         .pl-tag2 { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 800; color: #fff; }
         .ds-help { margin-top: 14px; padding: 12px; border-radius: 14px; border: 1px solid rgba(245,158,11,.45); background: rgba(245,158,11,.08); font-size: 13px; line-height: 1.8; }
         .ds-help b { display: block; margin-bottom: 6px; }
+        .ds-why { margin-top: 14px; padding: 11px 12px; border-radius: 12px; font-size: 13px; line-height: 1.7; font-weight: 700; border: 1px solid rgba(239,68,68,.5); background: rgba(239,68,68,.1); color: #FCA5A5; }
+        .ds-why.ok { border-color: rgba(16,185,129,.5); background: rgba(16,185,129,.1); color: #6EE7B7; }
+        .ds-why.warn { border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.1); color: #FCD34D; }
         .ds-help .cp { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
         .ds-help .cp span { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: rtl; word-break: break-word; }
         .ds-help .cp code { flex: 1; min-width: 0; padding: 6px 10px; border-radius: 10px; background: rgba(0,0,0,.25); direction: ltr; text-align: left; word-break: break-all; }
@@ -4582,10 +4585,12 @@
         };
         // After an announcement: the text and the governorate codes ready to paste into OneSignal /
         // Firebase, which deliver it to phones where the app is closed.
-        function showPushHelp(title, body, allIraq, govs) {
+        // why: { t: 'bad' | 'warn' | 'ok', text } — a line that stays on the page (the toast goes away) saying exactly what happened to the automatic push
+        const dsWhy = (w) => w ? `<div class="ds-why ${w.t === 'bad' ? '' : w.t}">${escapeHtml(w.text)}</div>` : '';
+        function showPushHelp(title, body, allIraq, govs, why) {
             const codes = allIraq ? [] : govs.map((g) => GOV_CODES[g]).filter(Boolean);
             const row = (label, text, ltr) => `<div>${label}</div><div class="cp">${ltr ? `<code>${escapeHtml(text)}</code>` : `<span>${escapeHtml(text)}</span>`}<button type="button" onclick="dsCopy(this)">نسخ</button></div>`;
-            el('dsPushHelp').innerHTML = `
+            el('dsPushHelp').innerHTML = dsWhy(why) + `
                 <div class="ds-help">
                     <b>حتى يوصل للهواتف المسدودة، أرسله من OneSignal:</b>
                     ${row('العنوان', title)}
@@ -4735,16 +4740,21 @@
                     const day = dsDayName(date);
                     const title = s === 'off' ? day + ': عطلة رسمية ب' + where : s === 'pending' ? day + ': بانتظار قرار العطلة ب' + where : day + ': دوام رسمي ب' + where;
                     const body = reason || (s === 'pending' ? 'راح نبلغكم أول ما يطلع القرار' : '');
-                    let pushed = false;
+                    let pushed = false, why = null;
+                    if (!el('ds_notify').checked) why = { t: 'warn', text: 'ما انرسل إشعار للهواتف لأن خيار "أرسل إشعار للطلاب" مطفي. الإعلان انشر داخل التطبيق بس.' };
                     if (el('ds_notify').checked) {
                         const pr = await pushPhones(title, body, allIraq ? [] : govs, 'holiday', { go: 'holiday' });
                         pushed = pr.ok && !!pr.id;
+                        const place = allIraq ? 'العراق' : govs.join('، ');
+                        if (!pr.ok) why = { t: 'bad', text: 'ما انرسل الإشعار: ' + pr.why };
+                        else if (!pr.id) why = { t: 'bad', text: 'ما انرسل الإشعار لأن ما كو جهاز مسجّل ومفعّل الإشعارات بـ ' + place + '. الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة، وما طافين "الدوام والعطل". جرّب بمحافظة موبايلك لتتأكد.' };
+                        else why = { t: pr.of > pr.sent ? 'warn' : 'ok', text: pr.of > pr.sent ? 'الإشعار وصل لبعض المحافظات بس (' + pr.sent + ' من ' + pr.of + '). الباقي ما عنده أجهزة مطابقة.' : 'انرسل الإشعار' + (pr.n ? ' لـ ' + pr.n + ' جهاز' : '') + '.' };
                         if (!pr.ok) toast('انتشر الإعلان بس ما طلع كإشعار للهاتف: ' + pr.why, false);
                         else if (!pr.id) toast('انتشر الإعلان بس ما لكى أي جهاز مطابق للإشعار. الطلاب لازم يحدّثون التطبيق ويفتحونه مرة وحدة وتكون الإشعارات مفعلة', false);
                         else if (pr.of > pr.sent) toast('الإشعار وصل لبعض المحافظات بس (' + pr.sent + ' من ' + pr.of + ')، الباقي ما عنده أجهزة مطابقة', false);
                     }
-                    if (!pushed) showPushHelp(title, body, allIraq, govs);
-                    else el('dsPushHelp').innerHTML = '';
+                    if (!pushed) showPushHelp(title, body, allIraq, govs, why);
+                    else el('dsPushHelp').innerHTML = dsWhy(why);
                 }
                 toast('انتشر الإعلان' + (el('ds_notify').checked ? ' ووصل الإشعار' : ''));
                 el('ds_reason').value = '';
