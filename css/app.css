@@ -11556,3 +11556,14 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
 .yr-lnote svg { width: 18px; height: 18px; }
 .yr-rail button.n { color: #93C5FD; background: rgba(37,99,235,.25); }
 .yr-recent-w { margin-bottom: 8px; } .yr-recent-w .yr-recent { margin-bottom: 0; }
+
+/* study rooms: the teachers' videos picker */
+.yr-tch { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; margin-bottom: 4px; scrollbar-width: none; }
+.yr-tch::-webkit-scrollbar { display: none; }
+.yr-tch button { flex: none; display: inline-flex; align-items: center; gap: 7px; padding: 5px 12px 5px 6px; border-radius: 99px; font-size: 12.5px; font-weight: 900; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
+.yr-tch button.on { color: #fff; background: #E11D48; border-color: #E11D48; }
+.yr-tch .yr-av { width: 26px; height: 26px; }
+.yr-tp-h { display: flex; align-items: center; gap: 8px; margin: 2px 2px 8px; font-size: 14px; font-weight: 900; color: var(--text); }
+.yr-tp-h b { flex: 1; min-width: 0; }
+.yr-tp-h button { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; color: var(--text2); background: var(--input-bg); }
+.yr-tp-more { margin: 6px 0 12px; }
