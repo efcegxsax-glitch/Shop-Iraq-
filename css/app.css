@@ -11677,3 +11677,47 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
   --shadow-lift: 0 18px 40px -16px rgba(0, 0, 0, 0.8);
   --blob-a: rgba(124, 92, 224, 0.16); --blob-b: rgba(224, 176, 74, 0.08);
 }
+
+/* ===== desktop and big screens (1024px and wider): a side menu on the right instead of the bottom dock, and the page uses the width ===== */
+@media (min-width: 1024px) {
+  :root { --side-w: 236px; --page-w: 1120px; }
+  .app-header, #networkBar, #ptrIndicator { max-width: none; width: auto; left: 0; right: 0; }
+  .app-header { padding-inline: 24px; }
+  #mainContent { max-width: none; margin: 0; padding-right: var(--side-w); padding-bottom: 40px; }
+  #mainContent > * { max-width: var(--page-w); margin-left: auto; margin-right: auto; }
+  #bottomNav { left: auto !important; right: 0 !important; top: 64px !important; bottom: 0 !important; width: var(--side-w) !important; max-width: none !important; height: auto !important;
+    border-radius: 0 !important; border: 0 !important; border-left: 1px solid var(--border) !important; background-color: var(--surface) !important; box-shadow: none !important; overflow-y: auto; }
+  #bottomNav::before, #bottomNav::after { display: none !important; }
+  #bottomNav .nav-track { flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 4px; height: auto; padding: 16px 12px; }
+  #bottomNav .nav-indicator { display: none !important; }
+  #bottomNav .nav-item, #bottomNav .nav-item.nav-ai { flex: none !important; width: auto !important; min-width: 0 !important; height: 46px !important; flex-direction: row; justify-content: flex-start; gap: 12px !important; padding: 0 12px; border-radius: 14px; }
+  #bottomNav .nav-item:hover { background: var(--input-bg) !important; }
+  #bottomNav .nav-ic { width: 28px; height: 28px; }
+  #bottomNav .nav-item svg { width: 21px; height: 21px; }
+  #bottomNav .nav-label { font-size: 14px; font-weight: 700; }
+  #bottomNav .nav-item.active { background: rgb(var(--p) / 0.12) !important; }
+  #bottomNav .nav-item.active svg { color: rgb(var(--p)); transform: none; }
+  #bottomNav .nav-ai .nav-ic { width: 28px; height: 28px; }
+  #bottomNav .nav-ai-orb { transform: scale(.72); }
+  #navFade { display: none !important; }
+  /* the pop-ups sit inside the page area, not across the whole screen */
+  .nt-pop { left: auto; right: calc(var(--side-w) + 24px); width: 460px; max-width: calc(100vw - var(--side-w) - 48px); margin: 0; }
+  .yr-pop, .tt-pop { left: auto; right: calc(var(--side-w) + 24px); margin: 0; }
+  .ms-fab { left: calc((100vw - var(--side-w)) / 2 - var(--page-w) / 2 + 16px); }
+  /* the news: cards flow into columns */
+  #newsList { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+  /* the full-screen tutor stays beside the side menu, and its conversation is a readable width */
+  .tt-top { padding-inline: max(14px, calc((100% - 860px) / 2)); }
+  .tt-body { padding-inline: max(14px, calc((100% - 860px) / 2)); }
+  .tt-composer { padding-inline: max(14px, calc((100% - 860px) / 2)); }
+}
+@media (min-width: 1500px) { #newsList { grid-template-columns: repeat(3, minmax(0, 1fr)); } :root { --page-w: 1280px; } }
+
+/* tablets (768 to 1023px): the same page, a wider column */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-header, #networkBar, #ptrIndicator, nav.fixed { max-width: 720px; }
+  #mainContent { max-width: 720px; }
+  #bottomNav { max-width: 696px !important; }
+  .ms-fab { left: calc(50% - 334px); }
+  #newsList { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+}
