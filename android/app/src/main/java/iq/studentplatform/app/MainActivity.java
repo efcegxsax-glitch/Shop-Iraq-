@@ -74,6 +74,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        NotifSounds.ensure(this);
         takeIntent(getIntent());
         // the page's background colour from the last run (light, dark, black or pink), so nothing flashes white before the page draws
         try {
@@ -247,6 +248,15 @@ public class MainActivity extends BridgeActivity {
             @JavascriptInterface
             public void setAuth(String uid, String refresh, String key, String db) { CallApi.save(MainActivity.this, uid, refresh, key, db); }
 
+            // the notification tone chosen in the app's settings ("default", "silent" or one of NotifSounds.IDS)
+            @JavascriptInterface
+            public void setSound(String id) {
+                String v = "default";
+                for (String k : NotifSounds.IDS) { if (k.equals(id)) v = k; }
+                NotifSounds.save(MainActivity.this, v);
+                NotifSounds.ensure(MainActivity.this);
+            }
+
             @JavascriptInterface
             public void bg(final String hex) {
                 try { getSharedPreferences("isp", MODE_PRIVATE).edit().putInt("bg", android.graphics.Color.parseColor(hex)).apply(); } catch (Throwable ignored) {}
@@ -311,7 +321,7 @@ public class MainActivity extends BridgeActivity {
             + "recStart:function(){return c('recStart');},recStop:function(k){c('recStop',[!!k]);},"
             + "callAudio:function(o){c('callAudio',[!!o]);},speaker:function(o){c('speaker',[!!o]);},"
             + "notifOn:function(){return c('notifOn')==='true';},notifSettings:function(){c('notifSettings');},"
-            + "bg:function(h){c('bg',[String(h)]);},takeAccept:function(){return c('takeAccept');},setAuth:function(u,r,k,d){c('setAuth',[String(u),String(r),String(k),String(d)]);},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
+            + "setSound:function(i){c('setSound',[String(i)]);},bg:function(h){c('bg',[String(h)]);},takeAccept:function(){return c('takeAccept');},setAuth:function(u,r,k,d){c('setAuth',[String(u),String(r),String(k),String(d)]);},googleSignIn:function(i){c('googleSignIn',[String(i)]);}};})();";
         WebViewCompat.addDocumentStartJavaScript(web, js, getBridge().getAllowedOriginRules());
     }
 
@@ -326,6 +336,7 @@ public class MainActivity extends BridgeActivity {
         boolean notifOn();
         void notifSettings();
         void bg(String hex);
+        void setSound(String id);
         String takeAccept();
         void setAuth(String uid, String refresh, String key, String db);
         void googleSignIn(String clientId);
@@ -342,6 +353,7 @@ public class MainActivity extends BridgeActivity {
             case "notifOn": return String.valueOf(n.notifOn());
             case "notifSettings": n.notifSettings(); return "";
             case "bg": n.bg(v.optString(0)); return "";
+            case "setSound": n.setSound(v.optString(0)); return "";
             case "takeAccept": return n.takeAccept();
             case "setAuth": n.setAuth(v.optString(0), v.optString(1), v.optString(2), v.optString(3)); return "";
             case "googleSignIn": n.googleSignIn(v.optString(0)); return "";
