@@ -82,7 +82,7 @@
                     <button class="yr-btn wide" onclick="app.yrCreate()"><i data-lucide="sparkles"></i>سوّي الغرفة</button>
                 </div>
                 ${recent.length ? `<div class="yr-h"><i data-lucide="history"></i>غرفك</div>${recent.map((r) => `
-                    <button class="yr-recent" onclick="app.yrJoin(${jsArg(r.rid)})"><i data-lucide="tv"></i><span>${esc(r.t)}</span><i data-lucide="chevron-left"></i></button>`).join('')}` : ''}
+                    <div class="yr-recent-w"><button class="yr-recent" onclick="app.yrJoin(${jsArg(r.rid)})"><i data-lucide="tv"></i><span>${esc(r.t)}</span><i data-lucide="chevron-left"></i></button><button class="yr-x" onclick="app.yrForget(${jsArg(r.rid)})" aria-label="احذف الغرفة"><i data-lucide="trash-2"></i></button></div>`).join('')}` : ''}
                 <div class="yr-h"><i data-lucide="link"></i>عندك رابط غرفة؟</div>
                 <div class="yr-card row">
                     <input id="yrCode" placeholder="الصق الرابط أو رمز الغرفة" dir="ltr">
@@ -145,6 +145,22 @@
             }
         },
 
+        // from the home list: the host deletes the room for everyone, a student just leaves it
+        async yrForget(rid) {
+            if (!this.authUid || !window.firebaseDb) return;
+            let host = false, gone = false;
+            try { const m = await H().get(R('ytRooms/' + rid + '/meta')); gone = !m.exists(); host = m.exists() && m.val().host === this.authUid; } catch (e) { this.showToast('تأكد من النت وحاول'); return; }
+            if (!gone && !confirm(host ? 'تحذف الغرفة؟ تنحذف عند كل الطلاب بفيديوهاتها وملاحظاتها.' : 'تطلع من الغرفة وتشيلها من قائمتك؟')) return;
+            try {
+                if (host) await H().remove(R('ytRooms/' + rid));
+                else if (!gone) await H().update(R('ytRooms/' + rid), { ['members/' + this.authUid]: null, ['prog/' + this.authUid]: null });
+            } catch (e) { this.showToast('ما انحذفت، حاول مرة ثانية'); return; }
+            this._yrRemember(rid, '', true);
+            this.yrDecline(rid);
+            this.showToast(host ? 'انحذفت الغرفة' : 'طلعت من الغرفة');
+            this.yrHome();
+        },
+
         yrJoinCode() {
             const v = String(document.getElementById('yrCode')?.value || '').trim();
             const m = v.match(/[?&]yr=([a-z0-9]{6,20})/i) || v.match(/^([a-z0-9]{6,20})$/i);
@@ -183,12 +199,13 @@
             const box = document.getElementById('yrContent');
             box.innerHTML = `
                 <div id="yrStage" class="yr-stage md">
-                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div><div id="yrFloat" class="yr-float"></div><button id="yrRailTog" class="yr-rail-tog" onclick="app.yrRailShow()" aria-label="أزرار التحكم"><i data-lucide="sliders-horizontal"></i></button></div>
+                    <div class="yr-frame"><div id="yrPlayer"></div><div id="yrEmpty" class="yr-empty"><i data-lucide="clapperboard"></i><span>بعد ما انشغل فيديو</span></div><div id="yrFloat" class="yr-float"></div><div id="yrLandNote" class="yr-lnote"><input id="yrNoteL" maxlength="300" placeholder="اكتب ملاحظة عند هذي اللحظة..." onkeydown="if(event.key==='Enter')app.yrNoteSave('note','yrNoteL')"><button onclick="app.yrNoteSave('note','yrNoteL')" aria-label="احفظ"><i data-lucide="save"></i></button><button class="ask" onclick="app.yrNoteSave('ask','yrNoteL')" aria-label="اسأل"><i data-lucide="message-circle-question"></i></button><button class="x" onclick="app.yrLandNote(false)" aria-label="سد"><i data-lucide="x"></i></button></div><button id="yrRailTog" class="yr-rail-tog" onclick="app.yrRailShow()" aria-label="أزرار التحكم"><i data-lucide="sliders-horizontal"></i></button></div>
                     <div class="yr-rail">
                         <button onclick="app.yrSize('md')" aria-label="صغّر"><i data-lucide="minimize-2"></i></button>
                         <button class="yr-speed-b" onclick="app.yrSpeed()"><b class="yr-speed-t">1x</b></button>
                         ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')" aria-label="${REACTS[k][1]}"><i data-lucide="${REACTS[k][0]}"></i></button>`).join('')}
                         <button class="q" onclick="app.yrMark()" aria-label="ما فهمت هنا"><i data-lucide="hand"></i></button>
+                        <button class="n" onclick="app.yrLandNote()" aria-label="اكتب ملاحظة"><i data-lucide="pencil-line"></i></button>
                         <small id="yrRailN"></small>
                         <small id="yrRailCoin" class="coin"></small>
                     </div>
@@ -547,7 +564,7 @@
                 if (rail && !rail._yrBound) { rail._yrBound = true; rail.addEventListener('pointerdown', () => this._yrRailTimer()); }
                 this.yrRailShow();
             }
-            if (s !== 'land') { clearTimeout(y.railT); stage.classList.remove('rail-off'); }
+            if (s !== 'land') { clearTimeout(y.railT); stage.classList.remove('rail-off'); if (y.landNote) this.yrLandNote(false); }
             if (s !== 'land' && wasLand) {
                 if (document.fullscreenElement) try { document.exitFullscreen(); } catch (e) {}
                 try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch (e) {}
@@ -568,7 +585,7 @@
             const y = this._yr;
             if (!y) return;
             clearTimeout(y.railT);
-            y.railT = setTimeout(() => { const st = document.getElementById('yrStage'); if (st && this._yr === y && y.size === 'land') st.classList.add('rail-off'); }, 3500);
+            y.railT = setTimeout(() => { const st = document.getElementById('yrStage'); if (st && this._yr === y && y.size === 'land' && !y.landNote) st.classList.add('rail-off'); }, 3500);
         },
 
         // portrait phone in the landscape view: turn the stage with CSS
@@ -696,8 +713,21 @@
             if (t && y.noteAt) t.textContent = 'الملاحظة تنحفظ عند ' + clock(y.noteAt.s);
         },
 
-        yrNoteSave(kind) {
-            const y = this._yr, inp = document.getElementById('yrNote'), c = kind === 'ask' ? 'ask' : 'note';
+        // full-screen view: a small box over the video to write a note (saved at the moment it was opened)
+        yrLandNote(open) {
+            const y = this._yr, box = document.getElementById('yrLandNote'), inp = document.getElementById('yrNoteL');
+            if (!y || !box || !inp) return;
+            const show = open === undefined ? !box.classList.contains('on') : open;
+            box.classList.toggle('on', show);
+            box.classList.toggle('noask', !this._yrFeat().ask);
+            y.landNote = show;
+            y.noteAt = null;
+            if (show) { y.noteAt = null; this.yrNoteFocus(); inp.value = ''; setTimeout(() => inp.focus(), 50); this.yrRailShow(); }
+            else { inp.blur(); y.noteAt = null; this.yrRailShow(); }
+        },
+
+        yrNoteSave(kind, id) {
+            const y = this._yr, inp = document.getElementById(id || 'yrNote'), c = kind === 'ask' ? 'ask' : 'note';
             if (!y || !inp) return;
             const x = filterBadWords(String(inp.value || '').trim()).clean.slice(0, 300);
             if (!x) return;
@@ -708,6 +738,7 @@
             if (!rec) return;
             inp.value = '';
             y.noteAt = null;
+            if (id === 'yrNoteL') this.yrLandNote(false);
             this.showToast(c === 'ask' ? 'وصل سؤالك للغرفة عند ' + clock(rec.s) : 'انحفظت الملاحظة عند ' + clock(rec.s));
         },
 
@@ -1066,8 +1097,7 @@
             const v = this.extractYoutubeId(q);
             if (v) {
                 inp.value = '';
-                if (y.meta.host === this.authUid) this.yrAddVideo(v, '', !y.meta.cur);
-                else this.yrSolo(v, '');
+                this.yrAddVideo(v, '', y.meta.host === this.authUid && !y.meta.cur);
                 return;
             }
             this._yrSearch(q);
@@ -1121,10 +1151,12 @@
 
         yrClearRes() { const y = this._yr; if (!y) return; y.res = null; const i = document.getElementById('yrQ'); if (i) i.value = ''; this._yrPaint(); },
 
-        // host: add a video to the room's list (and play it for everyone if asked)
+        // any member adds a video to the room's list; only the host plays one for everyone
         yrAddVideo(v, t, playNow) {
             const y = this._yr;
-            if (!y || y.meta.host !== this.authUid) return;
+            if (!y || !y.members[this.authUid]) return;
+            if (Object.values(y.queue).some((q) => q.v === v)) { this.showToast('هذا الفيديو موجود بالقائمة'); return; }
+            if (playNow && y.meta.host !== this.authUid) playNow = false;
             if (Object.keys(y.queue).length >= 30) { this.showToast('القائمة مليانة'); return; }
             const now = Date.now(), k = 'q' + now.toString(36);
             H().set(R('ytRooms/' + y.rid + '/queue/' + k), { v, t: String(t || '').slice(0, 100), by: this.authUid, at: now }).then(() => {
@@ -1152,7 +1184,7 @@
                 <div class="yr-r-b"><b>${esc(x.t || 'فيديو يوتيوب')}</b>${x.c ? `<small>${esc(x.c)}</small>` : ''}
                     <div class="yr-r-a">${host
                         ? `<button class="go" onclick="app.yrAddVideo(${v}, ${t}, true)"><i data-lucide="play"></i>شغّل للكل</button><button onclick="app.yrAddVideo(${v}, ${t}, false)"><i data-lucide="plus"></i>للقائمة</button>`
-                        : `<button class="go" onclick="app.yrSolo(${v}, ${t})"><i data-lucide="play"></i>شوفه لوحدك</button><button onclick="app.yrSuggest(${v}, ${t})"><i data-lucide="send"></i>اقترح</button>`}</div>
+                        : `<button class="go" onclick="app.yrAddVideo(${v}, ${t}, false)"><i data-lucide="plus"></i>للقائمة</button><button onclick="app.yrSolo(${v}, ${t})"><i data-lucide="play"></i>شوفه لوحدك</button>`}</div>
                 </div>
             </div>`;
         },
@@ -1180,9 +1212,10 @@
         },
         yrRemove(k) {
             const y = this._yr;
-            if (!y || y.meta.host !== this.authUid || !confirm('تشيل هذا الفيديو من القائمة؟')) return;
+            const q = y && y.queue[k];
+            if (!q || !(y.meta.host === this.authUid || (q.by === this.authUid && k !== y.meta.cur)) || !confirm('تشيل هذا الفيديو من القائمة؟')) return;
             H().remove(R('ytRooms/' + y.rid + '/queue/' + k)).catch(() => {});
-            if (y.meta.cur === k) H().remove(R('ytRooms/' + y.rid + '/meta/cur')).catch(() => {});
+            if (y.meta.cur === k && y.meta.host === this.authUid) H().remove(R('ytRooms/' + y.rid + '/meta/cur')).catch(() => {});
         },
 
         yrKick(uid) {
@@ -1331,15 +1364,15 @@
                             : y.res.err ? `<p class="yr-muted">${esc(y.res.err)}</p>`
                             : y.res.items && y.res.items.length ? y.res.items.map((x) => this._yrResult(x)).join('') : '<p class="yr-muted">ما لكيت فيديوهات، جرّب كلمات ثانية</p>'}
                     </div>` : ''}
-                    <div class="yr-h">${host ? '<i data-lucide="list-video"></i>قائمة الغرفة' : '<i data-lucide="list-video"></i>قائمة الغرفة (المضيف يختار شنو ينشغل للكل)'}</div>
+                    <div class="yr-h">${host ? '<i data-lucide="list-video"></i>قائمة الغرفة' : '<i data-lucide="list-video"></i>قائمة الغرفة (تضيف فيديوهات، والمضيف يختار شنو ينشغل للكل)'}</div>
                     ${keys.length ? keys.map((k, i) => {
                         const q = y.queue[k], all = mids.length, dn = mids.filter((u) => (y.done[u] || {})[k]).length;
                         return `<div class="yr-v${k === cur ? ' cur' : ''}${k === y.key ? ' me' : ''}">
                             <button class="yr-v-m" onclick="app.yrPick(${jsArg(k)})"><img src="${thumb(q.v)}" alt="" loading="lazy"><span class="yr-v-n">${i + 1}</span></button>
                             <div class="yr-v-b" onclick="app.yrPick(${jsArg(k)})"><b>${esc(q.t || 'فيديو يوتيوب')}</b><small>${k === cur ? '<em>شغال للكل</em> . ' : ''}خلصوه ${dn} من ${all}</small><div class="yr-prog"><i style="width:${all ? dn / all * 100 : 0}%"></i></div></div>
-                            ${host ? `<button class="yr-x" onclick="app.yrRemove(${jsArg(k)})" aria-label="شيل"><i data-lucide="trash-2"></i></button>` : ''}
+                            ${host || (q.by === this.authUid && k !== cur) ? `<button class="yr-x" onclick="app.yrRemove(${jsArg(k)})" aria-label="شيل"><i data-lucide="trash-2"></i></button>` : ''}
                         </div>`;
-                    }).join('') : `<p class="yr-muted">${host ? 'القائمة فارغة. دوّر على شرح وضيفه.' : 'القائمة فارغة.'}</p>`}`;
+                    }).join('') : '<p class="yr-muted">القائمة فارغة. دوّر على شرح أو الصق رابط وضيفه، وكل الفيديوهات تبقى بنفس الغرفة.</p>'}`;
             } else if (y.tab === 'notes') {
                 panel.innerHTML = this._yrNotesHtml();
             } else if (y.tab === 'todo') {
@@ -1351,7 +1384,7 @@
                     return `<div class="yr-msg${mine ? ' mine' : ''}${c.s != null ? ' mark' : ''}${c.q ? ' quick' : ''}">
                         ${mine ? '' : `<small>${esc(c.n)}${app.rpBtn({ type: 'room', targetUid: c.u, ref: 'ytRooms/' + y.rid + '/chat/' + c.id, snippet: c.m }, 'yr-rp', '')}</small>`}
                         <p>${esc(c.m)}</p>
-                        ${c.sv ? `<div class="yr-sug"><img src="${thumb(c.sv)}" alt="" loading="lazy"><span>${esc(c.st || 'فيديو يوتيوب')}</span></div><div class="yr-sug-a">${host ? `<button onclick="app.yrAddVideo(${jsArg(c.sv)}, ${jsArg(c.st || '')}, false)"><i data-lucide="plus"></i>ضيفه للقائمة</button>` : ''}<button onclick="app.yrSolo(${jsArg(c.sv)}, ${jsArg(c.st || '')})"><i data-lucide="play"></i>شوفه</button></div>` : ''}
+                        ${c.sv ? `<div class="yr-sug"><img src="${thumb(c.sv)}" alt="" loading="lazy"><span>${esc(c.st || 'فيديو يوتيوب')}</span></div><div class="yr-sug-a"><button onclick="app.yrAddVideo(${jsArg(c.sv)}, ${jsArg(c.st || '')}, false)"><i data-lucide="plus"></i>ضيفه للقائمة</button><button onclick="app.yrSolo(${jsArg(c.sv)}, ${jsArg(c.st || '')})"><i data-lucide="play"></i>شوفه</button></div>` : ''}
                         ${c.qs != null && y.queue[c.qk] ? `<button class="qs" onclick="app.yrSeek(${Number(c.qs) || 0}, ${jsArg(c.qk)})"><i data-lucide="play"></i>${clock(c.qs)}</button>` : ''}
                         ${c.s != null && q ? `<button onclick="app.yrSeek(${Number(c.s) || 0}, ${jsArg(c.k)})"><i data-lucide="play"></i>${clock(c.s)}${c.k !== y.key ? ' . ' + esc((q.t || 'فيديو').slice(0, 24)) : ''}</button>` : ''}
                     </div>`;

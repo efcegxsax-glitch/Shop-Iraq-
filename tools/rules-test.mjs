@@ -494,6 +494,16 @@ await no('bad signal type', set(ref(db('m1'), 'ytSig/r1/h1/m1/k4'), { t: 'zzz', 
 await no('the sender reads the receiver box', get(ref(db('m1'), 'ytSig/r1/h1')));
 await ok('the receiver reads its box', get(ref(db('h1'), 'ytSig/r1/h1')));
 await ok('the receiver clears a message', set(ref(db('h1'), 'ytSig/r1/h1/m1/k1'), null));
+// any member adds videos to the room list; only the adder or the host removes them
+await ok('member adds a video to the list', set(ref(db('m1'), 'ytRooms/r1/queue/qm1'), { v: 'aqz-KE-bpKQ', t: 'x', by: 'm1', at: now }));
+await no('member adds a video in someone else name', set(ref(db('m1'), 'ytRooms/r1/queue/qm2'), { v: 'aqz-KE-bpKQ', t: 'x', by: 'h1', at: now }));
+await no('outsider adds a video', set(ref(db('o1'), 'ytRooms/r1/queue/qm3'), { v: 'aqz-KE-bpKQ', t: 'x', by: 'o1', at: now }));
+await no('member replaces the host video', set(ref(db('m1'), 'ytRooms/r1/queue/q1'), { v: 'aqz-KE-bpKQ', t: 'x', by: 'm1', at: now }));
+await no('member deletes the host video', set(ref(db('m1'), 'ytRooms/r1/queue/q1'), null));
+await no('member edits his own video after adding', set(ref(db('m1'), 'ytRooms/r1/queue/qm1'), { v: 'dQw4w9WgXcQ', t: 'x', by: 'm1', at: now }));
+await ok('member removes the video he added', set(ref(db('m1'), 'ytRooms/r1/queue/qm1'), null));
+await ok('member adds another', set(ref(db('m1'), 'ytRooms/r1/queue/qm4'), { v: 'aqz-KE-bpKQ', t: 'x', by: 'm1', at: now }));
+await ok('host removes a member video', set(ref(db('h1'), 'ytRooms/r1/queue/qm4'), null));
 await ok('member chats', set(ref(db('m1'), 'ytRooms/r1/chat/c1'), { u: 'm1', n: 'M', m: 'ما فهمت هنا', at: now, k: 'q1', s: 30 }));
 await ok('member reacts', set(ref(db('m1'), 'ytRooms/r1/react/m1'), { r: 'ok', at: now }));
 await no('outsider reacts', set(ref(db('o1'), 'ytRooms/r1/react/o1'), { r: 'ok', at: now }));
