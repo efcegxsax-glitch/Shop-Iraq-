@@ -1340,9 +1340,33 @@
             const y = this._yr, u = this.currentUser || {};
             if (!y) return;
             H().set(R('ytInvites/' + uid + '/' + y.rid), { from: this.authUid, fn: String(u.fullName || 'طالب').slice(0, 40), t: String(y.meta.title || '').slice(0, 40), at: Date.now() }).then(() => {
-                y.invited[uid] = 1;
+                (y.invited = y.invited || {})[uid] = 1;
+                // also a message in the friends' chat: it carries the room card, and the message push reaches the phone even when the app is closed
+                this._yrChatInvite(uid, y.rid, y.meta.title);
                 if (btn) { btn.textContent = 'انرسلت'; btn.disabled = true; btn.classList.add('done'); }
             }).catch(() => this.showToast('ما انرسلت الدعوة'));
+        },
+
+        // the invite as a chat message (type "room"), written straight to the pair's chat and both chat lists, then the usual message push
+        _yrChatInvite(uid, rid, title) {
+            if (!this.authUid || !uid || !window.firebaseDb) return;
+            const me = this.authUid, id = Date.now(), chat = [me, uid].sort().join('_'), t = String(title || 'غرفة دراسة').slice(0, 60);
+            const text = 'دعاك لغرفة دراسة: ' + t, cu = this.currentUser || {};
+            const fr = (typeof friendsList !== 'undefined' ? friendsList : []).find((f) => f && f.uid === uid) || {};
+            const up = {};
+            up['privateChats/' + chat + '/messages/' + id] = { id, from: me, to: uid, createdAt: id, type: 'room', text, rid, rt: t };
+            up['userChats/' + me + '/' + uid + '/otherUid'] = uid;
+            if (fr.name) up['userChats/' + me + '/' + uid + '/otherName'] = String(fr.name).slice(0, 40);
+            up['userChats/' + me + '/' + uid + '/lastMessage'] = 'دعوة لغرفة: ' + t;
+            up['userChats/' + me + '/' + uid + '/lastAt'] = id;
+            up['userChats/' + me + '/' + uid + '/unread'] = false;
+            up['userChats/' + uid + '/' + me + '/otherUid'] = me;
+            up['userChats/' + uid + '/' + me + '/otherName'] = String(cu.fullName || 'طالب').slice(0, 40);
+            try { up['userChats/' + uid + '/' + me + '/otherAvatar'] = this._avatarLite(); } catch (e) { /* no photo */ }
+            up['userChats/' + uid + '/' + me + '/lastMessage'] = 'دعوة لغرفة: ' + t;
+            up['userChats/' + uid + '/' + me + '/lastAt'] = id;
+            up['userChats/' + uid + '/' + me + '/unread'] = true;
+            H().update(H().ref(window.firebaseDb), up).then(() => this._notifyPush('msg', uid, id)).catch((e) => console.warn('room invite chat', e));
         },
 
         yrLeave() {
