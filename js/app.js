@@ -101,6 +101,9 @@
             try { return new URL(str).protocol === 'https:' ? str : ''; } catch (e) { return ''; }
         }
 
+        // The photo shown for a person comes from a copy saved in a list (a chat row, a friend, a room member), and the copy goes
+        // stale when that person changes the photo. avAttr() gives an <img> its attributes: the saved copy at once, and the person's
+        // CURRENT photo (leaderboard/{uid}/avatar, kept up to date by its owner) replaces it a moment later, in place, no re-render.
         function personAvatarSrc(avatar, name) {
             return isSafeImageUrl(avatar) ? avatar : ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name || 'Student') + '&background=2563EB&color=fff&size=200');
         }
@@ -2809,6 +2812,45 @@
             // The full photo stays in the student's own record; the copies other students download are ~96 px (about 3 KB),
             // so a list of hundreds of students stays light (the full photos used to travel with every list).
             // a photo copy from a record that may hold an old big one: kept only when it is small
+            avAttr(uid, stored, name) {
+                const c = uid && this._avC && this._avC[uid];
+                if (uid && (!c || Date.now() - c.at > 180000)) this._avWant(uid);
+                const src = personAvatarSrc(c && c.v ? c.v : stored, name);
+                return 'src="' + escapeHtml(src) + '"' + (uid ? ' data-avuid="' + escapeHtml(uid) + '" data-avname="' + escapeHtml(name || '') + '"' : '');
+            },
+            _avWant(uid) {
+                if (!uid || !window.firebaseDb) return;
+                this._avQ = this._avQ || new Set();
+                if (this._avBusy && this._avBusy.has(uid)) return;
+                this._avQ.add(uid);
+                clearTimeout(this._avT);
+                this._avT = setTimeout(() => this._avLoad(), 80);
+            },
+            async _avLoad() {
+                const ids = [...(this._avQ || [])].slice(0, 40);
+                if (!ids.length) return;
+                ids.forEach((u) => this._avQ.delete(u));
+                this._avC = this._avC || {};
+                this._avBusy = this._avBusy || new Set();
+                const { ref, get } = window.firebaseDbHelpers;
+                await Promise.all(ids.map(async (uid) => {
+                    this._avBusy.add(uid);
+                    try {
+                        const sn = await get(ref(window.firebaseDb, 'leaderboard/' + uid + '/avatar')), v = sn.exists() && typeof sn.val() === 'string' ? sn.val() : '';
+                        this._avC[uid] = { v, at: Date.now() };
+                        if (v) document.querySelectorAll('img[data-avuid="' + uid.replace(/"/g, '') + '"]').forEach((img) => {
+                            const src = personAvatarSrc(v, img.getAttribute('data-avname') || '');
+                            if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+                        });
+                        // a place that showed only the initial (no photo was saved there) gets the photo now
+                        if (v) document.querySelectorAll('[data-avspan="' + uid.replace(/"/g, '') + '"]').forEach((sp) => { const im = document.createElement('img'); im.alt = ''; im.setAttribute('src', personAvatarSrc(v, '')); im.setAttribute('data-avuid', uid); sp.replaceWith(im); });
+                    } catch (e) { this._avC[uid] = { v: '', at: Date.now() - 540000 }; }
+                    this._avBusy.delete(uid);
+                }));
+                if (this._avQ.size) this._avT = setTimeout(() => this._avLoad(), 80);
+            },
+            // when I change my own photo, the next list drawn must not use the old copy of it
+            _avForget(uid) { if (this._avC) delete this._avC[uid]; },
             _liteImg(v) { return this._isDataImg(v) && v.length > 9000 ? '' : (v || ''); },
             _isDataImg(s) { return typeof s === 'string' && s.indexOf('data:image') === 0; },
             async _makeThumb(src, px) {
@@ -10823,7 +10865,7 @@
                     ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات حالياً</p>'
                     : incomingFriendRequests.map(r => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(r.fromAvatar, r.fromName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.fromUid)})">
+                            <img ${this.avAttr(r.fromUid, r.fromAvatar, r.fromName)} class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.fromUid)})">
                             <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(r.fromUid)})">${escapeHtml(r.fromName || 'طالب')}</div>
                             <button onclick="app.acceptFriendRequest(${jsArg(r.fromUid)})" class="btn-press px-3 py-1.5 rounded-lg bg-primary text-white text-xs font-bold">قبول</button>
                             <button onclick="app.rejectFriendRequest(${jsArg(r.fromUid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفض</button>
@@ -10834,7 +10876,7 @@
                         ? '<p class="text-xs theme-transition" style="color: var(--text2);">لا توجد طلبات مرسلة</p>'
                         : sentFriendRequestsList.map(r => `
                             <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                                <img src="${personAvatarSrc(r.toAvatar, r.toName)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.uid)})">
+                                <img ${this.avAttr(r.uid, r.toAvatar, r.toName)} class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(r.uid)})">
                                 <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(r.uid)})">${escapeHtml(r.toName || 'طالب')}</div>
                                 <button onclick="app.cancelFriendRequest(${jsArg(r.uid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">إلغاء</button>
                             </div>
@@ -10849,7 +10891,7 @@
                     empty.classList.add('hidden');
                     listContainer.innerHTML = friendsList.map(f => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(f.avatar, f.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(f.uid)})">
+                            <img ${this.avAttr(f.uid, f.avatar, f.name)} class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(f.uid)})">
                             <div class="flex-1 min-w-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(f.uid)})">
                                 <div class="text-sm font-bold theme-transition" style="color: var(--text);">${escapeHtml(f.name || 'طالب')}${this.vb(f.uid)}</div>
                                 <div class="text-xs theme-transition" style="color: ${(friendsPresence[f.uid] && friendsPresence[f.uid].online) ? '#16A34A' : 'var(--text2)'};">${this.presenceLabel(f.uid) || (f.studentNumber ? 'رقم: ' + escapeHtml(f.studentNumber) : '')}</div>
@@ -10866,7 +10908,7 @@
                     blockedSection.classList.toggle('hidden', blockedUsersList.length === 0);
                     blockedList.innerHTML = blockedUsersList.map(b => `
                         <div class="flex items-center gap-3 p-3 rounded-2xl border theme-transition" style="background-color: var(--surface); border-color: var(--border);">
-                            <img src="${personAvatarSrc(b.avatar, b.name)}" class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(b.uid)})">
+                            <img ${this.avAttr(b.uid, b.avatar, b.name)} class="w-10 h-10 rounded-full object-cover flex-shrink-0 cursor-pointer" onclick="app.openProfileFromFriendsList(${jsArg(b.uid)})">
                             <div class="flex-1 min-w-0 text-sm font-bold theme-transition cursor-pointer" style="color: var(--text);" onclick="app.openProfileFromFriendsList(${jsArg(b.uid)})">${escapeHtml(b.name || 'طالب')}</div>
                             <button onclick="app.unblockUser(${jsArg(b.uid)})" class="btn-press px-3 py-1.5 rounded-lg text-xs font-bold" style="background-color: var(--input-bg); color: var(--text2);">رفع الحظر</button>
                         </div>
@@ -12481,7 +12523,7 @@
                     onlineWrap.classList.toggle('hidden', online.length === 0);
                     onlineBox.innerHTML = online.map((f, i) => `
                         <button class="ms-on" style="animation-delay:${Math.min(i, 8) * 0.04}s" onclick="app.openChat(${jsArg(f.uid)})">
-                            <span class="ms-on-ava"><img src="${personAvatarSrc(f.avatar, f.name)}" alt=""><i></i></span>
+                            <span class="ms-on-ava"><img ${this.avAttr(f.uid, f.avatar, f.name)} alt=""><i></i></span>
                             <span>${escapeHtml(String(f.name || 'طالب').split(' ')[0])}</span>
                         </button>`).join('');
                     const oc = document.getElementById('msOnlineCount');
@@ -12515,7 +12557,7 @@
                     return `
                         <div class="ms-row${isUnread ? ' unread' : ''}${c.pinned ? ' pinned' : ''}" style="animation-delay:${Math.min(i, 10) * 0.04}s" onclick="app.openChat(${jsArg(c.otherUid)})">
                             <span class="ms-ava" onclick="event.stopPropagation(); app.openProfileFromChatsList(${jsArg(c.otherUid)})">
-                                <img src="${personAvatarSrc(c.otherAvatar, c.otherName)}" alt="${escapeHtml(c.otherName || '')}">${isOnline ? '<i title="متصل الآن"></i>' : ''}
+                                <img ${this.avAttr(c.otherUid, c.otherAvatar, c.otherName)} alt="${escapeHtml(c.otherName || '')}">${isOnline ? '<i title="متصل الآن"></i>' : ''}
                             </span>
                             <div class="ms-body">
                                 <div class="ms-top"><span class="ms-name">${escapeHtml(c.otherName || 'طالب')}${this.vb(c.otherUid)}</span><span class="ms-time">${clock(c.lastAt)}</span></div>

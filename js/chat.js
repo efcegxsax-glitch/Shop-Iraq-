@@ -73,7 +73,7 @@
         try { T.clearAt = Number(localStorage.getItem(keyCC(otherUid))) || 0; } catch (e) {}
         app.currentChatUid = otherUid;
         app.currentChatOther = { name: otherName || 'طالب', avatar: otherAvatar || '', studentNumber: otherStudentNumber || '', known: !!otherName };
-        if (!otherName || !otherAvatar) resolvePeer(otherUid);
+        resolvePeer(otherUid);
         app._chatOpenAt = Date.now();
         app.switchView('chatThreadView');
         paintHead();
@@ -165,7 +165,7 @@
             if (!T || T.uid !== uid) return;
             const pub = p.val() || {}, board = lb.val() || {}, o = app.currentChatOther || (app.currentChatOther = {});
             if (pub.n && (!o.known || !o.name || o.name === 'طالب')) { o.name = String(pub.n); o.known = true; }
-            if (!o.avatar && board.avatar) o.avatar = board.avatar;
+            if (board.avatar) o.avatar = board.avatar;   // the person's current photo, not the copy saved in the chat list
             if (!o.studentNumber && pub.s) o.studentNumber = String(pub.s);
             paintHead();
         } catch (e) { /* the chat works with the placeholder name */ }

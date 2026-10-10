@@ -36,7 +36,16 @@
     const MODES = { quiet: ['هادئ', { ask: 0, todo: 0, voice: 0, quick: 0 }], study: ['دراسة', { ask: 1, todo: 1, voice: 0, quick: 0 }], talk: ['سوالف', { ask: 0, todo: 0, voice: 1, quick: 1 }], all: ['الكل', { ask: 1, todo: 1, voice: 1, quick: 1 }] };
     const QUICK = [['ممتاز', 0], ['تمام', 0], ['وقّف شوية', 1], ['أعيد؟', 1], ['اشرحلي', 1], ['ما سمعت', 0]];
     const VOICE_STALE = 150000;
-    const avatar = (a, n) => a && isSafeImageUrl(a) ? `<img src="${esc(a)}" alt="">` : `<span>${esc(String(n || 'ط').trim().charAt(0))}</span>`;
+    // u = the person's uid: the saved copy shows at once and the person's current photo replaces it when it differs (app.avAttr in app.js)
+    const avatar = (a, n, u) => {
+        if (u && window.app && app.avAttr) {
+            const c = app._avC && app._avC[u], v = c && c.v ? c.v : a;
+            if (v && isSafeImageUrl(v)) return `<img ${app.avAttr(u, a, n)} alt="">`;
+            if (!c || Date.now() - c.at > 180000) app._avWant(u);
+            return `<span data-avspan="${esc(u)}">${esc(String(n || 'ط').trim().charAt(0))}</span>`;
+        }
+        return a && isSafeImageUrl(a) ? `<img src="${esc(a)}" alt="">` : `<span>${esc(String(n || 'ط').trim().charAt(0))}</span>`;
+    };
 
     // The YouTube player API, loaded once.
     let apiP = null;
@@ -1328,7 +1337,7 @@
             document.getElementById('walletModalContent').innerHTML = `
                 ${fr.length ? `<div class="yr-fr">${fr.map((f) => {
                     const inRoom = !!y.members[f.uid], sent = y.invited[f.uid];
-                    return `<div class="yr-fr-i"><span class="yr-av">${avatar(f.avatar, f.name)}</span><b>${esc(f.name || 'طالب')}</b>
+                    return `<div class="yr-fr-i"><span class="yr-av">${avatar(f.avatar, f.name, f.uid)}</span><b>${esc(f.name || 'طالب')}</b>
                         ${inRoom ? '<em>بالغرفة</em>' : `<button class="yr-btn${sent ? ' done' : ''}" ${sent ? 'disabled' : ''} onclick="app.yrSendInvite(${jsArg(f.uid)}, this)">${sent ? 'انرسلت' : 'ادعُ'}</button>`}</div>`;
                 }).join('')}</div>` : '<p class="yr-muted">ما عندك أصدقاء بالتطبيق بعد. ضيفهم من صفحة الأصدقاء، أو دزلهم الرابط.</p>'}
                 <button class="yr-menu-i" onclick="app.yrCopyLink()"><i data-lucide="share-2"></i>دز رابط الغرفة</button>`;
@@ -1423,7 +1432,7 @@
             if (now) now.innerHTML = item ? `
                 <div class="yr-now">
                     <div class="yr-now-t"><b>${esc(item.t || 'فيديو يوتيوب')}</b>${y.solo ? '<small class="solo">تشوفه لوحدك</small>' : `<small>${doneN} من ${mids.length} خلصوا هذا الفيديو</small>`}</div>
-                    <div class="yr-stack">${mids.slice(0, 6).map((u) => { const s = this._yrStatus(u, y.key)[0]; return `<span class="yr-av s-${s}" title="${esc(y.members[u].n)}">${avatar(y.members[u].a, y.members[u].n)}</span>`; }).join('')}</div>
+                    <div class="yr-stack">${mids.slice(0, 6).map((u) => { const s = this._yrStatus(u, y.key)[0]; return `<span class="yr-av s-${s}" title="${esc(y.members[u].n)}">${avatar(y.members[u].a, y.members[u].n, u)}</span>`; }).join('')}</div>
                 </div>
                 <div class="yr-acts">
                     ${y.solo ? '<button onclick="app.yrBackToGroup()"><i data-lucide="users"></i>ارجع للكل</button>' : ''}
@@ -1440,7 +1449,7 @@
                     const m = y.members[u], [s, label, pct] = this._yrStatus(u, y.key || cur), p = y.prog[u];
                     const nDone = keys.filter((k) => (y.done[u] || {})[k]).length;
                     return `<div class="yr-p s-${s}${u === this.authUid ? ' me-row' : ''}">
-                        <span class="yr-av">${avatar(m.a, m.n)}</span>
+                        <span class="yr-av">${avatar(m.a, m.n, u)}</span>
                         <div class="yr-p-b">
                             <div class="yr-p-t"><b>${esc(m.n)}${u === this.authUid ? ' (أنت)' : ''}</b>${u === y.meta.host ? '<em class="host">المضيف</em>' : ''}<small>${label}${p && p.k === (y.key || cur) && s !== 'done' ? ' . ' + clock(p.t) : ''}</small></div>
                             <div class="yr-prog"><i style="width:${pct}%"></i></div>
