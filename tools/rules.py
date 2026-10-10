@@ -771,7 +771,7 @@ rules = {
                                   s_max("newData.child('title')", 60), "newData.child('at').isNumber()"),
                 "cur": {".validate": "newData.isString() && newData.val().length <= 20"},
             },
-            "queue": {"$k": {".write": YR_HOST, ".validate": "!newData.exists() || (" + s_max("newData.child('v')", 11) + " && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
+            "queue": {"$k": {".write": ors(YR_HOST, ands(SIGNED, YR_MEMBER, "!data.exists()", "newData.child('by').val() == auth.uid"), ands(SIGNED, "!newData.exists()", "data.child('by').val() == auth.uid")), ".validate": "!newData.exists() || (" + s_max("newData.child('v')", 11) + " && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
                              "t": {".validate": s_max("newData", 100)}}},
             "members": {"$uid": {
                 ".write": ors(ADMIN, ands(OWNER, "root.child('ytRooms/' + $rid + '/meta').exists()", "!root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists()"),

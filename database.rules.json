@@ -945,7 +945,7 @@
         },
         "queue": {
           "$k": {
-            ".write": "(auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid)",
+            ".write": "((auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid) || (auth != null && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists() && !data.exists() && newData.child('by').val() == auth.uid) || (auth != null && !newData.exists() && data.child('by').val() == auth.uid))",
             ".validate": "!newData.exists() || (newData.child('v').isString() && newData.child('v').val().length <= 11 && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
             "t": {
               ".validate": "newData.isString() && newData.val().length <= 100"
