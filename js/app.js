@@ -12185,6 +12185,48 @@
                     set(ref(window.firebaseDb, 'pushPrefs/' + this.authUid), Object.keys(off).length ? off : null).catch(() => { this._pnSig = ''; });
                 }
             },
+            // the notification tone (Android app only): picked here, played by the phone itself when a push arrives, even with the app closed
+            NOTIF_SOUNDS: [['default', 'الافتراضي (نغمة الهاتف)'], ['chime', 'رنين'], ['drop', 'قطرة'], ['harp', 'قيثارة'], ['bell', 'جرس'], ['marimba', 'ماريمبا'], ['pop', 'فقاعة'], ['crystal', 'كريستال'], ['dingdong', 'دينغ دونغ'], ['beep', 'تنبيه خفيف'], ['silent', 'بدون صوت (اهتزاز فقط)']],
+            _nsOk() { const N = window.IspNative; return !!(N && typeof N.setSound === 'function'); },
+            _nsGet() { try { const v = localStorage.getItem('isp:notifSound'); return this.NOTIF_SOUNDS.some((x) => x[0] === v) ? v : 'default'; } catch (e) { return 'default'; } },
+            _nsRow() {
+                if (!this._nsOk()) return '';
+                const cur = this.NOTIF_SOUNDS.find((x) => x[0] === this._nsGet());
+                return `<button class="btn-press w-full mb-3 py-3 px-3 rounded-xl text-sm font-bold flex items-center gap-3 theme-transition" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.nsOpen()">
+                    <i data-lucide="music" class="w-5 h-5"></i><span class="flex-1 text-right">نغمة الإشعار</span><span class="text-xs font-normal" style="color: var(--text2);">${escapeHtml(cur[1])}</span></button>`;
+            },
+            nsOpen() {
+                const titleEl = document.getElementById('walletModalTitle'), content = document.getElementById('walletModalContent');
+                if (!content) return;
+                if (titleEl) titleEl.textContent = 'نغمة الإشعار';
+                const cur = this._nsGet();
+                content.innerHTML = `<p class="text-xs mb-3" style="color: var(--text2);">دوس على النغمة تسمعها وتنختار. تشتغل لما يوصلك إشعار وانت خارج التطبيق. اختيارك يخصك أنت بهذا الجهاز.</p>
+                    <div class="flex flex-col gap-2">${this.NOTIF_SOUNDS.map(([id, n]) => `
+                        <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg); ${id === cur ? 'box-shadow: inset 0 0 0 2px rgb(var(--p));' : ''}">
+                            <button class="btn-press flex-1 min-w-0 flex items-center gap-3 text-right" onclick="app.nsPick('${id}')">
+                                <span class="w-5 h-5 rounded-full flex-shrink-0" style="border: 2px solid rgb(var(--p)); ${id === cur ? 'background: rgb(var(--p));' : ''}"></span>
+                                <span class="text-sm font-bold" style="color: var(--text);">${n}</span>
+                            </button>
+                            ${id !== 'default' && id !== 'silent' ? `<button class="btn-press w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style="background: rgb(var(--p)); color: #fff;" onclick="app.nsPreview('${id}')" aria-label="استمع"><i data-lucide="play" class="w-4 h-4"></i></button>` : ''}
+                        </div>`).join('')}</div>
+                    <button class="btn-press w-full mt-3 py-2 rounded-xl text-xs" style="color: var(--text2);" onclick="app.openNotifPreferences()">رجوع</button>`;
+                document.getElementById('walletModal')?.classList.remove('hidden');
+                lucide.createIcons();
+            },
+            nsPreview(id) {
+                try {
+                    if (this._nsAudio) { this._nsAudio.pause(); }
+                    this._nsAudio = new Audio('assets/notif/' + id + '.wav');
+                    this._nsAudio.play().catch(() => {});
+                } catch (e) { /* no preview */ }
+            },
+            nsPick(id) {
+                if (!this.NOTIF_SOUNDS.some((x) => x[0] === id)) return;
+                try { localStorage.setItem('isp:notifSound', id); } catch (e) { /* kept natively anyway */ }
+                try { window.IspNative.setSound(id); } catch (e) { /* older app */ }
+                if (id !== 'default' && id !== 'silent') this.nsPreview(id);
+                this.nsOpen();
+            },
             // inside the phone app: is the system switch on, and a button to the phone's page where the pop-up on the screen is switched on
             _notifHelp() {
                 const N = window.IspNative;
@@ -12251,6 +12293,7 @@
                 content.innerHTML = `
                     <p class="text-xs mb-3 theme-transition" style="color: var(--text2);">اختر الإشعارات اللي تريد توصلك، واللي طفيتها ما توصلك بالهاتف ولا تظهر بقائمة الإشعارات.</p>
                     ${this._notifHelp()}
+                    ${this._nsRow()}
                     <button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pushCheck()">فحص الإشعارات وإرسال تجربة</button>
                     ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك: إعدادات الهاتف ثم التطبيقات ثم أكاديمي السادس ثم الإشعارات.</p>'
                         : perm === 'default' ? '<button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.enableWebPush()">فعّل إشعارات الهاتف حتى توصلك وانت خارج التطبيق</button>' : ''}
