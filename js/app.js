@@ -12479,6 +12479,18 @@
                         });
                     }
                     list.forEach((entry) => { lastSeenAt[entry.otherUid] = entry.lastAt || 0; });
+                    // the conversation that is open on the screen is being read: if the server still says "unread" (the list had not loaded
+                    // when the chat opened, or a message / missed call arrived meanwhile), clear it here so it never stays hanging
+                    if (this.currentView === 'chatThreadView' && !document.hidden) {
+                        list.forEach((entry) => {
+                            if (entry.unread && this.currentChatUid === entry.otherUid) {
+                                this._rdAt = this._rdAt || {};
+                                if (Date.now() - (this._rdAt[entry.otherUid] || 0) < 1500) return;
+                                this._rdAt[entry.otherUid] = Date.now();
+                                window.firebaseDbHelpers.update(ref(window.firebaseDb, 'userChats/' + this.authUid + '/' + entry.otherUid), { unread: false }).catch(() => {});
+                            }
+                        });
+                    }
                     firstLoad = false;
                     userChatsList.length = 0;
                     userChatsList.push(...list);
