@@ -193,7 +193,7 @@
                 </div>
                 <div class="yr-reacts">
                     ${Object.keys(REACTS).map((k) => `<button style="--c:${REACTS[k][2]}" onclick="app.yrReact('${k}')"><i data-lucide="${REACTS[k][0]}"></i>${REACTS[k][1]}</button>`).join('')}
-                    <button class="yr-speed-b sp" onclick="app.yrSpeed()"><i data-lucide="gauge"></i><b class="yr-speed-t">1x</b></button>
+                    <button class="yr-speed-b yr-sp" onclick="app.yrSpeed()"><i data-lucide="gauge"></i><b class="yr-speed-t">1x</b></button>
                 </div>
                 <div id="yrEarn" class="yr-earn"></div>
                 <div id="yrNow"></div>
