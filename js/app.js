@@ -1024,6 +1024,8 @@
                     if (typeof v.balance === 'number') this.currentUser.balance = v.balance;
                     if (typeof v.points === 'number') this.currentUser.points = v.points;
                     if (typeof v.gems === 'number') { this.currentUser.gems = v.gems; if (this._gmRefresh) this._gmRefresh(); }
+                    if (typeof v.wa === 'number') this.currentUser.wa = v.wa; else delete this.currentUser.wa;
+                    if (this.currentView === 'walletView') this._walletLockPaint();
                     // the profile fields the admin panel can edit (name, phone, governorate, branch, student number): taken from the server, so this phone
                     // does not write its old copy back at the next sync
                     let edited = false;
@@ -9704,10 +9706,55 @@
                 }, () => { this._ptsRateOn = false; });
             },
 
+            // the wallet can be a paid feature: the panel sets gemShop/cfg/wallet (diamonds). Above 0, a student opens it once with his diamonds
+            // (users/{uid}/wa), unless he already has a balance. No price = free for everyone, as before.
+            _listenGemCfg() {
+                if (this._gemCfgOn || !window.firebaseDb) return;
+                this._gemCfgOn = true;
+                const { ref, onValue } = window.firebaseDbHelpers;
+                onValue(ref(window.firebaseDb, 'gemShop/cfg'), (snap) => {
+                    this._gemCfg = snap.exists() ? snap.val() : {};
+                    if (this.currentView === 'walletView') this._walletLockPaint();
+                    if (this._gmRefresh) this._gmRefresh();
+                }, () => { this._gemCfgOn = false; });
+            },
+            walletPrice() { const n = Number(this._gemCfg && this._gemCfg.wallet); return n > 0 ? Math.round(n) : 0; },
+            walletLocked() {
+                const cu = this.currentUser;
+                return this.walletPrice() > 0 && !!cu && !(Number(cu.wa) > 0) && !(numOr0(cu.balance) > 0);
+            },
+            // true (and a message) when the wallet is locked: the entry points to money stop here
+            _walletGate() {
+                if (!this.walletLocked()) return false;
+                this.showToast('فعّل محفظتك أول من متجر الماس');
+                if (this.currentView !== 'walletView') this.goToWallet();
+                return true;
+            },
+            _walletLockPaint() {
+                const lock = document.getElementById('walletLock');
+                if (!lock) return;
+                const locked = this.walletLocked();
+                lock.classList.toggle('hidden', !locked);   // while it shows, CSS hides the wallet's own content
+                if (!locked) return;
+                const price = this.walletPrice(), have = numOr0(this.currentUser && this.currentUser.gems);
+                lock.innerHTML = `<div class="wl-lock">
+                    <span class="wl-lock-ic"><i data-lucide="wallet"></i></span>
+                    <b>محفظتك مقفولة</b>
+                    <p>فعّلها مرة وحدة بالماس، وتبقى لك دائماً: رصيد وتحويل وإيداع بالأكواد واستبدال النقاط.</p>
+                    <div class="wl-lock-p">${gemSvg(22)}<span>${price.toLocaleString('en-US')}</span><small>رصيدك ${have.toLocaleString('en-US')}</small></div>
+                    <button class="wl-lock-b" onclick="app.walletActivate()">فعّل المحفظة</button>
+                    <button class="wl-lock-s" onclick="app.goToGems()">متجر الماس واشحن الماس</button>
+                </div>`;
+                try { lucide.createIcons(); } catch (e) {}
+            },
+            walletActivate() { this._need('gems').then(() => this.gmBuyWallet()).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية')); },
+
             goToWallet() {
                 this._listenPtsRate();
+                this._listenGemCfg();
                 this.loadWallet();
                 this.switchView('walletView');
+                this._walletLockPaint();
             },
 
             loadWallet() {
@@ -9895,6 +9942,7 @@
                     this.goToAuth('login');
                     return;
                 }
+                if (this._walletGate()) return;
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تعبئة بكود';
                 const content = document.getElementById('walletModalContent');
@@ -10389,6 +10437,7 @@
             transferReceiver: null,
 
             openTransferModal() {
+                if (this._walletGate()) return;
                 const titleEl = document.getElementById('walletModalTitle');
                 if (titleEl) titleEl.textContent = 'تحويل الرصيد';
                 const content = document.getElementById('walletModalContent');
@@ -11678,6 +11727,7 @@
                     this.goToAuth('login');
                     return;
                 }
+                if (this._walletGate()) return;
                 this.renderPointsStore();
                 this.switchView('pointsStoreView');
                 lucide.createIcons();

@@ -59,6 +59,11 @@
                 ${vBtn}
                 <p class="gm-note">إذا خلصت المدة تختفي العلامة، وتكدر تجددها وقت ما تريد. التجديد قبل ما تخلص يضيف الأيام على الباقي.</p>
             </section>
+            ${app.walletPrice() > 0 ? `<section class="gm-card">
+                <div class="gm-ch"><span class="gm-ci" style="--c:#10B981"><i data-lucide="wallet"></i></span><div><b>تفعيل المحفظة (رصيدي)</b><small>مرة وحدة وتبقى لك: رصيد، تحويل لأصدقائك، إيداع بالأكواد واستبدال النقاط</small></div></div>
+                <div class="gm-meta">${app.walletLocked() ? '<em>محفظتك مقفولة</em>' : '<em class="ok">محفظتك مفعّلة</em>'}</div>
+                <button class="gm-btn" ${app.walletLocked() && !busy ? '' : 'disabled'} onclick="app.gmBuyWallet()">${gem(18)}<span>${app.walletLocked() ? 'فعّل المحفظة ' + AR(app.walletPrice()) : 'مفعّلة'}</span></button>
+            </section>` : ''}
             <section class="gm-card">
                 <div class="gm-ch"><span class="gm-ci" style="--c:#7C3AED"><i data-lucide="hash"></i></span><div><b>ايدي مميز</b><small>رقم قصير وأنيق يصير رقمك بالتطبيق، وما يكدر أحد غيرك ياخذه</small></div></div>
                 <div class="gm-now">رقمك الحالي: <b dir="ltr">${esc(sn || '-')}</b></div>
@@ -69,14 +74,14 @@
                 <p class="gm-note">الرقم من 3 إلى 8 أرقام. رقمك القديم يتحرر. كل تغيير له سعره.</p>
             </section>
             ${logList.length ? `<section class="gm-card"><div class="gm-ch"><span class="gm-ci" style="--c:#16A34A"><i data-lucide="receipt"></i></span><div><b>آخر مشترياتك</b></div></div>
-                ${logList.map((l) => `<div class="gm-log"><span>${l.k === 'verify' ? 'توثيق الحساب' : 'ايدي مميز ' + esc(l.x || '')}</span><b>${gem(13)}${AR(l.g)}</b><small>${esc(date(l.at))}</small></div>`).join('')}</section>` : ''}
+                ${logList.map((l) => `<div class="gm-log"><span>${l.k === 'verify' ? 'توثيق الحساب' : l.k === 'wallet' ? 'تفعيل المحفظة' : 'ايدي مميز ' + esc(l.x || '')}</span><b>${gem(13)}${AR(l.g)}</b><small>${esc(date(l.at))}</small></div>`).join('')}</section>` : ''}
             <p class="gm-foot">الماس عملة داخل التطبيق بس، وما ينسحب نقداً.</p>`;
         try { lucide.createIcons(); } catch (e) {}
         if (idState.n) check();
     }
 
     Object.assign(app, {
-        gmOpen() { listen(); paint(); app._gmRefresh = () => { if (app.currentView === 'gemsView') paint(); }; },
+        gmOpen() { app._listenGemCfg(); listen(); paint(); app._gmRefresh = () => { if (app.currentView === 'gemsView') paint(); }; },
 
         // ---------- buying the verification ----------
         async gmBuyVerify() {
@@ -99,6 +104,30 @@
             } catch (e) {
                 console.warn('gem verify', e);
                 app.showToast(/permission|denied/i.test(String(e && (e.code || e.message))) ? 'ما تمت العملية. تأكد إن المتجر مفعّل وإن الماس يكفي' : 'ما تمت العملية، حاول مرة ثانية');
+            }
+            busy = false; paint();
+        },
+
+        // ---------- the wallet (رصيدي) as a paid feature: once, with the panel's price in diamonds ----------
+        async gmBuyWallet() {
+            if (busy) return;
+            const uid = app.authUid, wp = app.walletPrice();
+            if (!uid || wp <= 0) return;
+            if (!app.walletLocked()) { app.showToast('محفظتك مفعّلة'); return; }
+            const ok = await app.ask({ icon: 'wallet', tone: 'primary', title: 'تفعّل محفظتك؟', text: 'تدفع ' + AR(wp) + ' ماس مرة وحدة، وتبقى المحفظة لك دائماً.', ok: 'تأكيد الدفع' });
+            if (!ok) return;
+            busy = true; paint();
+            try {
+                const g = num((await H().get(R('users/' + uid + '/gems'))).val());
+                if (g < wp) { app.showToast('ماسك ما يكفي (' + AR(g) + ' من ' + AR(wp) + ')'); busy = false; paint(); this.gmTopup(); return; }
+                const t = Date.now(), id = newId();
+                await H().update(H().ref(window.firebaseDb), { ['users/' + uid + '/gems']: g - wp, ['users/' + uid + '/wa']: t, ['gemLog/' + uid + '/' + id]: { k: 'wallet', g: wp, at: t } });
+                app.currentUser.gems = g - wp; app.currentUser.wa = t; app.saveUserData && app.saveUserData();
+                app.showToast('تفعّلت محفظتك');
+                if (app.currentView === 'walletView') { app._walletLockPaint(); app.renderWalletBalance(); } else if (app.currentView !== 'gemsView') app.goToWallet();
+            } catch (e) {
+                console.warn('gem wallet', e);
+                app.showToast(/permission|denied/i.test(String(e && (e.code || e.message))) ? 'ما تمت العملية. تأكد إن الماس يكفي' : 'ما تمت العملية، حاول مرة ثانية');
             }
             busy = false; paint();
         },

@@ -130,9 +130,13 @@ BAL_REDEEM = ands(
     f"{P_OLD} - {P_NEW} >= 1000",
     f"(newData.val() - data.val()) * 1325 * {PTS_RATE} <= ({P_OLD} - {P_NEW}) * 1.02",
 )
+# the wallet can be made a paid feature: when gemShop/cfg/wallet is a number above 0, money can only come IN once the student has activated it
+# (users/{uid}/wa, bought with diamonds) or already has a balance (so nobody loses what he has); with no price set the wallet is free as before
+WALLET_OK = ("(!(root.child('gemShop/cfg/wallet').isNumber() && root.child('gemShop/cfg/wallet').val() > 0) || newData.parent().child('wa').isNumber()"
+             " || (data.exists() && data.val() > 0))")
 BALANCE = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 100000",
-    ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", BAL_TOPUP, BAL_IN, BAL_REDEEM),
+    ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", ands(WALLET_OK, ors(BAL_TOPUP, BAL_IN, BAL_REDEEM))),
 )
 
 # ---------- diamonds (users/{uid}/gems) ----------
@@ -408,6 +412,10 @@ rules = {
             "balance": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": BALANCE},
             "pAt": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": PAT},
             "gems": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": GEMS},
+            # the wallet's activation: once, and only with the diamonds of the price in the same write
+            "wa": {".write": ors(ands(OWNER, "newData.exists()", "!data.exists()"), ADMIN),
+                   ".validate": ors(ADMIN, ands("newData.isNumber()", "root.child('gemShop/cfg/wallet').isNumber()", "root.child('gemShop/cfg/wallet').val() > 0",
+                                              "(root.child('users/' + $uid + '/gems').isNumber() ? root.child('users/' + $uid + '/gems').val() : 0) - newData.parent().child('gems').val() >= root.child('gemShop/cfg/wallet').val()")) },
             "gc": {".write": ors(OWNER, ADMIN), ".validate": "newData.isString() && newData.val().matches(/^gemCodes\\/[A-Z0-9-]{4,24}$/)"},
             "pc": {".write": ors(OWNER, ADMIN), ".validate": s_max('newData', 200)},
             "ps": {".write": ors(OWNER, ADMIN), ".validate": s_max('newData', 120)},
@@ -555,7 +563,7 @@ rules = {
         "$uid": {
             ".read": ors(OWNER, ADMIN),
             "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")),
-                    ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['k', 'g', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id)$/)", "newData.child('g').isNumber()", "newData.child('at').isNumber()", "(!newData.child('x').exists() || " + s_max("newData.child('x')", 40) + ")") + ")"},
+                    ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['k', 'g', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id|wallet)$/)", "newData.child('g').isNumber()", "newData.child('at').isNumber()", "(!newData.child('x').exists() || " + s_max("newData.child('x')", 40) + ")") + ")"},
         },
     },
     "verified": {
