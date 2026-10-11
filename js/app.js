@@ -9737,13 +9737,25 @@
                 lock.classList.toggle('hidden', !locked);   // while it shows, CSS hides the wallet's own content
                 if (!locked) return;
                 const price = this.walletPrice(), have = numOr0(this.currentUser && this.currentUser.gems);
+                const miss = Math.max(0, price - have), pct = Math.min(100, Math.round(have / price * 100)), n = (v) => v.toLocaleString('en-US');
+                const perks = [['send', 'حوّل رصيد لأصدقائك'], ['ticket', 'عبّي رصيدك بالأكواد'], ['gift', 'بدّل نقاطك برصيد'], ['infinity', 'مرة وحدة وتبقى لك للأبد']];
                 lock.innerHTML = `<div class="wl-lock">
-                    <span class="wl-lock-ic"><i data-lucide="wallet"></i></span>
-                    <b>محفظتك مقفولة</b>
-                    <p>فعّلها مرة وحدة بالماس، وتبقى لك دائماً: رصيد وتحويل وإيداع بالأكواد واستبدال النقاط.</p>
-                    <div class="wl-lock-p">${gemSvg(22)}<span>${price.toLocaleString('en-US')}</span><small>رصيدك ${have.toLocaleString('en-US')}</small></div>
-                    <button class="wl-lock-b" onclick="app.walletActivate()">فعّل المحفظة</button>
-                    <button class="wl-lock-s" onclick="app.goToGems()">متجر الماس واشحن الماس</button>
+                    <div class="wl-lk-card" aria-hidden="true">
+                        <span class="wl-lk-aura"></span>
+                        <div class="wl-lk-top"><b>محفظة الطالب</b><i data-lucide="lock"></i></div>
+                        <div class="wl-lk-bal">$ ••••</div><div class="wl-lk-sub">≈ •••• د.ع</div>
+                        <div class="wl-lk-gem">${gemSvg(54)}</div>
+                    </div>
+                    <h3>افتح محفظتك</h3>
+                    <p class="wl-lk-p">فعّلها بالماس وتصير لك محفظة كاملة</p>
+                    <ul class="wl-lk-perks">${perks.map(([ic, t]) => `<li><span><i data-lucide="${ic}"></i></span>${t}</li>`).join('')}</ul>
+                    <div class="wl-lk-price">
+                        <div class="wl-lk-pr1"><span>سعر التفعيل</span><b>${gemSvg(26)}${n(price)}</b></div>
+                        <div class="wl-lk-bar"><i style="width:${pct}%"></i></div>
+                        <div class="wl-lk-pr2"><span>رصيدك ${gemSvg(14)} ${n(have)}</span>${miss ? `<em>ناقصك ${n(miss)}</em>` : '<em class="ok">يكفي</em>'}</div>
+                    </div>
+                    ${miss ? `<button class="wl-lock-b" onclick="app.goToGems()">${gemSvg(20)}<span>اشحن الماس</span></button>` : `<button class="wl-lock-b go" onclick="app.walletActivate()"><i data-lucide="unlock"></i><span>فعّل المحفظة الآن</span></button>`}
+                    ${miss ? '' : '<button class="wl-lock-s" onclick="app.goToGems()">متجر الماس</button>'}
                 </div>`;
                 try { lucide.createIcons(); } catch (e) {}
             },
