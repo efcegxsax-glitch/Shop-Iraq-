@@ -78,7 +78,7 @@
         } catch (e) { logo = ''; }
     }
     async function openPaper(id) {
-        const x = EX.find((e) => e.id === id); if (!x) return;
+        const x = id && typeof id === 'object' ? id : EX.find((e) => e.id === id); if (!x) return;
         await logoData();
         cur = x; pages = paginate(x);
         let w = $('exPaper'); if (w) w.remove();
@@ -197,6 +197,8 @@
         exTab(t) { S.tab = t; paint(); },
         exYear(y) { S.year = y; paint(); },
         exBack() { if (S.sub) { S.sub = ''; paint(); return true; } return false; },
+        // a paper that is not in the list: the student's own exam made from his handout (Premium, js/premai.js)
+        exOpenLocal(x) { openPaper(x).catch((e) => { console.warn(e); this.showToast('ما انفتحت الورقة'); }); },
         exOpen2(id) { openPaper(id).catch((e) => { console.warn(e); this.showToast('ما انفتحت الورقة'); }); },
         exClosePaper() { $('exPaper')?.remove(); pages = []; },
         async exSave(kind) {

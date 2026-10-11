@@ -950,6 +950,14 @@
             if (mind) setTimeout(() => { const c = toW(W / 2, Hh / 2); newNode(null, c); }, 450);
         },
         ntExportPdf() { exportPdf(); },
+        // for the cards made from notes (Premium): the notebooks, and a page of one as a JPEG ('' for an empty page)
+        async ntNotesForCards() { NOTES = await Store.all(); return NOTES.map((n) => ({ id: n.id, title: n.title || 'دفتر بدون اسم', pages: (n.pages || []).length, ts: n.ts || 0 })).sort((a, b) => b.ts - a.ts); },
+        async ntPageJpeg(id, idx) {
+            let n = NOTES.find((x) => x.id === id); if (!n) { NOTES = await Store.all(); n = NOTES.find((x) => x.id === id); }
+            const pg = n && n.pages && n.pages[idx];
+            if (!pg || !contentBox(pg)) return '';
+            return snapshot(pg, 1600, 'jpeg', 30).toDataURL('image/jpeg', 0.82).split(',')[1];
+        },
         ntSearch(v) { query = String(v || ''); const g = $('ntGrid'); if (g) { g.innerHTML = gridHtml(); try { lucide.createIcons(); } catch (e) {} } },
         ntFolder(f) { curFolder = f || ''; listRender(); },
         async ntNewFolder() {
