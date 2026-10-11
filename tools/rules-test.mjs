@@ -296,6 +296,26 @@ await ok('keep my number (the same claim again)', set(ref(db('g3'), 'numIndex/77
 await ok('a purchase is logged', set(ref(db('g3'), 'gemLog/g3/p1'), { k: 'id', g: 50, at: now, x: '777' }));
 await no('a purchase is logged for someone else', set(ref(db('g3'), 'gemLog/g1/p2'), { k: 'id', g: 50, at: now }));
 
+// ---- the wallet as a paid feature (gemShop/cfg/wallet = price in diamonds)
+await seed('users/w1', { points: 20000, balance: 0, gems: 40, studentNumber: '70707' });
+await seed('users/w2', { points: 20000, balance: 5, gems: 0, studentNumber: '80808' });
+await seed('topupCodes/WL-TEST-0001', { value: 1325, used: false });
+await ok('no wallet price: a top-up works as before', U('w1', { 'topupCodes/WL-TEST-0001/used': true, 'topupCodes/WL-TEST-0001/usedBy': 'w1', 'users/w1/balance': 1, 'users/w1/bt': 'WL-TEST-0001' }));
+await seed('users/w1/balance', 0);
+await seed('topupCodes/WL-TEST-0001', { value: 1325, used: false });
+await seed('gemShop/cfg/wallet', 25);
+await no('wallet price set: a top-up before activation', U('w1', { 'topupCodes/WL-TEST-0001/used': true, 'topupCodes/WL-TEST-0001/usedBy': 'w1', 'users/w1/balance': 1, 'users/w1/bt': 'WL-TEST-0001' }));
+await no('activate without paying', set(ref(db('w1'), 'users/w1/wa'), now));
+await no('activate paying less than the price', U('w1', { 'users/w1/wa': now, 'users/w1/gems': 30 }));
+await no('activate for someone else', U('w1', { 'users/w2/wa': now, 'users/w1/gems': 15 }));
+await ok('activate the wallet with 25 diamonds', U('w1', { 'users/w1/wa': now, 'users/w1/gems': 15, 'gemLog/w1/wl1': { k: 'wallet', g: 25, at: now } }));
+await no('activate a second time', U('w1', { 'users/w1/wa': now + 1, 'users/w1/gems': 0 }));
+await ok('after activation a top-up works', U('w1', { 'topupCodes/WL-TEST-0001/used': true, 'topupCodes/WL-TEST-0001/usedBy': 'w1', 'users/w1/balance': 1, 'users/w1/bt': 'WL-TEST-0001' }));
+await seed('topupCodes/WL-TEST-0002', { value: 1325, used: false });
+await ok('a student who already has a balance keeps using it', U('w2', { 'topupCodes/WL-TEST-0002/used': true, 'topupCodes/WL-TEST-0002/usedBy': 'w2', 'users/w2/balance': 6, 'users/w2/bt': 'WL-TEST-0002' }));
+await ok('the panel can activate a wallet for free', set(ref(db('adm'), 'users/w2/wa'), now));
+await seed('gemShop/cfg/wallet', null);
+
 // auction
 await seed('auction/current', { id: 'A1', endsAt: now + 3600000, title: 'x' });
 await seed('users/b1', { points: 1000, balance: 0 });
