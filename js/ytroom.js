@@ -12,6 +12,8 @@
 //              /chat/{id} {u, n, m, at, k?, s?}       k + s = a mark at a moment of a video
 // ytInvites/{uid}/{rid} {from, fn, t, at}
 (function () {
+    // a password room keeps only the hash of "room id : password" (the password itself never leaves the phone)
+    const pwHash = async (rid, pw) => Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rid + ':' + pw))), (b) => b.toString(16).padStart(2, '0')).join('');
     const MAX_MEMBERS = 12, RECENT_KEY = 'isp_yr_recent', DONE_AT = 0.95;
     // Points: EVERY seconds of real watching pays PER, finishing a video pays DONE_PTS, the
     // whole room finishing pays GROUP_PTS, at most DAY_CAP a day. "Real" = playing, screen on,
@@ -88,6 +90,7 @@
                 <div class="yr-card">
                     <input id="yrTitle" maxlength="40" placeholder="اسم الغرفة، مثلاً: فيزياء الفصل الثالث">
                     <input id="yrFirst" placeholder="رابط أول فيديو من يوتيوب (اختياري)" dir="ltr">
+                    ${this._yrPremOpts()}
                     <button class="yr-btn wide" onclick="app.yrCreate()"><i data-lucide="sparkles"></i>سوّي الغرفة</button>
                 </div>
                 ${recent.length ? `<div class="yr-h"><i data-lucide="history"></i>غرفك</div>${recent.map((r) => `
@@ -99,6 +102,14 @@
                 </div>`;
             this._yrHeader('غرفة يوتيوب جماعية', 'ادرسوا سوا وكل واحد بسرعته');
             lucide.createIcons();
+        },
+
+        // seats and a password for the room: Premium only (a locked row for the others)
+        _yrPremOpts() {
+            if (!this.premFeatureOn('rooms')) return '';
+            if (!this.premOn('rooms')) return `<button class="yr-prem lock" onclick="app.premGate('rooms')"><i data-lucide="lock"></i><span><b>غرفة مميزة</b><small>مقاعد أكثر وكلمة سر وتثبيت فيديو الدرس مع Premium</small></span></button>`;
+            return `<div class="yr-prem"><label><span>عدد المقاعد</span><select id="yrCap">${[12, 20, 30, 40].map((n) => `<option value="${n}">${n}</option>`).join('')}</select></label>
+                <label><span>كلمة سر للغرفة (اختياري، 6 خانات أو أكثر)</span><input id="yrPw" maxlength="30" autocomplete="off" dir="ltr" placeholder="بدون كلمة سر = غرفة مفتوحة"></label></div>`;
         },
 
         _yrHeader(t, s) {
@@ -137,11 +148,19 @@
             if (raw && !first) { this.showToast('الرابط مو رابط فيديو يوتيوب، انسخه من زر المشاركة بيوتيوب'); return; }
             const rid = newId(), now = Date.now(), u = this.currentUser || {};
             const room = { meta: { host: this.authUid, title, at: now }, members: { [this.authUid]: { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: now } } };
+            // Premium: seats and a password (the database rules refuse both for a student who is not premium)
+            let pwh = '';
+            if (!opts && this.premOn('rooms') && await this.premVerify()) {
+                const cap = Number(document.getElementById('yrCap')?.value) || 12, pw = String(document.getElementById('yrPw')?.value || '').trim();
+                if (pw && pw.length < 6) { this.showToast('كلمة السر 6 خانات أو أكثر'); return; }
+                if (cap > 12) room.meta.cap = cap;
+                if (pw) { room.meta.pv = true; pwh = await pwHash(rid, pw); if (!room.meta.cap) room.meta.cap = 12; }
+            }
             if (first) { const k = 'q' + now.toString(36); room.queue = { [k]: { v: first, t: '', by: this.authUid, at: now } }; room.meta.cur = k; }
             if (btn) { btn.disabled = true; btn.innerHTML = '<span class="yr-spin"></span>دا تنسوي الغرفة...'; }
             try {
                 // a write the server never answers (no internet) should not leave the button spinning
-                await Promise.race([H().set(R('ytRooms/' + rid), room), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]);
+                await Promise.race([pwh ? H().update(H().ref(window.firebaseDb), { ['ytRooms/' + rid]: room, ['ytRoomPw/' + rid]: pwh }) : H().set(R('ytRooms/' + rid), room), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))]);
                 this._yrRemember(rid, title);
                 this.yrOpen(rid);
                 setTimeout(() => this.yrInvite(), 600);
@@ -186,9 +205,22 @@
                 if (!meta.exists()) { this.showToast('هاي الغرفة انسدت'); this._yrRemember(rid, '', true); this.yrDecline(rid); if (this.currentView === 'ytRoomView') this.yrHome(); return; }
                 if (kick.exists()) { this.showToast('ما تكدر تدخل هاي الغرفة'); this.yrDecline(rid); return; }
                 if (!mem.exists()) {
-                    if (Object.keys(all.val() || {}).length >= MAX_MEMBERS) { this.showToast('الغرفة مليانة (' + MAX_MEMBERS + ' طلاب)'); return; }
-                    const u = this.currentUser || {};
-                    await H().set(R('ytRooms/' + rid + '/members/' + this.authUid), { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: Date.now() });
+                    const cap = Math.max(MAX_MEMBERS, Math.min(40, Number(meta.val().cap) || MAX_MEMBERS));
+                    if (Object.keys(all.val() || {}).length >= cap) { this.showToast('الغرفة مليانة (' + cap + ' طلاب)'); return; }
+                    const u = this.currentUser || {}, entry = { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: Date.now() };
+                    if (meta.val().pv === true) {
+                        // a password room: the hash comes with the invite, or from the password he types
+                        const inv = (this._yrInvites || []).find((x) => x.rid === rid);
+                        let proof = inv && /^[a-f0-9]{64}$/.test(String(inv.k || '')) ? inv.k : '';
+                        if (!proof) {
+                            const pw = await this.ask({ icon: 'lock', tone: 'primary', title: 'غرفة بكلمة سر', text: 'اكتب كلمة سر الغرفة حتى تدخل.', ok: 'ادخل', input: 'كلمة السر' });
+                            if (!pw) return;
+                            proof = await pwHash(rid, String(pw).trim());
+                        }
+                        try { await H().update(H().ref(window.firebaseDb), { ['ytRooms/' + rid + '/members/' + this.authUid]: entry, ['ytRoomJoin/' + rid + '/' + this.authUid]: proof }); }
+                        catch (e) { this.showToast(/permission|denied/i.test(String(e && (e.code || e.message))) ? 'كلمة السر غلط' : 'ما كدرت أدخل، حاول مرة ثانية'); return; }
+                        H().remove(R('ytRoomJoin/' + rid + '/' + this.authUid)).catch(() => {});
+                    } else await H().set(R('ytRooms/' + rid + '/members/' + this.authUid), entry);
                 }
                 this.yrDecline(rid);
                 this._yrRemember(rid, meta.val().title);
@@ -1283,6 +1315,22 @@
             if (!y || y.meta.host !== this.authUid) return;
             H().set(R('ytRooms/' + y.rid + '/meta/cur'), k).catch(() => {});
         },
+        // Premium: the host pins the lesson video; everybody sees it at the top of the room with a play button
+        async yrPin(on) {
+            const y = this._yr;
+            if (!y || y.meta.host !== this.authUid) return;
+            if (!on) { H().remove(R('ytRooms/' + y.rid + '/meta/pin')).catch(() => {}); return; }
+            if (!(await this.premGate('rooms'))) return;
+            const it = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null);
+            if (!it || !it.v) { this.showToast('شغّل فيديو أول حتى تثبته'); return; }
+            H().set(R('ytRooms/' + y.rid + '/meta/pin'), { v: it.v, t: String(it.t || '').slice(0, 100) }).then(() => this.showToast('انثبت فيديو الدرس')).catch(() => this.showToast('ما انثبت، تأكد من الاشتراك'));
+        },
+        yrPlayPin() {
+            const y = this._yr, pin = y && y.meta.pin;
+            if (!pin || !pin.v) return;
+            const k = Object.keys(y.queue).find((q) => y.queue[q].v === pin.v);
+            if (k) this.yrPick(k); else if (y.meta.host === this.authUid) this.yrAddVideo(pin.v, pin.t || '', true); else this.yrSolo(pin.v, pin.t || '');
+        },
         yrBackToGroup() { const y = this._yr; if (!y) return; y.solo = false; this._yrFollow(); },
         yrNext() {
             const y = this._yr;
@@ -1314,6 +1362,7 @@
                 <button class="yr-menu-i" onclick="app.closeWalletModal(); app.yrInvite()"><i data-lucide="user-plus"></i>ادعُ أصدقاء</button>
                 <button class="yr-menu-i" onclick="app.yrCopyLink()"><i data-lucide="link"></i>انسخ رابط الغرفة</button>
                 <button class="yr-menu-i" onclick="app.yrFeatMenu()"><i data-lucide="sliders-horizontal"></i>ميزات الغرفة (تشغيل وإطفاء)</button>
+                ${host && this.premFeatureOn('rooms') ? `<button class="yr-menu-i" onclick="app.closeWalletModal(); app.yrPin(true)"><i data-lucide="${this.premOn('rooms') ? 'pin' : 'lock'}"></i>ثبّت الفيديو الحالي كفيديو الدرس</button>` : ''}
                 ${host ? '<button class="yr-menu-i red" onclick="app.yrEnd()"><i data-lucide="power"></i>سد الغرفة للكل</button>'
                     : '<button class="yr-menu-i red" onclick="app.yrLeave()"><i data-lucide="log-out"></i>اطلع من الغرفة</button>'}`;
             document.getElementById('walletModal').classList.remove('hidden');
@@ -1348,7 +1397,8 @@
         yrSendInvite(uid, btn) {
             const y = this._yr, u = this.currentUser || {};
             if (!y) return;
-            H().set(R('ytInvites/' + uid + '/' + y.rid), { from: this.authUid, fn: String(u.fullName || 'طالب').slice(0, 40), t: String(y.meta.title || '').slice(0, 40), at: Date.now() }).then(() => {
+            const send = (k) => H().set(R('ytInvites/' + uid + '/' + y.rid), Object.assign({ from: this.authUid, fn: String(u.fullName || 'طالب').slice(0, 40), t: String(y.meta.title || '').slice(0, 40), at: Date.now() }, k ? { k } : {}));
+            (y.meta.pv === true ? H().get(R('ytRoomPw/' + y.rid)).then((sn) => send(sn.val())) : send('')).then(() => {
                 (y.invited = y.invited || {})[uid] = 1;
                 // also a message in the friends' chat: it carries the room card, and the message push reaches the phone even when the app is closed
                 this._yrChatInvite(uid, y.rid, y.meta.title);
@@ -1429,7 +1479,8 @@
             // strip under the player: what's on, who finished, and the buttons that matter now
             const item = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null), now = document.getElementById('yrNow');
             const hp = y.prog[y.meta.host], behind = !host && hp && hp.k === y.key && this._yrState() && Math.abs(hp.t - this._yrState().t) > 20;
-            if (now) now.innerHTML = item ? `
+            const pin = y.meta.pin && y.meta.pin.v ? `<div class="yr-pin"><i data-lucide="pin"></i><span>فيديو الدرس: <b>${esc(y.meta.pin.t || 'فيديو يوتيوب')}</b></span><button onclick="app.yrPlayPin()">شغّله</button>${host ? '<button class="x" onclick="app.yrPin(false)" aria-label="إلغاء التثبيت"><i data-lucide="x"></i></button>' : ''}</div>` : '';
+            if (now) now.innerHTML = pin + (item ? `
                 <div class="yr-now">
                     <div class="yr-now-t"><b>${esc(item.t || 'فيديو يوتيوب')}</b>${y.solo ? '<small class="solo">تشوفه لوحدك</small>' : `<small>${doneN} من ${mids.length} خلصوا هذا الفيديو</small>`}</div>
                     <div class="yr-stack">${mids.slice(0, 6).map((u) => { const s = this._yrStatus(u, y.key)[0]; return `<span class="yr-av s-${s}" title="${esc(y.members[u].n)}">${avatar(y.members[u].a, y.members[u].n, u)}</span>`; }).join('')}</div>
@@ -1438,7 +1489,7 @@
                     ${y.solo ? '<button onclick="app.yrBackToGroup()"><i data-lucide="users"></i>ارجع للكل</button>' : ''}
                     ${behind ? '<button onclick="app.yrCatchUp()"><i data-lucide="fast-forward"></i>الحق المضيف</button>' : ''}
                     ${host && cur && doneN === mids.length && keys.indexOf(cur) < keys.length - 1 ? '<button class="go" onclick="app.yrNext()"><i data-lucide="skip-back"></i>كلكم خلصتوا، شغّل الجاي</button>' : ''}
-                </div>` : '';
+                </div>` : '');
 
             // marks on the timeline of the video I'm watching
             const st = this._yrState(), marks = document.getElementById('yrMarks'), d = st && st.d;

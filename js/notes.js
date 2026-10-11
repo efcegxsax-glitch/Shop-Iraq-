@@ -819,14 +819,89 @@
 
     const nowNew = { bg: 'ruled', col: '#ffffff' };
     // ---------- the list of notebooks ----------
+    let curFolder = '', query = '';
+    const foldersList = () => { const set = new Set((SET.folders || []).filter((f) => typeof f === 'string' && f)); NOTES.forEach((n) => { if (n.folder) set.add(n.folder); }); return Array.from(set).slice(0, 40); };
+    // the text of a notebook for the search: its title and every text written on its pages (cached until it changes)
+    const textOf = (n) => {
+        if (n._tx && n._txAt === n.ts) return n._tx;
+        let t = String(n.title || '');
+        try { (n.pages || []).forEach((pg) => (pg.objs || []).forEach((o) => { if (o && typeof o.s === 'string') t += ' ' + o.s; })); } catch (e) {}
+        Object.defineProperty(n, '_tx', { value: t.toLowerCase(), writable: true, enumerable: false, configurable: true }); Object.defineProperty(n, '_txAt', { value: n.ts, writable: true, enumerable: false, configurable: true });
+        return n._tx;
+    };
+    const freeLimit = () => Math.max(1, Math.round(Number(app.premCfg().freeNotes)) || 5);
+    const premNotes = () => app.premFeatureOn('notes');       // the panel can switch the premium part off: then there is no limit and no extras
+    function gridHtml() {
+        const prem = app.premOn('notes'), q = prem ? query.trim().toLowerCase() : '';
+        let items = NOTES.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
+        if (prem && curFolder) items = items.filter((n) => n.folder === curFolder);
+        if (q) items = items.filter((n) => textOf(n).includes(q));
+        const date = (t) => { try { return new Date(t).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
+        if (!items.length) return NOTES.length ? '<div class="nt-empty"><i data-lucide="search-x"></i><b>ما لكيت دفتر</b></div>'
+            : `<div class="nt-empty"><i data-lucide="pen-tool"></i><b>دفترك الأول يبدي من هنا</b><p>اكتب بالقلم أو بإصبعك، ارسم، سوّي خرائط ذهنية وأوراق لاصقة، وكل شي ينحفظ بجهازك.</p></div>`;
+        return `<div class="nt-grid">${items.map((n) => `<div class="nt-card" onclick="app.ntOpenNote('${n.id}')"><div class="nt-th">${n.th ? `<img alt="" src="${n.th}">` : '<i data-lucide="notebook-pen"></i>'}</div><div class="nt-ct"><b>${esc(n.title || 'دفتر بدون اسم')}</b><small>${n.pages.length} ${n.pages.length === 1 ? 'صفحة' : 'صفحات'} - ${date(n.ts)}</small>${prem && n.folder ? `<small class="nt-fd"><i data-lucide="folder"></i>${esc(n.folder)}</small>` : ''}</div><button class="nt-dots" onclick="event.stopPropagation();app.ntNoteMenu('${n.id}')" aria-label="خيارات"><i data-lucide="more-horizontal"></i></button></div>`).join('')}</div>`;
+    }
     function listRender() {
         const el = $('ntList'); if (!el) return;
-        const items = NOTES.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
-        const date = (t) => { try { return new Date(t).toLocaleDateString('ar-IQ', { day: 'numeric', month: 'short' }); } catch (e) { return ''; } };
-        el.innerHTML = `<button class="nt-new" onclick="app.ntNewSheet()"><i data-lucide="plus"></i><span>دفتر جديد</span></button><button class="nt-cl" onclick="app.ntCloud()"><i data-lucide="cloud"></i><span>النسخة السحابية</span><small>${SET.cloud === false ? 'مطفية' : 'شغّالة'}</small></button>` +
-            (items.length ? `<div class="nt-grid">${items.map((n) => `<div class="nt-card" onclick="app.ntOpenNote('${n.id}')"><div class="nt-th">${n.th ? `<img alt="" src="${n.th}">` : '<i data-lucide="notebook-pen"></i>'}</div><div class="nt-ct"><b>${esc(n.title || 'دفتر بدون اسم')}</b><small>${n.pages.length} ${n.pages.length === 1 ? 'صفحة' : 'صفحات'} - ${date(n.ts)}</small></div><button class="nt-dots" onclick="event.stopPropagation();app.ntNoteMenu('${n.id}')" aria-label="خيارات"><i data-lucide="more-horizontal"></i></button></div>`).join('')}</div>` :
-                `<div class="nt-empty"><i data-lucide="pen-tool"></i><b>دفترك الأول يبدي من هنا</b><p>اكتب بالقلم أو بإصبعك، ارسم، سوّي خرائط ذهنية وأوراق لاصقة، وكل شي ينحفظ بجهازك.</p></div>`);
+        const on = premNotes(), prem = app.premOn('notes'), lim = freeLimit(), left = Math.max(0, lim - NOTES.length);
+        const fl = foldersList();
+        const extras = !on ? '' : prem
+            ? `<div class="nt-sr"><i data-lucide="search"></i><input id="ntSearch" type="search" placeholder="ابحث بكل ملاحظاتك" value="${esc(query)}" oninput="app.ntSearch(this.value)"></div>
+               <div class="nt-fl"><button class="${curFolder ? '' : 'on'}" onclick="app.ntFolder('')">الكل</button>${fl.map((f) => `<button class="${curFolder === f ? 'on' : ''}" onclick="app.ntFolder(${jsArg(f)})"><i data-lucide="folder"></i>${esc(f)}</button>`).join('')}<button class="add" onclick="app.ntNewFolder()"><i data-lucide="folder-plus"></i>مجلد</button></div>
+               ${curFolder ? `<button class="nt-fdel" onclick="app.ntDelFolder()"><i data-lucide="trash-2"></i>احذف مجلد "${esc(curFolder)}" (دفاتره ترجع للكل)</button>` : ''}`
+            : `<button class="nt-lockrow" onclick="app.premGate('notes')"><i data-lucide="lock"></i><span><b>Premium: دفاتر بلا حدود، مجلدات، بحث وتصدير PDF</b><small>${left > 0 ? 'باقي لك ' + left + ' دفتر مجاني' : 'وصلت حد الدفاتر المجانية (' + lim + ')'}</small></span></button>`;
+        el.innerHTML = `<button class="nt-new" onclick="app.ntNewSheet()"><i data-lucide="plus"></i><span>دفتر جديد</span></button><button class="nt-cl" onclick="app.ntCloud()"><i data-lucide="cloud"></i><span>النسخة السحابية</span><small>${SET.cloud === false ? 'مطفية' : 'شغّالة'}</small></button>` + extras + `<div id="ntGrid">${gridHtml()}</div>`;
         try { lucide.createIcons(); } catch (e) {}
+    }
+    // can one more notebook be made: the free limit, unless he is premium (the server record is read again first)
+    async function canAdd() {
+        if (!premNotes() || NOTES.length < freeLimit()) return true;
+        return !!(await app.premGate('notes'));
+    }
+    // ---------- PDF of the whole notebook (premium): every page as a JPEG inside a small hand-made PDF ----------
+    function buildPdf(imgs) {
+        const enc = new TextEncoder(), parts = [], offs = [];
+        let len = 0;
+        const add = (x) => { const b = typeof x === 'string' ? enc.encode(x) : x; parts.push(b); len += b.length; };
+        const n = imgs.length, total = 3 + 3 * n;
+        add('%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n');
+        offs[1] = len; add('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+        offs[2] = len; add('2 0 obj\n<< /Type /Pages /Count ' + n + ' /Kids [' + imgs.map((_, i) => (3 + 3 * i) + ' 0 R').join(' ') + '] >>\nendobj\n');
+        imgs.forEach((im, i) => {
+            const W = 595, Hh = Math.max(40, Math.round(W * im.h / im.w)), po = 3 + 3 * i, co = po + 1, io = po + 2;
+            offs[po] = len; add(po + ' 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + W + ' ' + Hh + '] /Resources << /XObject << /Im0 ' + io + ' 0 R >> >> /Contents ' + co + ' 0 R >>\nendobj\n');
+            const cs = 'q ' + W + ' 0 0 ' + Hh + ' 0 0 cm /Im0 Do Q';
+            offs[co] = len; add(co + ' 0 obj\n<< /Length ' + cs.length + ' >>\nstream\n' + cs + '\nendstream\nendobj\n');
+            offs[io] = len; add(io + ' 0 obj\n<< /Type /XObject /Subtype /Image /Width ' + im.w + ' /Height ' + im.h + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + im.jpg.length + ' >>\nstream\n');
+            add(im.jpg); add('\nendstream\nendobj\n');
+        });
+        const xr = len;
+        add('xref\n0 ' + total + '\n0000000000 65535 f \n' + offs.slice(1, total).map((o) => String(o).padStart(10, '0') + ' 00000 n \n').join(''));
+        add('trailer\n<< /Size ' + total + ' /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF');
+        return new Blob(parts, { type: 'application/pdf' });
+    }
+    async function exportPdf() {
+        if (!N) return;
+        if (!(await app.premGate('notes'))) return;
+        app.showToast('دا نسوي الـ PDF...');
+        try {
+            const imgs = [];
+            for (const pg of N.pages.slice(0, 60)) {
+                const c = snapshot(pg, 1700, 'jpeg', 40);
+                const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.86));
+                if (!blob) throw new Error('jpeg');
+                imgs.push({ w: c.width, h: c.height, jpg: new Uint8Array(await blob.arrayBuffer()) });
+                await new Promise((r) => setTimeout(r, 0));
+            }
+            const pdf = buildPdf(imgs), name = 'notebook-' + new Date().toISOString().slice(0, 10) + '.pdf';
+            try {
+                const f = new File([pdf], name, { type: 'application/pdf' });
+                if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: N.title || 'دفتر' }); return; }
+            } catch (e) { if (e && e.name === 'AbortError') return; }
+            const a = document.createElement('a'); a.href = URL.createObjectURL(pdf); a.download = name; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+            app.showToast('نزل الـ PDF');
+        } catch (e) { console.warn('pdf', e); app.showToast('ما قدرت أسوي الـ PDF'); }
     }
     function openNote(n) {
         N = n; dirty = false; H = { u: [], r: [] }; SEL = []; PG = null;
@@ -866,22 +941,57 @@
         },
         ntNewBg(id) { nowNew.bg = id; this._ntNewDraw && this._ntNewDraw(); },
         ntNewCol(c) { nowNew.col = c; this._ntNewDraw && this._ntNewDraw(); },
-        ntCreate(mind) {
+        async ntCreate(mind) {
             this.ntSheetClose();
+            if (!(await canAdd())) return;
             const n = { id: uid(), title: '', ts: Date.now(), pages: [newPage(nowNew.bg, nowNew.col)], th: '' };
             if (mind) { n.pages[0].bg = 'blank'; SET.tool = 'mind'; } else if (SET.tool === 'mind') SET.tool = 'pen';
             dirty = true; openNote(n);
             if (mind) setTimeout(() => { const c = toW(W / 2, Hh / 2); newNode(null, c); }, 450);
         },
+        ntExportPdf() { exportPdf(); },
+        ntSearch(v) { query = String(v || ''); const g = $('ntGrid'); if (g) { g.innerHTML = gridHtml(); try { lucide.createIcons(); } catch (e) {} } },
+        ntFolder(f) { curFolder = f || ''; listRender(); },
+        async ntNewFolder() {
+            if (!(await app.premGate('notes'))) return;
+            const nm = await app.ask({ icon: 'folder-plus', tone: 'primary', title: 'مجلد جديد', text: 'اكتب اسم المجلد.', ok: 'سوّي', input: 'مثلاً: فيزياء' });
+            const name = String(nm || '').trim().slice(0, 30);
+            if (!name) return;
+            SET.folders = Array.from(new Set([...(SET.folders || []), name])).slice(0, 40); setSave();
+            curFolder = name; listRender();
+        },
+        ntDelFolder() {
+            const f = curFolder; if (!f) return;
+            SET.folders = (SET.folders || []).filter((x) => x !== f); setSave();
+            NOTES.filter((n) => n.folder === f).forEach((n) => { delete n.folder; Store.put(n); cloudQueue(n); });
+            curFolder = ''; listRender();
+        },
+        async ntMoveMenu(id) {
+            this.ntSheetClose();
+            if (!(await app.premGate('notes'))) return;
+            const n = NOTES.find((x) => x.id === id); if (!n) return;
+            const fl = foldersList();
+            setTimeout(() => sheet(`<div class="tu-sh"><b>انقل "${esc(n.title || 'دفتر')}" إلى</b><button onclick="app.ntSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
+                <button class="nt-row" onclick="app.ntMove('${id}','')"><i data-lucide="${n.folder ? 'folder-x' : 'check'}"></i>بدون مجلد</button>
+                ${fl.map((f) => `<button class="nt-row" onclick="app.ntMove('${id}',${jsArg(f)})"><i data-lucide="${n.folder === f ? 'check' : 'folder'}"></i>${esc(f)}</button>`).join('')}
+                <button class="nt-row" onclick="app.ntSheetClose();app.ntNewFolder()"><i data-lucide="folder-plus"></i>مجلد جديد</button>`), 280);
+        },
+        async ntMove(id, f) {
+            this.ntSheetClose(); const n = NOTES.find((x) => x.id === id); if (!n) return;
+            if (f) n.folder = String(f).slice(0, 30); else delete n.folder;
+            await Store.put(n); cloudQueue(n); listRender();
+        },
         ntOpenNote(id) { const n = NOTES.find((x) => x.id === id); if (n) { openNote(n); } },
         ntNoteMenu(id) {
             const n = NOTES.find((x) => x.id === id); if (!n) return;
             sheet(`<div class="tu-sh"><b>${esc(n.title || 'دفتر بدون اسم')}</b><button onclick="app.ntSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
+                ${premNotes() ? `<button class="nt-row" onclick="app.ntMoveMenu('${id}')"><i data-lucide="${app.premOn('notes') ? 'folder-input' : 'lock'}"></i>نقل لمجلد</button>` : ''}
                 <button class="nt-row" onclick="app.ntDup('${id}')"><i data-lucide="copy"></i>نسخ الدفتر</button>
                 <button class="nt-row" onclick="app.ntDelAsk('${id}')" style="color:#dc2626"><i data-lucide="trash-2"></i>حذف الدفتر</button>`);
         },
         async ntDup(id) {
             this.ntSheetClose(); const n = NOTES.find((x) => x.id === id); if (!n) return;
+            if (!(await canAdd())) return;
             const c = clone(n); c.id = uid(); c.title = (n.title || 'دفتر') + ' (نسخة)'; c.ts = Date.now(); c.pages.forEach((p) => { p.id = uid(); });
             await Store.put(c); NOTES.unshift(c); listRender(); this.showToast('انعمل نسخة');
         },
@@ -973,6 +1083,7 @@
                 const el = $('ntMenuBody'); if (!el) return;
                 const chip = (k, v, n) => `<button class="nt-pp${SET[k] === v ? ' on' : ''}" onclick="app.ntSet('${k}','${v}')">${n}</button>`;
                 el.innerHTML = `<button class="nt-row" onclick="app.ntExport()"><i data-lucide="share-2"></i>حفظ الصفحة صورة / مشاركة</button>
+                    ${premNotes() ? `<button class="nt-row" onclick="app.ntSheetClose();app.ntExportPdf()"><i data-lucide="${app.premOn('notes') ? 'file-down' : 'lock'}"></i>تصدير الدفتر كله PDF</button>` : ''}
                     <button class="nt-row" onclick="app.ntClear()"><i data-lucide="eraser"></i>مسح كل الصفحة</button>
                     <div class="nt-lbl">الإصبع</div><div class="nt-pps">${chip('finger', 'auto', 'تلقائي')}${chip('finger', 'yes', 'يرسم')}${chip('finger', 'no', 'يحرّك بس (قلم فقط)')}</div>
                     <div class="nt-lbl">تقويم الخط</div>
