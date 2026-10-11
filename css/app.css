@@ -11947,7 +11947,7 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
 
 /* =====================================================================================================
    Material 3 layer: the look and feel of a Flutter app (Material You). Loaded last, so it wins.
-   Ink ripples, tonal surfaces instead of heavy shadows, a Material navigation bar, top app bars that tint
+   Tonal surfaces instead of heavy shadows, top app bars that tint
    when the page scrolls under them, Material bottom sheets / dialogs / snackbars / switches / chips, and
    the Android page transitions Flutter uses. The behaviour lives in js/m3.js.
    ===================================================================================================== */
@@ -11971,18 +11971,6 @@ html, body { overscroll-behavior-y: none; }
 img, a, svg { -webkit-user-drag: none; -webkit-touch-callout: none; }
 :focus:not(:focus-visible) { outline: none; }
 @media (pointer: coarse) { ::-webkit-scrollbar { width: 0; height: 0; background: transparent; } }
-/* Flutter widgets do not shrink when pressed: the ink ripple is the feedback */
-#mainContent button:not(:disabled):active, #mainContent [onclick]:not(:disabled):active, #bottomNav .nav-item:active,
-header.app-header button:active, #mainContent article[onclick]:active, #mainContent .w-full[onclick]:active { scale: none !important; }
-#bottomNav .nav-item:active { transform: none !important; }
-
-/* ---- ink ripple (js/m3.js puts a .m3-ink inside the pressed element) ---- */
-.m3-ink { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; contain: strict; }
-.m3-ink > i { position: absolute; border-radius: 50%; background: currentColor; opacity: .12; transform: scale(0); transition: transform .45s var(--m3-ease), opacity .3s linear; will-change: transform, opacity; }
-.m3-ink > i.on { transform: scale(1); }
-.m3-ink > i.up { opacity: 0; transition: transform .45s var(--m3-ease), opacity .35s linear .08s; }
-.m3-ink.light > i { background: #fff; opacity: .22; }
-
 /* ---- page transitions: Flutter's Android "zoom" route transition, and fade-through between tabs ---- */
 .view-in-fwd  { animation: m3RouteIn .3s var(--m3-ease) both !important; }
 .view-in-back { animation: m3RouteBack .28s var(--m3-ease) both !important; }
@@ -11998,25 +11986,6 @@ body.m3-scrolled .sticky.top-16, body.m3-scrolled header.app-header { background
 /* the back / action buttons of an app bar are Material icon buttons: a 40px circle with no fill */
 .sticky.top-16 > button, .sticky.top-16 > div > button[aria-label], header.app-header .w-10.h-10 { background-color: transparent !important; border-radius: 50% !important; box-shadow: none !important; border: 0 !important; }
 .sticky.top-16 > .flex-1 > div:first-child { font-size: 18px; letter-spacing: 0; }
-
-/* ---- Material navigation bar (8 destinations): a flat tonal bar, a pill behind the selected icon ---- */
-@media (max-width: 1023px) {
-    #bottomNav { left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; max-width: none !important; height: calc(72px + var(--safe-b)) !important;
-        padding-bottom: var(--safe-b); border-radius: 0 !important; border: 0 !important; overflow: visible; background: linear-gradient(var(--m3-s2), var(--m3-s2)), var(--bg) !important;
-        box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: none !important; }
-    #bottomNav::before, #bottomNav::after, #bottomNav .nav-indicator { display: none !important; }
-    #bottomNav .nav-track { height: 72px; padding: 0 2px; }
-    #bottomNav .nav-item { height: 72px !important; gap: 4px !important; border-radius: 0; padding-top: 4px; color: var(--text2) !important; }
-    #bottomNav .nav-ic { width: 46px; height: 30px; border-radius: 15px; isolation: isolate; }
-    #bottomNav .nav-ic::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--m3-pc); transform: scaleX(.3); opacity: 0; transition: transform .35s var(--m3-ease), opacity .15s linear; }
-    #bottomNav .nav-item.active .nav-ic::before { transform: none; opacity: 1; }
-    #bottomNav .nav-item svg { width: 22px; height: 22px; stroke-width: 1.9; transition: none; }
-    #bottomNav .nav-item.active svg { color: var(--m3-onpc) !important; stroke-width: 2.2; transform: none; }
-    #bottomNav .nav-item.active { color: var(--text) !important; }
-    .nav-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0; }
-    #bottomNav .nav-item.active .nav-label { font-weight: 800; }
-    #bottomNav .nav-ai .nav-ai-orb { transform: scale(.92); }
-}
 
 /* ---- Material search bar ---- */
 #searchInput { height: 56px; border-radius: 28px; border: 0 !important; box-shadow: none !important; background-color: var(--m3-s3) !important; }
@@ -12049,7 +12018,7 @@ button.bg-primary, a.bg-primary { box-shadow: none; }
 @keyframes m3ScrimOut { to { opacity: 0; } }
 
 /* ---- snackbar ---- */
-#toastContainer { left: 12px !important; right: 12px !important; bottom: calc(84px + var(--safe-b)) !important; align-items: stretch !important; }
+#toastContainer { left: 12px !important; right: 12px !important; bottom: calc(92px + var(--safe-b)) !important; align-items: stretch !important; }
 body.sub-nav-hidden #toastContainer { bottom: calc(16px + var(--safe-b)) !important; }
 #toastContainer > div { max-width: 560px; width: 100%; margin: 0 auto; padding: 14px 16px !important; border-radius: 8px !important; text-align: start !important; font-size: 14px !important; font-weight: 500 !important;
     background-color: var(--m3-inv) !important; color: var(--m3-oninv) !important; box-shadow: 0 3px 5px rgba(0, 0, 0, .2), 0 1px 18px rgba(0, 0, 0, .12) !important; backdrop-filter: none !important; }
