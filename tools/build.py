@@ -31,6 +31,7 @@ v = {
     'js/vendor/lucide.min.js': h('js/vendor/lucide.min.js'),
     'js/pickers.js': h('js/pickers.js'),
     'js/m3.js': h('js/m3.js'),
+    'js/icons.js': h('js/icons.js'),
     'js/vendor/swiper-bundle.min.js': h('js/vendor/swiper-bundle.min.js'),
     'css/swiper-bundle.min.css': h('css/swiper-bundle.min.css'),
 }

@@ -14218,7 +14218,8 @@
                         if (dx >= Math.abs(pullDistance) || pullDistance <= 0) { isPulling = false; return; }
                     }
                     if (pullDistance > 0 && window.scrollY === 0) {
-                        if (e.cancelable) e.preventDefault();
+                        // the browser's own pull-to-refresh is off (overscroll-behavior on the page), so this listener is passive:
+                        // a non-passive touch listener on the whole page makes every scroll wait for the main thread
                         if (pullDistance < 150) {
                             indicator.style.opacity = Math.min(pullDistance / 100, 1);
                             indicator.style.transform = `translateY(${pullDistance * 0.3}px)`;
@@ -14226,14 +14227,16 @@
                     } else if (pullDistance <= 0) {
                         isPulling = false;
                     }
-                }, { passive: false });
+                }, { passive: true });
                 main.addEventListener('touchend', () => {
                     if (!isPulling) return;
                     isPulling = false;
                     if (pullDistance > 40) {
                         indicator.style.opacity = '1';
+                        indicator.classList.add('on');
                         this.loadData();
                         setTimeout(() => {
+                            indicator.classList.remove('on');
                             indicator.style.opacity = '0';
                             indicator.style.transform = 'translateY(0)';
                             this.showToast('تم تحديث الأخبار');
@@ -14479,8 +14482,9 @@
                     const cls = isBack ? 'view-in-back'
                         : (TAB_VIEWS.includes(viewId) && TAB_VIEWS.includes(from)) ? 'view-in-tab'
                         : 'view-in-fwd';
-                    view.classList.remove(...ANIMS);
-                    void view.offsetWidth;
+                    // a view that is still playing its entrance (a quick second tap) needs a reflow to start it again; a view that was
+                    // hidden starts its animation by itself when it is shown, so no forced layout there (that cost a full layout per tap)
+                    if (ANIMS.some((c) => view.classList.contains(c))) { view.classList.remove(...ANIMS); void view.offsetWidth; }
                     view.classList.add(cls);
                     // Drop the class when done so the view never keeps a transform that
                     // would re-anchor fixed children (chat input bar, store feed).
