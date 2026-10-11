@@ -9758,6 +9758,8 @@
                 this._need('premium').then(() => this.premPaywall(feature)).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية'));
                 return false;
             },
+            // a part of Premium from a screen that does not load the Premium page (the cards page, the plan page)
+            premOpenPart(id) { this._need('premium').then(() => this.premFeature(id)).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية')); },
             goToPremium() {
                 if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
                 this.switchView('premiumView');

@@ -9,6 +9,8 @@
     const save = (p) => { try { localStorage.setItem(key(), JSON.stringify(p)); } catch (e) {} };
     let S = { busy: false, hours: 2, note: '', err: '' };
 
+    // the tasks of days that are over and not ticked off
+    const missedN = (p, today) => { let n = 0; (p.days || []).forEach((d, i) => { if (d.date < today) (d.tasks || []).forEach((t, j) => { if (!(p.done && p.done[i + '_' + j])) n++; }); }); return n; };
     function paint() {
         const box = $('planContent'); if (!box) return;
         const p = load(), today = app.localDateStr();
@@ -19,6 +21,7 @@
             <input id="plNote" maxlength="200" placeholder="ملاحظة للمعلم (اختياري): مثلاً ضعيف بالفيزياء" value="${esc(S.note)}" oninput="app.plNote(this.value)">
             <button class="pl-go" ${S.busy ? 'disabled' : ''} onclick="app.plMake()">${S.busy ? 'المعلم يرتب خطتك...' : p ? 'سوّي خطة جديدة' : 'سوّي خطتي'}</button>
             ${S.err ? `<p class="pl-err">${esc(S.err)}</p>` : ''}
+            ${p && app.premFeatureOn('plan') ? `<button class="pl-re" onclick="app.premOpenPart('plan')"><i data-lucide="${app.premOn('plan') ? 'calendar-sync' : 'lock'}"></i><span>أعد ترتيب الخطة${missedN(p, today) ? ' (فاتتك ' + missedN(p, today) + ' مهمة)' : ''}</span><em>Premium</em></button>` : ''}
         </div>`;
         if (!p) { box.innerHTML = controls + '<div class="pl-empty"><i data-lucide="calendar-check"></i><b>ما عندك خطة لسه</b><p>المعلم يقرأ جدول محاضراتك وامتحاناتك ودرجاتك ويكتبلك شنو تدرس كل يوم.</p></div>'; try { lucide.createIcons(); } catch (e) {} return; }
         let total = 0, done = 0;

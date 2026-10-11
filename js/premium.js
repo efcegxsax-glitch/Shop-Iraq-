@@ -18,7 +18,7 @@
     // id, title, what it gives, icon, colour, what opens it (a function of app, loaded from `mod` when it is not there yet)
     const FEATURES = [
         { id: 'mult', t: 'نقاط مضاعفة', ic: 'zap', c: '#F59E0B', go: null },
-        { id: 'exam', t: 'امتحانات من ملازمك', d: 'ارفع ملزمتك ويطلعلك امتحان بتصحيح وشرح الأخطاء', ic: 'file-check-2', c: '#2563EB', mod: 'premai', fn: 'pmExam' },
+        { id: 'exam', t: 'امتحانات من ملازمك', d: 'ارفع ملزمتك ويطلعلك امتحان بتصحيح وشرح الأخطاء', ic: 'file-check-2', c: '#2563EB', mod: 'premai', fn: 'pmExam', free: true },
         { id: 'summary', t: 'ملخص ذكي', d: 'ملخص وأسئلة مراجعة لملزمة أو محاضرة', ic: 'sparkles', c: '#7C3AED', mod: 'premai', fn: 'pmSummary' },
         { id: 'cards', t: 'بطاقات حفظ من ملاحظاتك', d: 'تنسوي لحالها وتذكّرك قبل ما تنسى', ic: 'layers', c: '#EC4899', mod: 'premai', fn: 'pmCards' },
         { id: 'plan', t: 'خطة تتعدل لحالها', d: 'إذا فاتتك مذاكرة، المعلم يرتب الأيام من جديد', ic: 'calendar-sync', c: '#0891B2', mod: 'premai', fn: 'pmReplan' },
@@ -39,8 +39,9 @@
             : `<button class="pm-btn" ${ready && !busy ? '' : 'disabled'} onclick="app.premBuy()">${ready ? gem(18) + '<span>' + (on ? 'جدّد ' : 'اشترك ') + AR(price) + ' ماس / ' + days + ' يوم</span>' : '<span>الاشتراك غير متاح هسه</span>'}</button>`;
         const tile = (f) => {
             const off = !app.premFeatureOn(f.id);
-            const open = on && !off;
-            const tx = f.id === 'mult' ? 'نقاطك تتضاعف ×' + mult + ' على كل شي تدرسه' : f.d;
+            const open = (on || f.free) && !off;
+            const fl = Math.round(Number(app.premCfg().freeExams)) >= 0 && app.premCfg().freeExams != null ? Math.round(Number(app.premCfg().freeExams)) : 2;
+            const tx = f.id === 'mult' ? 'نقاطك تتضاعف ×' + mult + ' على كل شي تدرسه' : f.id === 'exam' && !on ? f.d + '. مجاناً ' + AR(fl) + ' بالشهر' : f.d;
             return `<button class="pm-f${open ? ' open' : ''}${off ? ' off' : ''}" style="--c:${f.c}" onclick="app.premFeature('${f.id}')" ${off ? 'disabled' : ''}>
                 <span class="pm-fi"><i data-lucide="${f.ic}"></i></span>
                 <span class="pm-ft"><b>${esc(f.t)}</b><small>${esc(tx)}</small></span>
@@ -96,10 +97,13 @@
             const f = byId(id);
             if (!f) return;
             if (id === 'mult') { app.showToast(app.premActive() ? 'نقاطك مضاعفة هسه' : 'اشترك حتى تتضاعف نقاطك'); if (!app.premActive()) this.premPaywall(id); return; }
-            await app.premGate(id, async () => {
+            const run = async () => {
                 try { if (f.mod) await app._need(f.mod); } catch (e) { app.showToast('هذا الجزء ينضاف قريباً'); return; }
                 if (typeof app[f.fn] === 'function') app[f.fn](); else app.showToast('هذا الجزء ينضاف قريباً');
-            });
+            };
+            // the exam part has free uses a month, counted and refused by the Worker: it opens for everybody and the Worker says when the free ones are gone
+            if (f.free && app.premFeatureOn(id)) { if (!app.isLoggedIn || !app.authUid) { app.goToAuth('login'); return; } await run(); return; }
+            await app.premGate(id, run);
         },
 
         // what a locked part shows: the lock, what Premium gives, and the price
