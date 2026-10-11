@@ -93,14 +93,15 @@
     document.addEventListener('touchcancel', end, { passive: true });
 
     // ---------- smoothness ----------
-    // Decorations that loop for ever (glows, floats, shines, a light running round a frame) cost every frame, and on a modest phone
+    // Decorations that loop for ever (glows, floats, shines) cost every frame, and on a modest phone
     // they take the time the page needs to scroll and open screens. Each one plays for a few seconds when its screen appears, then
     // it is stopped and the element keeps its normal look. Loops that tell something is happening (loading, a call ringing,
-    // recording, typing, a timer running, the news ticker moving) keep playing.
+    // recording, typing, a timer running, the news ticker moving), and the light running round the bottom bar and the news frame
+    // (a small layer the graphics chip turns by itself), keep playing.
     const KEEP = new Set(['spin', 'pulse', 'flspin', 'kdLoad', 'rmBounce', 'rmSk', 'rmSp', 'shShim', 'shimmer', 'tuSk', 'yrSpin', 'fmShim',
         'ct-pulse', 'ct-shimmer', 'ct-dot', 'clSpin', 'clBlink', 'clBreath', 'clDot', 'clRipple', 'clBlob', 'clBounce', 'cmIdle', 'mdrTalk',
         'mc-talk', 'mc-nod', 'ttDot', 'ttListen', 'ttSay', 'voiceRecBarPulse', 'vnRing', 'tkMarquee', 'tm-pulse', 'dl-blink', 'dl-ping',
-        'gwBlink', 'mtSpin', 'mtBar', 'mrJig']);
+        'gwBlink', 'mtSpin', 'mtBar', 'mrJig', 'tkBorderSpin']);
     // a modest phone (or one that asks for less motion / data) gets the light mode: no live blur, and the loops stop almost at once
     const mem = Number(navigator.deviceMemory) || 8, cores = Number(navigator.hardwareConcurrency) || 8;
     let lite = reduce || mem <= 4 || cores <= 4 || !!(navigator.connection && navigator.connection.saveData);

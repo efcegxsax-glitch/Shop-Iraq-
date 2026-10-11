@@ -6685,3 +6685,9 @@ html.lite .view-in-fwd, html.lite .view-in-back, html.lite .view-in-tab { animat
 #bottomNav { will-change: transform; }
 /* the pull-to-refresh icon spins only while it refreshes (hidden, it used to spin for ever) */
 #ptrIndicator:not(.on) .animate-spin { animation: none !important; }
+/* the light that runs round the bottom bar and the news frame keeps turning, cheaply: the turning square is only a little wider than
+   the frame (it was 150% of the screen's longer side); a turning layer is moved by the graphics chip, without the page redrawing */
+@media (max-width: 1023px) {
+    #bottomNav::before, .tk::before { width: 112%; height: auto; aspect-ratio: 1; }
+    .tk:has(.tk-list)::before { width: 150vmax; }
+}
