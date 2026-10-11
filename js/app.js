@@ -12319,12 +12319,34 @@
                 this._tgTagSync();
                 if (this.isLoggedIn && this.authUid && window.firebaseDb) {
                     const off = {}; ['msg', 'call'].forEach((k) => { if (!this._pnOn(k)) off[k] = false; });
+                    // friends whose chat he muted get no phone notification either, and the quiet hours for messages
+                    const mu = {}; userChatsList.forEach((c) => { if (c.muted && /^[A-Za-z0-9]{2,40}$/.test(String(c.otherUid))) mu[c.otherUid] = true; });
+                    if (Object.keys(mu).length) off.mu = mu;
+                    const qh = this._qhGet(); if (qh) off.qh = { f: qh.f, t: qh.t };
                     const sig = JSON.stringify(off);
                     if (this._pnSig === this.authUid + sig) return;
                     this._pnSig = this.authUid + sig;
                     const { ref, set } = window.firebaseDbHelpers;
                     set(ref(window.firebaseDb, 'pushPrefs/' + this.authUid), Object.keys(off).length ? off : null).catch(() => { this._pnSig = ''; });
                 }
+            },
+            _pnSyncSoon() { clearTimeout(this._pnSoonT); this._pnSoonT = setTimeout(() => { try { this._pnSync(); } catch (e) {} }, 2000); },
+            // quiet hours for message notifications: { f: from hour, t: to hour } in Iraq time, or null
+            _qhGet() { try { const o = JSON.parse(localStorage.getItem('isp_qh') || 'null'); return o && Number.isInteger(o.f) && Number.isInteger(o.t) && o.f !== o.t && o.f >= 0 && o.f <= 23 && o.t >= 0 && o.t <= 23 ? o : null; } catch (e) { return null; } },
+            qhSet(on, f, t) {
+                try {
+                    const cur = this._qhGet() || { f: 22, t: 7 };
+                    const o = { f: f == null ? cur.f : Number(f), t: t == null ? cur.t : Number(t) };
+                    if (on === false || o.f === o.t) localStorage.removeItem('isp_qh'); else localStorage.setItem('isp_qh', JSON.stringify(o));
+                } catch (e) {}
+                this._pnSig = ''; this._pnSync(); this.openNotifPreferences();
+            },
+            // switch every kind off or on at once
+            pnAll(on) {
+                this.PN_LIST.forEach(([k]) => { if (k === 'coach') { const c = this._coachGet(); if (c.on !== on) { c.on = on; this._coachSave(c); this._coachTag(on); } } else this.notifPrefs[k] = on; });
+                this.saveNotifPrefs(); this._pnSync(); this.updateNotifBadges();
+                if (this.currentView === 'notificationsView') this.renderNotificationsList();
+                this.openNotifPreferences();
             },
             // the notification tone (Android app only): picked here, played by the phone itself when a push arrives, even with the app closed
             NOTIF_SOUNDS: [['default', 'الافتراضي (نغمة الهاتف)'], ['chime', 'رنين'], ['drop', 'قطرة'], ['harp', 'قيثارة'], ['bell', 'جرس'], ['marimba', 'ماريمبا'], ['pop', 'فقاعة'], ['crystal', 'كريستال'], ['dingdong', 'دينغ دونغ'], ['beep', 'تنبيه خفيف'], ['silent', 'بدون صوت (اهتزاز فقط)']],
@@ -12438,7 +12460,25 @@
                     <button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold theme-transition" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pushCheck()">فحص الإشعارات وإرسال تجربة</button>
                     ${perm === 'denied' ? '<p class="text-xs mb-3" style="color:#DC2626">إشعارات الهاتف مسدودة من إعدادات الجهاز، فعّلها من هناك حتى توصلك: إعدادات الهاتف ثم التطبيقات ثم أكاديمي السادس ثم الإشعارات.</p>'
                         : perm === 'default' ? '<button class="btn-press w-full mb-3 py-3 rounded-xl text-sm font-bold text-white" style="background: rgb(var(--p));" onclick="app.enableWebPush()">فعّل إشعارات الهاتف حتى توصلك وانت خارج التطبيق</button>' : ''}
+                    <div class="flex gap-2 mb-3">
+                        <button class="btn-press flex-1 py-2.5 rounded-xl text-sm font-bold" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pnAll(false)">أطفي الكل</button>
+                        <button class="btn-press flex-1 py-2.5 rounded-xl text-sm font-bold" style="background-color: var(--input-bg); color: var(--text); border: 1px solid var(--border);" onclick="app.pnAll(true)">شغّل الكل</button>
+                    </div>
                     <div class="flex flex-col gap-2">${this.PN_LIST.map(row).join('')}</div>
+                    ${(() => {
+                        const q = this._qhGet(), f = q ? q.f : 22, t = q ? q.t : 7;
+                        const hrs = (sel) => Array.from({ length: 24 }, (_, h) => `<option value="${h}" ${h === sel ? 'selected' : ''}>${h === 0 ? '12 ليلاً' : h < 12 ? h + ' صباحاً' : h === 12 ? '12 ظهراً' : (h - 12) + ' مساءً'}</option>`).join('');
+                        const selStyle = 'background-color: var(--surface); color: var(--text); border: 1px solid var(--border);';
+                        return `<div class="p-3 rounded-xl mt-3 theme-transition" style="background-color: var(--input-bg);">
+                            <div class="flex items-center gap-3">
+                                <span class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style="background:#6366F122;color:#6366F1"><i data-lucide="moon" class="w-5 h-5"></i></span>
+                                <div class="flex-1 min-w-0"><div class="text-sm font-bold" style="color: var(--text);">وقت الراحة</div><div class="text-xs" style="color: var(--text2);">بهذا الوقت ما توصلك إشعارات رسائل الأصدقاء بالهاتف (المكالمات تبقى توصل)</div></div>
+                                <label class="toggle-switch flex-shrink-0"><input type="checkbox" ${q ? 'checked' : ''} onchange="app.qhSet(this.checked)"><span class="toggle-slider"></span></label>
+                            </div>
+                            ${q ? `<div class="flex items-center gap-2 mt-3 text-xs" style="color: var(--text2);">من <select class="flex-1 p-2 rounded-lg text-sm" style="${selStyle}" onchange="app.qhSet(true, this.value, null)">${hrs(f)}</select> إلى <select class="flex-1 p-2 rounded-lg text-sm" style="${selStyle}" onchange="app.qhSet(true, null, this.value)">${hrs(t)}</select></div>` : ''}
+                        </div>
+                        <p class="text-xs mt-3" style="color: var(--text2);">تريد تسكت صديق واحد بس؟ افتح محادثته واضغط على "كتم المحادثة": ما توصلك إشعاراته بالهاتف.</p>`;
+                    })()}
                     <p class="text-xs mt-4 mb-2 font-bold theme-transition" style="color: var(--text2);">تظهر داخل التطبيق فقط</p>
                     <div class="flex flex-col gap-2">${rest.map((type) => `
                         <div class="flex items-center gap-3 p-3 rounded-xl theme-transition" style="background-color: var(--input-bg);">
@@ -12596,6 +12636,7 @@
                     this.updateMessagesBadge();
                     if (this.currentView === 'messagesView') this.renderChatsList();
                     this._presenceSync();
+                    this._pnSyncSoon();
                 });
             },
 

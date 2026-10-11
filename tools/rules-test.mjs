@@ -156,6 +156,12 @@ await ok('push prefs: own write', set(ref(db('u1'), 'pushPrefs/u1'), { msg: fals
 await no('push prefs: not for another student', set(ref(db('u2'), 'pushPrefs/u1'), { msg: false }));
 await no('push prefs: only known switches', set(ref(db('u1'), 'pushPrefs/u1/zzz'), false));
 await no('push prefs: only booleans', set(ref(db('u1'), 'pushPrefs/u1/call'), 'x'));
+await ok('push prefs: mute a friend', set(ref(db('u1'), 'pushPrefs/u1/mu/u2'), true));
+await no('push prefs: mute value must be true', set(ref(db('u1'), 'pushPrefs/u1/mu/u2'), false));
+await no('push prefs: mute for another student', set(ref(db('u2'), 'pushPrefs/u1/mu/u3'), true));
+await ok('push prefs: quiet hours', set(ref(db('u1'), 'pushPrefs/u1/qh'), { f: 22, t: 7 }));
+await no('push prefs: quiet hours out of range', set(ref(db('u1'), 'pushPrefs/u1/qh'), { f: 25, t: 7 }));
+await no('push prefs: quiet hours need both', set(ref(db('u1'), 'pushPrefs/u1/qh'), { f: 22 }));
 await ok('push prefs: a signed-in student (the server) can read', get(ref(db('u2'), 'pushPrefs/u1/msg')));
 await no('push prefs: not public', get(ref(db(), 'pushPrefs/u1')));
 await ok('teachers channels are public to read', get(ref(db('u1'), 'ytChannels')));

@@ -498,7 +498,12 @@ rules = {
     # so the server can skip the phone notification for a message that is being read live
     "chatNow": {"$uid": {".read": "auth != null && (auth.uid == $uid || data.child('c').val() == auth.uid)", ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (newData.hasChildren(['c', 'at']) && " + s_max("newData.child('c')", 40) + " && newData.child('at').isNumber())"}},
     # which phone notifications a student switched off (msg / call): the server reads it before it pushes a message or a call
-    "pushPrefs": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN), "$k": {".validate": "($k == 'msg' || $k == 'call') && newData.isBoolean()"}}},
+    # msg / call = switched off; mu = friends whose messages are muted (no phone notification); qh = quiet hours for messages (Iraq time, from hour f to hour t)
+    "pushPrefs": {".read": SIGNED, "$uid": {".write": ors(OWNER, ADMIN),
+        "msg": {".validate": "newData.isBoolean()"}, "call": {".validate": "newData.isBoolean()"},
+        "mu": {"$o": {".validate": "$o.matches(/^[A-Za-z0-9]{2,40}$/) && newData.val() === true"}},
+        "qh": {".validate": "newData.hasChildren(['f', 't'])", "f": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23"}, "t": {".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 23"}, "$o": {".validate": False}},
+        "$other": {".validate": False}}},
     # the notification switches of the account (so every phone / the website agree): only the owner
     "npref": {"$uid": {
         ".read": OWNER, ".write": ors(OWNER, ADMIN),
