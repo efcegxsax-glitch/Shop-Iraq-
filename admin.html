@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="e3e5327111">
+    <meta name="admin-build" content="69ee204239">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -1825,6 +1825,50 @@
                     </div>
                     <div id="pointCodeList"></div>
                 </div>
+                <div class="card" id="gemShopCard">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="gem"></i></div>
+                        <div>
+                            <h3>متجر الماس: الأسعار</h3>
+                            <p>الطالب يشتري بالماس: التوثيق (العلامة الزرقاء، ينتهي بعد عدد أيام ويجدده إذا يريد) وايدي مميز (رقم قصير). السعر كله بالماس. بدون حفظ الأسعار هنا المتجر ما يشتغل.</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>سعر التوثيق (ماس)</label><input type="number" id="gs_verify" min="1" max="100000" placeholder="مثال: 30"></div>
+                        <div class="field" style="margin-bottom:0;"><label>مدة التوثيق (أيام)</label><input type="number" id="gs_vdays" min="1" max="365" placeholder="30"></div>
+                        <div class="field" style="margin-bottom:0;"><label>كل 1 ماس = كم نقطة؟ (للتبديل)</label><input type="number" id="gs_rate" min="1" max="1000000" placeholder="3000"></div>
+                    </div>
+                    <p class="text-slate-400 text-xs" style="margin:12px 0 6px;">أسعار الايدي المميز حسب عدد الأرقام (الرقم الخماسي ما ينباع لأنه نفس أرقام التسجيل العادية):</p>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>3 أرقام</label><input type="number" id="gs_i3" min="1" max="100000" placeholder="500"></div>
+                        <div class="field" style="margin-bottom:0;"><label>4 أرقام</label><input type="number" id="gs_i4" min="1" max="100000" placeholder="200"></div>
+                        <div class="field" style="margin-bottom:0;"><label>6 أرقام</label><input type="number" id="gs_i6" min="1" max="100000" placeholder="30"></div>
+                        <div class="field" style="margin-bottom:0;"><label>7 أرقام</label><input type="number" id="gs_i7" min="1" max="100000" placeholder="15"></div>
+                        <div class="field" style="margin-bottom:0;"><label>8 أرقام</label><input type="number" id="gs_i8" min="1" max="100000" placeholder="10"></div>
+                    </div>
+                    <button class="btn mt-4" id="gs_save">حفظ الأسعار</button>
+                    <p id="gs_ex" class="text-slate-400 text-xs" style="margin-top:8px;"></p>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="gem"></i></div>
+                        <div>
+                            <h3>توليد أكواد ماس</h3>
+                            <p>كود يضيف ماس لحساب الطالب (يبدأ بـ GM-). الطالب يكتبه بمتجر الماس أو بإيداع كود المحفظة. كل كود لمرة وحدة. تبيعه للطالب بره التطبيق (تلكرام أو زين كاش) وتدزله الكود.</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>عدد الماس بالكود *</label><input type="number" id="gm_value" placeholder="مثال: 50" min="1" max="100000" step="1"></div>
+                        <div class="field" style="margin-bottom:0;"><label>عدد الأكواد المطلوب توليدها</label><input type="number" id="gm_count" value="1" min="1" max="50"></div>
+                    </div>
+                    <button class="btn mt-4" id="gm_generate">توليد أكواد الماس</button>
+                    <div class="subtabs mt-3">
+                        <button class="subtab active" data-gmf="all" onclick="setGemCodeFilter('all')">الكل</button>
+                        <button class="subtab" data-gmf="unused" onclick="setGemCodeFilter('unused')">غير مستخدمة</button>
+                        <button class="subtab" data-gmf="used" onclick="setGemCodeFilter('used')">مستخدمة</button>
+                    </div>
+                    <div id="gemCodeList"></div>
+                </div>
                 <div class="card">
                     <div class="card-head">
                         <div class="ic"><i data-lucide="list"></i></div>
@@ -3191,6 +3235,64 @@
                 renderPointCodes();
             });
         }
+
+        // ---------- The diamond store (the student app's متجر الماس) ----------
+        // gemShop/cfg = { verify, vdays, rate, idp: {3,4,6,7,8} }: the prices, all in diamonds. gemCodes/{GM-XXXX-XXXX-XXXX} = { gems, used, usedBy, usedAt, createdAt }.
+        const GS_IDS = [3, 4, 6, 7, 8];
+        function loadGemShop() {
+            onValue(ref(db, 'gemShop/cfg'), (snap) => {
+                const c = snap.exists() ? snap.val() : {}, set = (id, v) => { if (document.activeElement !== el(id)) el(id).value = v == null ? '' : v; };
+                set('gs_verify', c.verify); set('gs_vdays', c.vdays); set('gs_rate', c.rate);
+                GS_IDS.forEach((n) => set('gs_i' + n, c.idp && c.idp[n]));
+                el('gs_ex').textContent = c.verify ? 'الآن: التوثيق ' + c.verify + ' ماس لـ ' + (c.vdays || 30) + ' يوم. وكل 1 ماس = ' + (c.rate || 3000).toLocaleString('en-US') + ' نقطة.' : 'الأسعار ما انحفظت بعد، المتجر مطفي عند الطلاب.';
+            }, () => {});
+            el('gs_save').addEventListener('click', async () => {
+                const n = (id) => Number(val(id));
+                const cfg = { verify: n('gs_verify'), vdays: n('gs_vdays') || 30, rate: n('gs_rate') || 3000, idp: {} };
+                if (!(cfg.verify >= 1 && cfg.verify <= 100000)) { toast('اكتب سعر التوثيق (من 1 إلى 100000)', false); return; }
+                if (!(cfg.vdays >= 1 && cfg.vdays <= 365)) { toast('مدة التوثيق من 1 إلى 365 يوم', false); return; }
+                for (const k of GS_IDS) { const v = n('gs_i' + k); if (v) { if (!(v >= 1 && v <= 100000)) { toast('سعر ' + k + ' أرقام غلط', false); return; } cfg.idp[k] = Math.round(v); } }
+                cfg.verify = Math.round(cfg.verify); cfg.vdays = Math.round(cfg.vdays); cfg.rate = Math.round(cfg.rate);
+                try { await set(ref(db, 'gemShop/cfg'), cfg); toast('انحفظت أسعار متجر الماس'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+            el('gm_generate').addEventListener('click', async () => {
+                const gems = parseInt(val('gm_value'), 10), count = Math.max(1, Math.min(50, parseInt(val('gm_count'), 10) || 1));
+                if (!gems || gems < 1 || gems > 100000) { toast('أدخل عدد ماس صحيح (من 1 إلى 100000)', false); return; }
+                const btn = el('gm_generate'); btn.disabled = true;
+                try {
+                    for (let i = 0; i < count; i++) {
+                        let code = 'GM-' + generateCode();
+                        for (let t = 0; t < 5 && (await get(ref(db, 'gemCodes/' + code))).exists(); t++) code = 'GM-' + generateCode();
+                        await set(ref(db, 'gemCodes/' + code), { gems, used: false, createdAt: serverTimestamp() });
+                    }
+                    toast('تم توليد ' + count + ' كود بقيمة ' + gems.toLocaleString('en-US') + ' ماس');
+                    el('gm_value').value = '';
+                } catch (e) { toast('فشل التوليد: ' + (e.message || e), false); }
+                btn.disabled = false;
+            });
+        }
+        let gemCodesData = [], gemCodeFilter = 'all';
+        window.setGemCodeFilter = (f) => { gemCodeFilter = f; document.querySelectorAll('[data-gmf]').forEach((b) => b.classList.toggle('active', b.dataset.gmf === f)); renderGemCodes(); };
+        function renderGemCodes() {
+            const box = el('gemCodeList'); if (!box) return;
+            let list = gemCodesData;
+            if (gemCodeFilter === 'unused') list = list.filter((c) => !c.used); else if (gemCodeFilter === 'used') list = list.filter((c) => c.used);
+            box.innerHTML = list.length ? list.map((c) => `
+                <div class="row-item">
+                    <div class="flex-1 min-w-0">
+                        <div class="font-bold truncate" style="direction:ltr; text-align:right;">${escapeHtml(c._key)}</div>
+                        <div class="text-slate-400 text-xs">${Number(c.gems).toLocaleString('en-US')} ماس ${c.used ? '• مستخدم' : '• غير مستخدم'}</div>
+                    </div>
+                    ${c.used ? '' : `<button class="del" style="background:#334155;" onclick="copyTopupCode(${jsArg(c._key)})">نسخ</button>`}
+                    <button class="del" onclick="deleteItem('gemCodes', ${jsArg(c._key)})">حذف</button>
+                </div>`).join('') : '<p class="list-empty">لا توجد أكواد ماس</p>';
+        }
+        function attachGemCodes() {
+            onValue(ref(db, 'gemCodes'), (snap) => {
+                gemCodesData = snap.exists() ? entriesWithKey(snap.val()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) : [];
+                renderGemCodes();
+            });
+        }
         window.copyTopupCode = (code) => {
             (navigator.clipboard ? navigator.clipboard.writeText(code) : Promise.reject()).then(() => toast('تم نسخ الكود')).catch(() => toast('تعذر النسخ — انسخه يدوياً: ' + code, false));
         };
@@ -4496,7 +4598,7 @@
         };
 
         function loadLists() {
-            attachPointCodes(); attachSched(); attachPrizeList(); attachReports();
+            attachPointCodes(); attachGemCodes(); attachSched(); attachPrizeList(); attachReports();
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();
@@ -5036,7 +5138,7 @@
         function vfRow(uid) {
             const u = usersData[uid] || {}, v = verifiedData[uid], name = u.fullName || (v && v.name) || 'مستخدم';
             const av = u.avatar || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(name) + '&background=0095F6&color=fff');
-            const sub = [u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || ''].filter(Boolean).join(' • ');
+            const sub = [u.studentNumber ? 'رقم: ' + u.studentNumber : '', u.governorate || '', v && typeof v.until === 'number' ? (v.until > Date.now() ? 'مشترى، ينتهي ' + new Date(v.until).toLocaleDateString('ar-IQ') : 'مشترى وانتهى') : (v ? 'من الإدارة (دائم)' : '')].filter(Boolean).join(' • ');
             return `<div class="vf-row"><img src="${escapeHtml(av)}" alt=""><div class="vf-n"><b>${escapeHtml(name)}${v ? VB : ''}</b><small>${escapeHtml(sub)}</small></div>
                 ${v ? `<button class="vf-off" onclick="setVerified(${jsArg(uid)}, false)">إلغاء التوثيق</button>` : `<button class="vf-on" onclick="setVerified(${jsArg(uid)}, true)">توثيق</button>`}</div>`;
         }
@@ -5066,7 +5168,7 @@
         // phone / governorate that other places keep (pub, leaderboard, numIndex, phoneIndex) are changed in the same write, so nothing is left behind.
         const ST_FIELDS = [
             ['fullName', 'الاسم', 'text'], ['phone', 'الهاتف', 'phone'], ['governorate', 'المحافظة', 'gov'], ['grade', 'الفرع', 'grade'],
-            ['studentNumber', 'رقم الطالب', 'num'], ['points', 'النقاط', 'int', 0, 1000000000], ['balance', 'الرصيد', 'int', 0, 100000], ['loginStreak', 'أيام الدخول المتتالية', 'int', 0, 100000],
+            ['studentNumber', 'رقم الطالب', 'num'], ['points', 'النقاط', 'int', 0, 1000000000], ['balance', 'الرصيد', 'int', 0, 100000], ['gems', 'الماس', 'int', 0, 1000000], ['loginStreak', 'أيام الدخول المتتالية', 'int', 0, 100000],
         ];
         const ST_LABEL = Object.fromEntries(ST_FIELDS.map((f) => [f[0], f[1]]));
         const stDigits = (s) => String(s == null ? '' : s).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x6F0)).trim();
@@ -6375,6 +6477,7 @@
             loadUniAdmin();
             loadYtKey();
             loadTutorUrl();
+            loadGemShop();
             loadShopAdmin();
             loadSpotsAdmin();
             loadVentAdmin();

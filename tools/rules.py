@@ -135,6 +135,37 @@ BALANCE = ands(
     ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", BAL_TOPUP, BAL_IN, BAL_REDEEM),
 )
 
+# ---------- diamonds (users/{uid}/gems) ----------
+# A student's diamonds start at 0 and may: go down (spending), go up by a diamond code made in the panel (gc names it, marked used by this
+# student in the same write), or go up by exchanging points (ps = 'x:...', and the points go down by at least gems x gemShop/cfg/rate in the same write).
+GEM_RATE = "(root.child('gemShop/cfg/rate').isNumber() ? root.child('gemShop/cfg/rate').val() : 3000)"
+G_OLD0 = "(data.exists() ? data.val() : 0)"
+GCODE = "newData.parent().child('gc').val()"
+GEM_CODE = ands(
+    "newData.parent().child('gc').isString()",
+    GCODE + ".matches(/^gemCodes\\/[A-Z0-9-]{4,24}$/)",
+    f"root.child({GCODE}).exists()",
+    f"root.child({GCODE} + '/used').val() != true",
+    f"{NEW}.child({GCODE} + '/used').val() == true",
+    f"{NEW}.child({GCODE} + '/usedBy').val() == $uid",
+    f"newData.val() - {G_OLD0} <= root.child({GCODE} + '/gems').val()",
+)
+GEM_EXCH = ands(
+    "data.parent().child('points').isNumber()", "newData.parent().child('points').isNumber()",
+    "newData.parent().child('ps').isString()", "newData.parent().child('ps').val().beginsWith('x:')",
+    "newData.parent().child('ps').val() != data.parent().child('ps').val()",
+    f"(newData.val() - {G_OLD0}) * {GEM_RATE} <= ({P_OLD} - {P_NEW})",
+)
+GEMS = ands(
+    "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 1000000",
+    ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", GEM_CODE, GEM_EXCH),
+)
+# what a purchase paid, seen from a node two levels under the root (verified/{uid}, numIndex/{n}): my diamonds before minus after, in the same write
+G_PAID = "(root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val()"
+
+# the price of a special ID by its length (gemShop/cfg/idp/{3..8}); a rules expression cannot build a path from a number, so a chain
+IDP = "(" + " : ".join(f"($n.length == {n} ? root.child('gemShop/cfg/idp/{n}').val()" for n in range(3, 9)) + " : 1000000" + ")" * 6 + ")"
+
 # points paid by the writer in this write, seen from a node two levels under the root
 def paid(amount_expr, spend_expr, up=2):
     new_root = '.'.join(['newData'] + ['parent()'] * up)
@@ -220,7 +251,7 @@ rules = {
 
     # ----- content published from the admin panel -----
     **{k: public_admin for k in ["resources", "ticker", "siteConfig", "settings",
-                                  "carousel", "holidays", "examSchedule", "dayStatus", "verified",
+                                  "carousel", "holidays", "examSchedule", "dayStatus",
                                   "forestConfig", "govWarConfig", "auctionHistory", "admission", "voiceNote", "voiceNoteAudio", "ytChannels", "tgChannels", "motivPlans", "motivTemplates", "exams"]},
     # news: the admin does everything; a moderator may publish (own, plain, now-dated) or delete if that permission is on
     "news": {
@@ -376,6 +407,8 @@ rules = {
             "points": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": POINTS},
             "balance": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": BALANCE},
             "pAt": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": PAT},
+            "gems": {".write": ors(ands(OWNER, "newData.exists()"), ADMIN), ".validate": GEMS},
+            "gc": {".write": ors(OWNER, ADMIN), ".validate": "newData.isString() && newData.val().matches(/^gemCodes\\/[A-Z0-9-]{4,24}$/)"},
             "pc": {".write": ors(OWNER, ADMIN), ".validate": s_max('newData', 200)},
             "ps": {".write": ors(OWNER, ADMIN), ".validate": s_max('newData', 120)},
             "bs": {".write": ors(OWNER, ADMIN), ".validate": s_max('newData', 60)},
@@ -404,7 +437,14 @@ rules = {
     "numIndex": {
         "$n": {
             ".read": SIGNED,
-            ".write": ors(ADMIN, ands(SIGNED, "(!data.exists() || data.val() == auth.uid)", "(!newData.exists() || newData.val() == auth.uid)")),
+            # a number is claimed once by its owner: the one his own record already has (sign-up), or a number he buys with diamonds (a "special ID":
+            # his record takes it and his diamonds go down by the price of that length, all in the same write)
+            ".write": ors(ADMIN, ands(SIGNED, "(!data.exists() || data.val() == auth.uid)", "(!newData.exists() || newData.val() == auth.uid)",
+                                      ors("!newData.exists()", "data.exists()", "root.child('users/' + auth.uid + '/studentNumber').val() == $n",
+                                          # sign-up: a regular 5-digit number for an account that has none yet
+                                          ands("$n.length == 5", "!root.child('users/' + auth.uid + '/studentNumber').exists()"),
+                                          ands("$n.length >= 3 && $n.length <= 8", "newData.parent().parent().child('users/' + auth.uid + '/studentNumber').val() == $n",
+                                               G_PAID + " >= " + IDP)))),
             ".validate": "!newData.exists() || ($n.matches(/^[0-9]{3,12}$/) && newData.isString())",
         },
     },
@@ -492,6 +532,42 @@ rules = {
                 "at": {".validate": "newData.isNumber()"},
                 "$other": {".validate": False},
             },
+        },
+    },
+    # ----- the diamond store: the prices (the panel writes them), the codes that give diamonds, the purchases, and the verified accounts -----
+    # verified/{uid} = { at, name } (set by the panel, no end) or { at, name, until } (bought: it ends at `until`; a renewal adds the days to what is left)
+    "gemShop": {".read": True, ".write": ADMIN},
+    "gemCodes": {
+        "$code": {
+            ".read": SIGNED,
+            ".validate": "$code.matches(/^[A-Z0-9-]{4,24}$/)",
+            ".write": ors(ADMIN, ands(SIGNED, "data.exists()", "data.child('used').val() != true", "newData.child('used').val() == true",
+                                      "newData.child('usedBy').val() == auth.uid", "newData.child('gems').val() == data.child('gems').val()")),
+            "gems": {".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000"},
+            "used": {".validate": "newData.isBoolean()"},
+            "usedBy": {".validate": "newData.isString() && newData.val().length <= 40"},
+            "usedAt": {".validate": "newData.isNumber()"},
+            "createdAt": {".validate": "newData.isNumber()"},
+            "$other": {".validate": False},
+        },
+    },
+    "gemLog": {
+        "$uid": {
+            ".read": ors(OWNER, ADMIN),
+            "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")),
+                    ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['k', 'g', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id)$/)", "newData.child('g').isNumber()", "newData.child('at').isNumber()", "(!newData.child('x').exists() || " + s_max("newData.child('x')", 40) + ")") + ")"},
+        },
+    },
+    "verified": {
+        ".read": True,
+        ".write": ADMIN,
+        "$uid": {
+            ".write": ors(ADMIN, ands(OWNER, "newData.exists()", "newData.child('until').isNumber()", "(!data.exists() || data.child('until').isNumber())",
+                                      "newData.child('until').val() > now",
+                                      "newData.child('until').val() <= (data.child('until').isNumber() && data.child('until').val() > now ? data.child('until').val() : now) + (root.child('gemShop/cfg/vdays').isNumber() ? root.child('gemShop/cfg/vdays').val() : 30) * 86400000 + 120000",
+                                      "root.child('gemShop/cfg/verify').isNumber()",
+                                      G_PAID + " >= root.child('gemShop/cfg/verify').val()")),
+            ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('name').exists() || " + s_max("newData.child('name')", 80) + ") && (!newData.child('until').exists() || newData.child('until').isNumber()))",
         },
     },
     "pointCodes": {
