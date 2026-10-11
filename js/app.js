@@ -496,6 +496,20 @@
             return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + 'Z" fill="#0095F6"/><path d="M7.4 12.4l3.1 3.1 6.1-6.4" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         })();
 
+        // the diamond (💎 is the app's money for the diamond store): a drawn gem, not an emoji; every use gets its own gradient ids
+        let _gemN = 0;
+        function gemSvg(px) {
+            const k = 'gm' + (++_gemN), s = px || 18;
+            return `<svg class="gem-i" width="${s}" height="${s}" viewBox="0 0 32 32" aria-hidden="true"><defs>
+                <linearGradient id="${k}a" x1="4" y1="2" x2="28" y2="30" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#A5F3FC"/><stop offset=".5" stop-color="#22D3EE"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+                <linearGradient id="${k}b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#BAE6FD" stop-opacity=".6"/></linearGradient></defs>
+                <path d="M9 3h14l8 9-15 18L1 12z" fill="url(#${k}a)"/>
+                <path d="M9 3h14l-3 9H12z" fill="url(#${k}b)"/>
+                <path d="M1 12 9 3l3 9z" fill="#fff" opacity=".35"/><path d="M31 12 23 3l-3 9z" fill="#1E3A8A" opacity=".22"/>
+                <path d="M1 12h11l4 18z" fill="#fff" opacity=".18"/><path d="M12 12h8l-4 18z" fill="#1D4ED8" opacity=".28"/><path d="M20 12h11L16 30z" fill="#1E3A8A" opacity=".38"/>
+                <path d="M9 3h14l8 9-15 18L1 12z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width=".8" stroke-linejoin="round"/></svg>`;
+        }
+
         const IRAQI_MONTHS = ['كانون الثاني', 'شباط', 'آذار', 'نيسان', 'أيار', 'حزيران', 'تموز', 'آب', 'أيلول', 'تشرين الأول', 'تشرين الثاني', 'كانون الأول'];
 
         const forumThreads = [];
@@ -1009,6 +1023,7 @@
                     const v = snap.val();
                     if (typeof v.balance === 'number') this.currentUser.balance = v.balance;
                     if (typeof v.points === 'number') this.currentUser.points = v.points;
+                    if (typeof v.gems === 'number') { this.currentUser.gems = v.gems; if (this._gmRefresh) this._gmRefresh(); }
                     // the profile fields the admin panel can edit (name, phone, governorate, branch, student number): taken from the server, so this phone
                     // does not write its old copy back at the next sync
                     let edited = false;
@@ -4995,6 +5010,24 @@
                 this.plOpen();
             },
 
+            // the diamond store (js/gems.js)
+            goToGems() {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول حتى تدخل متجر الماس'); this.goToAuth('login'); return; }
+                this.switchView('gemsView');
+                if (this._withPart('gems', () => typeof this.gmOpen === 'function', 'gemsView', () => this.goToGems())) return;
+                this.gmOpen();
+            },
+            // a bought verification: tell the student once when it has 3 days left and once when it has ended
+            _gmExpiryNotice() {
+                try {
+                    const v = this.authUid && this._verified && this._verified[this.authUid];
+                    if (!v || typeof v !== 'object' || typeof v.until !== 'number') return;
+                    const left = v.until - Date.now(), key = 'isp:gm:n:' + this.authUid + ':' + v.until + ':' + (left <= 0 ? 'end' : 'soon');
+                    if ((left > 0 && left > 3 * 86400000) || localStorage.getItem(key)) return;
+                    localStorage.setItem(key, '1');
+                    this.showToast(left <= 0 ? 'انتهى توثيق حسابك. تريد تجدده؟ افتح متجر الماس' : 'توثيق حسابك يخلص بعد ' + Math.max(1, Math.ceil(left / 86400000)) + ' يوم. تكدر تجدده من متجر الماس');
+                } catch (e) { /* no notice */ }
+            },
             goToExams() {
                 const cfg = this.siteConfig || {};
                 if (cfg.features && cfg.features.exams === false) { this.showToast('هذه الصفحة مو متاحة هسه'); return; }
@@ -9098,6 +9131,7 @@
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
+                { id: 'gems', fn: 'goToGems', t: 'متجر الماس', d: 'وثّق حسابك وخذ ايدي مميز بالماس', ic: 'gem', c: '#06B6D4', g: 'tools' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
                 { id: 'notes', fn: 'goToNotes', t: 'دفتر الملاحظات', d: 'اكتب ورسم بالقلم، خرائط ذهنية وأوراق لاصقة', ic: 'pen-tool', c: '#7C3AED', g: 'study', feat: 'notes' },
@@ -9804,10 +9838,12 @@
                     if (sp) sp.textContent = n(pts) + ' نقطة';
                     if (spi) spi.textContent = '≈ ' + n(ptsIqd) + ' د.ع';
                     if (st) st.textContent = n(balIqd + ptsIqd) + ' د.ع';
+                    const sg = document.getElementById('walletSplitGems'); if (sg) sg.innerHTML = gemSvg(15) + '<span>' + n(numOr0(this.currentUser && this.currentUser.gems)) + '</span>';
                 } else {
                     balanceEl.textContent = '$ ****';
                     iqdEl.textContent = '≈ **** د.ع';
                     [sb, spi, st].forEach((e) => { if (e) e.textContent = '****'; });
+                    const sg = document.getElementById('walletSplitGems'); if (sg) sg.textContent = '****';
                     if (sp) sp.textContent = '**** نقطة';
                 }
             },
@@ -9923,6 +9959,7 @@
                 const btn = document.getElementById('topupRedeemBtn');
                 if (btn) { btn.disabled = true; btn.textContent = 'جاري التحقق...'; }
                 if (code.indexOf('PT-') === 0) { this._redeemPointCode(code, btn); return; }
+                if (code.indexOf('GM-') === 0) { this._need('gems').then(() => this.gmRedeemCode(code, btn)).catch(() => { this.showToast('ما انحملت الصفحة، حاول مرة ثانية'); if (btn) { btn.disabled = false; btn.textContent = 'تأكيد الإيداع'; } }); return; }
                 const { ref, get } = window.firebaseDbHelpers;
                 const uid = this.currentUid();
                 const codeRef = ref(window.firebaseDb, 'topupCodes/' + code);
@@ -13721,9 +13758,14 @@
                 onValue(ref(window.firebaseDb, 'verified'), (snap) => {
                     this._verified = snap.val() || {};
                     this._refreshVerifiedViews();
+                    this._gmExpiryNotice();
+                    if (this._gmRefresh) this._gmRefresh();
                 });
             },
-            isVerified(uid) { return !!(uid && this._verified && this._verified[uid]); },
+            // a record from the panel has no end; one bought with diamonds has `until`, and stops counting after it
+            isVerified(uid) { const v = uid && this._verified && this._verified[uid]; return !!v && (typeof v !== 'object' || typeof v.until !== 'number' || v.until > Date.now()); },
+            gemIcon(px) { return gemSvg(px); },
+            verifiedSvg() { return VERIFIED_SVG; },
             vb(uid, size) { return this.modBadge(uid) + (this.isVerified(uid) ? `<span class="vbadge${size ? ' ' + size : ''}" title="حساب موثّق" role="img" aria-label="حساب موثّق">${VERIFIED_SVG}</span>` : ''); },
 
             // ===== Moderators =====

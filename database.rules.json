@@ -40,10 +40,6 @@
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
     },
-    "verified": {
-      ".read": true,
-      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
-    },
     "forestConfig": {
       ".read": true,
       ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
@@ -361,6 +357,14 @@
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
           ".validate": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || newData.isNumber() && newData.val() <= now + 10000 && (!data.exists() || newData.val() >= data.val()))"
         },
+        "gems": {
+          ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() == 0 || data.exists() && newData.val() <= data.val() || (newData.parent().child('gc').isString() && newData.parent().child('gc').val().matches(/^gemCodes\\/[A-Z0-9-]{4,24}$/) && root.child(newData.parent().child('gc').val()).exists() && root.child(newData.parent().child('gc').val() + '/used').val() != true && newData.parent().parent().parent().child(newData.parent().child('gc').val() + '/used').val() == true && newData.parent().parent().parent().child(newData.parent().child('gc').val() + '/usedBy').val() == $uid && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('gc').val() + '/gems').val()) || (data.parent().child('points').isNumber() && newData.parent().child('points').isNumber() && newData.parent().child('ps').isString() && newData.parent().child('ps').val().beginsWith('x:') && newData.parent().child('ps').val() != data.parent().child('ps').val() && (newData.val() - (data.exists() ? data.val() : 0)) * (root.child('gemShop/cfg/rate').isNumber() ? root.child('gemShop/cfg/rate').val() : 3000) <= (data.parent().child('points').val() - newData.parent().child('points').val()))))"
+        },
+        "gc": {
+          ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+          ".validate": "newData.isString() && newData.val().matches(/^gemCodes\\/[A-Z0-9-]{4,24}$/)"
+        },
         "pc": {
           ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
           ".validate": "newData.isString() && newData.val().length <= 200"
@@ -403,7 +407,7 @@
     "numIndex": {
       "$n": {
         ".read": "auth != null",
-        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && (!data.exists() || data.val() == auth.uid) && (!newData.exists() || newData.val() == auth.uid)))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && (!data.exists() || data.val() == auth.uid) && (!newData.exists() || newData.val() == auth.uid) && (!newData.exists() || data.exists() || root.child('users/' + auth.uid + '/studentNumber').val() == $n || ($n.length == 5 && !root.child('users/' + auth.uid + '/studentNumber').exists()) || ($n.length >= 3 && $n.length <= 8 && newData.parent().parent().child('users/' + auth.uid + '/studentNumber').val() == $n && (root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val() >= (($n.length == 3 ? root.child('gemShop/cfg/idp/3').val() : ($n.length == 4 ? root.child('gemShop/cfg/idp/4').val() : ($n.length == 5 ? root.child('gemShop/cfg/idp/5').val() : ($n.length == 6 ? root.child('gemShop/cfg/idp/6').val() : ($n.length == 7 ? root.child('gemShop/cfg/idp/7').val() : ($n.length == 8 ? root.child('gemShop/cfg/idp/8').val() : 1000000)))))))))))",
         ".validate": "!newData.exists() || ($n.matches(/^[0-9]{3,12}$/) && newData.isString())"
       }
     },
@@ -604,6 +608,52 @@
             ".validate": false
           }
         }
+      }
+    },
+    "gemShop": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
+    "gemCodes": {
+      "$code": {
+        ".read": "auth != null",
+        ".validate": "$code.matches(/^[A-Z0-9-]{4,24}$/)",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && data.exists() && data.child('used').val() != true && newData.child('used').val() == true && newData.child('usedBy').val() == auth.uid && newData.child('gems').val() == data.child('gems').val()))",
+        "gems": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100000"
+        },
+        "used": {
+          ".validate": "newData.isBoolean()"
+        },
+        "usedBy": {
+          ".validate": "newData.isString() && newData.val().length <= 40"
+        },
+        "usedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "gemLog": {
+      "$uid": {
+        ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
+        "$id": {
+          ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()))",
+          ".validate": "!newData.exists() || ((newData.hasChildren(['k', 'g', 'at']) && newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id)$/) && newData.child('g').isNumber() && newData.child('at').isNumber() && (!newData.child('x').exists() || newData.child('x').isString() && newData.child('x').val().length <= 40)))"
+        }
+      }
+    },
+    "verified": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$uid": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && newData.exists() && newData.child('until').isNumber() && (!data.exists() || data.child('until').isNumber()) && newData.child('until').val() > now && newData.child('until').val() <= (data.child('until').isNumber() && data.child('until').val() > now ? data.child('until').val() : now) + (root.child('gemShop/cfg/vdays').isNumber() ? root.child('gemShop/cfg/vdays').val() : 30) * 86400000 + 120000 && root.child('gemShop/cfg/verify').isNumber() && (root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val() >= root.child('gemShop/cfg/verify').val()))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('name').exists() || newData.child('name').isString() && newData.child('name').val().length <= 80) && (!newData.child('until').exists() || newData.child('until').isNumber()))"
       }
     },
     "pointCodes": {

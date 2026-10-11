@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '537b08fe67';
+        window.APP_VER = '83664ef1dc';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=14b6df3ac8">
+    <link rel="stylesheet" href="css/app.css?v=8fbe7a8c9b">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -1293,6 +1293,7 @@
                         <div><small>رصيد</small><b id="walletSplitBal" dir="rtl">0 د.ع</b></div>
                         <div><small>نقاط</small><b id="walletSplitPts" dir="rtl">0 نقطة</b><em id="walletSplitPtsIqd" dir="rtl">≈ 0 د.ع</em></div>
                         <div class="tot"><small>المجموع</small><b id="walletSplitTotal" dir="rtl">0 د.ع</b></div>
+                        <div class="gmc" onclick="app.goToGems()"><small>الماس</small><b id="walletSplitGems"></b></div>
                     </div>
                     <div class="wl-card-foot">
                         <div><small>صاحب الحساب</small><b id="walletCardName">الطالب</b></div>
@@ -1305,6 +1306,7 @@
                     <button onclick="app.openRedeemCodeModal()" style="--c:#F59E0B"><span><i data-lucide="ticket"></i></span>إيداع بكود</button>
                     <button onclick="app.openTransferModal()" style="--c:#8B5CF6"><span><i data-lucide="send"></i></span>تحويل</button>
                     <button onclick="app.goToPointsStore()" style="--c:#EC4899"><span><i data-lucide="gift"></i></span>استبدال نقاط</button>
+                    <button onclick="app.goToGems()" style="--c:#06B6D4"><span><i data-lucide="gem"></i></span>متجر الماس</button>
                 </section>
 
                 <!-- points -->
@@ -1722,6 +1724,19 @@
         </div>
 
         <!-- ===== EXAMS (js/exams.js) ===== -->
+        <div id="gemsView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold truncate theme-transition" style="color: var(--text);">متجر الماس</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">وثّق حسابك وخذ ايدي مميز</div>
+                </div>
+            </div>
+            <div id="gmContent" class="gm"></div>
+        </div>
+
         <div id="examsView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                 <button onclick="app.exBackBtn()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
@@ -2008,7 +2023,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=4938f521b2"></script>
+    <script src="js/app.js?v=d07f2f6ea7"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <canvas id="mtFx" aria-hidden="true"></canvas>
         <div class="mt-stars" aria-hidden="true"></div>
