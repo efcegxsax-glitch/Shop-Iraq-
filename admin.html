@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="9e30cd9949">
+    <meta name="admin-build" content="d4a8830134">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -465,6 +465,7 @@
                 <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">يحتاج متابعة</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
                 <button class="tab" data-tab="notices"><span class="tab-ic"><i data-lucide="siren"></i></span><span>مركز التنبيهات</span><b class="tab-badge hidden" id="ntBadge"></b></button>
                 <button class="tab" data-tab="reports"><span class="tab-ic"><i data-lucide="flag"></i></span><span>البلاغات</span><b class="tab-badge hidden" id="rpBadge"></b></button>
+                <button class="tab" data-tab="tamper"><span class="tab-ic"><i data-lucide="shield-alert"></i></span><span>تنبيهات التلاعب</span><b class="tab-badge hidden" id="tmBadge"></b></button>
                 <button class="tab" data-tab="ideas"><span class="tab-ic"><i data-lucide="lightbulb"></i></span><span>شكاوي وأفكار</span><b class="tab-badge hidden" id="idBadge"></b></button>
                 <button class="tab" data-tab="vent"><span class="tab-ic"><i data-lucide="feather"></i></span><span>فضفضة</span><b class="tab-badge hidden" id="vtBadge"></b></button>
                 <button class="tab" data-tab="orders"><span class="tab-ic"><i data-lucide="package-check"></i></span><span>طلبات المتجر</span><b class="tab-badge hidden" id="ordBadge"></b></button>
@@ -508,6 +509,7 @@
             <div class="nav-group" data-g="money">
                 <div class="nav-group-label" role="button" tabindex="0" aria-expanded="true"><span class="ng-t">المالية والمتجر</span><b class="ng-n hidden"></b><span class="ng-chev" aria-hidden="true"></span></div>
                 <button class="tab" data-tab="topup"><span class="tab-ic"><i data-lucide="credit-card"></i></span><span>أكواد تعبئة</span></button>
+                <button class="tab" data-tab="premium"><span class="tab-ic"><i data-lucide="crown"></i></span><span>اشتراك Premium</span></button>
                 <button class="tab" data-tab="store"><span class="tab-ic"><i data-lucide="store"></i></span><span>متجر</span></button>
                 <button class="tab" data-tab="auction"><span class="tab-ic"><i data-lucide="gavel"></i></span><span>مزاد النقاط</span></button>
             </div>
@@ -2319,6 +2321,55 @@
                 </div>
             </div>
 
+            <div id="sec-tamper" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="shield-alert"></i></div>
+                        <div>
+                            <h3>تنبيهات التلاعب</h3>
+                            <p>إذا طالب سوّى تعديل غير رسمي (جرّب يكتب بالنظام من الكونسل أو يغيّر اشتراكه) يطلع هنا فوراً. قاعدة البيانات ترفض التعديل أصلاً، وهذا بس يخبرك منو حاول. تكدر تفتح ملفه، تبلّغه، أو تحظره.</p>
+                        </div>
+                    </div>
+                    <div id="tmList"></div>
+                </div>
+            </div>
+            <div id="sec-premium" class="hidden">
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="crown"></i></div>
+                        <div>
+                            <h3>اشتراك Premium: الأسعار والإعدادات</h3>
+                            <p>الطالب يشترك بالماس لمدة أيام، وإذا خلصت ترجع المزايا للوضع العادي. بدون سعر الاشتراك يبقى مقفول عند الطلاب.</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>سعر الاشتراك (ماس)</label><input type="number" id="pm_price" min="1" max="100000" placeholder="مثال: 100"></div>
+                        <div class="field" style="margin-bottom:0;"><label>مدة الاشتراك (أيام)</label><input type="number" id="pm_days" min="1" max="365" placeholder="30"></div>
+                        <div class="field" style="margin-bottom:0;"><label>مضاعف النقاط (1 إلى 3)</label><input type="number" id="pm_mult" min="1" max="3" placeholder="2"></div>
+                        <div class="field" style="margin-bottom:0;"><label>عدد الدفاتر المجانية للطالب العادي</label><input type="number" id="pm_fnotes" min="1" max="1000" placeholder="5"></div>
+                        <div class="field" style="margin-bottom:0;"><label>امتحانات مجانية بالشهر للطالب العادي</label><input type="number" id="pm_fexams" min="0" max="100" placeholder="2"></div>
+                    </div>
+                    <p class="text-slate-400 text-xs" style="margin:12px 0 6px;">الأجزاء المفعّلة (طفّي جزء إذا تريده يختفي من عند الكل):</p>
+                    <div id="pm_feats" style="display:flex;flex-direction:column;gap:6px;"></div>
+                    <button class="btn mt-4" id="pm_save">حفظ</button>
+                    <p id="pm_ex" class="text-slate-400 text-xs" style="margin-top:8px;"></p>
+                </div>
+                <div class="card">
+                    <div class="card-head">
+                        <div class="ic"><i data-lucide="user-check"></i></div>
+                        <div>
+                            <h3>المشتركون</h3>
+                            <p>امنح اشتراك لطالب برقمه (بدون أيام = دائم) أو ألغِ اشتراك أحد.</p>
+                        </div>
+                    </div>
+                    <div class="field-grid field-grid-2">
+                        <div class="field" style="margin-bottom:0;"><label>رقم الطالب</label><input type="text" id="pm_num" inputmode="numeric" placeholder="رقم الطالب"></div>
+                        <div class="field" style="margin-bottom:0;"><label>عدد الأيام (فاضي = دائم)</label><input type="number" id="pm_gdays" min="1" max="3650" placeholder="30"></div>
+                    </div>
+                    <button class="btn mt-3" id="pm_grant">امنح الاشتراك</button>
+                    <div id="pm_list" style="margin-top:12px;"></div>
+                </div>
+            </div>
             <div id="sec-reports" class="hidden">
                 <div class="card">
                     <div class="card-head">
@@ -2392,7 +2443,7 @@
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    ['notices', 'site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
+                    ['notices', 'site', 'users', 'student', 'mods', 'news', 'newsbot', 'res', 'notif', 'motiv', 'imgs', 'ticker', 'exams', 'tests', 'prizes', 'holidays', 'polls', 'errors', 'forest', 'war', 'uni', 'voice', 'dreams', 'topup', 'store', 'orders', 'spots', 'vent', 'ideas', 'auction', 'reports', 'tamper', 'premium', 'ban'].forEach(k => el('sec-' + k).classList.toggle('hidden', k !== tab.dataset.tab));
                 });
             });
 
@@ -3253,7 +3304,7 @@
                 if (!(cfg.vdays >= 1 && cfg.vdays <= 365)) { toast('مدة التوثيق من 1 إلى 365 يوم', false); return; }
                 for (const k of GS_IDS) { const v = n('gs_i' + k); if (v) { if (!(v >= 1 && v <= 100000)) { toast('سعر ' + k + ' أرقام غلط', false); return; } cfg.idp[k] = Math.round(v); } }
                 if (!(cfg.wallet >= 0 && cfg.wallet <= 100000)) { toast('سعر تفعيل المحفظة من 0 إلى 100000', false); return; }
-                cfg.verify = Math.round(cfg.verify); cfg.vdays = Math.round(cfg.vdays); cfg.rate = Math.round(cfg.rate); cfg.wallet = Math.round(cfg.wallet);
+                cfg.verify = Math.round(cfg.verify); cfg.vdays = Math.round(cfg.vdays); cfg.wallet = Math.round(cfg.wallet);
                 try { await set(ref(db, 'gemShop/cfg'), cfg); toast('انحفظت أسعار متجر الماس'); } catch (e) { toast('فشل الحفظ', false); }
             });
             el('gm_generate').addEventListener('click', async () => {
@@ -3550,6 +3601,118 @@
         let reportsData = {}, rpMode = 'open';
         const RP_TYPES = { user: 'طالب', message: 'رسالة خاصة', thread: 'منشور بالمنتدى', answer: 'إجابة بالمنتدى', dream: 'حلم', idea: 'فكرة', vent: 'فضفضة', room: 'غرفة' };
         const RP_DEL = /^((forumThreads|forumAnswers|dreams|ideas)\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?|(ytRooms|rmRooms)\/[A-Za-z0-9_-]+\/chat\/[A-Za-z0-9_-]+)$/;
+        // ---------- Premium ----------
+        // premCfg = { price, days, mult, freeNotes, freeExams, f: {part: false} }; premium/{uid} = { at, until?, name }. A record without `until` never ends.
+        const PM_FEATS = [['mult', 'نقاط مضاعفة'], ['exam', 'امتحانات من الملازم'], ['summary', 'ملخص ذكي'], ['cards', 'بطاقات حفظ من الملاحظات'], ['plan', 'خطة دراسة تتعدل لحالها'], ['notes', 'ملاحظات بلا حدود (مجلدات، بحث، PDF)'], ['rooms', 'غرف دراسة مميزة']];
+        let premData = {};
+        function attachPremium() {
+            el('pm_feats').innerHTML = PM_FEATS.map(([k, t]) => `<label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="pm_f_${k}" checked> ${escapeHtml(t)}</label>`).join('');
+            onValue(ref(db, 'premCfg'), (snap) => {
+                const c = snap.exists() ? snap.val() : {}, put = (id, v) => { if (document.activeElement !== el(id)) el(id).value = v == null ? '' : v; };
+                put('pm_price', c.price); put('pm_days', c.days); put('pm_mult', c.mult); put('pm_fnotes', c.freeNotes); put('pm_fexams', c.freeExams);
+                PM_FEATS.forEach(([k]) => { el('pm_f_' + k).checked = !(c.f && c.f[k] === false); });
+                el('pm_ex').textContent = c.price ? 'الآن: ' + c.price + ' ماس لـ ' + (c.days || 30) + ' يوم، ونقاط ×' + (c.mult || 2) + '.' : 'السعر ما انحفظ بعد، الاشتراك مقفول عند الطلاب.';
+            }, () => {});
+            el('pm_save').addEventListener('click', async () => {
+                const n = (id) => Number(val(id));
+                const cfg = { price: Math.round(n('pm_price')), days: Math.round(n('pm_days')) || 30, mult: Math.round(n('pm_mult')) || 2, freeNotes: Math.round(n('pm_fnotes')) || 5, freeExams: val('pm_fexams') === '' ? 2 : Math.round(n('pm_fexams')), f: {} };
+                if (!(cfg.price >= 1 && cfg.price <= 100000)) { toast('اكتب سعر الاشتراك (من 1 إلى 100000)', false); return; }
+                if (!(cfg.days >= 1 && cfg.days <= 365)) { toast('المدة من 1 إلى 365 يوم', false); return; }
+                if (!(cfg.mult >= 1 && cfg.mult <= 3)) { toast('المضاعف من 1 إلى 3', false); return; }
+                if (!(cfg.freeNotes >= 1 && cfg.freeNotes <= 1000) || !(cfg.freeExams >= 0 && cfg.freeExams <= 100)) { toast('راجع عدد الدفاتر والامتحانات المجانية', false); return; }
+                PM_FEATS.forEach(([k]) => { if (!el('pm_f_' + k).checked) cfg.f[k] = false; });
+                if (!Object.keys(cfg.f).length) delete cfg.f;
+                try { await set(ref(db, 'premCfg'), cfg); toast('انحفظ اشتراك Premium'); } catch (e) { toast('فشل الحفظ', false); }
+            });
+            onValue(ref(db, 'premium'), (snap) => { premData = snap.exists() ? snap.val() : {}; renderPremList(); }, () => {});
+            el('pm_grant').addEventListener('click', async () => {
+                const num = digitsOnly(val('pm_num')), days = val('pm_gdays') === '' ? 0 : Math.round(Number(val('pm_gdays')));
+                if (!num) { toast('اكتب رقم الطالب', false); return; }
+                if (days && !(days >= 1 && days <= 3650)) { toast('الأيام من 1 إلى 3650', false); return; }
+                let uid = '';
+                try { const nsn = await get(ref(db, 'numIndex/' + num)); uid = nsn.exists() ? String(nsn.val()) : ''; } catch (e) {}
+                if (!uid) uid = Object.keys(usersData).find((k) => String((usersData[k] || {}).studentNumber) === num) || '';
+                if (!uid) { toast('ما لكيت طالب بهذا الرقم', false); return; }
+                const rec = { at: Date.now(), name: String((usersData[uid] || {}).fullName || 'طالب').slice(0, 80), by: 'panel' };
+                if (days) rec.until = Date.now() + days * 86400000;
+                try { await set(ref(db, 'premium/' + uid), rec); toast('انمنح الاشتراك ' + (days ? 'لـ ' + days + ' يوم' : 'بشكل دائم')); el('pm_num').value = ''; el('pm_gdays').value = ''; } catch (e) { toast('فشل', false); }
+            });
+        }
+        const digitsOnly = (t) => String(t == null ? '' : t).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x660)).replace(/[^0-9]/g, '');
+        function renderPremList() {
+            const box = el('pm_list'); if (!box) return;
+            const now = Date.now();
+            const rows = Object.keys(premData).map((uid) => ({ uid, ...(premData[uid] || {}) })).sort((a, b) => (b.until || 9e15) - (a.until || 9e15));
+            if (!rows.length) { box.innerHTML = '<p class="list-empty">ماكو مشتركين بعد</p>'; return; }
+            box.innerHTML = rows.slice(0, 200).map((r) => {
+                const u = usersData[r.uid] || {}, live = typeof r.until !== 'number' || r.until > now;
+                return `<div class="row-item" style="gap:8px;${live ? '' : 'opacity:.55;'}"><span style="flex:1;min-width:0;"><b>${escapeHtml(u.fullName || r.name || 'طالب')}</b> <small class="text-slate-400">#${escapeHtml(String(u.studentNumber || ''))} · ${typeof r.until !== 'number' ? 'دائم' : (live ? 'لحد ' : 'انتهى ') + new Date(r.until).toLocaleDateString('en-GB')}</small></span><button class="del" onclick="pmRevoke(${jsArg(r.uid)})">إلغاء</button></div>`;
+            }).join('');
+        }
+        window.pmRevoke = async (uid) => {
+            if (!(await ask({ icon: 'user-x', title: 'تلغي اشتراك ' + ((usersData[uid] || {}).fullName || 'الطالب') + '؟', text: 'ترجع حالته عادية فوراً.', ok: 'إلغاء الاشتراك' }))) return;
+            try { await set(ref(db, 'premium/' + uid), null); toast('انلغى الاشتراك'); } catch (e) { toast('فشل', false); }
+        };
+
+        // ---------- Tamper alerts ----------
+        // tamper/{id} = { u, k, at, d }: a student's app reporting that it was used by hand (a refused write to a protected place, a fake premium flag).
+        const TM_KINDS = { denied_write: 'حاول يكتب بمكان محمي', fake_premium: 'غيّر علامة Premium بالجهاز بدون اشتراك', unknown: 'تصرف غير رسمي' };
+        let tamperData = {}, tamperSeen = null;
+        function attachTamper() {
+            onValue(ref(db, 'tamper'), (snap) => {
+                const prev = tamperSeen;
+                tamperData = snap.exists() ? snap.val() : {};
+                tamperSeen = new Set(Object.keys(tamperData));
+                if (prev) Object.keys(tamperData).filter((k) => !prev.has(k)).forEach((k) => tamperAlert(k, tamperData[k]));
+                renderTamper();
+            }, () => {});
+        }
+        function tamperAlert(id, r) {
+            const u = usersData[r.u] || {};
+            toast('تنبيه تلاعب: ' + (u.fullName || 'طالب') + ' (' + (u.studentNumber || '?') + ') ' + (TM_KINDS[r.k] || r.k), false);
+            try {
+                const A = new (window.AudioContext || window.webkitAudioContext)(), o = A.createOscillator(), g = A.createGain();
+                o.type = 'square'; o.frequency.value = 880; g.gain.value = .06; o.connect(g); g.connect(A.destination); o.start(); setTimeout(() => { o.stop(); A.close(); }, 400);
+            } catch (e) { /* no sound */ }
+            try { if ('Notification' in window && Notification.permission === 'granted') new Notification('تنبيه تلاعب', { body: (u.fullName || 'طالب') + ': ' + (TM_KINDS[r.k] || r.k) }); } catch (e) {}
+        }
+        function renderTamper() {
+            const ids = Object.keys(tamperData).sort((a, b) => (tamperData[b].at || 0) - (tamperData[a].at || 0));
+            el('tmBadge').textContent = ids.length; el('tmBadge').classList.toggle('hidden', !ids.length);
+            const box = el('tmList'); if (!box) return;
+            if (!ids.length) { box.innerHTML = '<p class="list-empty">ماكو تنبيهات. كل شي نظيف</p>'; return; }
+            box.innerHTML = ids.slice(0, 100).map((id) => {
+                const r = tamperData[id] || {}, u = usersData[r.u] || {};
+                return `<div class="row-item" style="flex-direction:column;align-items:stretch;gap:8px;">
+                    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><span class="pl-tag2" style="background:#DC2626">تلاعب</span><b>${escapeHtml(u.fullName || 'طالب غير معروف')}</b><span class="text-slate-400 text-xs">#${escapeHtml(String(u.studentNumber || ''))} · ${r.at ? new Date(r.at).toLocaleString('en-GB') : ''}</span></div>
+                    <div style="font-size:13px;">${escapeHtml(TM_KINDS[r.k] || r.k || '')}</div>
+                    ${r.d ? `<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:8px 10px;font-size:12px;direction:ltr;text-align:left;word-break:break-all;">${escapeHtml(r.d)}</div>` : ''}
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn-sm" onclick="tmOpenFile(${jsArg(r.u)})">افتح ملفه</button>
+                        <button class="btn-sm" onclick="tmWarn(${jsArg(id)})">بلّغه</button>
+                        ${r.u && usersData[r.u] && !bannedUsersData[r.u] ? `<button class="del" onclick="tmBan(${jsArg(id)})">احظره</button>` : ''}
+                        <button class="btn-sm" onclick="tmRemove(${jsArg(id)})">احذف التنبيه</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        window.tmOpenFile = (uid) => {
+            const u = usersData[uid]; if (!u) { toast('ما لكيت ملفه', false); return; }
+            document.querySelector('.tab[data-tab="student"]').click();
+            el('st_q').value = String(u.studentNumber || ''); el('st_go').click();
+        };
+        window.tmWarn = async (id) => {
+            const r = tamperData[id]; if (!r || !r.u) return;
+            const pr = await pushPhones('تنبيه من الإدارة', 'سجّلنا أنك سوّيت تعديل غير رسمي بالتطبيق. إذا استمريت يتم حظر حسابك.', [], '', { uids: [r.u] });
+            toast(pr.ok ? (pr.id ? 'وصله التبليغ' : 'ما لكيت جهاز له، بس انسجّل') : 'ما انرسل: ' + pr.why, !!pr.ok);
+        };
+        window.tmBan = async (id) => {
+            const r = tamperData[id]; if (!r || !r.u) return;
+            el('ban_reason').value = 'تعديل غير رسمي بالتطبيق';
+            await window.banUser(r.u);
+        };
+        window.tmRemove = (id) => update(ref(db), { ['tamper/' + id]: null }).then(() => toast('انحذف التنبيه')).catch(() => toast('فشل', false));
+
         function attachReports() { onValue(ref(db, 'reports'), (s) => { reportsData = s.val() || {}; renderReports(); }); }
         window.rpFilter = (m) => { rpMode = m; renderReports(); };
         function renderReports() {
@@ -4599,7 +4762,7 @@
         };
 
         function loadLists() {
-            attachPointCodes(); attachGemCodes(); attachSched(); attachPrizeList(); attachReports();
+            attachPointCodes(); attachGemCodes(); attachSched(); attachPrizeList(); attachReports(); attachPremium(); attachTamper();
             onValue(ref(db, 'users'), (snap) => {
                 usersData = snap.exists() ? snap.val() : {};
                 renderUsersStats();

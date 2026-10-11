@@ -347,7 +347,7 @@
         ".write": "((auth != null && auth.uid == $uid) && !newData.exists())",
         "points": {
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
-          ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() <= 200 || data.exists() && newData.val() <= data.val() || (data.exists() && newData.val() - data.val() <= 200 && newData.parent().child('pAt').isNumber() && newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)) || (newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^auctionBids\\/[A-Za-z0-9_-]+\\/refunds\\/[A-Za-z0-9_-]+\\/[0-9]+$/) && newData.parent().child('pc').val().contains('/refunds/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('pc').val() + '/amount').val()) || (data.exists() && newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^pointCodes\\/[A-Z0-9-]{4,24}$/) && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/used').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/used').val() == true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/usedBy').val() == $uid && newData.val() - data.val() <= root.child(newData.parent().child('pc').val() + '/points').val()) || (data.exists() && newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^prizeClaims\\/[A-Za-z0-9]+\\/[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.parent().child('pc').val().contains('/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - data.val() <= root.child(newData.parent().child('pc').val() + '/pts').val())))"
+          ".validate": "(newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000000 && ((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || !data.exists() && newData.val() <= 200 || data.exists() && newData.val() <= data.val() || (data.exists() && newData.val() - data.val() <= ((root.child('premium/' + $uid + '/until').isNumber() ? root.child('premium/' + $uid + '/until').val() > now : root.child('premium/' + $uid + '/at').isNumber()) ? 600 : 200) && newData.parent().child('pAt').isNumber() && newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)) || (newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^auctionBids\\/[A-Za-z0-9_-]+\\/refunds\\/[A-Za-z0-9_-]+\\/[0-9]+$/) && newData.parent().child('pc').val().contains('/refunds/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - (data.exists() ? data.val() : 0) <= root.child(newData.parent().child('pc').val() + '/amount').val()) || (data.exists() && newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^pointCodes\\/[A-Z0-9-]{4,24}$/) && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/used').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/used').val() == true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/usedBy').val() == $uid && newData.val() - data.val() <= root.child(newData.parent().child('pc').val() + '/points').val()) || (data.exists() && newData.parent().child('pc').isString() && newData.parent().child('pc').val().matches(/^prizeClaims\\/[A-Za-z0-9]+\\/[0-9]{4}-[0-9]{2}-[0-9]{2}$/) && newData.parent().child('pc').val().contains('/' + $uid + '/') && root.child(newData.parent().child('pc').val()).exists() && root.child(newData.parent().child('pc').val() + '/c').val() != true && newData.parent().parent().parent().child(newData.parent().child('pc').val() + '/c').val() == true && newData.val() - data.val() <= root.child(newData.parent().child('pc').val() + '/pts').val())))"
         },
         "balance": {
           ".write": "(((auth != null && auth.uid == $uid) && newData.exists()) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
@@ -671,7 +671,7 @@
         ".read": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         "$id": {
           ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && !data.exists()))",
-          ".validate": "!newData.exists() || ((newData.hasChildren(['k', 'g', 'at']) && newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id|wallet)$/) && newData.child('g').isNumber() && newData.child('at').isNumber() && (!newData.child('x').exists() || newData.child('x').isString() && newData.child('x').val().length <= 40)))"
+          ".validate": "!newData.exists() || ((newData.hasChildren(['k', 'g', 'at']) && newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id|wallet|prem)$/) && newData.child('g').isNumber() && newData.child('at').isNumber() && (!newData.child('x').exists() || newData.child('x').isString() && newData.child('x').val().length <= 40)))"
         }
       }
     },
@@ -681,6 +681,46 @@
       "$uid": {
         ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && newData.exists() && newData.child('until').isNumber() && (!data.exists() || data.child('until').isNumber()) && newData.child('until').val() > now && newData.child('until').val() <= (data.child('until').isNumber() && data.child('until').val() > now ? data.child('until').val() : now) + (root.child('gemShop/cfg/vdays').isNumber() ? root.child('gemShop/cfg/vdays').val() : 30) * 86400000 + 120000 && root.child('gemShop/cfg/verify').isNumber() && (root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val() >= root.child('gemShop/cfg/verify').val()))",
         ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('name').exists() || newData.child('name').isString() && newData.child('name').val().length <= 80) && (!newData.child('until').exists() || newData.child('until').isNumber()))"
+      }
+    },
+    "premCfg": {
+      ".read": true,
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))"
+    },
+    "premium": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && newData.exists() && newData.child('until').isNumber() && (!data.exists() || data.child('until').isNumber()) && newData.child('until').val() > now && newData.child('until').val() <= (data.child('until').isNumber() && data.child('until').val() > now ? data.child('until').val() : now) + (root.child('premCfg/days').isNumber() ? root.child('premCfg/days').val() : 30) * 86400000 + 120000 && root.child('premCfg/price').isNumber() && (root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val() >= root.child('premCfg/price').val()))",
+        ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('until').exists() || newData.child('until').isNumber()) && (!newData.child('name').exists() || newData.child('name').isString() && newData.child('name').val().length <= 80))"
+      }
+    },
+    "tamper": {
+      ".read": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      ".write": "(auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true))",
+      "$id": {
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && !data.exists() && newData.child('u').val() == auth.uid && newData.parent().parent().child('tamperLast/' + auth.uid).val() == now))",
+        ".validate": "!newData.exists() || ((newData.hasChildren(['u', 'k', 'at']) && newData.child('k').isString() && newData.child('k').val().matches(/^[a-z_]{2,24}$/) && newData.child('at').val() == now && (!newData.child('d').exists() || newData.child('d').isString() && newData.child('d').val().length <= 300)))",
+        "u": {
+          ".validate": "newData.isString()"
+        },
+        "k": {
+          ".validate": "true"
+        },
+        "at": {
+          ".validate": "true"
+        },
+        "d": {
+          ".validate": "true"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "tamperLast": {
+      "$uid": {
+        ".write": "(auth != null && auth.uid == $uid)",
+        ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 20000)"
       }
     },
     "pointCodes": {
@@ -1018,6 +1058,24 @@
           ".validate": "(newData.child('host').val() == (data.exists() ? data.child('host').val() : auth.uid) && newData.child('title').isString() && newData.child('title').val().length <= 60 && newData.child('at').isNumber())",
           "cur": {
             ".validate": "newData.isString() && newData.val().length <= 20"
+          },
+          "cap": {
+            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40 && (newData.val() <= 12 || (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()))"
+          },
+          "pv": {
+            ".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists() && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber())"
+          },
+          "pin": {
+            ".validate": "(newData.hasChildren(['v']) && newData.child('v').isString() && newData.child('v').val().length <= 11 && (!newData.child('t').exists() || newData.child('t').isString() && newData.child('t').val().length <= 100) && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()))",
+            "v": {
+              ".validate": "true"
+            },
+            "t": {
+              ".validate": "true"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "queue": {
@@ -1031,7 +1089,7 @@
         },
         "members": {
           "$uid": {
-            ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && root.child('ytRooms/' + $rid + '/meta').exists() && !root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists()) || ((auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid) && !newData.exists()))",
+            ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || ((auth != null && auth.uid == $uid) && root.child('ytRooms/' + $rid + '/meta').exists() && !root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists() && (!root.child('ytRoomPw/' + $rid).exists() || data.exists() || !newData.exists() || newData.parent().parent().parent().parent().child('ytRoomJoin/' + $rid + '/' + $uid).val() == root.child('ytRoomPw/' + $rid).val())) || ((auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid) && !newData.exists()))",
             ".validate": "!newData.exists() || (newData.child('n').isString() && newData.child('n').val().length <= 60)"
           }
         },
@@ -1217,6 +1275,22 @@
         ".read": "(auth != null && auth.uid == $uid)",
         ".write": "((auth != null && auth.uid == $uid) || (auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)))",
         ".validate": "!newData.exists() || ((newData.child('min').isNumber() && newData.child('min').val() >= 0 && newData.child('min').val() <= 10000000 && (!newData.child('c').exists() || (newData.child('c').isString() && newData.child('c').val().matches(/^[a-z0-9]{2,12}$/)))))"
+      }
+    },
+    "ytRoomPw": {
+      "$rid": {
+        ".read": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && newData.exists() && !data.exists() && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()) && newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && newData.parent().parent().child('ytRooms/' + $rid + '/meta/pv').val() === true) || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && !newData.exists()))",
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))"
+      }
+    },
+    "ytRoomJoin": {
+      "$rid": {
+        "$uid": {
+          ".read": "(auth != null && auth.uid == $uid)",
+          ".write": "(auth != null && auth.uid == $uid)",
+          ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))"
+        }
       }
     },
     "ytInvites": {

@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = '3b27e5b3a3';
+        window.APP_VER = '7124773d9e';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=a39d361297">
+    <link rel="stylesheet" href="css/app.css?v=7d11508046">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -1738,6 +1738,19 @@
             <div id="gmContent" class="gm"></div>
         </div>
 
+        <div id="premiumView" class="hidden page-slide-rtl">
+            <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
+                <button onclick="app.goBack()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
+                    <i data-lucide="chevron-right" class="w-5 h-5 theme-transition" style="color: var(--text);"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold truncate theme-transition" style="color: var(--text);">Premium</div>
+                    <div class="text-xs theme-transition" style="color: var(--text2);">أدوات دراسة أذكى ونقاط مضاعفة</div>
+                </div>
+            </div>
+            <div id="pmContent" class="gm"></div>
+        </div>
+
         <div id="examsView" class="hidden page-slide-rtl">
             <div class="sticky top-16 z-30 border-b px-4 py-3 flex items-center gap-3 theme-transition" style="background-color: var(--surface); border-color: var(--border);">
                 <button onclick="app.exBackBtn()" class="btn-press w-10 h-10 rounded-xl flex items-center justify-center theme-transition" style="background-color: var(--input-bg);" aria-label="رجوع">
@@ -2024,7 +2037,7 @@
     </nav>
 
     <script src="js/pickers.js?v=6fcde53c1a"></script>
-    <script src="js/app.js?v=7778cf4f5e"></script>
+    <script src="js/app.js?v=c644acd74b"></script>
     <div id="maintenanceOverlay" class="hidden" role="alertdialog" aria-labelledby="mtTitle" aria-describedby="mtMsg">
         <canvas id="mtFx" aria-hidden="true"></canvas>
         <div class="mt-stars" aria-hidden="true"></div>

@@ -83,13 +83,16 @@ POINTS_PRIZE = ands(
     f"{NEW}.child({PRZ} + '/c').val() == true",
     f"newData.val() - data.val() <= root.child({PRZ} + '/pts').val()",
 )
+# Premium: premium/{uid} = { at, until? }. Active while until is in the future, or for good when the panel gave it without an end date.
+def PREM_ON(u):
+    return f"(root.child('premium/' + {u} + '/until').isNumber() ? root.child('premium/' + {u} + '/until').val() > now : root.child('premium/' + {u} + '/at').isNumber())"
 POINTS = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 1000000000",
     ors(
         ADMIN,
         "!data.exists() && newData.val() <= 200",
         "data.exists() && newData.val() <= data.val()",
-        ands("data.exists()", "newData.val() - data.val() <= 200",
+        ands("data.exists()", "newData.val() - data.val() <= (" + PREM_ON('$uid') + " ? 600 : 200)",
              "newData.parent().child('pAt').isNumber()",
              "newData.parent().child('pAt').val() >= (data.parent().child('pAt').exists() ? data.parent().child('pAt').val() + 20000 : 0)"),
         POINTS_CLAIM,
@@ -561,7 +564,7 @@ rules = {
         "$uid": {
             ".read": ors(OWNER, ADMIN),
             "$id": {".write": ors(ADMIN, ands(OWNER, "!data.exists()")),
-                    ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['k', 'g', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id|wallet)$/)", "newData.child('g').isNumber()", "newData.child('at').isNumber()", "(!newData.child('x').exists() || " + s_max("newData.child('x')", 40) + ")") + ")"},
+                    ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['k', 'g', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^(verify|id|wallet|prem)$/)", "newData.child('g').isNumber()", "newData.child('at').isNumber()", "(!newData.child('x').exists() || " + s_max("newData.child('x')", 40) + ")") + ")"},
         },
     },
     "verified": {
@@ -576,6 +579,31 @@ rules = {
             ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('name').exists() || " + s_max("newData.child('name')", 80) + ") && (!newData.child('until').exists() || newData.child('until').isNumber()))",
         },
     },
+    # Premium subscription, bought with diamonds like the verification: the price and days are the panel's (premCfg), the diamonds go down in the same write
+    "premCfg": {".read": True, ".write": ADMIN},
+    "premium": {
+        ".read": SIGNED,
+        "$uid": {
+            ".write": ors(ADMIN, ands(OWNER, "newData.exists()", "newData.child('until').isNumber()", "(!data.exists() || data.child('until').isNumber())",
+                                      "newData.child('until').val() > now",
+                                      "newData.child('until').val() <= (data.child('until').isNumber() && data.child('until').val() > now ? data.child('until').val() : now) + (root.child('premCfg/days').isNumber() ? root.child('premCfg/days').val() : 30) * 86400000 + 120000",
+                                      "root.child('premCfg/price').isNumber()",
+                                      G_PAID + " >= root.child('premCfg/price').val()")),
+            ".validate": "!newData.exists() || (newData.hasChildren(['at']) && newData.child('at').isNumber() && (!newData.child('until').exists() || newData.child('until').isNumber()) && (!newData.child('name').exists() || " + s_max("newData.child('name')", 80) + "))",
+        },
+    },
+    # a student's app reports something that only a tampered app would do (a refused write to a protected place, a fake premium flag); the panel shows it live
+    "tamper": {
+        ".read": ADMIN, ".write": ADMIN,
+        "$id": {
+            ".write": ors(ADMIN, ands(SIGNED, "!data.exists()", "newData.child('u').val() == auth.uid", "newData.parent().parent().child('tamperLast/' + auth.uid).val() == now")),
+            ".validate": "!newData.exists() || (" + ands("newData.hasChildren(['u', 'k', 'at'])", "newData.child('k').isString() && newData.child('k').val().matches(/^[a-z_]{2,24}$/)",
+                                                         "newData.child('at').val() == now", "(!newData.child('d').exists() || " + s_max("newData.child('d')", 300) + ")") + ")",
+            "u": {".validate": "newData.isString()"}, "k": {".validate": "true"}, "at": {".validate": "true"}, "d": {".validate": "true"},
+            "$other": {".validate": False},
+        },
+    },
+    "tamperLast": {"$uid": {".write": OWNER, ".validate": "newData.val() == now && (!data.exists() || now - data.val() >= 20000)"}},
     "pointCodes": {
         "$code": {
             ".read": SIGNED,
@@ -854,11 +882,19 @@ rules = {
                 ".validate": ands("newData.child('host').val() == (data.exists() ? data.child('host').val() : auth.uid)",
                                   s_max("newData.child('title')", 60), "newData.child('at').isNumber()"),
                 "cur": {".validate": "newData.isString() && newData.val().length <= 20"},
+                # premium rooms: more seats (cap), a password room (pv, the password's hash is in ytRoomPw) and a pinned lesson video (pin)
+                "cap": {".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40 && (newData.val() <= 12 || " + PREM_ON('auth.uid') + ")"},
+                "pv": {".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists() && " + PREM_ON('auth.uid')},
+                "pin": {".validate": ands("newData.hasChildren(['v'])", s_max("newData.child('v')", 11), "(!newData.child('t').exists() || " + s_max("newData.child('t')", 100) + ")", PREM_ON('auth.uid')),
+                        "v": {".validate": "true"}, "t": {".validate": "true"}, "$other": {".validate": False}},
             },
             "queue": {"$k": {".write": ors(YR_HOST, ands(SIGNED, YR_MEMBER, "!data.exists()", "newData.child('by').val() == auth.uid"), ands(SIGNED, "!newData.exists()", "data.child('by').val() == auth.uid")), ".validate": "!newData.exists() || (" + s_max("newData.child('v')", 11) + " && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
                              "t": {".validate": s_max("newData", 100)}}},
             "members": {"$uid": {
-                ".write": ors(ADMIN, ands(OWNER, "root.child('ytRooms/' + $rid + '/meta').exists()", "!root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists()"),
+                ".write": ors(ADMIN, ands(OWNER, "root.child('ytRooms/' + $rid + '/meta').exists()", "!root.child('ytRooms/' + $rid + '/kicked/' + $uid).exists()",
+                                          # a password room: joining needs ytRoomJoin/{rid}/{me} (written in the same update) to equal the room's password hash; leaving and staying in are free
+                                          ors("!root.child('ytRoomPw/' + $rid).exists()", "data.exists()", "!newData.exists()",
+                                              "newData.parent().parent().parent().parent().child('ytRoomJoin/' + $rid + '/' + $uid).val() == root.child('ytRoomPw/' + $rid).val()")),
                               ands(YR_HOST, "!newData.exists()")),
                 ".validate": "!newData.exists() || (" + s_max("newData.child('n')", 60) + ")",
             }},
@@ -972,6 +1008,16 @@ rules = {
     },
     # minutes studied in the rooms and the chosen character: only the student's own
     "rmMe": {"$uid": {".read": OWNER, ".write": ors(OWNER, ADMIN), ".validate": "!newData.exists() || (" + ands("newData.child('min').isNumber() && newData.child('min').val() >= 0 && newData.child('min').val() <= 10000000", "(!newData.child('c').exists() || (newData.child('c').isString() && newData.child('c').val().matches(/^[a-z0-9]{2,12}$/)))") + ")"}},
+    # a password room: ytRoomPw/{rid} = the SHA-256 (hex) of "rid:password", readable only by the members; ytRoomJoin/{rid}/{uid} = the proof a joiner brings
+    "ytRoomPw": {"$rid": {
+        ".read": ors(ADMIN, ands(SIGNED, "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()")),
+        ".write": ors(ADMIN,
+                      ands(SIGNED, "newData.exists()", "!data.exists()", PREM_ON('auth.uid'), "newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid",
+                           "newData.parent().parent().child('ytRooms/' + $rid + '/meta/pv').val() === true"),
+                      ands(SIGNED, "root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid", "!newData.exists()")),
+        ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))",
+    }},
+    "ytRoomJoin": {"$rid": {"$uid": {".read": OWNER, ".write": OWNER, ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))"}}},
     "ytInvites": {
         "$to": {
             ".read": "auth != null && auth.uid == $to",

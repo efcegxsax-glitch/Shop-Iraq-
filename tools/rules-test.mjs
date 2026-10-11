@@ -322,6 +322,77 @@ await ok('a student who already has a balance keeps using it', U('w2', { 'topupC
 await ok('the panel can activate a wallet for free', set(ref(db('adm'), 'users/w2/wa'), now));
 await seed('gemShop/cfg/wallet', null);
 
+// ---- Premium: bought with diamonds (premCfg = price + days), doubles the points, and the tamper log
+await seed('users/p1', { points: 1000, balance: 0, gems: 300, pAt: 0, studentNumber: '91919' });
+await seed('users/p2', { points: 1000, balance: 0, gems: 0, pAt: 0, studentNumber: '92929' });
+await seed('premCfg', { price: 100, days: 30 });
+const pend = (d) => now + d * 86400000;
+await no('premium without paying', set(ref(db('p1'), 'premium/p1'), { at: now, until: pend(30) }));
+await no('premium for someone else', U('p1', { 'premium/p2': { at: now, until: pend(30) }, 'users/p1/gems': 200 }));
+await no('premium paying less than the price', U('p1', { 'premium/p1': { at: now, until: pend(30) }, 'users/p1/gems': 220 }));
+await no('premium for 90 days at the price of 30', U('p1', { 'premium/p1': { at: now, until: pend(90) }, 'users/p1/gems': 200 }));
+await no('premium with no end date', U('p1', { 'premium/p1': { at: now }, 'users/p1/gems': 200 }));
+await ok('buy 30 days of premium', U('p1', { 'premium/p1': { at: now, until: pend(30) }, 'users/p1/gems': 200, 'gemLog/p1/pm1': { k: 'prem', g: 100, at: now } }));
+await ok('renew: the days are added to what is left', U('p1', { 'premium/p1': { at: now, until: pend(60) }, 'users/p1/gems': 100 }));
+await no('renew adding 90 days', U('p1', { 'premium/p1': { at: now, until: pend(150) }, 'users/p1/gems': 0 }));
+await ok('anyone signed in can see who is premium (the server reads it)', get(ref(db('p2'), 'premium/p1')));
+await no('nobody signed in cannot', get(ref(db(null), 'premium/p1')));
+await ok('the panel grants premium for good', set(ref(db('adm'), 'premium/p2'), { at: now }));
+await no('a student overwrites a permanent premium', U('p2', { 'premium/p2': { at: now, until: pend(30) }, 'users/p2/gems': 0 }));
+await ok('the panel removes premium', set(ref(db('adm'), 'premium/p2'), null));
+await no('a student changes the premium prices', set(ref(db('p1'), 'premCfg/price'), 1));
+await ok('anyone reads the premium prices', get(ref(db(null), 'premCfg')));
+await ok('the panel sets the premium prices', set(ref(db('adm'), 'premCfg/price'), 80));
+await seed('premCfg/price', 100);
+// points: doubled for premium only
+await no('a normal student earns 400 in one go', U('p2', { 'users/p2/points': 1400, 'users/p2/pAt': now - 1000 }));
+await ok('a normal student earns 200', U('p2', { 'users/p2/points': 1200, 'users/p2/pAt': now - 1000 }));
+await ok('a premium student earns 400 in one go', U('p1', { 'users/p1/points': 1400, 'users/p1/pAt': now - 1000 }));
+await no('a premium student earns 700 in one go', U('p1', { 'users/p1/points': 2100, 'users/p1/pAt': now + 5000 }));
+await seed('premium/p1', { at: now, until: now - 1000 });
+await no('an ended premium earns no more than a normal student', U('p1', { 'users/p1/points': 1800, 'users/p1/pAt': now + 5000 }));
+// tamper log
+const TS0 = { '.sv': 'timestamp' };
+const tm = (u, k) => ({ u, k, at: TS0, d: 'x' });
+await ok('a tampered app reports itself', U('p2', { 'tamper/t1': tm('p2', 'denied_write'), 'tamperLast/p2': TS0 }));
+await no('a report for someone else', U('p2', { 'tamper/t2': tm('p1', 'denied_write'), 'tamperLast/p2': TS0 }));
+await no('a report without the rate marker', set(ref(db('p1'), 'tamper/t3'), tm('p1', 'x_kind')));
+await no('a report with a wrong kind', U('p1', { 'tamper/t4': tm('p1', 'BAD KIND'), 'tamperLast/p1': TS0 }));
+await no('a student reads the reports', get(ref(db('p2'), 'tamper')));
+await no('a student deletes a report', set(ref(db('p2'), 'tamper/t1'), null));
+await ok('the panel reads the reports', get(ref(db('adm'), 'tamper')));
+await ok('the panel deletes a report', set(ref(db('adm'), 'tamper/t1'), null));
+
+// ---- premium study rooms: more seats, a password room, a pinned lesson video
+await seed('premium/pp1', { at: now, until: now + 86400000 });
+const HA = 'a'.repeat(64), HB = 'b'.repeat(64);
+const rmk = (host, extra) => ({ meta: Object.assign({ host, title: 'غرفة', at: now }, extra || {}), members: { [host]: { n: 'H', j: now } } });
+await no('a normal host asks for 30 seats', set(ref(db('pn'), 'ytRooms/rn1'), rmk('pn', { cap: 30 })));
+await no('a normal host makes a password room', U('pn', { 'ytRooms/rn2': rmk('pn', { pv: true }), 'ytRoomPw/rn2': HA }));
+await ok('a normal host may ask for 12 seats', set(ref(db('pn'), 'ytRooms/rn3'), rmk('pn', { cap: 12 })));
+await ok('a premium host asks for 30 seats', set(ref(db('pp1'), 'ytRooms/rp0'), rmk('pp1', { cap: 30 })));
+await no('more than 40 seats', set(ref(db('pp1'), 'ytRooms/rp9'), rmk('pp1', { cap: 41 })));
+await no('a password room needs the password hash', set(ref(db('pp1'), 'ytRooms/rp8'), rmk('pp1', { pv: true })));
+await ok('a premium host makes a password room', U('pp1', { 'ytRooms/rp1': rmk('pp1', { pv: true, cap: 20 }), 'ytRoomPw/rp1': HA }));
+await no('the hash must be hex', U('pp1', { 'ytRooms/rp7': rmk('pp1', { pv: true }), 'ytRoomPw/rp7': 'secret' }));
+await no('a stranger reads the room password', get(ref(db('pj'), 'ytRoomPw/rp1')));
+await ok('a member reads the room password', get(ref(db('pp1'), 'ytRoomPw/rp1')));
+await no('join a password room with no proof', set(ref(db('pj'), 'ytRooms/rp1/members/pj'), { n: 'J', j: now }));
+await no('join with a wrong proof', U('pj', { 'ytRooms/rp1/members/pj': { n: 'J', j: now }, 'ytRoomJoin/rp1/pj': HB }));
+await no('a proof written for someone else', set(ref(db('pj'), 'ytRoomJoin/rp1/pk'), HA));
+await ok('join with the right proof', U('pj', { 'ytRooms/rp1/members/pj': { n: 'J', j: now }, 'ytRoomJoin/rp1/pj': HA }));
+await ok('clear my proof', set(ref(db('pj'), 'ytRoomJoin/rp1/pj'), null));
+await ok('a member stays in without the proof (updates his entry)', set(ref(db('pj'), 'ytRooms/rp1/members/pj'), { n: 'J2', j: now }));
+await ok('leave the room', set(ref(db('pj'), 'ytRooms/rp1/members/pj'), null));
+await no('a normal student sets a password on a room that is not his', set(ref(db('pn'), 'ytRoomPw/rp0'), HA));
+await no('a normal student changes the room hash', set(ref(db('pn'), 'ytRoomPw/rp1'), HB));
+await ok('a normal room is still open to join', set(ref(db('pj'), 'ytRooms/rn3/members/pj'), { n: 'J', j: now }));
+await ok('the premium host pins a lesson video', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'الدرس' }));
+await no('a bad pinned video id', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), { v: 'x'.repeat(30), t: 'x' }));
+await no('a normal host pins a video', set(ref(db('pn'), 'ytRooms/rn3/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'الدرس' }));
+await ok('the premium host unpins', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), null));
+await ok('the host removes the room and its password', U('pp1', { 'ytRooms/rp1': null, 'ytRoomPw/rp1': null }));
+
 // auction
 await seed('auction/current', { id: 'A1', endsAt: now + 3600000, title: 'x' });
 await seed('users/b1', { points: 1000, balance: 0 });

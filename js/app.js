@@ -998,7 +998,7 @@
                 if (this._cl && this._clEnd) this._clEnd('end');
                 ['_tasksListener', '_walletTxListener', '_friendsListener', '_friendRequestsListener',
                     '_sentFriendRequestsListener', '_blockedUsersListener', '_presenceListener',
-                    '_userChatsListener', 
+                    '_userChatsListener', '_premUn',
                     '_myStoreListener', '_myStoreProductsListener', '_ownUserListener', '_banUnsub',
                     '_incomingListener', '_yrInvListener', '_twinOfListener', '_twinPairListener', '_twinPairId', '_twinData', '_twinSearching', '_gwMine', '_gwClaimed', '_gwWeek', '_clRingOff'].forEach((key) => {
                     if (typeof this[key] === 'function') {
@@ -1016,6 +1016,7 @@
                 if (!window.firebaseDb || !this.authUid || this._ownUserListener) return;
                 this._twinAttach();
                 this._listenPtsRate();
+                this._listenPrem();
                 this.listenForIncoming();
                 const { ref, onValue } = window.firebaseDbHelpers;
                 this._ownUserListener = onValue(ref(window.firebaseDb, 'users/' + this.authUid), (snap) => {
@@ -3252,7 +3253,7 @@
                 this.currentUser.loginStreak = newStreak;
                 this.currentUser.lastLoginDate = todayStr;
                 this.saveUserData();
-                this.addPointsAtomic(bonus).then(() => {
+                this.addPointsAtomic(bonus, { fixed: true }).then(() => {
                     this.syncUserToDatabase();
                     this.logDailyActivity({ points: bonus });
                     this.showToast('تحدي يومي: يوم ' + newStreak + ' متتالي! +' + bonus + ' نقطة');
@@ -6937,7 +6938,7 @@
                     .then((res) => {
                         this._gwClaimed = true;
                         if (!res.committed) { this.showToast('استلمت هاي الجائزة من قبل'); this.renderGovWar(); return; }
-                        this.addPointsAtomic(this.GOV_WAR_PRIZE).then(() => {
+                        this.addPointsAtomic(this.GOV_WAR_PRIZE, { fixed: true }).then(() => {
                             this.showToast('مبروك! انضافت ' + this.GOV_WAR_PRIZE + ' نقطة لرصيدك');
                             this.renderGovWar();
                         });
@@ -9133,6 +9134,7 @@
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
+                { id: 'premium', fn: 'goToPremium', t: 'Premium', d: 'أدوات دراسة أذكى ونقاط مضاعفة باشتراك شهري', ic: 'crown', c: '#F59E0B', g: 'tools' },
                 { id: 'gems', fn: 'goToGems', t: 'متجر الماس', d: 'وثّق حسابك وخذ ايدي مميز بالماس', ic: 'gem', c: '#06B6D4', g: 'tools' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
@@ -9704,6 +9706,119 @@
                     if (this.currentView === 'walletView') { this.renderWalletBalance(); this.renderWalletPoints(); }
                     if (this.currentView === 'pointsStoreView') this.renderPointsStore();
                 }, () => { this._ptsRateOn = false; });
+            },
+
+            // ==================== PREMIUM ====================
+            // premium/{uid} = { at, until? } is bought with diamonds (js/premium.js) or given by the panel (no `until` = for good); premCfg is the panel's
+            // price / days / which parts are on / the points multiplier. Everything that costs money or is shared is checked by the server (the database
+            // rules and the Worker); the app only reads the same record to show locks, and re-reads it from the server before opening a locked part.
+            _listenPrem() {
+                if (!window.firebaseDb || !this.authUid) return;
+                const { ref, onValue } = window.firebaseDbHelpers, db = window.firebaseDb, uid = this.authUid;
+                if (!this._premCfgOn) {
+                    this._premCfgOn = true;
+                    onValue(ref(db, 'premCfg'), (snap) => { this._premCfg = snap.exists() ? snap.val() : {}; this._premRepaint(); }, () => { this._premCfgOn = false; });
+                }
+                this._premUn = onValue(ref(db, 'premium/' + uid), (snap) => {
+                    this._prem = snap.exists() && typeof snap.val() === 'object' ? snap.val() : null;
+                    this._premExpiryNotice();
+                    this._premRepaint();
+                }, () => {});
+                this._tamperGuard();
+            },
+            _premRepaint() {
+                try { if (this._premRefresh) this._premRefresh(); } catch (e) {}
+                try { if (this.currentView === 'homeView' || this.currentView === 'moreView') this.renderMore && this.renderMore(); } catch (e) {}
+            },
+            premCfg() { return this._premCfg || {}; },
+            premPrice() { const n = Number(this._premCfg && this._premCfg.price); return n > 0 ? Math.round(n) : 0; },
+            premDays() { const n = Number(this._premCfg && this._premCfg.days); return n > 0 ? Math.round(n) : 30; },
+            // is this account premium right now (the server's record, not a flag the page could set)
+            premActive() { const v = this._prem; return !!v && typeof v === 'object' && (typeof v.until !== 'number' || v.until > Date.now()); },
+            // is this part of premium switched on in the panel (all are, until the panel turns one off)
+            premFeatureOn(f) { const c = this._premCfg; return !(c && c.f && c.f[f] === false); },
+            // a part is open: premium is active and the panel has not switched that part off
+            premOn(f) { return this.premActive() && this.premFeatureOn(f); },
+            premMult() { const n = Math.round(Number(this._premCfg && this._premCfg.mult)); return this.premOn('mult') ? (n >= 1 && n <= 3 ? n : 2) : 1; },
+            // ask the server again before opening a locked part: a page whose own record was changed in the console is caught here
+            async premVerify() {
+                if (!window.firebaseDb || !this.authUid) return false;
+                try {
+                    const { ref, get } = window.firebaseDbHelpers;
+                    const v = (await get(ref(window.firebaseDb, 'premium/' + this.authUid))).val();
+                    const real = !!v && typeof v === 'object' && (typeof v.until !== 'number' || v.until > Date.now() - 60000);
+                    if (this.premActive() && !real) { this._tamperReport('fake_premium', 'local premium flag differs from the server'); this._prem = null; this._premRepaint(); }
+                    return real;
+                } catch (e) { return this.premActive(); }   // offline: trust what the listener last heard from the server
+            },
+            // the gate of a premium part: opens `go` when allowed, else shows the paywall (js/premium.js)
+            async premGate(feature, go) {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return false; }
+                if (this.premOn(feature) && await this.premVerify()) { if (go) go(); return true; }
+                this._need('premium').then(() => this.premPaywall(feature)).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية'));
+                return false;
+            },
+            goToPremium() {
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+                this.switchView('premiumView');
+                if (this._withPart('premium', () => typeof this.premOpen === 'function', 'premiumView', () => this.goToPremium())) return;
+                this.premOpen();
+            },
+            _premExpiryNotice() {
+                try {
+                    const v = this._prem;
+                    if (!v || typeof v.until !== 'number') return;
+                    const left = v.until - Date.now(), key = 'isp:pm:n:' + this.authUid + ':' + v.until + ':' + (left <= 0 ? 'end' : 'soon');
+                    if ((left > 0 && left > 3 * 86400000) || localStorage.getItem(key)) return;
+                    localStorage.setItem(key, '1');
+                    this.showToast(left <= 0 ? 'انتهى اشتراك Premium. تريد تجدده؟ افتح قسم Premium' : 'اشتراك Premium يخلص بعد ' + Math.max(1, Math.ceil(left / 86400000)) + ' يوم');
+                } catch (e) { /* no notice */ }
+            },
+            // ----- tamper watch: what a student's app says about itself when it is used in a way the app never does -----
+            // Every protected place is also guarded by the database rules and the Worker (a refused write changes nothing); this only tells the panel.
+            // Reports are rate-limited (one per 20 s by the rules, one per kind per minute here) and the panel shows them live.
+            _tamperReport(kind, detail) {
+                try {
+                    if (!window.firebaseDb || !this.authUid) return;
+                    const now = Date.now(), last = (this._tamperSent = this._tamperSent || {});
+                    if (last[kind] && now - last[kind] < 60000) return;
+                    last[kind] = now;
+                    const { ref, update, serverTimestamp } = window.firebaseDbHelpers, id = now.toString(36) + Math.random().toString(36).slice(2, 7);
+                    const u = this.currentUser || {};
+                    update(ref(window.firebaseDb), {
+                        ['tamper/' + id]: { u: this.authUid, k: String(kind).replace(/[^a-z_]/g, '').slice(0, 24) || 'unknown', at: serverTimestamp(), d: String(detail || '').slice(0, 280) },
+                        ['tamperLast/' + this.authUid]: serverTimestamp(),
+                    }).catch(() => {});
+                } catch (e) { /* nothing to report with */ }
+            },
+            _tamperGuard() {
+                const h = window.firebaseDbHelpers;
+                if (!h || h.__tg) return;
+                h.__tg = true;
+                // places no student's app ever writes by itself (the panel does); a refused write there means someone tried it by hand
+                const PROT = /^(premCfg|gemShop|admins|mods|siteConfig|settings|ticker|ytChannels|tgChannels|motivPlans|motivTemplates|exams|resources|tamper|prizeConfig)(\/|$)/;
+                const pathOf = (r) => { try { return String(r.toString()).replace(/^https?:\/\/[^/]+\//, '').replace(/\?.*$/, ''); } catch (e) { return ''; } };
+                const bad = (path, my) => { const m = /^users\/([^/]+)\//.exec(path); return PROT.test(path) || (/^premium\//.test(path) && !this._premBusy) || (!!m && m[1] !== my); };
+                const wrap = (name, fn) => {
+                    if (typeof h[name] !== 'function') return;
+                    const orig = h[name];
+                    h[name] = (...a) => {
+                        const out = orig.apply(h, a);
+                        try {
+                            if (out && typeof out.catch === 'function') {
+                                out.catch((e) => {
+                                    if (!/permission|denied/i.test(String(e && (e.code || e.message)))) return;
+                                    const my = this.authUid, base = pathOf(a[0]);
+                                    const paths = name === 'update' && a[1] && typeof a[1] === 'object' ? Object.keys(a[1]).map((k) => (base ? base + '/' : '') + k) : [base];
+                                    const hit = paths.find((p) => bad(p, my));
+                                    if (hit) this._tamperReport('denied_write', name + ' ' + hit);
+                                });
+                            }
+                        } catch (e) { /* never break a write */ }
+                        return out;
+                    };
+                };
+                ['set', 'update', 'remove', 'push'].forEach((n) => wrap(n, n));
             },
 
             // the wallet can be a paid feature: the panel sets gemShop/cfg/wallet (diamonds). Above 0, a student opens it once with his diamonds
@@ -11302,6 +11417,8 @@
 
             _pointsPlan(cur, delta, opts) {
                 const min = typeof opts.min === 'number' ? opts.min : 0;
+                // premium doubles what is earned (not prizes, refunds or codes: those are fixed amounts); the database rules allow the bigger step only to premium accounts
+                if (delta > 0 && !opts.claim && !opts.spend && !opts.fixed && this.premActive()) delta = delta * this.premMult();
                 const uid = this.authUid;
                 let next = cur.points + delta;
                 if (next < min) {
@@ -14013,6 +14130,7 @@
                         <span class="ax-ic"><i data-lucide="${escapeHtml(opt.icon || 'alert-triangle')}"></i></span>
                         ${opt.title ? `<b class="ax-t">${escapeHtml(opt.title)}</b>` : ''}
                         ${opt.text ? `<p class="ax-p">${escapeHtml(opt.text)}</p>` : ''}
+                        ${opt.input ? `<input class="ax-in" type="text" dir="ltr" maxlength="40" autocomplete="off" placeholder="${escapeHtml(String(opt.input))}">` : ''}
                         <div class="ax-btns"><button class="ax-ok">${escapeHtml(opt.ok || 'تأكيد')}</button><button class="ax-no">${escapeHtml(opt.cancel || 'إلغاء')}</button></div>
                     </div>`;
                     const done = (v) => {
@@ -14021,7 +14139,7 @@
                         document.removeEventListener('keydown', key);
                         bg.classList.add('out');
                         setTimeout(() => bg.remove(), 200);
-                        resolve(v);
+                        resolve(v && opt.input ? (bg.querySelector('.ax-in').value || '') : v);
                     };
                     const key = (e) => { if (e.key === 'Escape') done(false); else if (e.key === 'Enter') done(true); };
                     this._askDone = done;
@@ -14031,7 +14149,7 @@
                     document.addEventListener('keydown', key);
                     document.body.appendChild(bg);
                     try { lucide.createIcons(); } catch (e) {}
-                    setTimeout(() => bg.querySelector('.ax-no')?.focus(), 50);
+                    setTimeout(() => (bg.querySelector('.ax-in') || bg.querySelector('.ax-no'))?.focus(), 50);
                 });
             },
 
