@@ -12,7 +12,7 @@
     <script>if (window.top === window.self) { var s = document.getElementById('antiFrame'); if (s) s.remove(); } else { try { window.top.location = window.self.location; } catch (e) {} }</script>
     <title>أكـادمي السادس</title>
     <script>
-        window.APP_VER = 'c01c2ce349';
+        window.APP_VER = '8bc9bda2e2';
         // Errors are caught from the very first moment and reported once the app runs (app._reportError).
         window.__errq = [];
         (function () {
@@ -126,7 +126,7 @@
         }
     </script>
 
-    <link rel="stylesheet" href="css/app.css?v=44fd0e57ab">
+    <link rel="stylesheet" href="css/app.css?v=a39d361297">
     <link rel="stylesheet" href="css/tw.css?v=ca6eb7468f">
 </head>
 <body class="antialiased">
@@ -1108,8 +1108,8 @@
                     </div>
                     <button id="chatSendBtn" onclick="app.sendChatMessage()" onmousedown="event.preventDefault()" ontouchstart="event.preventDefault(); app.sendChatMessage()" class="hidden btn-press ct-send" aria-label="إرسال"><i data-lucide="send" class="w-5 h-5"></i></button>
                     <button id="chatMicBtn"
-                        ontouchstart="app.startVoiceHold(event)" ontouchmove="app.trackVoiceHoldMove(event)" ontouchend="app.endVoiceHold(event, true)" ontouchcancel="app.endVoiceHold(event, false)"
-                        onmousedown="app.startVoiceHold(event)" onmousemove="app.trackVoiceHoldMove(event)" onmouseup="app.endVoiceHold(event, true)" onmouseleave="app.endVoiceHold(event, false)"
+                        ontouchstart="app.startVoiceHold&&app.startVoiceHold(event)" ontouchmove="app.trackVoiceHoldMove&&app.trackVoiceHoldMove(event)" ontouchend="app.endVoiceHold&&app.endVoiceHold(event, true)" ontouchcancel="app.endVoiceHold&&app.endVoiceHold(event, false)"
+                        onmousedown="app.startVoiceHold&&app.startVoiceHold(event)" onmousemove="app.trackVoiceHoldMove&&app.trackVoiceHoldMove(event)" onmouseup="app.endVoiceHold&&app.endVoiceHold(event, true)" onmouseleave="app.endVoiceHold&&app.endVoiceHold(event, false)"
                         class="btn-press ct-send" style="touch-action: none;" aria-label="اضغط باستمرار لتسجيل رسالة صوتية"><i data-lucide="mic" class="w-5 h-5"></i></button>
                 </div>
             </div>
