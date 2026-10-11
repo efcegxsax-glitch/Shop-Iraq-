@@ -11944,3 +11944,147 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
 .pa-nb { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px; border-radius: 16px; text-align: right; color: var(--text); background: var(--surface); border: 1px solid var(--border); }
 .pa-nb span { flex: 1; } .pa-nb b { display: block; font-size: 14px; } .pa-nb small { color: var(--text2); font-size: 12px; }
 .pa-nb svg { width: 20px; height: 20px; color: var(--text2); }
+
+/* =====================================================================================================
+   Material 3 layer: the look and feel of a Flutter app (Material You). Loaded last, so it wins.
+   Ink ripples, tonal surfaces instead of heavy shadows, a Material navigation bar, top app bars that tint
+   when the page scrolls under them, Material bottom sheets / dialogs / snackbars / switches / chips, and
+   the Android page transitions Flutter uses. The behaviour lives in js/m3.js.
+   ===================================================================================================== */
+:root {
+    --m3-ease: cubic-bezier(.2, 0, 0, 1);
+    --m3-dec: cubic-bezier(.05, .7, .1, 1);
+    --m3-acc: cubic-bezier(.3, 0, .8, .15);
+    --m3-pc: color-mix(in srgb, rgb(var(--p)) 18%, var(--surface));
+    --m3-onpc: color-mix(in srgb, rgb(var(--p)) 75%, var(--text));
+    --m3-s1: color-mix(in srgb, rgb(var(--p)) 4%, var(--surface));
+    --m3-s2: color-mix(in srgb, rgb(var(--p)) 8%, var(--surface));
+    --m3-s3: color-mix(in srgb, rgb(var(--p)) 12%, var(--surface));
+    --m3-outline: color-mix(in srgb, var(--text2) 60%, transparent);
+    --m3-inv: #313033; --m3-oninv: #F4EFF4;
+}
+.dark { --m3-inv: #E6E1E5; --m3-oninv: #1C1B1F; }
+
+/* ---- a native app does not behave like a web page ---- */
+html, body { overscroll-behavior-y: none; }
+* { -webkit-tap-highlight-color: transparent; }
+img, a, svg { -webkit-user-drag: none; -webkit-touch-callout: none; }
+:focus:not(:focus-visible) { outline: none; }
+@media (pointer: coarse) { ::-webkit-scrollbar { width: 0; height: 0; background: transparent; } }
+/* Flutter widgets do not shrink when pressed: the ink ripple is the feedback */
+#mainContent button:not(:disabled):active, #mainContent [onclick]:not(:disabled):active, #bottomNav .nav-item:active,
+header.app-header button:active, #mainContent article[onclick]:active, #mainContent .w-full[onclick]:active { scale: none !important; }
+#bottomNav .nav-item:active { transform: none !important; }
+
+/* ---- ink ripple (js/m3.js puts a .m3-ink inside the pressed element) ---- */
+.m3-ink { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; contain: strict; }
+.m3-ink > i { position: absolute; border-radius: 50%; background: currentColor; opacity: .12; transform: scale(0); transition: transform .45s var(--m3-ease), opacity .3s linear; will-change: transform, opacity; }
+.m3-ink > i.on { transform: scale(1); }
+.m3-ink > i.up { opacity: 0; transition: transform .45s var(--m3-ease), opacity .35s linear .08s; }
+.m3-ink.light > i { background: #fff; opacity: .22; }
+
+/* ---- page transitions: Flutter's Android "zoom" route transition, and fade-through between tabs ---- */
+.view-in-fwd  { animation: m3RouteIn .3s var(--m3-ease) both !important; }
+.view-in-back { animation: m3RouteBack .28s var(--m3-ease) both !important; }
+.view-in-tab  { animation: m3FadeThrough .26s var(--m3-ease) both !important; }
+@keyframes m3RouteIn { from { opacity: 0; transform: scale(.9); } 40% { opacity: 1; } to { opacity: 1; transform: none; } }
+@keyframes m3RouteBack { from { opacity: 0; transform: scale(1.06); } to { opacity: 1; transform: none; } }
+@keyframes m3FadeThrough { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+
+/* ---- top app bars: flat, the colour of the page; they take a tonal tint once something scrolls under them ---- */
+header.app-header, .sticky.top-16 { border-bottom-color: transparent !important; box-shadow: none !important; transition: background-color .2s linear, border-color .2s linear; }
+.sticky.top-16 { background-color: var(--bg) !important; }
+body.m3-scrolled .sticky.top-16, body.m3-scrolled header.app-header { background: linear-gradient(var(--m3-s2), var(--m3-s2)), var(--bg) !important; }
+/* the back / action buttons of an app bar are Material icon buttons: a 40px circle with no fill */
+.sticky.top-16 > button, .sticky.top-16 > div > button[aria-label], header.app-header .w-10.h-10 { background-color: transparent !important; border-radius: 50% !important; box-shadow: none !important; border: 0 !important; }
+.sticky.top-16 > .flex-1 > div:first-child { font-size: 18px; letter-spacing: 0; }
+
+/* ---- Material navigation bar (8 destinations): a flat tonal bar, a pill behind the selected icon ---- */
+@media (max-width: 1023px) {
+    #bottomNav { left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100% !important; max-width: none !important; height: calc(72px + var(--safe-b)) !important;
+        padding-bottom: var(--safe-b); border-radius: 0 !important; border: 0 !important; overflow: visible; background: linear-gradient(var(--m3-s2), var(--m3-s2)), var(--bg) !important;
+        box-shadow: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; transform: none !important; }
+    #bottomNav::before, #bottomNav::after, #bottomNav .nav-indicator { display: none !important; }
+    #bottomNav .nav-track { height: 72px; padding: 0 2px; }
+    #bottomNav .nav-item { height: 72px !important; gap: 4px !important; border-radius: 0; padding-top: 4px; color: var(--text2) !important; }
+    #bottomNav .nav-ic { width: 46px; height: 30px; border-radius: 15px; isolation: isolate; }
+    #bottomNav .nav-ic::before { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--m3-pc); transform: scaleX(.3); opacity: 0; transition: transform .35s var(--m3-ease), opacity .15s linear; }
+    #bottomNav .nav-item.active .nav-ic::before { transform: none; opacity: 1; }
+    #bottomNav .nav-item svg { width: 22px; height: 22px; stroke-width: 1.9; transition: none; }
+    #bottomNav .nav-item.active svg { color: var(--m3-onpc) !important; stroke-width: 2.2; transform: none; }
+    #bottomNav .nav-item.active { color: var(--text) !important; }
+    .nav-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0; }
+    #bottomNav .nav-item.active .nav-label { font-weight: 800; }
+    #bottomNav .nav-ai .nav-ai-orb { transform: scale(.92); }
+}
+
+/* ---- Material search bar ---- */
+#searchInput { height: 56px; border-radius: 28px; border: 0 !important; box-shadow: none !important; background-color: var(--m3-s3) !important; }
+#searchInput:focus { box-shadow: 0 0 0 2px rgb(var(--p)) inset !important; }
+
+/* ---- filter chips: 8px corners, an outline, a tonal fill when selected ---- */
+.cat-tab { border-radius: 8px !important; padding: 7px 14px !important; font-weight: 700; }
+.cat-tab.bg-primary { background: var(--m3-pc) !important; color: var(--m3-onpc) !important; box-shadow: none !important; background-image: none !important; }
+.cat-tab:not(.bg-primary) { background-color: transparent !important; box-shadow: 0 0 0 1px var(--m3-outline) inset !important; }
+
+/* ---- tonal elevation instead of big soft shadows ---- */
+:root:not(.dark) { --shadow-card: 0 1px 2px rgba(0, 0, 0, .07), 0 1px 3px 1px rgba(0, 0, 0, .04); --shadow-lift: 0 1px 3px rgba(0, 0, 0, .1), 0 4px 8px 3px rgba(0, 0, 0, .06); }
+button.bg-primary, a.bg-primary { box-shadow: none; }
+.bg-primary.text-white { background-image: none; }
+
+/* ---- Material bottom sheet ---- */
+#walletModal > div.absolute { background-color: rgba(0, 0, 0, .32) !important; }
+#walletModal:not(.hidden) > div.absolute { animation: m3Scrim .25s linear both; }
+#walletModal > div.relative { border-radius: 28px 28px 0 0 !important; background: linear-gradient(var(--m3-s1), var(--m3-s1)), var(--bg) !important; box-shadow: 0 -1px 3px rgba(0, 0, 0, .08); padding-top: 22px; }
+#walletModal > div.relative::before { content: ""; position: absolute; top: 10px; left: 50%; width: 32px; height: 4px; margin-left: -16px; border-radius: 2px; background: var(--m3-outline); opacity: .7; }
+#walletModal:not(.hidden) > div.relative { animation: m3SheetUp .42s var(--m3-dec) both; }
+#walletModal.m3-closing > div.relative { animation: m3SheetDown .2s var(--m3-acc) both; }
+#walletModal.m3-closing > div.absolute { animation: m3ScrimOut .2s linear both; }
+#walletModal > div.relative.m3-drag { animation: none !important; transition: none !important; }
+#walletModal > div.relative.m3-snap { transition: transform .3s var(--m3-dec) !important; }
+#walletModalTitle { font-size: 18px; }
+@keyframes m3SheetUp { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes m3SheetDown { to { transform: translateY(100%); } }
+@keyframes m3Scrim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes m3ScrimOut { to { opacity: 0; } }
+
+/* ---- snackbar ---- */
+#toastContainer { left: 12px !important; right: 12px !important; bottom: calc(84px + var(--safe-b)) !important; align-items: stretch !important; }
+body.sub-nav-hidden #toastContainer { bottom: calc(16px + var(--safe-b)) !important; }
+#toastContainer > div { max-width: 560px; width: 100%; margin: 0 auto; padding: 14px 16px !important; border-radius: 8px !important; text-align: start !important; font-size: 14px !important; font-weight: 500 !important;
+    background-color: var(--m3-inv) !important; color: var(--m3-oninv) !important; box-shadow: 0 3px 5px rgba(0, 0, 0, .2), 0 1px 18px rgba(0, 0, 0, .12) !important; backdrop-filter: none !important; }
+.dark #toastContainer > div { background-color: var(--m3-inv) !important; color: var(--m3-oninv) !important; }
+.toast-enter { animation: m3SnackIn .3s var(--m3-dec) forwards !important; }
+.toast-exit { animation: m3SnackOut .2s var(--m3-acc) forwards !important; }
+@keyframes m3SnackIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes m3SnackOut { to { opacity: 0; transform: translateY(8px); } }
+
+/* ---- Material dialog ---- */
+.ax-bg { background: rgba(0, 0, 0, .32) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+.ax { max-width: 312px !important; padding: 24px 24px 18px !important; border-radius: 28px !important; border: 0 !important; background: linear-gradient(var(--m3-s3), var(--m3-s3)), var(--bg) !important; box-shadow: 0 4px 8px 3px rgba(0, 0, 0, .15), 0 1px 3px rgba(0, 0, 0, .3) !important; animation: m3Dialog .3s var(--m3-dec) both !important; }
+.ax-ic { width: 24px !important; height: 24px !important; margin: 0 auto 16px !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; color: var(--ax1) !important; }
+.ax-ic::after { display: none !important; }
+.ax-ic svg { width: 24px !important; height: 24px !important; }
+.ax-t { font-size: 20px !important; font-weight: 800 !important; }
+.ax-p { font-size: 14px !important; text-align: center; }
+.ax-btns { justify-content: flex-start; gap: 8px !important; margin-top: 24px !important; flex-direction: row; }
+.ax-btns button { flex: 0 0 auto !important; height: 40px !important; padding: 0 16px !important; border-radius: 20px !important; font-size: 14px !important; box-shadow: none !important; border: 0 !important; }
+.ax-ok { background: var(--ax1) !important; color: #fff !important; }
+.ax-no { background: transparent !important; color: var(--ax1) !important; }
+.ax-btns button:focus, .ax-btns button:focus-visible { outline: none !important; }
+.ax-btns { flex-direction: row-reverse; justify-content: flex-end; }
+@keyframes m3Dialog { from { opacity: 0; transform: scale(.85); } to { opacity: 1; transform: none; } }
+
+/* ---- Material switch ---- */
+.toggle-switch { width: 52px !important; height: 32px !important; }
+.toggle-switch .toggle-slider { border-radius: 16px !important; background-color: color-mix(in srgb, var(--text2) 14%, var(--surface)) !important; border: 2px solid var(--m3-outline); transition: background-color .2s linear, border-color .2s linear !important; }
+.toggle-switch .toggle-slider:before { width: 16px !important; height: 16px !important; left: 6px !important; top: 6px !important; bottom: auto !important; transform: none !important; background-color: var(--m3-outline) !important; box-shadow: none !important;
+    transition: left .25s var(--m3-ease), top .25s var(--m3-ease), width .25s var(--m3-ease), height .25s var(--m3-ease), background-color .2s linear !important; }
+.toggle-switch input:checked + .toggle-slider { background-color: rgb(var(--p)) !important; border-color: rgb(var(--p)); }
+.toggle-switch input:checked + .toggle-slider:before { width: 24px !important; height: 24px !important; left: 22px !important; top: 2px !important; background-color: #fff !important; }
+.toggle-switch:active .toggle-slider:before { width: 28px !important; height: 28px !important; top: 0 !important; left: 4px !important; }
+.toggle-switch:active input:checked + .toggle-slider:before { left: 18px !important; }
+
+@media (prefers-reduced-motion: reduce) {
+    .view-in-fwd, .view-in-back, .view-in-tab, #walletModal > div.relative, .ax { animation-duration: .01s !important; }
+}
