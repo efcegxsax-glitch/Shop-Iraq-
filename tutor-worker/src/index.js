@@ -481,7 +481,17 @@ async function notifyPush(env, uid, token, body, headers, origin) {
         if (pr && pr.c === uid && now - Number(pr.at || 0) < 70000) return json(200, { ok: true, skipped: 'in_chat' }, headers);
     }
     // the receiver switched this kind of notification off in the app's settings
-    if ((await dbGet(env, 'pushPrefs/' + to + '/' + kind, token)) === false) return json(200, { ok: true, skipped: 'off' }, headers);
+    const pp = await dbGet(env, 'pushPrefs/' + to, token);
+    if (pp && pp[kind] === false) return json(200, { ok: true, skipped: 'off' }, headers);
+    if (kind === 'msg' && pp) {
+        // he muted this friend, or it is his quiet time (Iraq is UTC+3): the message waits in the app, no phone notification
+        if (pp.mu && pp.mu[uid] === true) return json(200, { ok: true, skipped: 'muted' }, headers);
+        const q = pp.qh;
+        if (q && Number.isInteger(q.f) && Number.isInteger(q.t) && q.f !== q.t) {
+            const h = new Date(now + 3 * 3600000).getUTCHours();
+            if (q.f < q.t ? (h >= q.f && h < q.t) : (h >= q.f || h < q.t)) return json(200, { ok: true, skipped: 'quiet' }, headers);
+        }
+    }
     let title, text;
     const name = str(await dbGet(env, 'pub/' + uid + '/n', token), 60) || 'طالب';
     let photoUrl = '';

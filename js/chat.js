@@ -922,6 +922,6 @@
         const entry = (typeof userChatsList !== 'undefined' ? userChatsList : []).find((c) => c.otherUid === T.uid);
         if (!entry) { app.showToast('ابدأ المحادثة أول'); app.closeWalletModal(); return; }
         const val = !entry[key];
-        H().update(R('userChats/' + me() + '/' + T.uid), { [key]: val }).then(() => { app.showToast(val ? onMsg : offMsg); app.closeWalletModal(); if (val && leave) app.goBack(); }).catch(() => app.showToast('تعذر تنفيذ العملية'));
+        H().update(R('userChats/' + me() + '/' + T.uid), { [key]: val }).then(() => { app.showToast(val ? onMsg : offMsg); app.closeWalletModal(); if (key === 'muted' && app._pnSyncSoon) app._pnSyncSoon(); if (val && leave) app.goBack(); }).catch(() => app.showToast('تعذر تنفيذ العملية'));
     }
 })();
