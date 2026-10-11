@@ -141,8 +141,7 @@ BALANCE = ands(
 
 # ---------- diamonds (users/{uid}/gems) ----------
 # A student's diamonds start at 0 and may: go down (spending), go up by a diamond code made in the panel (gc names it, marked used by this
-# student in the same write), or go up by exchanging points (ps = 'x:...', and the points go down by at least gems x gemShop/cfg/rate in the same write).
-GEM_RATE = "(root.child('gemShop/cfg/rate').isNumber() ? root.child('gemShop/cfg/rate').val() : 3000)"
+# student in the same write). Points can never be turned into diamonds.
 G_OLD0 = "(data.exists() ? data.val() : 0)"
 GCODE = "newData.parent().child('gc').val()"
 GEM_CODE = ands(
@@ -154,15 +153,9 @@ GEM_CODE = ands(
     f"{NEW}.child({GCODE} + '/usedBy').val() == $uid",
     f"newData.val() - {G_OLD0} <= root.child({GCODE} + '/gems').val()",
 )
-GEM_EXCH = ands(
-    "data.parent().child('points').isNumber()", "newData.parent().child('points').isNumber()",
-    "newData.parent().child('ps').isString()", "newData.parent().child('ps').val().beginsWith('x:')",
-    "newData.parent().child('ps').val() != data.parent().child('ps').val()",
-    f"(newData.val() - {G_OLD0}) * {GEM_RATE} <= ({P_OLD} - {P_NEW})",
-)
 GEMS = ands(
     "newData.isNumber()", "newData.val() >= 0", "newData.val() <= 1000000",
-    ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", GEM_CODE, GEM_EXCH),
+    ors(ADMIN, "!data.exists() && newData.val() == 0", "data.exists() && newData.val() <= data.val()", GEM_CODE),
 )
 # what a purchase paid, seen from a node two levels under the root (verified/{uid}, numIndex/{n}): my diamonds before minus after, in the same write
 G_PAID = "(root.child('users/' + auth.uid + '/gems').isNumber() ? root.child('users/' + auth.uid + '/gems').val() : 0) - newData.parent().parent().child('users/' + auth.uid + '/gems').val()"

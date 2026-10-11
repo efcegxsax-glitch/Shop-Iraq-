@@ -11774,11 +11774,6 @@ body.mdr-on #bottomNav, body.mdr-on #appHeaderBar { display: none !important; }
 .gm-bal { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--input-bg); }
 .gm-bal b { font-size: 26px; font-weight: 900; color: var(--text); }
 .gm-bal small { margin-inline-start: auto; font-size: 11.5px; color: var(--text2); }
-.gm-ex { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.gm-ex button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 2px; border-radius: 14px; font-weight: 900; color: var(--text); background: var(--input-bg); border: 1px solid var(--border); }
-.gm-ex button span { display: inline-flex; align-items: center; gap: 4px; font-size: 15px; }
-.gm-ex button small { font-size: 10px; color: var(--text2); }
-.gm-ex button:disabled { opacity: .4; }
 @media (min-width: 1024px) { #gemsView { max-width: var(--page-w); } }
 
 /* the wallet as a paid feature: while the lock shows, the wallet's own content is hidden */
