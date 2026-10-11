@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="a81fac2436">
+    <meta name="admin-build" content="9e30cd9949">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -1836,7 +1836,6 @@
                     <div class="field-grid field-grid-2">
                         <div class="field" style="margin-bottom:0;"><label>سعر التوثيق (ماس)</label><input type="number" id="gs_verify" min="1" max="100000" placeholder="مثال: 30"></div>
                         <div class="field" style="margin-bottom:0;"><label>مدة التوثيق (أيام)</label><input type="number" id="gs_vdays" min="1" max="365" placeholder="30"></div>
-                        <div class="field" style="margin-bottom:0;"><label>كل 1 ماس = كم نقطة؟ (للتبديل)</label><input type="number" id="gs_rate" min="1" max="1000000" placeholder="3000"></div>
                         <div class="field" style="margin-bottom:0;"><label>تفعيل المحفظة "رصيدي" (ماس، مرة وحدة). 0 أو فاضي = مجانية للكل</label><input type="number" id="gs_wallet" min="0" max="100000" placeholder="0"></div>
                     </div>
                     <p class="text-slate-400 text-xs" style="margin:12px 0 6px;">أسعار الايدي المميز حسب عدد الأرقام (الرقم الخماسي ما ينباع لأنه نفس أرقام التسجيل العادية):</p>
@@ -3243,13 +3242,13 @@
         function loadGemShop() {
             onValue(ref(db, 'gemShop/cfg'), (snap) => {
                 const c = snap.exists() ? snap.val() : {}, set = (id, v) => { if (document.activeElement !== el(id)) el(id).value = v == null ? '' : v; };
-                set('gs_verify', c.verify); set('gs_vdays', c.vdays); set('gs_rate', c.rate); set('gs_wallet', c.wallet);
+                set('gs_verify', c.verify); set('gs_vdays', c.vdays); set('gs_wallet', c.wallet);
                 GS_IDS.forEach((n) => set('gs_i' + n, c.idp && c.idp[n]));
-                el('gs_ex').textContent = c.verify ? 'الآن: التوثيق ' + c.verify + ' ماس لـ ' + (c.vdays || 30) + ' يوم. وكل 1 ماس = ' + (c.rate || 3000).toLocaleString('en-US') + ' نقطة. المحفظة: ' + (c.wallet > 0 ? 'تتفعّل بـ ' + c.wallet + ' ماس' : 'مجانية') + '.' : 'الأسعار ما انحفظت بعد، المتجر مطفي عند الطلاب.';
+                el('gs_ex').textContent = c.verify ? 'الآن: التوثيق ' + c.verify + ' ماس لـ ' + (c.vdays || 30) + ' يوم. المحفظة: ' + (c.wallet > 0 ? 'تتفعّل بـ ' + c.wallet + ' ماس' : 'مجانية') + '.' : 'الأسعار ما انحفظت بعد، المتجر مطفي عند الطلاب.';
             }, () => {});
             el('gs_save').addEventListener('click', async () => {
                 const n = (id) => Number(val(id));
-                const cfg = { verify: n('gs_verify'), vdays: n('gs_vdays') || 30, rate: n('gs_rate') || 3000, wallet: n('gs_wallet') || 0, idp: {} };
+                const cfg = { verify: n('gs_verify'), vdays: n('gs_vdays') || 30, wallet: n('gs_wallet') || 0, idp: {} };
                 if (!(cfg.verify >= 1 && cfg.verify <= 100000)) { toast('اكتب سعر التوثيق (من 1 إلى 100000)', false); return; }
                 if (!(cfg.vdays >= 1 && cfg.vdays <= 365)) { toast('مدة التوثيق من 1 إلى 365 يوم', false); return; }
                 for (const k of GS_IDS) { const v = n('gs_i' + k); if (v) { if (!(v >= 1 && v <= 100000)) { toast('سعر ' + k + ' أرقام غلط', false); return; } cfg.idp[k] = Math.round(v); } }

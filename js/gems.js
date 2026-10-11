@@ -19,7 +19,6 @@
     const date = (t) => new Date(t).toLocaleDateString('ar-IQ', { year: 'numeric', month: 'long', day: 'numeric' });
     const price = (k) => (CFG && Number.isFinite(Number(CFG[k])) ? Number(CFG[k]) : null);
     const idPrice = (len) => (CFG && CFG.idp && Number.isFinite(Number(CFG.idp[len])) ? Number(CFG.idp[len]) : null);
-    const rate = () => (CFG && Number(CFG.rate) > 0 ? Number(CFG.rate) : 3000);
     const vdays = () => (CFG && Number(CFG.vdays) > 0 ? Math.round(Number(CFG.vdays)) : 30);
     const mine = () => { const v = app._verified && app._verified[app.authUid]; return v && typeof v === 'object' ? v : null; };
 
@@ -162,19 +161,15 @@
             busy = false; paint();
         },
 
-        // ---------- getting diamonds: a code from the panel, or points ----------
+        // ---------- getting diamonds: only a code made in the panel ----------
         gmTopup() {
             const t = $('walletModalTitle'), c = $('walletModalContent');
             if (!c) return;
             if (t) t.textContent = 'اشحن الماس';
-            const pts = num(app.currentUser && app.currentUser.points), r = rate();
             c.innerHTML = `<div class="gm-sheet">
                 <div class="gm-bal">${gem(26)}<b>${AR(myGems())}</b><small>رصيدك الحالي</small></div>
                 <h4>عندك كود ماس؟</h4>
                 <div class="gm-in"><input id="gmCode" dir="ltr" placeholder="GM-XXXX-XXXX-XXXX" autocapitalize="characters"><button class="gm-btn s" id="gmCodeBtn" onclick="app.gmRedeemCode()">فعّل</button></div>
-                <h4>أو بدّل نقاطك بماس</h4>
-                <p class="gm-note">كل ${gem(13)} 1 = ${AR(r)} نقطة. نقاطك: ${AR(pts)}</p>
-                <div class="gm-ex">${[1, 5, 10, 50].map((n) => `<button ${pts >= n * r ? '' : 'disabled'} onclick="app.gmExchange(${n})"><span>${gem(16)}${n}</span><small>${AR(n * r)} نقطة</small></button>`).join('')}</div>
             </div>`;
             $('walletModal')?.classList.remove('hidden');
             try { lucide.createIcons(); } catch (e) {}
@@ -205,28 +200,6 @@
                 console.warn('gem code', e);
                 app.showToast('ما تفعّل الكود. تأكد من النت أو إنه ما انستخدم');
                 reset();
-            }
-        },
-        async gmExchange(n) {
-            const uid = app.authUid, r = rate();
-            if (!uid || !(n >= 1)) return;
-            const cost = n * r;
-            const ok = await app.ask({ icon: 'repeat', tone: 'primary', title: 'تبدّل ' + AR(cost) + ' نقطة؟', text: 'تاخذ ' + n + ' ماس بدالها.', ok: 'بدّل' });
-            if (!ok) return;
-            try {
-                await (app._walletQueue ? app._walletQueue(async () => {
-                    const [ps, gs] = await Promise.all([H().get(R('users/' + uid + '/points')), H().get(R('users/' + uid + '/gems'))]);
-                    const p = num(ps.val()), g = num(gs.val());
-                    if (p < cost) throw new Error('points');
-                    await H().update(H().ref(window.firebaseDb), { ['users/' + uid + '/points']: p - cost, ['leaderboard/' + uid + '/points']: p - cost, ['users/' + uid + '/gems']: g + n, ['users/' + uid + '/ps']: 'x:' + Date.now() });
-                    app.currentUser.points = p - cost; app.currentUser.gems = g + n; app.saveUserData && app.saveUserData();
-                }) : Promise.reject(new Error('queue')));
-                app.showToast('انضاف ' + n + ' ماس');
-                this.gmTopup();
-                if (app.currentView === 'gemsView') paint(); else if (app.currentView === 'walletView') { app.renderWalletBalance(); app.renderWalletPoints(); }
-            } catch (e) {
-                console.warn('gem exchange', e);
-                app.showToast(String(e && e.message) === 'points' ? 'نقاطك ما تكفي' : 'ما تمت العملية، حاول مرة ثانية');
             }
         },
     });
