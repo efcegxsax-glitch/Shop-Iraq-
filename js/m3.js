@@ -1,59 +1,8 @@
-// Material 3 behaviour (the look is at the end of css/app.css): ink ripples on everything that can be tapped, top app bars that tint
-// when the page scrolls under them, bottom sheets that slide away and can be dragged down, and a short vibration on the main taps,
-// so the app feels like a native Flutter app rather than a web page.
+// Material 3 behaviour (the look is at the end of css/app.css): top app bars that tint when the page scrolls under them, and bottom
+// sheets that slide away and can be dragged down to close.
 (function () {
     'use strict';
     const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const TAP = 'button, [role="button"], a[href], [onclick], label.toggle-switch, .nav-item, summary';
-    // places with their own touch handling (drawing, players, swiping cards, maps, games): no ripple there
-    const SKIP = '.nt-ed, #yrStage, .yr-frame, .kd-stack, canvas, .leaflet-container, .mySwiper, input, textarea, select, [data-noink], .ax-bg, #maintenanceOverlay';
-    const vib = (ms) => { try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* no vibration */ } };
-
-    // ---------- ink ripple ----------
-    function isDark(el) {
-        // a ripple on a coloured (dark) surface is white, on a light one it takes the text colour
-        const bg = getComputedStyle(el).backgroundColor, m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/.exec(bg || '');
-        if (!m || (m[4] !== undefined && Number(m[4]) < 0.5)) return false;
-        return (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 140;
-    }
-    function ripple(e) {
-        if (reduce || (e.button !== undefined && e.button !== 0)) return;
-        const el = e.target.closest && e.target.closest(TAP);
-        if (!el || el.disabled || el.closest(SKIP)) return;
-        const r = el.getBoundingClientRect();
-        // a full-screen backdrop or a whole page that listens to taps is not a button
-        if (r.width * r.height > innerWidth * innerHeight * 0.45 || r.width < 8 || r.height < 8) return;
-        const cs = getComputedStyle(el);
-        if (cs.display === 'inline' || cs.display === 'contents') return;
-        if (cs.position === 'static') el.style.position = 'relative';
-        let ink = null;
-        for (const c of el.children) if (c.classList && c.classList.contains('m3-ink')) { ink = c; break; }
-        if (!ink) { ink = document.createElement('span'); ink.className = 'm3-ink'; el.appendChild(ink); }
-        ink.classList.toggle('light', isDark(el));
-        const x = e.clientX - r.left, y = e.clientY - r.top, rad = Math.hypot(Math.max(x, r.width - x), Math.max(y, r.height - y));
-        const dot = document.createElement('i');
-        dot.style.cssText = `width:${rad * 2}px;height:${rad * 2}px;left:${x - rad}px;top:${y - rad}px`;
-        ink.appendChild(dot);
-        requestAnimationFrame(() => dot.classList.add('on'));
-        const born = performance.now();
-        const up = () => {
-            removeEventListener('pointerup', up, true); removeEventListener('pointercancel', up, true); removeEventListener('scroll', up, true);
-            setTimeout(() => {
-                dot.classList.add('up');
-                setTimeout(() => { dot.remove(); if (!ink.children.length) ink.remove(); }, 450);
-            }, Math.max(0, 160 - (performance.now() - born)));
-        };
-        addEventListener('pointerup', up, true); addEventListener('pointercancel', up, true); addEventListener('scroll', up, true);
-    }
-    document.addEventListener('pointerdown', ripple, { passive: true, capture: true });
-
-    // a short vibration, like the haptic feedback of a native app, on the bottom bar and the switches
-    document.addEventListener('click', (e) => {
-        const t = e.target;
-        if (!t || !t.closest) return;
-        if (t.closest('#bottomNav .nav-item')) vib(8);
-    }, true);
-    document.addEventListener('change', (e) => { if (e.target && e.target.closest && e.target.closest('.toggle-switch')) vib(6); }, true);
 
     // ---------- top app bars tint once the page scrolls under them ----------
     let scrolled = false, ticking = false;
