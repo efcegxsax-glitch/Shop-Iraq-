@@ -104,10 +104,9 @@
             lucide.createIcons();
         },
 
-        // seats and a password for the room: Premium only (a locked row for the others)
+        // seats and a password for the room (the panel can switch these off)
         _yrPremOpts() {
             if (!this.premFeatureOn('rooms')) return '';
-            if (!this.premOn('rooms')) return `<button class="yr-prem lock" onclick="app.premGate('rooms')"><i data-lucide="lock"></i><span><b>غرفة مميزة</b><small>مقاعد أكثر وكلمة سر وتثبيت فيديو الدرس مع Premium</small></span></button>`;
             return `<div class="yr-prem"><label><span>عدد المقاعد</span><select id="yrCap">${[12, 20, 30, 40].map((n) => `<option value="${n}">${n}</option>`).join('')}</select></label>
                 <label><span>كلمة سر للغرفة (اختياري، 6 خانات أو أكثر)</span><input id="yrPw" maxlength="30" autocomplete="off" dir="ltr" placeholder="بدون كلمة سر = غرفة مفتوحة"></label></div>`;
         },
@@ -148,9 +147,9 @@
             if (raw && !first) { this.showToast('الرابط مو رابط فيديو يوتيوب، انسخه من زر المشاركة بيوتيوب'); return; }
             const rid = newId(), now = Date.now(), u = this.currentUser || {};
             const room = { meta: { host: this.authUid, title, at: now }, members: { [this.authUid]: { n: String(u.fullName || 'طالب').slice(0, 40), a: u.avatar || '', j: now } } };
-            // Premium: seats and a password (the database rules refuse both for a student who is not premium)
+            // seats and a password, when the student set them
             let pwh = '';
-            if (!opts && this.premOn('rooms') && await this.premVerify()) {
+            if (!opts && this.premFeatureOn('rooms')) {
                 const cap = Number(document.getElementById('yrCap')?.value) || 12, pw = String(document.getElementById('yrPw')?.value || '').trim();
                 if (pw && pw.length < 6) { this.showToast('كلمة السر 6 خانات أو أكثر'); return; }
                 if (cap > 12) room.meta.cap = cap;
@@ -1315,15 +1314,14 @@
             if (!y || y.meta.host !== this.authUid) return;
             H().set(R('ytRooms/' + y.rid + '/meta/cur'), k).catch(() => {});
         },
-        // Premium: the host pins the lesson video; everybody sees it at the top of the room with a play button
+        // the host pins the lesson video; everybody sees it at the top of the room with a play button
         async yrPin(on) {
             const y = this._yr;
             if (!y || y.meta.host !== this.authUid) return;
             if (!on) { H().remove(R('ytRooms/' + y.rid + '/meta/pin')).catch(() => {}); return; }
-            if (!(await this.premGate('rooms'))) return;
             const it = y.queue[y.key] || (y.adhoc && y.adhoc.k === y.key ? y.adhoc : null);
             if (!it || !it.v) { this.showToast('شغّل فيديو أول حتى تثبته'); return; }
-            H().set(R('ytRooms/' + y.rid + '/meta/pin'), { v: it.v, t: String(it.t || '').slice(0, 100) }).then(() => this.showToast('انثبت فيديو الدرس')).catch(() => this.showToast('ما انثبت، تأكد من الاشتراك'));
+            H().set(R('ytRooms/' + y.rid + '/meta/pin'), { v: it.v, t: String(it.t || '').slice(0, 100) }).then(() => this.showToast('انثبت فيديو الدرس')).catch(() => this.showToast('ما انثبت، حاول مرة ثانية'));
         },
         yrPlayPin() {
             const y = this._yr, pin = y && y.meta.pin;
@@ -1362,7 +1360,7 @@
                 <button class="yr-menu-i" onclick="app.closeWalletModal(); app.yrInvite()"><i data-lucide="user-plus"></i>ادعُ أصدقاء</button>
                 <button class="yr-menu-i" onclick="app.yrCopyLink()"><i data-lucide="link"></i>انسخ رابط الغرفة</button>
                 <button class="yr-menu-i" onclick="app.yrFeatMenu()"><i data-lucide="sliders-horizontal"></i>ميزات الغرفة (تشغيل وإطفاء)</button>
-                ${host && this.premFeatureOn('rooms') ? `<button class="yr-menu-i" onclick="app.closeWalletModal(); app.yrPin(true)"><i data-lucide="${this.premOn('rooms') ? 'pin' : 'lock'}"></i>ثبّت الفيديو الحالي كفيديو الدرس</button>` : ''}
+                ${host && this.premFeatureOn('rooms') ? `<button class="yr-menu-i" onclick="app.closeWalletModal(); app.yrPin(true)"><i data-lucide="pin"></i>ثبّت الفيديو الحالي كفيديو الدرس</button>` : ''}
                 ${host ? '<button class="yr-menu-i red" onclick="app.yrEnd()"><i data-lucide="power"></i>سد الغرفة للكل</button>'
                     : '<button class="yr-menu-i red" onclick="app.yrLeave()"><i data-lucide="log-out"></i>اطلع من الغرفة</button>'}`;
             document.getElementById('walletModal').classList.remove('hidden');

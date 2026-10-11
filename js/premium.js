@@ -1,4 +1,4 @@
-// Premium: the paid package of study tools. The student buys 30 days (or whatever the panel sets) with diamonds, like the verification: ONE write takes the
+// Premium: the paid package (for now: doubled points). The student buys 30 days (or whatever the panel sets) with diamonds, like the verification: ONE write takes the
 // diamonds and grants premium/{uid} = { at, until, name }, and the database rules check the price against premCfg (price, days). Which parts exist and
 // what they cost is the panel's. Locked parts show a lock; the real checks are on the server (rules for points and rooms, the Worker for the AI parts).
 // Loaded by app._need('premium').
@@ -16,14 +16,9 @@
     let busy = false;
 
     // id, title, what it gives, icon, colour, what opens it (a function of app, loaded from `mod` when it is not there yet)
+    // what Premium gives (more parts can be added here later)
     const FEATURES = [
         { id: 'mult', t: 'نقاط مضاعفة', ic: 'zap', c: '#F59E0B', go: null },
-        { id: 'exam', t: 'امتحانات من ملازمك', d: 'ارفع ملزمتك ويطلعلك امتحان بتصحيح وشرح الأخطاء', ic: 'file-check-2', c: '#2563EB', mod: 'premai', fn: 'pmExam', free: true },
-        { id: 'summary', t: 'ملخص ذكي', d: 'ملخص وأسئلة مراجعة لملزمة أو محاضرة', ic: 'sparkles', c: '#7C3AED', mod: 'premai', fn: 'pmSummary' },
-        { id: 'cards', t: 'بطاقات حفظ من ملاحظاتك', d: 'تنسوي لحالها وتذكّرك قبل ما تنسى', ic: 'layers', c: '#EC4899', mod: 'premai', fn: 'pmCards' },
-        { id: 'plan', t: 'خطة تتعدل لحالها', d: 'إذا فاتتك مذاكرة، المعلم يرتب الأيام من جديد', ic: 'calendar-sync', c: '#0891B2', mod: 'premai', fn: 'pmReplan' },
-        { id: 'notes', t: 'ملاحظات بلا حدود', d: 'دفاتر بدون عدد محدد، مجلدات، بحث وتصدير PDF', ic: 'notebook-pen', c: '#10B981', fn: 'goToNotes' },
-        { id: 'rooms', t: 'غرف دراسة مميزة', d: 'مقاعد أكثر، غرفة بكلمة سر وتثبيت فيديو الدرس', ic: 'tv', c: '#E11D48', fn: 'goToYtRooms' },
     ];
     const byId = (id) => FEATURES.find((f) => f.id === id);
     const left = () => { const v = app._prem; return v && typeof v.until === 'number' ? Math.max(0, Math.ceil((v.until - Date.now()) / DAY)) : 0; };
@@ -40,8 +35,7 @@
         const tile = (f) => {
             const off = !app.premFeatureOn(f.id);
             const open = (on || f.free) && !off;
-            const fl = Math.round(Number(app.premCfg().freeExams)) >= 0 && app.premCfg().freeExams != null ? Math.round(Number(app.premCfg().freeExams)) : 2;
-            const tx = f.id === 'mult' ? 'نقاطك تتضاعف ×' + mult + ' على كل شي تدرسه' : f.id === 'exam' && !on ? f.d + '. مجاناً ' + AR(fl) + ' بالشهر' : f.d;
+            const tx = f.id === 'mult' ? 'نقاطك تتضاعف ×' + mult + ' على كل شي تدرسه' : f.d;
             return `<button class="pm-f${open ? ' open' : ''}${off ? ' off' : ''}" style="--c:${f.c}" onclick="app.premFeature('${f.id}')" ${off ? 'disabled' : ''}>
                 <span class="pm-fi"><i data-lucide="${f.ic}"></i></span>
                 <span class="pm-ft"><b>${esc(f.t)}</b><small>${esc(tx)}</small></span>
@@ -59,7 +53,7 @@
             </section>
             <h3 class="gm-h">شنو يشمل الاشتراك</h3>
             <div class="pm-list">${FEATURES.map(tile).join('')}</div>
-            <p class="gm-foot">الماس عملة داخل التطبيق بس. تشحنه من متجر الماس.</p>`;
+            <p class="gm-foot">مزايا جديدة تنضاف للاشتراك قريباً. الماس عملة داخل التطبيق بس، تشحنه من متجر الماس.</p>`;
         try { lucide.createIcons(); } catch (e) {}
     }
 

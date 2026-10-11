@@ -31,7 +31,7 @@ import { makeDb } from './fbadmin.js';
 import { modPush } from './modpush.js';
 import { routeCron, cronPeriod } from './cron.js';
 import { phoneEmail } from './phone.js';
-import { premActive, featOn, freeLimit, takeQuota, GRADE_SYSTEM, gradePrompt, cleanGrade, SUMMARY_SYSTEM, cleanSummary, ytIdOf, ytTranscript } from './premium.js';
+import { featOn, GRADE_SYSTEM, gradePrompt, cleanGrade, SUMMARY_SYSTEM, cleanSummary, ytIdOf, ytTranscript } from './premium.js';
 import { newsRun, newsLoop, newsAct } from './newsrun.js';
 
 const CLAUDE_MODEL = 'claude-opus-5-5';
@@ -281,7 +281,7 @@ async function claudeRead(env, images, uid) {
     });
     return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('').trim();
 }
-// ---------- Premium: grading an exam, summarising a handout ----------
+// ---------- the tutor's study parts: grading an exam, summarising a handout ----------
 const Grade = z.object({ items: z.array(z.object({ n: z.string(), l: z.string(), got: z.number(), fb: z.string() })), tip: z.string() });
 async function claudeGrade(env, prompt, uid) {
     const res = await claudeClient(env).messages.parse({
@@ -316,11 +316,6 @@ function streamJson(headers, ctx, work) {
     })();
     if (ctx && ctx.waitUntil) ctx.waitUntil(job);
     return new Response(readable, { status: 200, headers: { ...headers, 'Content-Type': 'application/json' } });
-}
-// Premium for this student: the record and the panel's settings, read with his own token (the rules let any signed-in student read both)
-async function premState(env, uid, token) {
-    const [rec, cfg] = await Promise.all([dbGet(env, 'premium/' + uid, token), dbGet(env, 'premCfg', token)]);
-    return { active: premActive(rec, Date.now()), cfg: cfg && typeof cfg === 'object' ? cfg : {} };
 }
 const pickImages = (v, n) => (Array.isArray(v) ? v : []).filter((im) => im && IMAGE_TYPES.includes(im.type) && typeof im.data === 'string' && im.data.length <= MAX_IMAGE_B64 && /^[A-Za-z0-9+/=]+$/.test(im.data)).slice(0, n);
 
@@ -1198,29 +1193,20 @@ export default {
         }
         const context = str(body.context, MAX_CONTEXT);
 
-        // ----- Premium parts of the tutor: an exam from the student's own handout, its marking, a summary, cards from notes, a re-planned week -----
-        // Premium is checked HERE, from the database (premium/{uid} and the panel's premCfg), never from anything the app says.
+        // ----- study parts made with the tutor, free for everybody: an exam from the student's own handout, its marking, a summary,
+        // cards from notes, a re-planned week. The panel can switch each one off (premCfg/f/<part>); that switch is read here.
         const tok = (/^Bearer (.+)$/.exec(req.headers.get('Authorization') || '') || [])[1] || '';
         if (body.mode === 'pexam' || body.mode === 'pgrade' || body.mode === 'psummary') {
             if (!useClaude) return json(503, { error: 'no_key' }, headers);
             const part = body.mode === 'psummary' ? 'summary' : 'exam';
-            const ps = await premState(env, uid, tok);
-            if (!featOn(ps.cfg, part)) return json(403, { error: 'off' }, headers);
-            // a summary is premium only; an exam (and its marking) has a few free uses a month
-            let q = null;
-            if (!ps.active) {
-                if (part === 'summary') return json(402, { error: 'premium' }, headers);
-                q = await takeQuota(env.AVATARS, uid, body.mode === 'pgrade' ? 'grade' : 'exam', freeLimit(ps.cfg), Date.now());
-                if (!q.ok) return json(402, { error: q.nokv ? 'premium' : 'quota', limit: q.limit }, headers);
-            }
-            const left = q ? Math.max(0, q.limit - q.used) : null;
-            const fail = async (status, err) => { if (q) await q.undo(); return json(status, { error: err }, headers); };
+            if (!featOn(await dbGet(env, 'premCfg', tok), part)) return json(403, { error: 'off' }, headers);
+            const fail = async (status, err) => json(status, { error: err }, headers);
             try {
                 if (body.mode === 'pgrade') {
                     const ex = cleanExam(body.exam, { chapter: '' });
                     if (!ex) return fail(400, 'bad');
                     const g = cleanGrade(await claudeGrade(env, gradePrompt(ex, body.answers), uid), ex);
-                    return g ? json(200, { ...g, left }, headers) : fail(502, 'grade');
+                    return g ? json(200, g, headers) : fail(502, 'grade');
                 }
                 let text = typeof body.text === 'string' ? body.text.slice(0, part === 'summary' ? 30000 : 40000) : '';
                 const imgs = pickImages(body.images, 4);
@@ -1241,10 +1227,8 @@ export default {
                 const nq = Math.max(2, Math.min(6, Math.round(Number(body.nq) || 4)));
                 const prompt = `المادة: ${o.subject || 'غير محددة'}${o.chapter ? '\nالفصل/الموضوع: ' + o.chapter : ''}\nالدرجة الكلية: ${total}\nعدد الأسئلة الرئيسية: ${nq}\n\nمادة الملزمة:\n${text}`;
                 return streamJson(headers, ctx, async () => {
-                    let ex;
-                    try { ex = cleanExam(await claudeExam(env, prompt, uid), o); } catch (err) { if (q) await q.undo(); throw err; }
-                    if (!ex) { if (q) await q.undo(); return { error: 'exam' }; }
-                    return { ...ex, left };
+                    const ex = cleanExam(await claudeExam(env, prompt, uid), o);
+                    return ex || { error: 'exam' };
                 });
             } catch (err) {
                 console.error(body.mode, err && err.message);
@@ -1265,12 +1249,8 @@ export default {
         }
 
         if (body.mode === 'cards') {
-            // cards made from the student's own notebook pages are a Premium part (a photo of a page, from the cards page, stays free)
-            if (body.src === 'notes') {
-                const ps = await premState(env, uid, tok);
-                if (!featOn(ps.cfg, 'cards')) return json(403, { error: 'off' }, headers);
-                if (!ps.active) return json(402, { error: 'premium' }, headers);
-            }
+            // cards made from the student's own notebook pages: the panel can switch that part off
+            if (body.src === 'notes' && !featOn(await dbGet(env, 'premCfg', tok), 'cards')) return json(403, { error: 'off' }, headers);
             const img = body.image;
             const image = img && IMAGE_TYPES.includes(img.type) && typeof img.data === 'string' && img.data.length <= MAX_IMAGE_B64 && /^[A-Za-z0-9+/=]+$/.test(img.data) ? img : null;
             if (!image) return json(400, { error: 'image' }, headers);
@@ -1287,12 +1267,8 @@ export default {
 
         // the weekly study plan: from the student's report (context) for the days the app names
         if (body.mode === 'plan') {
-            // re-ordering the week after missed sessions is a Premium part
-            if (body.replan) {
-                const ps = await premState(env, uid, tok);
-                if (!featOn(ps.cfg, 'plan')) return json(403, { error: 'off' }, headers);
-                if (!ps.active) return json(402, { error: 'premium' }, headers);
-            }
+            // re-ordering the week after missed sessions: the panel can switch that part off
+            if (body.replan && !featOn(await dbGet(env, 'premCfg', tok), 'plan')) return json(403, { error: 'off' }, headers);
             const days = cleanDays(body.days);
             if (!days.length) return json(400, { error: 'days' }, headers);
             const prompt = planPrompt(days, body.hours, str(body.note, body.replan ? 700 : 200));

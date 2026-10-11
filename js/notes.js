@@ -829,10 +829,9 @@
         Object.defineProperty(n, '_tx', { value: t.toLowerCase(), writable: true, enumerable: false, configurable: true }); Object.defineProperty(n, '_txAt', { value: n.ts, writable: true, enumerable: false, configurable: true });
         return n._tx;
     };
-    const freeLimit = () => Math.max(1, Math.round(Number(app.premCfg().freeNotes)) || 5);
-    const premNotes = () => app.premFeatureOn('notes');       // the panel can switch the premium part off: then there is no limit and no extras
+    const premNotes = () => app.premFeatureOn('notes');       // folders, search and PDF for everybody; the panel can switch them off
     function gridHtml() {
-        const prem = app.premOn('notes'), q = prem ? query.trim().toLowerCase() : '';
+        const prem = premNotes(), q = prem ? query.trim().toLowerCase() : '';
         let items = NOTES.slice().sort((a, b) => (b.ts || 0) - (a.ts || 0));
         if (prem && curFolder) items = items.filter((n) => n.folder === curFolder);
         if (q) items = items.filter((n) => textOf(n).includes(q));
@@ -843,21 +842,16 @@
     }
     function listRender() {
         const el = $('ntList'); if (!el) return;
-        const on = premNotes(), prem = app.premOn('notes'), lim = freeLimit(), left = Math.max(0, lim - NOTES.length);
+        const on = premNotes();
         const fl = foldersList();
-        const extras = !on ? '' : prem
-            ? `<div class="nt-sr"><i data-lucide="search"></i><input id="ntSearch" type="search" placeholder="ابحث بكل ملاحظاتك" value="${esc(query)}" oninput="app.ntSearch(this.value)"></div>
+        const extras = !on ? '' : `<div class="nt-sr"><i data-lucide="search"></i><input id="ntSearch" type="search" placeholder="ابحث بكل ملاحظاتك" value="${esc(query)}" oninput="app.ntSearch(this.value)"></div>
                <div class="nt-fl"><button class="${curFolder ? '' : 'on'}" onclick="app.ntFolder('')">الكل</button>${fl.map((f) => `<button class="${curFolder === f ? 'on' : ''}" onclick="app.ntFolder(${jsArg(f)})"><i data-lucide="folder"></i>${esc(f)}</button>`).join('')}<button class="add" onclick="app.ntNewFolder()"><i data-lucide="folder-plus"></i>مجلد</button></div>
-               ${curFolder ? `<button class="nt-fdel" onclick="app.ntDelFolder()"><i data-lucide="trash-2"></i>احذف مجلد "${esc(curFolder)}" (دفاتره ترجع للكل)</button>` : ''}`
-            : `<button class="nt-lockrow" onclick="app.premGate('notes')"><i data-lucide="lock"></i><span><b>Premium: دفاتر بلا حدود، مجلدات، بحث وتصدير PDF</b><small>${left > 0 ? 'باقي لك ' + left + ' دفتر مجاني' : 'وصلت حد الدفاتر المجانية (' + lim + ')'}</small></span></button>`;
+               ${curFolder ? `<button class="nt-fdel" onclick="app.ntDelFolder()"><i data-lucide="trash-2"></i>احذف مجلد "${esc(curFolder)}" (دفاتره ترجع للكل)</button>` : ''}`;
         el.innerHTML = `<button class="nt-new" onclick="app.ntNewSheet()"><i data-lucide="plus"></i><span>دفتر جديد</span></button><button class="nt-cl" onclick="app.ntCloud()"><i data-lucide="cloud"></i><span>النسخة السحابية</span><small>${SET.cloud === false ? 'مطفية' : 'شغّالة'}</small></button>` + extras + `<div id="ntGrid">${gridHtml()}</div>`;
         try { lucide.createIcons(); } catch (e) {}
     }
-    // can one more notebook be made: the free limit, unless he is premium (the server record is read again first)
-    async function canAdd() {
-        if (!premNotes() || NOTES.length < freeLimit()) return true;
-        return !!(await app.premGate('notes'));
-    }
+    // notebooks have no limit
+    async function canAdd() { return true; }
     // ---------- PDF of the whole notebook (premium): every page as a JPEG inside a small hand-made PDF ----------
     function buildPdf(imgs) {
         const enc = new TextEncoder(), parts = [], offs = [];
@@ -882,8 +876,7 @@
     }
     async function exportPdf() {
         if (!N) return;
-        if (!(await app.premGate('notes'))) return;
-        app.showToast('دا نسوي الـ PDF...');
+                app.showToast('دا نسوي الـ PDF...');
         try {
             const imgs = [];
             for (const pg of N.pages.slice(0, 60)) {
@@ -961,8 +954,7 @@
         ntSearch(v) { query = String(v || ''); const g = $('ntGrid'); if (g) { g.innerHTML = gridHtml(); try { lucide.createIcons(); } catch (e) {} } },
         ntFolder(f) { curFolder = f || ''; listRender(); },
         async ntNewFolder() {
-            if (!(await app.premGate('notes'))) return;
-            const nm = await app.ask({ icon: 'folder-plus', tone: 'primary', title: 'مجلد جديد', text: 'اكتب اسم المجلد.', ok: 'سوّي', input: 'مثلاً: فيزياء' });
+                        const nm = await app.ask({ icon: 'folder-plus', tone: 'primary', title: 'مجلد جديد', text: 'اكتب اسم المجلد.', ok: 'سوّي', input: 'مثلاً: فيزياء' });
             const name = String(nm || '').trim().slice(0, 30);
             if (!name) return;
             SET.folders = Array.from(new Set([...(SET.folders || []), name])).slice(0, 40); setSave();
@@ -976,8 +968,7 @@
         },
         async ntMoveMenu(id) {
             this.ntSheetClose();
-            if (!(await app.premGate('notes'))) return;
-            const n = NOTES.find((x) => x.id === id); if (!n) return;
+                        const n = NOTES.find((x) => x.id === id); if (!n) return;
             const fl = foldersList();
             setTimeout(() => sheet(`<div class="tu-sh"><b>انقل "${esc(n.title || 'دفتر')}" إلى</b><button onclick="app.ntSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
                 <button class="nt-row" onclick="app.ntMove('${id}','')"><i data-lucide="${n.folder ? 'folder-x' : 'check'}"></i>بدون مجلد</button>
@@ -993,7 +984,7 @@
         ntNoteMenu(id) {
             const n = NOTES.find((x) => x.id === id); if (!n) return;
             sheet(`<div class="tu-sh"><b>${esc(n.title || 'دفتر بدون اسم')}</b><button onclick="app.ntSheetClose()" aria-label="إغلاق"><i data-lucide="x"></i></button></div>
-                ${premNotes() ? `<button class="nt-row" onclick="app.ntMoveMenu('${id}')"><i data-lucide="${app.premOn('notes') ? 'folder-input' : 'lock'}"></i>نقل لمجلد</button>` : ''}
+                ${premNotes() ? `<button class="nt-row" onclick="app.ntMoveMenu('${id}')"><i data-lucide="${premNotes() ? 'folder-input' : 'lock'}"></i>نقل لمجلد</button>` : ''}
                 <button class="nt-row" onclick="app.ntDup('${id}')"><i data-lucide="copy"></i>نسخ الدفتر</button>
                 <button class="nt-row" onclick="app.ntDelAsk('${id}')" style="color:#dc2626"><i data-lucide="trash-2"></i>حذف الدفتر</button>`);
         },
@@ -1091,7 +1082,7 @@
                 const el = $('ntMenuBody'); if (!el) return;
                 const chip = (k, v, n) => `<button class="nt-pp${SET[k] === v ? ' on' : ''}" onclick="app.ntSet('${k}','${v}')">${n}</button>`;
                 el.innerHTML = `<button class="nt-row" onclick="app.ntExport()"><i data-lucide="share-2"></i>حفظ الصفحة صورة / مشاركة</button>
-                    ${premNotes() ? `<button class="nt-row" onclick="app.ntSheetClose();app.ntExportPdf()"><i data-lucide="${app.premOn('notes') ? 'file-down' : 'lock'}"></i>تصدير الدفتر كله PDF</button>` : ''}
+                    ${premNotes() ? `<button class="nt-row" onclick="app.ntSheetClose();app.ntExportPdf()"><i data-lucide="${premNotes() ? 'file-down' : 'lock'}"></i>تصدير الدفتر كله PDF</button>` : ''}
                     <button class="nt-row" onclick="app.ntClear()"><i data-lucide="eraser"></i>مسح كل الصفحة</button>
                     <div class="nt-lbl">الإصبع</div><div class="nt-pps">${chip('finger', 'auto', 'تلقائي')}${chip('finger', 'yes', 'يرسم')}${chip('finger', 'no', 'يحرّك بس (قلم فقط)')}</div>
                     <div class="nt-lbl">تقويم الخط</div>

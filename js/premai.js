@@ -1,9 +1,9 @@
-// Premium: the four parts that use the AI tutor (the Worker, modes pexam / pgrade / psummary, and cards / plan with a Premium flag):
-//  - an exam made from the student's own handout, answered here and marked with an explanation of the mistakes (a few free a month, then Premium);
-//  - a summary of a handout, a lecture link or photos, with review questions (Premium);
-//  - review cards made from the student's own notebook pages (Premium);
-//  - the week's plan re-ordered after missed sessions (Premium).
-// The Worker decides who may use what from the database (premium/{uid}, premCfg); this file only shows the screens and the Worker's answers.
+// The study parts made with the AI tutor (the Worker, modes pexam / pgrade / psummary, and cards / plan), free for everybody:
+//  - an exam made from the student's own handout, answered here and marked with an explanation of the mistakes;
+//  - a summary of a handout, a lecture link or photos, with review questions;
+//  - review cards made from the student's own notebook pages;
+//  - the week's plan re-ordered after missed sessions.
+// The panel can switch each part off (premCfg/f); the Worker checks that switch.
 // Loaded by app._need('premai').
 (function () {
     const esc = (s) => escapeHtml(String(s == null ? '' : s));
@@ -14,10 +14,6 @@
     const exKey = () => 'isp_pexams_' + (app.authUid || 'guest');
     const loadEx = () => { try { const a = JSON.parse(localStorage.getItem(exKey()) || '[]'); return Array.isArray(a) ? a.filter((x) => x && x.id && Array.isArray(x.secs)) : []; } catch (e) { return []; } };
     const saveEx = (a) => { try { localStorage.setItem(exKey(), JSON.stringify(a.slice(0, 10))); } catch (e) { /* the phone is full: the exam is simply not kept */ } };
-    const month = () => { const d = new Date(Date.now() + 3 * 3600000); return d.getUTCFullYear() * 100 + d.getUTCMonth() + 1; };
-    const leftKey = (k) => 'isp_pq_' + k + '_' + (app.authUid || '') + '_' + month();
-    const getLeft = (k) => { try { const v = localStorage.getItem(leftKey(k)); return v == null ? null : Number(v); } catch (e) { return null; } };
-    const setLeft = (k, v) => { try { if (v == null) localStorage.removeItem(leftKey(k)); else localStorage.setItem(leftKey(k), String(v)); } catch (e) {} };
     let imgs = { exam: [], summary: [] }, busy = false, lastSum = null;
 
     // ---------- the full-screen box these parts live in ----------
@@ -80,9 +76,7 @@
     }
     function errText(e, part) {
         const c = e && e.code, st = e && e.status;
-        if (st === 402 && c === 'quota') return { m: 'خلصت الامتحانات المجانية هالشهر. اشترك Premium وكمّل بدون حد.', pay: true };
-        if (st === 402) return { m: 'هذا الجزء من Premium. اشترك حتى ينفتح.', pay: true };
-        if (st === 403) return { m: 'هذا الجزء مو متاح هسه.' };
+                if (st === 403) return { m: 'هذا الجزء مو متاح هسه.' };
         if (c === 'no_captions') return { m: 'هذا الفيديو ما بيه ترجمة أكدر أقراها. الصق نص المحاضرة أو ملاحظاتك بدالها.' };
         if (c === 'url') return { m: 'الرابط مو رابط فيديو يوتيوب.' };
         if (c === 'short') return { m: 'المادة قصيرة. الصق نص أطول (أكثر من 200 حرف) أو صوّر صفحات.' };
@@ -93,7 +87,7 @@
     }
     const showErr = (e, part, feature) => {
         const x = errText(e, part), el = $('paErr');
-        if (el) el.innerHTML = esc(x.m) + (x.pay ? ` <button class="pa-lnk" onclick="app.premPaywall('${feature}')">اشترك</button>` : '');
+        if (el) el.textContent = x.m;
     };
 
     // ====================== an exam from the student's handout ======================
@@ -104,8 +98,7 @@
             <div class="pa-exa"><button onclick="app.pmExamOpen('${x.id}')">افتح</button><button class="g" onclick="app.pmAnswer('${x.id}')">${x.grade ? 'صحّح من جديد' : 'جاوب وصحّح'}</button>${x.grade ? `<button onclick="app.pmGradeShow('${x.id}')">نتيجتي</button>` : ''}<button class="d" onclick="app.pmExamDel('${x.id}')" aria-label="حذف"><i data-lucide="trash-2"></i></button></div></div>`).join('');
     }
     function examForm() {
-        const prem = app.premActive(), l = getLeft('exam'), lim = Math.max(0, Math.round(Number(app.premCfg().freeExams)) >= 0 && app.premCfg().freeExams != null ? Math.round(Number(app.premCfg().freeExams)) : 2);
-        const hint = prem ? 'مشترك Premium: امتحانات بدون حد.' : 'الطالب العادي ' + AR(lim) + ' امتحان بالشهر' + (l != null ? '، وباقي لك ' + AR(l) : '') + '. مع Premium بدون حد.';
+        const hint = 'الصق نص الملزمة أو صوّر صفحاتها، والمعلم يكتبلك امتحان بأسلوب الوزاري. بعدها جاوب ويصححلك.';
         overlay('امتحان من ملزمتي', `<div class="pa-form">
             <p class="pa-hint">${esc(hint)}</p>
             <label>المادة<select id="paSub">${SUBJ.map((s) => `<option>${esc(s)}</option>`).join('')}</select></label>
@@ -170,8 +163,7 @@
                 const secs = r.sections, tot = secs.reduce((n, s) => n + (s.parts || []).reduce((m, p) => m + (Number(p.m) || 0), 0), 0);
                 const x = { id: 'p' + Date.now().toString(36), k: 'gen', at: Date.now(), sub: meta.subject, ch: meta.chapter, t: r.title || 'امتحان', tot: tot || meta.total, dur: Math.max(30, Math.min(180, Math.round((tot || meta.total) * 1.2))), secs };
                 saveEx([x, ...loadEx()]);
-                setLeft('exam', typeof r.left === 'number' ? r.left : null);
-                busy = false; imgs.exam = [];
+                                busy = false; imgs.exam = [];
                 this.pmExamOpen(x.id);
                 examForm();
             } catch (e) {
@@ -206,8 +198,7 @@
                 const map = {}; answers.forEach((a) => { map[a.n + '|' + a.l] = a.a; });
                 x.grade = { total: r.total, max: r.max, items: r.items, tip: r.tip, answers: map, at: Date.now() };
                 saveEx(list);
-                setLeft('grade', typeof r.left === 'number' ? r.left : null);
-                busy = false; this.pmGradeShow(id);
+                                busy = false; this.pmGradeShow(id);
             } catch (e) { busy = false; this.pmAnswer(id); showErr(e, 'grade', 'exam'); }
         },
         pmGradeShow(id) {
@@ -306,7 +297,7 @@
                 localStorage.setItem(key, JSON.stringify({ at: Date.now(), summary: String(r.summary || p.summary || ''), hours: p.hours || 2, days: [...keep, ...fresh], done: keptDone, note: p.note || '' }));
                 this.showToast(missed.length ? 'وزّع المعلم المهام اللي فاتتك على الأيام الجاية' : 'انرتبت الخطة من جديد');
                 if (this.currentView === 'planView') this.plOpen(); else this.goToPlan();
-            } catch (e) { const x = errText(e, 'plan'); this.showToast(x.m); if (x.pay) this.premPaywall('plan'); }
+            } catch (e) { const x = errText(e, 'plan'); this.showToast(x.m); }
         },
         premClose() { closeOv(); },
     });

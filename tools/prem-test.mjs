@@ -1,5 +1,5 @@
-// Checks the Premium parts of the Worker (tutor-worker/src/premium.js and the modes in index.js): who may use what, the free monthly uses,
-// and that nothing the app sends can switch a lock off. The sign-in keys, the database and the model are all local fakes.
+// Checks the study parts of the Worker (tutor-worker/src/premium.js and the modes in index.js): they are free, the panel's switch turns
+// each one off, and the model's answers are cut down to what the app shows. The sign-in keys, the database and the model are all local fakes.
 //   node tools/prem-test.mjs
 import http from 'node:http';
 import { generateKeyPair, exportJWK, SignJWT } from '../tutor-worker/node_modules/jose/dist/webapi/index.js';
@@ -81,57 +81,38 @@ DB['premCfg'] = { price: 100, days: 30, freeExams: 2 };
 
 let r = await call(mkEnv(), null, { mode: 'pexam', text: LONG });
 t('no sign-in: 401', r.s === 401);
-// summary: premium only
-r = await call(mkEnv(), FREE, { mode: 'psummary', text: LONG }); t('summary, not premium: 402', r.s === 402 && r.j.error === 'premium', r);
+// the study parts are free for everybody now
 let env = mkEnv();
-r = await call(env, PRO, { mode: 'psummary', text: LONG }); t('summary, premium: 200 with points/terms/questions', r.s === 200 && r.j.points.length === 2 && r.j.terms.length === 1 && r.j.questions.length === 1, r);
-r = await call(env, PRO, { mode: 'psummary', text: 'قصير' }); t('summary, text too short: 400', r.s === 400 && r.j.error === 'short', r);
-r = await call(env, PRO, { mode: 'psummary', url: 'https://example.com/x' }); t('summary, a link that is not YouTube: 400', r.s === 400 && r.j.error === 'url', r);
+r = await call(env, FREE, { mode: 'psummary', text: LONG }); t('summary, any student: 200 with points/terms/questions', r.s === 200 && r.j.points.length === 2 && r.j.terms.length === 1 && r.j.questions.length === 1, r);
+r = await call(env, FREE, { mode: 'psummary', text: 'قصير' }); t('summary, text too short: 400', r.s === 400 && r.j.error === 'short', r);
+r = await call(env, FREE, { mode: 'psummary', url: 'https://example.com/x' }); t('summary, a link that is not YouTube: 400', r.s === 400 && r.j.error === 'url', r);
 DB['premCfg'] = { price: 100, days: 30, f: { summary: false } };
-r = await call(env, PRO, { mode: 'psummary', text: LONG }); t('summary switched off by the panel: 403 even for premium', r.s === 403 && r.j.error === 'off', r);
-DB['premCfg'] = { price: 100, days: 30, freeExams: 2 };
-// exams: 2 free a month
-env = mkEnv();
-r = await call(env, FREE, { mode: 'pexam', text: LONG, subject: 'الأحياء' }); t('exam #1 free: 200, one left', r.s === 200 && r.j.sections.length === 1 && r.j.left === 1, r);
-r = await call(env, FREE, { mode: 'pexam', text: LONG }); t('exam #2 free: 200, none left', r.s === 200 && r.j.left === 0, r);
-const mc = modelCalls;
-r = await call(env, FREE, { mode: 'pexam', text: LONG }); t('exam #3 free: 402 quota, the model is not called', r.s === 402 && r.j.error === 'quota' && modelCalls === mc, r);
-r = await call(env, FREE, { mode: 'pexam', text: LONG, premium: true, active: true, left: 99 }); t('fields the app adds change nothing', r.s === 402, r);
-r = await call(env, PRO, { mode: 'pexam', text: LONG }); t('exam, premium: 200 and no limit', r.s === 200 && r.j.left === null, r);
-for (let i = 0; i < 3; i++) r = await call(env, PRO, { mode: 'pexam', text: LONG });
-t('exam, premium: still fine after more', r.s === 200, r);
-// a failing model gives the use back
-env = mkEnv(); modelMode = 'bad';
-r = await call(env, FREE, { mode: 'pexam', text: LONG }); t('a failed exam is an error', r.s === 200 && !!r.j.error, r);
+r = await call(env, PRO, { mode: 'psummary', text: LONG }); t('summary switched off by the panel: 403 for everybody', r.s === 403 && r.j.error === 'off', r);
+DB['premCfg'] = { price: 100, days: 30 };
+for (let i = 0; i < 4; i++) r = await call(env, FREE, { mode: 'pexam', text: LONG, subject: 'الأحياء' });
+t('exams: no monthly limit (the 4th works)', r.s === 200 && r.j.sections.length === 1 && r.j.left === undefined, r);
+r = await call(mkEnv({ AVATARS: undefined }), FREE, { mode: 'pexam', text: LONG }); t('works without the counting store too', r.s === 200, r);
+modelMode = 'bad';
+r = await call(mkEnv(), FREE, { mode: 'pexam', text: LONG }); t('a failed exam is an error', r.s === 200 && !!r.j.error, r);
 modelMode = 'ok';
-r = await call(env, FREE, { mode: 'pexam', text: LONG }); const r2 = await call(env, FREE, { mode: 'pexam', text: LONG });
-t('and it did not use up a free try (two still work)', r.s === 200 && r2.s === 200 && r2.j.left === 0, [r, r2]);
-r = await call(env, FREE, { mode: 'pexam', text: 'قصير' }); t('too short a text: 400 (no use taken either)', r.s === 402 || r.s === 400);
-env = mkEnv({ AVATARS: undefined });
-r = await call(env, FREE, { mode: 'pexam', text: LONG }); t('no store for counting: a free student gets 402', r.s === 402, r);
-DB['premCfg'] = { price: 100, days: 30, freeExams: 0 };
-r = await call(mkEnv(), FREE, { mode: 'pexam', text: LONG }); t('the panel sets 0 free exams: 402', r.s === 402 && r.j.error === 'quota', r);
+r = await call(mkEnv(), FREE, { mode: 'pexam', text: 'قصير' }); t('too short a text: 400', r.s === 400, r);
 DB['premCfg'] = { price: 100, days: 30, f: { exam: false } };
 r = await call(mkEnv(), PRO, { mode: 'pexam', text: LONG }); t('exam switched off: 403', r.s === 403, r);
-DB['premCfg'] = { price: 100, days: 30, freeExams: 2 };
-// grading
-env = mkEnv();
-r = await call(env, FREE, { mode: 'pgrade', exam, answers: [{ n: 'س1', l: 'أ', a: 'جواب' }] });
-t('grade, free: 200, marks clamped to each part (9 -> 5), total 8 of 10', r.s === 200 && r.j.items[0].got === 5 && r.j.items[1].got === 3 && r.j.total === 8 && r.j.max === 10 && r.j.left === 1, r);
-r = await call(env, FREE, { mode: 'pgrade', exam: { sections: 'x' }, answers: [] }); t('grade, a broken exam: 400', r.s === 400, r);
-await call(env, FREE, { mode: 'pgrade', exam, answers: [] });
-r = await call(env, FREE, { mode: 'pgrade', exam, answers: [] }); t('grade, free: third refused', r.s === 402, r);
-r = await call(env, PRO, { mode: 'pgrade', exam, answers: [] }); t('grade, premium: unlimited', r.s === 200 && r.j.left === null, r);
-// cards from notes, re-plan
+r = await call(mkEnv(), FREE, { mode: 'pgrade', exam, answers: [] }); t('marking switched off with it: 403', r.s === 403, r);
+DB['premCfg'] = { price: 100, days: 30 };
+r = await call(mkEnv(), FREE, { mode: 'pgrade', exam, answers: [{ n: 'س1', l: 'أ', a: 'جواب' }] });
+t('grade: marks clamped to each part (9 -> 5), total 8 of 10', r.s === 200 && r.j.items[0].got === 5 && r.j.items[1].got === 3 && r.j.total === 8 && r.j.max === 10, r);
+r = await call(mkEnv(), FREE, { mode: 'pgrade', exam: { sections: 'x' }, answers: [] }); t('grade, a broken exam: 400', r.s === 400, r);
 const img = { type: 'image/jpeg', data: 'AAAA' };
-r = await call(mkEnv(), FREE, { mode: 'cards', image: img, src: 'notes' }); t('cards from notes, free: 402', r.s === 402, r);
-r = await call(mkEnv(), PRO, { mode: 'cards', image: img, src: 'notes' }); t('cards from notes, premium: 200', r.s === 200 && r.j.cards.length === 1, r);
-r = await call(mkEnv(), FREE, { mode: 'cards', image: img }); t('a photo of a page to cards stays free', r.s === 200, r);
+r = await call(mkEnv(), FREE, { mode: 'cards', image: img, src: 'notes' }); t('cards from notes: free', r.s === 200 && r.j.cards.length === 1, r);
+DB['premCfg'] = { f: { cards: false } };
+r = await call(mkEnv(), FREE, { mode: 'cards', image: img, src: 'notes' }); t('cards from notes switched off: 403', r.s === 403, r);
+r = await call(mkEnv(), FREE, { mode: 'cards', image: img }); t('a photo of a page to cards is not affected', r.s === 200, r);
+DB['premCfg'] = {};
 const days = [0, 1, 2, 3, 4, 5, 6].map((i) => ({ date: '2026-10-' + (11 + i), name: 'يوم' + i }));
-r = await call(mkEnv(), FREE, { mode: 'plan', days, hours: 2, replan: true, note: 'فاتتني مهام' }); t('re-plan, free: 402', r.s === 402, r);
-r = await call(mkEnv(), PRO, { mode: 'plan', days, hours: 2, replan: true, note: 'فاتتني مهام' }); t('re-plan, premium: 200', r.s === 200 && r.j.days.length === 7, r);
-r = await call(mkEnv(), FREE, { mode: 'plan', days, hours: 2 }); t('the normal weekly plan stays free', r.s === 200, r);
-DB['premium/' + PRO] = { at: NOW, until: Date.now() - 1000 };
-r = await call(mkEnv(), PRO, { mode: 'psummary', text: LONG }); t('an ended subscription locks the parts again', r.s === 402, r);
+r = await call(mkEnv(), FREE, { mode: 'plan', days, hours: 2, replan: true, note: 'فاتتني مهام' }); t('re-plan: free', r.s === 200 && r.j.days.length === 7, r);
+DB['premCfg'] = { f: { plan: false } };
+r = await call(mkEnv(), FREE, { mode: 'plan', days, hours: 2, replan: true }); t('re-plan switched off: 403', r.s === 403, r);
+r = await call(mkEnv(), FREE, { mode: 'plan', days, hours: 2 }); t('the normal weekly plan is not affected', r.s === 200, r);
 srv.close();
 console.log(bad ? bad + ' failed, ' + ok + ' passed' : 'all ' + ok + ' passed'); process.exit(bad ? 1 : 0);

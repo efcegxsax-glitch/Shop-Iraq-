@@ -882,10 +882,10 @@ rules = {
                 ".validate": ands("newData.child('host').val() == (data.exists() ? data.child('host').val() : auth.uid)",
                                   s_max("newData.child('title')", 60), "newData.child('at').isNumber()"),
                 "cur": {".validate": "newData.isString() && newData.val().length <= 20"},
-                # premium rooms: more seats (cap), a password room (pv, the password's hash is in ytRoomPw) and a pinned lesson video (pin)
-                "cap": {".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40 && (newData.val() <= 12 || " + PREM_ON('auth.uid') + ")"},
-                "pv": {".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists() && " + PREM_ON('auth.uid')},
-                "pin": {".validate": ands("newData.hasChildren(['v'])", s_max("newData.child('v')", 11), "(!newData.child('t').exists() || " + s_max("newData.child('t')", 100) + ")", PREM_ON('auth.uid')),
+                # more seats (cap), a password room (pv, the password's hash is in ytRoomPw) and a pinned lesson video (pin)
+                "cap": {".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40"},
+                "pv": {".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists()"},
+                "pin": {".validate": ands("newData.hasChildren(['v'])", s_max("newData.child('v')", 11), "(!newData.child('t').exists() || " + s_max("newData.child('t')", 100) + ")"),
                         "v": {".validate": "true"}, "t": {".validate": "true"}, "$other": {".validate": False}},
             },
             "queue": {"$k": {".write": ors(YR_HOST, ands(SIGNED, YR_MEMBER, "!data.exists()", "newData.child('by').val() == auth.uid"), ands(SIGNED, "!newData.exists()", "data.child('by').val() == auth.uid")), ".validate": "!newData.exists() || (" + s_max("newData.child('v')", 11) + " && newData.child('v').val().matches(/^[A-Za-z0-9_-]{11}$/))",
@@ -1012,7 +1012,7 @@ rules = {
     "ytRoomPw": {"$rid": {
         ".read": ors(ADMIN, ands(SIGNED, "root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()")),
         ".write": ors(ADMIN,
-                      ands(SIGNED, "newData.exists()", "!data.exists()", PREM_ON('auth.uid'), "newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid",
+                      ands(SIGNED, "newData.exists()", "!data.exists()", "newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid",
                            "newData.parent().parent().child('ytRooms/' + $rid + '/meta/pv').val() === true"),
                       ands(SIGNED, "root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid", "!newData.exists()")),
         ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))",

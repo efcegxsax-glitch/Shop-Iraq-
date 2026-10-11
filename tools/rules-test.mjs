@@ -363,12 +363,12 @@ await no('a student deletes a report', set(ref(db('p2'), 'tamper/t1'), null));
 await ok('the panel reads the reports', get(ref(db('adm'), 'tamper')));
 await ok('the panel deletes a report', set(ref(db('adm'), 'tamper/t1'), null));
 
-// ---- premium study rooms: more seats, a password room, a pinned lesson video
+// ---- study rooms: more seats, a password room, a pinned lesson video (free for every host)
 await seed('premium/pp1', { at: now, until: now + 86400000 });
 const HA = 'a'.repeat(64), HB = 'b'.repeat(64);
 const rmk = (host, extra) => ({ meta: Object.assign({ host, title: 'غرفة', at: now }, extra || {}), members: { [host]: { n: 'H', j: now } } });
-await no('a normal host asks for 30 seats', set(ref(db('pn'), 'ytRooms/rn1'), rmk('pn', { cap: 30 })));
-await no('a normal host makes a password room', U('pn', { 'ytRooms/rn2': rmk('pn', { pv: true }), 'ytRoomPw/rn2': HA }));
+await ok('any host asks for 30 seats', set(ref(db('pn'), 'ytRooms/rn1'), rmk('pn', { cap: 30 })));
+await ok('any host makes a password room', U('pn', { 'ytRooms/rn2': rmk('pn', { pv: true }), 'ytRoomPw/rn2': HA }));
 await ok('a normal host may ask for 12 seats', set(ref(db('pn'), 'ytRooms/rn3'), rmk('pn', { cap: 12 })));
 await ok('a premium host asks for 30 seats', set(ref(db('pp1'), 'ytRooms/rp0'), rmk('pp1', { cap: 30 })));
 await no('more than 40 seats', set(ref(db('pp1'), 'ytRooms/rp9'), rmk('pp1', { cap: 41 })));
@@ -389,7 +389,8 @@ await no('a normal student changes the room hash', set(ref(db('pn'), 'ytRoomPw/r
 await ok('a normal room is still open to join', set(ref(db('pj'), 'ytRooms/rn3/members/pj'), { n: 'J', j: now }));
 await ok('the premium host pins a lesson video', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'الدرس' }));
 await no('a bad pinned video id', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), { v: 'x'.repeat(30), t: 'x' }));
-await no('a normal host pins a video', set(ref(db('pn'), 'ytRooms/rn3/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'الدرس' }));
+await ok('any host pins a video', set(ref(db('pn'), 'ytRooms/rn3/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'الدرس' }));
+await no('a member who is not the host pins a video', set(ref(db('pj'), 'ytRooms/rn3/meta/pin'), { v: 'dQw4w9WgXcQ', t: 'x' }));
 await ok('the premium host unpins', set(ref(db('pp1'), 'ytRooms/rp1/meta/pin'), null));
 await ok('the host removes the room and its password', U('pp1', { 'ytRooms/rp1': null, 'ytRoomPw/rp1': null }));
 

@@ -1060,13 +1060,13 @@
             ".validate": "newData.isString() && newData.val().length <= 20"
           },
           "cap": {
-            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40 && (newData.val() <= 12 || (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()))"
+            ".validate": "newData.isNumber() && newData.val() >= 2 && newData.val() <= 40"
           },
           "pv": {
-            ".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists() && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber())"
+            ".validate": "newData.val() === true && newData.parent().parent().parent().parent().child('ytRoomPw/' + $rid).exists()"
           },
           "pin": {
-            ".validate": "(newData.hasChildren(['v']) && newData.child('v').isString() && newData.child('v').val().length <= 11 && (!newData.child('t').exists() || newData.child('t').isString() && newData.child('t').val().length <= 100) && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()))",
+            ".validate": "(newData.hasChildren(['v']) && newData.child('v').isString() && newData.child('v').val().length <= 11 && (!newData.child('t').exists() || newData.child('t').isString() && newData.child('t').val().length <= 100))",
             "v": {
               ".validate": "true"
             },
@@ -1280,7 +1280,7 @@
     "ytRoomPw": {
       "$rid": {
         ".read": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && root.child('ytRooms/' + $rid + '/members/' + auth.uid).exists()))",
-        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && newData.exists() && !data.exists() && (root.child('premium/' + auth.uid + '/until').isNumber() ? root.child('premium/' + auth.uid + '/until').val() > now : root.child('premium/' + auth.uid + '/at').isNumber()) && newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && newData.parent().parent().child('ytRooms/' + $rid + '/meta/pv').val() === true) || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && !newData.exists()))",
+        ".write": "((auth != null && (auth.token.email === 'panel.admin@iraqi-student-platform.app' || root.child('admins/' + auth.uid).val() === true)) || (auth != null && newData.exists() && !data.exists() && newData.parent().parent().child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && newData.parent().parent().child('ytRooms/' + $rid + '/meta/pv').val() === true) || (auth != null && root.child('ytRooms/' + $rid + '/meta/host').val() == auth.uid && !newData.exists()))",
         ".validate": "!newData.exists() || (newData.isString() && newData.val().matches(/^[a-f0-9]{64}$/))"
       }
     },

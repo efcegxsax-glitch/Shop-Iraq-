@@ -9134,7 +9134,9 @@
                 { id: 'moodmap', fn: 'goToMoodMap', t: 'خارطة الطلاب', d: 'مزاج طلاب العراق وتفاعلاتهم هسه', ic: 'map', c: '#0284C7', g: 'people' },
                 { id: 'ytroom', fn: 'goToYtRooms', t: 'غرفة يوتيوب جماعية', d: 'شوفوا الشرح سوا وكل واحد بسرعته', ic: 'tv', c: '#E11D48', g: 'people' },
                 { id: 'plan', fn: 'goToPlan', t: 'خطة الأسبوع', d: 'المعلم يرتب لك شنو تدرس كل يوم من جدولك وامتحاناتك', ic: 'calendar-check', c: '#0EA5E9', g: 'study', feat: 'plan' },
-                { id: 'premium', fn: 'goToPremium', t: 'Premium', d: 'أدوات دراسة أذكى ونقاط مضاعفة باشتراك شهري', ic: 'crown', c: '#F59E0B', g: 'tools' },
+                { id: 'premium', fn: 'goToPremium', t: 'Premium', d: 'نقاطك تتضاعف باشتراك شهري', ic: 'crown', c: '#F59E0B', g: 'tools' },
+                { id: 'pexam', fn: 'goToPmExam', t: 'امتحان من ملزمتي', d: 'ارفع ملزمتك ويطلعلك امتحان يصححه المعلم', ic: 'file-check-2', c: '#2563EB', g: 'study' },
+                { id: 'psum', fn: 'goToPmSummary', t: 'ملخص ذكي', d: 'ملخص وأسئلة مراجعة لملزمة أو محاضرة', ic: 'sparkles', c: '#7C3AED', g: 'study' },
                 { id: 'gems', fn: 'goToGems', t: 'متجر الماس', d: 'وثّق حسابك وخذ ايدي مميز بالماس', ic: 'gem', c: '#06B6D4', g: 'tools' },
                 { id: 'exams', fn: 'goToExams', t: 'الامتحانات', d: 'امتحانات من الملازم وأسئلة وزارية سابقة تحمّلها وتطبعها', ic: 'file-check-2', c: '#7C3AED', g: 'study', feat: 'exams' },
                 { id: 'tube', fn: 'goToTube', t: 'تيوب المدرسين', d: 'محاضرات أساتذتك بدون تشتيت وبنقاط', ic: 'youtube', c: '#DC2626', g: 'study', feat: 'tube' },
@@ -9759,7 +9761,18 @@
                 return false;
             },
             // a part of Premium from a screen that does not load the Premium page (the cards page, the plan page)
-            premOpenPart(id) { this._need('premium').then(() => this.premFeature(id)).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية')); },
+            // the study parts made with the AI tutor are free for everybody (the panel can switch each one off): an exam from a handout,
+            // a summary, cards from notes, a re-planned week (js/premai.js)
+            aiPart(id) {
+                const fn = { exam: 'pmExam', summary: 'pmSummary', cards: 'pmCards', plan: 'pmReplan' }[id];
+                if (!fn) return;
+                if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
+                if (!this.premFeatureOn(id)) { this.showToast('هذا الجزء مو متاح هسه'); return; }
+                this._need('premai').then(() => this[fn]()).catch(() => this.showToast('ما انحملت الصفحة، حاول مرة ثانية'));
+            },
+            premOpenPart(id) { this.aiPart(id); },
+            goToPmExam() { this.aiPart('exam'); },
+            goToPmSummary() { this.aiPart('summary'); },
             goToPremium() {
                 if (!this.isLoggedIn || !this.authUid) { this.showToast('سجّل دخولك أول'); this.goToAuth('login'); return; }
                 this.switchView('premiumView');
