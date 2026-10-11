@@ -21,7 +21,7 @@
             <input id="plNote" maxlength="200" placeholder="ملاحظة للمعلم (اختياري): مثلاً ضعيف بالفيزياء" value="${esc(S.note)}" oninput="app.plNote(this.value)">
             <button class="pl-go" ${S.busy ? 'disabled' : ''} onclick="app.plMake()">${S.busy ? 'المعلم يرتب خطتك...' : p ? 'سوّي خطة جديدة' : 'سوّي خطتي'}</button>
             ${S.err ? `<p class="pl-err">${esc(S.err)}</p>` : ''}
-            ${p && app.premFeatureOn('plan') ? `<button class="pl-re" onclick="app.premOpenPart('plan')"><i data-lucide="${app.premOn('plan') ? 'calendar-sync' : 'lock'}"></i><span>أعد ترتيب الخطة${missedN(p, today) ? ' (فاتتك ' + missedN(p, today) + ' مهمة)' : ''}</span><em>Premium</em></button>` : ''}
+            ${p && app.premFeatureOn('plan') ? `<button class="pl-re" onclick="app.aiPart('plan')"><i data-lucide="calendar-sync"></i><span>أعد ترتيب الخطة${missedN(p, today) ? ' (فاتتك ' + missedN(p, today) + ' مهمة)' : ''}</span></button>` : ''}
         </div>`;
         if (!p) { box.innerHTML = controls + '<div class="pl-empty"><i data-lucide="calendar-check"></i><b>ما عندك خطة لسه</b><p>المعلم يقرأ جدول محاضراتك وامتحاناتك ودرجاتك ويكتبلك شنو تدرس كل يوم.</p></div>'; try { lucide.createIcons(); } catch (e) {} return; }
         let total = 0, done = 0;

@@ -129,7 +129,7 @@
         _kdSnapBtn(deckId) {
             if (!/^https:\/\/[^\s]+$/.test(String(this._tutorUrl() || ''))) return '';
             return `<button class="kd-snap" onclick="app.kdSnap(${deckId ? jsArg(deckId) : 'null'})"><span><i data-lucide="camera"></i></span><div><b>صوّر صفحة وحوّلها بطاقات</b><small>المعلم الذكي يقرا الملزمة ويكتب البطاقات</small></div><i data-lucide="sparkles"></i></button>`
-                + (this.premFeatureOn('cards') ? `<button class="kd-snap" onclick="app.premOpenPart('cards')"><span><i data-lucide="${this.premOn('cards') ? 'notebook-pen' : 'lock'}"></i></span><div><b>حوّل ملاحظاتك لبطاقات</b><small>Premium: من دفتر الملاحظات مباشرة</small></div><i data-lucide="crown"></i></button>` : '');
+                + (this.premFeatureOn('cards') ? `<button class="kd-snap" onclick="app.aiPart('cards')"><span><i data-lucide="notebook-pen"></i></span><div><b>حوّل ملاحظاتك لبطاقات</b><small>من دفتر الملاحظات مباشرة</small></div><i data-lucide="sparkles"></i></button>` : '');
         },
 
         kdSnap(deckId) {

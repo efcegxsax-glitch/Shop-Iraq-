@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Hardening: no plug-ins, no <base> tag tricks, forms only post to this app, no referrer leaks -->
-    <meta name="admin-build" content="d4a8830134">
+    <meta name="admin-build" content="8343e83759">
     <meta http-equiv="Content-Security-Policy" content="object-src 'none'; base-uri 'self'; form-action 'self'">
     <meta name="referrer" content="strict-origin-when-cross-origin">
     <style id="antiFrame">html{display:none!important}</style>
@@ -2339,17 +2339,15 @@
                         <div class="ic"><i data-lucide="crown"></i></div>
                         <div>
                             <h3>اشتراك Premium: الأسعار والإعدادات</h3>
-                            <p>الطالب يشترك بالماس لمدة أيام، وإذا خلصت ترجع المزايا للوضع العادي. بدون سعر الاشتراك يبقى مقفول عند الطلاب.</p>
+                            <p>الطالب يشترك بالماس لمدة أيام ونقاطه تتضاعف، وإذا خلصت المدة ترجع عادية. بدون سعر يبقى الاشتراك مقفول عند الطلاب.</p>
                         </div>
                     </div>
                     <div class="field-grid field-grid-2">
                         <div class="field" style="margin-bottom:0;"><label>سعر الاشتراك (ماس)</label><input type="number" id="pm_price" min="1" max="100000" placeholder="مثال: 100"></div>
                         <div class="field" style="margin-bottom:0;"><label>مدة الاشتراك (أيام)</label><input type="number" id="pm_days" min="1" max="365" placeholder="30"></div>
                         <div class="field" style="margin-bottom:0;"><label>مضاعف النقاط (1 إلى 3)</label><input type="number" id="pm_mult" min="1" max="3" placeholder="2"></div>
-                        <div class="field" style="margin-bottom:0;"><label>عدد الدفاتر المجانية للطالب العادي</label><input type="number" id="pm_fnotes" min="1" max="1000" placeholder="5"></div>
-                        <div class="field" style="margin-bottom:0;"><label>امتحانات مجانية بالشهر للطالب العادي</label><input type="number" id="pm_fexams" min="0" max="100" placeholder="2"></div>
                     </div>
-                    <p class="text-slate-400 text-xs" style="margin:12px 0 6px;">الأجزاء المفعّلة (طفّي جزء إذا تريده يختفي من عند الكل):</p>
+                    <p class="text-slate-400 text-xs" style="margin:12px 0 6px;">الاشتراك يشمل هسه النقاط المضاعفة بس. الأجزاء الذكية مجانية للكل، وتكدر تطفي أي جزء إذا تريده يختفي:</p>
                     <div id="pm_feats" style="display:flex;flex-direction:column;gap:6px;"></div>
                     <button class="btn mt-4" id="pm_save">حفظ</button>
                     <p id="pm_ex" class="text-slate-400 text-xs" style="margin-top:8px;"></p>
@@ -3602,24 +3600,23 @@
         const RP_TYPES = { user: 'طالب', message: 'رسالة خاصة', thread: 'منشور بالمنتدى', answer: 'إجابة بالمنتدى', dream: 'حلم', idea: 'فكرة', vent: 'فضفضة', room: 'غرفة' };
         const RP_DEL = /^((forumThreads|forumAnswers|dreams|ideas)\/[A-Za-z0-9_-]+(\/[A-Za-z0-9_-]+)?|(ytRooms|rmRooms)\/[A-Za-z0-9_-]+\/chat\/[A-Za-z0-9_-]+)$/;
         // ---------- Premium ----------
-        // premCfg = { price, days, mult, freeNotes, freeExams, f: {part: false} }; premium/{uid} = { at, until?, name }. A record without `until` never ends.
-        const PM_FEATS = [['mult', 'نقاط مضاعفة'], ['exam', 'امتحانات من الملازم'], ['summary', 'ملخص ذكي'], ['cards', 'بطاقات حفظ من الملاحظات'], ['plan', 'خطة دراسة تتعدل لحالها'], ['notes', 'ملاحظات بلا حدود (مجلدات، بحث، PDF)'], ['rooms', 'غرف دراسة مميزة']];
+        // premCfg = { price, days, mult, f: {part: false} } (f also switches off the free study parts); premium/{uid} = { at, until?, name }. A record without `until` never ends.
+        const PM_FEATS = [['mult', 'نقاط مضاعفة (Premium)'], ['exam', 'امتحان من ملزمتي (مجاني)'], ['summary', 'ملخص ذكي (مجاني)'], ['cards', 'بطاقات من الملاحظات (مجاني)'], ['plan', 'إعادة ترتيب الخطة (مجاني)'], ['notes', 'مجلدات وبحث وPDF بالملاحظات (مجاني)'], ['rooms', 'مقاعد أكثر وكلمة سر وتثبيت فيديو بالغرف (مجاني)']];
         let premData = {};
         function attachPremium() {
             el('pm_feats').innerHTML = PM_FEATS.map(([k, t]) => `<label style="display:flex;align-items:center;gap:8px;font-size:13px;"><input type="checkbox" id="pm_f_${k}" checked> ${escapeHtml(t)}</label>`).join('');
             onValue(ref(db, 'premCfg'), (snap) => {
                 const c = snap.exists() ? snap.val() : {}, put = (id, v) => { if (document.activeElement !== el(id)) el(id).value = v == null ? '' : v; };
-                put('pm_price', c.price); put('pm_days', c.days); put('pm_mult', c.mult); put('pm_fnotes', c.freeNotes); put('pm_fexams', c.freeExams);
+                put('pm_price', c.price); put('pm_days', c.days); put('pm_mult', c.mult);
                 PM_FEATS.forEach(([k]) => { el('pm_f_' + k).checked = !(c.f && c.f[k] === false); });
                 el('pm_ex').textContent = c.price ? 'الآن: ' + c.price + ' ماس لـ ' + (c.days || 30) + ' يوم، ونقاط ×' + (c.mult || 2) + '.' : 'السعر ما انحفظ بعد، الاشتراك مقفول عند الطلاب.';
             }, () => {});
             el('pm_save').addEventListener('click', async () => {
                 const n = (id) => Number(val(id));
-                const cfg = { price: Math.round(n('pm_price')), days: Math.round(n('pm_days')) || 30, mult: Math.round(n('pm_mult')) || 2, freeNotes: Math.round(n('pm_fnotes')) || 5, freeExams: val('pm_fexams') === '' ? 2 : Math.round(n('pm_fexams')), f: {} };
+                const cfg = { price: Math.round(n('pm_price')), days: Math.round(n('pm_days')) || 30, mult: Math.round(n('pm_mult')) || 2, f: {} };
                 if (!(cfg.price >= 1 && cfg.price <= 100000)) { toast('اكتب سعر الاشتراك (من 1 إلى 100000)', false); return; }
                 if (!(cfg.days >= 1 && cfg.days <= 365)) { toast('المدة من 1 إلى 365 يوم', false); return; }
                 if (!(cfg.mult >= 1 && cfg.mult <= 3)) { toast('المضاعف من 1 إلى 3', false); return; }
-                if (!(cfg.freeNotes >= 1 && cfg.freeNotes <= 1000) || !(cfg.freeExams >= 0 && cfg.freeExams <= 100)) { toast('راجع عدد الدفاتر والامتحانات المجانية', false); return; }
                 PM_FEATS.forEach(([k]) => { if (!el('pm_f_' + k).checked) cfg.f[k] = false; });
                 if (!Object.keys(cfg.f).length) delete cfg.f;
                 try { await set(ref(db, 'premCfg'), cfg); toast('انحفظ اشتراك Premium'); } catch (e) { toast('فشل الحفظ', false); }

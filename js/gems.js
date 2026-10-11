@@ -53,7 +53,7 @@
                 <div class="gm-hl"><small>رصيدك من الماس</small><b>${gem(30)}<span>${AR(myGems())}</span></b></div>
                 <button class="gm-top" onclick="app.gmTopup()"><i data-lucide="plus"></i>اشحن</button>
             </section>
-            <button class="gm-prem" onclick="app.goToPremium()"><span class="gm-ci" style="--c:#F59E0B"><i data-lucide="crown"></i></span><span class="gm-rt"><b>Premium</b><small>${app.premActive() ? 'مشترك' + (app._prem && typeof app._prem.until === 'number' ? '. باقي ' + Math.max(0, Math.ceil((app._prem.until - Date.now()) / DAY)) + ' يوم' : ' دائماً') : 'نقاط مضاعفة وأدوات دراسة ذكية'}</small></span><i data-lucide="chevron-left"></i></button>
+            <button class="gm-prem" onclick="app.goToPremium()"><span class="gm-ci" style="--c:#F59E0B"><i data-lucide="crown"></i></span><span class="gm-rt"><b>Premium</b><small>${app.premActive() ? 'مشترك' + (app._prem && typeof app._prem.until === 'number' ? '. باقي ' + Math.max(0, Math.ceil((app._prem.until - Date.now()) / DAY)) + ' يوم' : ' دائماً') : 'نقاطك تتضاعف ×2'}</small></span><i data-lucide="chevron-left"></i></button>
             <h3 class="gm-h">المتجر</h3>
             <section class="gm-card">
                 ${row('#0095F6', badge, 'توثيق الحساب', 'علامة زرقاء جنب اسمك لمدة ' + vdays() + ' يوم', vp == null ? '' : `<span class="gm-pill">${gem(14)}${AR(vp)}</span>`)}
