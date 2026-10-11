@@ -9,7 +9,7 @@
     const $ = (id) => document.getElementById(id);
     const R = (p) => H().ref(window.firebaseDb, p);
     const AR = (n) => Number(n || 0).toLocaleString('en-US');
-    let CFG = null, cfgUn = null, logList = [], logUn = null, idState = { n: '', st: '' }, off = 0, busy = false;
+    let CFG = null, cfgUn = null, logList = [], logUn = null, idState = { n: '', st: '', len: 0 }, off = 0, busy = false;
     const gem = (px) => app.gemIcon(px);
     const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
     const myGems = () => num(app.currentUser && app.currentUser.gems);
@@ -43,37 +43,37 @@
             : v ? '<em class="end">انتهى توثيقك. تريد تجدده؟</em>' : '<em>حسابك مو موثّق</em>';
         const vBtn = permanent ? '<button class="gm-btn" disabled>موثّق دائماً</button>'
             : `<button class="gm-btn" ${ready && !busy ? '' : 'disabled'} onclick="app.gmBuyVerify()">${gem(18)}<span>${vp == null ? 'غير متاح هسه' : (active ? 'جدّد ' : 'وثّق حسابي ') + AR(vp)}</span></button>`;
-        const tiers = ID_LENS.map((l) => `<span class="gm-tier${idPrice(l) == null ? ' off' : ''}"><b>${l}</b> أرقام ${idPrice(l) == null ? '' : gem(13) + AR(idPrice(l))}</span>`).join('');
         const sn = (app.currentUser && app.currentUser.studentNumber) || '';
+        const L = idState.len || 0, lp = L ? idPrice(L) : null;
+        const tiers = ID_LENS.map((l) => `<button class="gm-seg${L === l ? ' on' : ''}" ${idPrice(l) == null ? 'disabled' : ''} onclick="app.gmPickLen(${l})"><b>${l}</b><small>${idPrice(l) == null ? 'غير متاح' : gem(12) + AR(idPrice(l))}</small></button>`).join('');
+        const wOn = app.walletPrice() > 0, wLocked = wOn && app.walletLocked();
+        const row = (c, ic, title, sub, right) => `<div class="gm-row"><span class="gm-ci" style="--c:${c}">${ic}</span><div class="gm-rt"><b>${title}</b><small>${sub}</small></div>${right || ''}</div>`;
         box.innerHTML = `
             <section class="gm-hero">
-                <span class="gm-orb" aria-hidden="true">${gem(46)}</span>
-                <div><small>رصيدك من الماس</small><b>${AR(myGems())}</b></div>
-                <button class="gm-top" onclick="app.gmTopup()"><i data-lucide="plus"></i>اشحن الماس</button>
+                <div class="gm-hl"><small>رصيدك من الماس</small><b>${gem(30)}<span>${AR(myGems())}</span></b></div>
+                <button class="gm-top" onclick="app.gmTopup()"><i data-lucide="plus"></i>اشحن</button>
             </section>
+            <h3 class="gm-h">المتجر</h3>
             <section class="gm-card">
-                <div class="gm-ch"><span class="gm-ci" style="--c:#0095F6">${badge}</span><div><b>توثيق الحساب</b><small>العلامة الزرقاء جنب اسمك بكل مكان: الرسائل، الأوائل، المنتدى والغرف</small></div></div>
+                ${row('#0095F6', badge, 'توثيق الحساب', 'علامة زرقاء جنب اسمك لمدة ' + vdays() + ' يوم', vp == null ? '' : `<span class="gm-pill">${gem(14)}${AR(vp)}</span>`)}
                 <div class="gm-prev"><span>${esc(name)}</span>${badge}</div>
-                <div class="gm-meta"><span>المدة: <b>${vdays()} يوم</b></span>${vStatus}</div>
+                <div class="gm-st">${vStatus}</div>
                 ${vBtn}
-                <p class="gm-note">إذا خلصت المدة تختفي العلامة، وتكدر تجددها وقت ما تريد. التجديد قبل ما تخلص يضيف الأيام على الباقي.</p>
             </section>
-            ${app.walletPrice() > 0 ? `<section class="gm-card">
-                <div class="gm-ch"><span class="gm-ci" style="--c:#10B981"><i data-lucide="wallet"></i></span><div><b>تفعيل المحفظة (رصيدي)</b><small>مرة وحدة وتبقى لك: رصيد، تحويل لأصدقائك، إيداع بالأكواد واستبدال النقاط</small></div></div>
-                <div class="gm-meta">${app.walletLocked() ? '<em>محفظتك مقفولة</em>' : '<em class="ok">محفظتك مفعّلة</em>'}</div>
-                <button class="gm-btn" ${app.walletLocked() && !busy ? '' : 'disabled'} onclick="app.gmBuyWallet()">${gem(18)}<span>${app.walletLocked() ? 'فعّل المحفظة ' + AR(app.walletPrice()) : 'مفعّلة'}</span></button>
+            ${wOn ? `<section class="gm-card">
+                ${row('#10B981', '<i data-lucide="wallet"></i>', 'تفعيل المحفظة', 'مرة وحدة وتبقى لك للأبد', `<span class="gm-pill">${gem(14)}${AR(app.walletPrice())}</span>`)}
+                <div class="gm-st">${wLocked ? '<em>محفظتك مقفولة</em>' : '<em class="ok">محفظتك مفعّلة</em>'}</div>
+                <button class="gm-btn" ${wLocked && !busy ? '' : 'disabled'} onclick="app.gmBuyWallet()">${wLocked ? gem(18) + '<span>فعّل المحفظة</span>' : '<span>مفعّلة</span>'}</button>
             </section>` : ''}
             <section class="gm-card">
-                <div class="gm-ch"><span class="gm-ci" style="--c:#7C3AED"><i data-lucide="hash"></i></span><div><b>ايدي مميز</b><small>رقم قصير وأنيق يصير رقمك بالتطبيق، وما يكدر أحد غيرك ياخذه</small></div></div>
-                <div class="gm-now">رقمك الحالي: <b dir="ltr">${esc(sn || '-')}</b></div>
-                <div class="gm-tiers">${tiers}</div>
-                <div class="gm-in"><input id="gmId" inputmode="numeric" maxlength="8" dir="ltr" placeholder="اكتب الرقم اللي تريده" oninput="app.gmCheckId()" value="${esc(idState.n)}"></div>
+                ${row('#7C3AED', '<i data-lucide="hash"></i>', 'ايدي مميز', 'رقم قصير يصير رقمك بالتطبيق', `<span class="gm-pill ghost">رقمك <b dir="ltr">${esc(sn || '-')}</b></span>`)}
+                <div class="gm-segs">${tiers}</div>
+                <div class="gm-in"><input id="gmId" inputmode="numeric" maxlength="${L || 8}" dir="ltr" placeholder="${L ? 'اكتب رقم من ' + L + ' خانات' : 'اختار عدد الخانات فوق'}" ${L ? '' : 'disabled'} oninput="app.gmCheckId()" value="${esc(idState.n)}"></div>
                 <div id="gmIdMsg" class="gm-idmsg"></div>
-                <button class="gm-btn" id="gmIdBtn" disabled onclick="app.gmBuyId()">${gem(18)}<span>اشتري الرقم</span></button>
-                <p class="gm-note">الرقم من 3 إلى 8 أرقام. رقمك القديم يتحرر. كل تغيير له سعره.</p>
+                <button class="gm-btn" id="gmIdBtn" disabled onclick="app.gmBuyId()">${gem(18)}<span>${lp == null ? 'اشتري الرقم' : 'اشتري الرقم ' + AR(lp)}</span></button>
             </section>
-            ${logList.length ? `<section class="gm-card"><div class="gm-ch"><span class="gm-ci" style="--c:#16A34A"><i data-lucide="receipt"></i></span><div><b>آخر مشترياتك</b></div></div>
-                ${logList.map((l) => `<div class="gm-log"><span>${l.k === 'verify' ? 'توثيق الحساب' : l.k === 'wallet' ? 'تفعيل المحفظة' : 'ايدي مميز ' + esc(l.x || '')}</span><b>${gem(13)}${AR(l.g)}</b><small>${esc(date(l.at))}</small></div>`).join('')}</section>` : ''}
+            ${logList.length ? `<h3 class="gm-h">آخر مشترياتك</h3><section class="gm-card gm-logs">
+                ${logList.map((l) => `<div class="gm-log"><span>${l.k === 'verify' ? 'توثيق الحساب' : l.k === 'wallet' ? 'تفعيل المحفظة' : 'ايدي مميز ' + esc(l.x || '')}<small>${esc(date(l.at))}</small></span><b>${gem(13)}${AR(l.g)}</b></div>`).join('')}</section>` : ''}
             <p class="gm-foot">الماس عملة داخل التطبيق بس، وما ينسحب نقداً.</p>`;
         try { lucide.createIcons(); } catch (e) {}
         if (idState.n) check();
@@ -132,6 +132,7 @@
         },
 
         // ---------- the special ID ----------
+        gmPickLen(l) { idState.len = l; idState.n = idState.n.slice(0, l); idState.st = ''; paint(); const i = $('gmId'); if (i) i.focus(); },
         gmCheckId() { idState.n = digits(($('gmId') || {}).value); const i = $('gmId'); if (i && i.value !== idState.n) i.value = idState.n; check(); },
         async gmBuyId() {
             if (busy) return;
@@ -152,7 +153,7 @@
                 await H().update(H().ref(window.firebaseDb), up);
                 app.currentUser.gems = g - p; app.currentUser.studentNumber = n; app.saveUserData && app.saveUserData();
                 try { const wn = document.getElementById('walletCardNumber'); if (wn) wn.textContent = '#' + n; } catch (e) { /* the card redraws later */ }
-                idState = { n: '', st: '' };
+                idState = { n: '', st: '', len: 0 };
                 app.showToast('صار رقمك ' + n);
             } catch (e) {
                 console.warn('gem id', e);
@@ -211,6 +212,7 @@
         if (!msg || !btn) return;
         const set = (st, t, cls) => { idState.st = st; msg.className = 'gm-idmsg ' + (cls || ''); msg.textContent = t; btn.disabled = st !== 'free' || busy; };
         if (!n) { set('', ''); return; }
+        if (idState.len && n.length !== idState.len) { set('bad', 'اكتب ' + idState.len + ' خانات بالضبط', 'bad'); return; }
         if (ID_LENS.indexOf(n.length) < 0) { set('bad', n.length === 5 ? 'الأرقام من 5 خانات ما تنباع، اختار 3 أو 4 أو من 6 إلى 8' : 'اكتب من 3 إلى 8 أرقام', 'bad'); return; }
         if (n[0] === '0') { set('bad', 'الرقم ما يبدأ بصفر', 'bad'); return; }
         if (idPrice(n.length) == null) { set('bad', 'هذا الطول مو متاح هسه', 'bad'); return; }
